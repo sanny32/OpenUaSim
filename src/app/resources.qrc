@@ -33,5 +33,8 @@
         <file alias="icons/upload.svg">res/icons/upload.svg</file>
         <file alias="icons/user.svg">res/icons/user.svg</file>
         <file alias="icons/users.svg">res/icons/users.svg</file>
+        <file alias="icons/database-fill.svg">res/icons/database-fill.svg</file>
+        <file alias="icons/lock-fill.svg">res/icons/lock-fill.svg</file>
+        <file alias="icons/users-fill.svg">res/icons/users-fill.svg</file>
     </qresource>
 </RCC>
