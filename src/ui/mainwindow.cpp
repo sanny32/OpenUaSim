@@ -18,6 +18,12 @@
 #include "ui_mainwindow.h"
 #include "viewsetup.h"
 
+namespace {
+
+constexpr double kEventLogShare = 0.28;
+
+}
+
 ///
 /// \brief Builds the window.
 /// \param theme Theme manager driven by the theme menu; null hides the theme button.
@@ -38,7 +44,6 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     setupIcons();
     setupThemeMenu();
 
-    ui->contentSplitter->setSizes({ 640, 210 });
     ui->eventLog->setLogModel(_logModel);
     ui->logPage->setLogModel(_logModel);
 
@@ -92,6 +97,24 @@ LogModel *MainWindow::logModel() const
 }
 
 ///
+/// \brief Splits the content between the pages and the event log on the first show.
+/// \param event Show event.
+///
+void MainWindow::showEvent(QShowEvent *event)
+{
+    QMainWindow::showEvent(event);
+    if (_contentSplitApplied)
+        return;
+    _contentSplitApplied = true;
+
+    // Sizes are only known once the window is laid out; the pages' minimum height still wins.
+    const QList<int> sizes = ui->contentSplitter->sizes();
+    const int total = sizes.value(0) + sizes.value(1);
+    const int log = qRound(total * kEventLogShare);
+    ui->contentSplitter->setSizes({ total - log, log });
+}
+
+///
 /// \brief Gives the toolbar buttons their icons.
 ///
 void MainWindow::setupIcons()
@@ -102,7 +125,7 @@ void MainWindow::setupIcons()
     ui->importModelButton->setIcon(AppIcons::icon(QStringLiteral("import")));
     ui->saveButton->setIcon(AppIcons::icon(QStringLiteral("save")));
     ui->themeButton->setIcon(AppIcons::icon(QStringLiteral("theme")));
-    ViewSetup::bindCopyButton(ui->copyEndpointButton, ui->endpointEdit);
+    ViewSetup::addCopyAction(ui->endpointEdit);
 }
 
 ///

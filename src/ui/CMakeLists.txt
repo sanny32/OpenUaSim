@@ -47,6 +47,8 @@ add_library(ouasim_ui STATIC
 
     style/apppalette.cpp
     style/apppalette.h
+    style/appstyle.cpp
+    style/appstyle.h
 
     widgets/eventlogwidget.cpp
     widgets/eventlogwidget.h

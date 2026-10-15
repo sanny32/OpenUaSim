@@ -28,6 +28,7 @@ TypesPage::TypesPage(QWidget *parent)
     , _referencesModel(new ReferencesModel(this))
 {
     ui->setupUi(this);
+    ViewSetup::splitByStretch(ui->splitter);
     ViewSetup::bindCopyButton(ui->copyBrowseNameButton, ui->browseNameEdit);
     ViewSetup::bindCopyButton(ui->copyNodeIdButton, ui->nodeIdEdit);
 

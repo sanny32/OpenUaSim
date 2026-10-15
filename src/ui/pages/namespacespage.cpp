@@ -26,6 +26,7 @@ NamespacesPage::NamespacesPage(QWidget *parent)
     , _namespacesModel(new NamespacesModel(this))
 {
     ui->setupUi(this);
+    ViewSetup::splitByStretch(ui->splitter);
     ViewSetup::bindCopyButton(ui->copyIndexButton, ui->indexEdit);
     ViewSetup::bindCopyButton(ui->copyUriButton, ui->uriEdit);
     ui->importButton->setIcon(AppIcons::icon(QStringLiteral("download")));

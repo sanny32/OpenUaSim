@@ -118,5 +118,5 @@ void StatusIndicator::paintEvent(QPaintEvent *event)
 ///
 int StatusIndicator::dotDiameter() const
 {
-    return qRound(fontMetrics().height() * 0.7);
+    return qRound(fontMetrics().height() * 0.85);
 }

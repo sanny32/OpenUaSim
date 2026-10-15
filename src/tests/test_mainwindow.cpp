@@ -5,6 +5,7 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QPushButton>
+#include <QSplitter>
 #include <QTabWidget>
 #include <QTest>
 #include <QToolButton>
@@ -39,6 +40,8 @@ private slots:
     void hasAllPages();
     void showsSnapshot();
     void eventLogFollowsTab();
+    void eventLogGetsItsShareOnFirstShow();
+    void pagesDoNotBlockTheEventLog();
     void statusBarNoteFollowsTab();
     void themeButtonHiddenWithoutTheme();
     void themeMenuSwitchesTheme();
@@ -55,6 +58,7 @@ void TestMainWindow::hasAllPages()
     for (int i = 0; i < expected.size(); ++i)
         QCOMPARE(tabs->tabText(i), expected.at(i));
     QCOMPARE(window.windowTitle(), QStringLiteral("OpenUaSim"));
+    QCOMPARE(window.size(), QSize(1331, 725));
 }
 
 void TestMainWindow::showsSnapshot()
@@ -87,6 +91,32 @@ void TestMainWindow::eventLogFollowsTab()
 
     tabs->setCurrentWidget(child<QWidget>(window, "logPage"));
     QVERIFY(!eventLog->isVisible());
+}
+
+void TestMainWindow::eventLogGetsItsShareOnFirstShow()
+{
+    MainWindow window;
+    window.setSnapshot(MockData::snapshot());
+    window.resize(1068, 614);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+    const QList<int> sizes = child<QSplitter>(window, "contentSplitter")->sizes();
+    QCOMPARE(sizes.size(), 2);
+    QVERIFY2(sizes.at(1) >= (sizes.at(0) + sizes.at(1)) / 4,
+             qPrintable(QStringLiteral("pages %1, log %2").arg(sizes.at(0)).arg(sizes.at(1))));
+}
+
+void TestMainWindow::pagesDoNotBlockTheEventLog()
+{
+    MainWindow window;
+    window.setSnapshot(MockData::snapshot());
+    const auto *tabs = child<QTabWidget>(window, "tabWidget");
+    for (int i = 0; i < tabs->count(); ++i) {
+        QVERIFY2(tabs->widget(i)->minimumSizeHint().height() <= 300,
+                 qPrintable(QStringLiteral("%1: %2").arg(tabs->tabText(i))
+                                .arg(tabs->widget(i)->minimumSizeHint().height())));
+    }
 }
 
 void TestMainWindow::statusBarNoteFollowsTab()

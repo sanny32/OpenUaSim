@@ -15,6 +15,7 @@ class QAbstractItemModel;
 class QAbstractItemView;
 class QLineEdit;
 class QSortFilterProxyModel;
+class QSplitter;
 class QTableView;
 class QTreeView;
 
@@ -37,11 +38,17 @@ enum class ColumnSizing {
 };
 
 ///
-/// \brief Installs the item delegate and left-aligns the header of a table.
+/// \brief Installs the item delegate, left-aligns the header and sets the design row height.
 /// \param view Table view to configure.
 /// \param sizing How the columns share the view width.
 ///
 void configureTable(QTableView *view, ColumnSizing sizing = ColumnSizing::Stretch);
+
+///
+/// \brief Sizes the panes of a splitter in proportion to their horizontal stretch factors.
+/// \param splitter Splitter to size; panes without a stretch factor count as one.
+///
+void splitByStretch(QSplitter *splitter);
 
 ///
 /// \brief Puts a case-insensitive, recursive text filter between a tree model and its view
@@ -82,6 +89,12 @@ void selectRow(QTableView *view, int row);
 /// \param source Line edit whose text is copied.
 ///
 void bindCopyButton(QAbstractButton *button, QLineEdit *source);
+
+///
+/// \brief Adds a trailing copy button inside a line edit that copies its text to the clipboard.
+/// \param edit Line edit to extend.
+///
+void addCopyAction(QLineEdit *edit);
 
 ///
 /// \brief Returns the identifier of the current item of a view.

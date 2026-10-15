@@ -13,6 +13,12 @@
 #include "ui_eventlogwidget.h"
 #include "viewsetup.h"
 
+namespace {
+
+constexpr int kCompactRowHeight = 24;
+
+}
+
 ///
 /// \brief Builds the panel.
 /// \param parent Parent widget.
@@ -22,7 +28,11 @@ EventLogWidget::EventLogWidget(QWidget *parent)
     , ui(new Ui::EventLogWidget)
 {
     ui->setupUi(this);
-    ViewSetup::configureTable(ui->logView, ViewSetup::ColumnSizing::Interactive);    connect(ui->clearButton, &QPushButton::clicked, this, &EventLogWidget::clearLog);
+    ViewSetup::configureTable(ui->logView, ViewSetup::ColumnSizing::Interactive);
+    // A short strip under the pages: compact rows fit more entries than the delegate's default.
+    ui->logView->verticalHeader()->setMinimumSectionSize(kCompactRowHeight);
+    ui->logView->verticalHeader()->setDefaultSectionSize(kCompactRowHeight);
+    connect(ui->clearButton, &QPushButton::clicked, this, &EventLogWidget::clearLog);
 }
 
 ///
@@ -42,8 +52,8 @@ void EventLogWidget::setLogModel(LogModel *model)
     _model = model;
     ui->logView->setModel(model);
     ui->logView->hideColumn(LogModel::ColCategory);
-    ui->logView->setColumnWidth(LogModel::ColTime, 230);
-    ui->logView->setColumnWidth(LogModel::ColLevel, 140);
+    ui->logView->setColumnWidth(LogModel::ColTime, 170);
+    ui->logView->setColumnWidth(LogModel::ColLevel, 110);
     connect(model, &LogModel::rowsInserted, this, &EventLogWidget::scrollToBottom);
     connect(model, &LogModel::modelReset, this, &EventLogWidget::scrollToBottom);
     scrollToBottom();

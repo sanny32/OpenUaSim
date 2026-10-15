@@ -12,8 +12,9 @@
 
 namespace {
 
-constexpr int kMinimumRowHeight = 30;
-constexpr int kMultiLinePadding = 12;
+constexpr int kMinimumRowHeight = 27;
+constexpr int kMultiLinePadding = 21;
+constexpr double kStatusDotScale = 0.75;
 
 }
 
@@ -50,17 +51,24 @@ void ItemDelegate::initStyleOption(QStyleOptionViewItem *option, const QModelInd
 {
     QStyledItemDelegate::initStyleOption(option, index);
 
-    QIcon icon;
     const QVariant iconName = index.data(ItemRoles::IconName);
-    if (iconName.isValid())
-        icon = AppIcons::icon(iconName.toString());
-    else
-        icon = AppIcons::statusDot(ItemRoles::statusFrom(index.data(ItemRoles::Status)));
-
-    if (icon.isNull())
+    if (iconName.isValid()) {
+        const QIcon icon = AppIcons::icon(iconName.toString());
+        if (icon.isNull())
+            return;
+        option->icon = icon;
+        option->features |= QStyleOptionViewItem::HasDecoration;
+        if (!option->decorationSize.isValid() || option->decorationSize.width() < 16)
+            option->decorationSize = QSize(16, 16);
         return;
-    option->icon = icon;
+    }
+
+    const QIcon dot = AppIcons::statusDot(ItemRoles::statusFrom(index.data(ItemRoles::Status)));
+    if (dot.isNull())
+        return;
+    // Status dots stay text-sized even in views with large icons.
+    const int side = qRound(option->fontMetrics.height() * kStatusDotScale);
+    option->icon = dot;
     option->features |= QStyleOptionViewItem::HasDecoration;
-    if (!option->decorationSize.isValid() || option->decorationSize.width() < 16)
-        option->decorationSize = QSize(16, 16);
+    option->decorationSize = QSize(side, side);
 }

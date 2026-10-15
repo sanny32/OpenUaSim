@@ -54,6 +54,9 @@ public:
     ///
     LogModel *logModel() const;
 
+protected:
+    void showEvent(QShowEvent *event) override;
+
 private:
     void setupIcons();
     void setupThemeMenu();
@@ -67,4 +70,5 @@ private:
     LogModel *_logModel;
     AppTheme *_theme;
     ServerStatus _status;
+    bool _contentSplitApplied = false;
 };

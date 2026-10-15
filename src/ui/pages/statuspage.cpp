@@ -21,8 +21,8 @@ StatusPage::StatusPage(QWidget *parent)
 {
     ui->setupUi(this);
     ui->serverStatusIndicator->setColoredText(true);
-    // Both panels expand, so QSplitter would ignore their stretch factors; the sizes act as a 3:2 ratio.
-    ui->splitter->setSizes({ 3000, 2000 });
+    // Both panels expand, so QSplitter would ignore their stretch factors; the sizes act as a ratio.
+    ui->splitter->setSizes({ 1930, 1000 });
     setupCards();
 }
 
@@ -72,15 +72,15 @@ void StatusPage::setupCards()
     ui->serverStatusCard->setCaption(tr("Server Status"));
     ui->serverStatusCard->setChevronVisible(false);
 
-    ui->clientsCard->setIcon(QStringLiteral("users"), QColor(0x3b82f6));
+    ui->clientsCard->setIcon(QStringLiteral("users-fill"), QColor(0x3b82f6));
     ui->clientsCard->setCaption(tr("Clients Connected"));
 
     ui->nodesCard->setIcon(QStringLiteral("nodes"), QColor(0xa78bfa));
     ui->nodesCard->setCaption(tr("Total Nodes"));
 
-    ui->namespacesCard->setIcon(QStringLiteral("database"), QColor(0xf5b82e));
+    ui->namespacesCard->setIcon(QStringLiteral("database-fill"), QColor(0xf5b82e));
     ui->namespacesCard->setCaption(tr("Namespaces"));
 
-    ui->securityCard->setIcon(QStringLiteral("lock"), QColor(0x3b82f6));
+    ui->securityCard->setIcon(QStringLiteral("lock-fill"), QColor(0x3b82f6));
     ui->securityCard->setCaption(tr("Security Modes"));
 }

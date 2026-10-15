@@ -24,6 +24,7 @@ ObjectsPage::ObjectsPage(QWidget *parent)
     , _variablesModel(new VariablesModel(this))
 {
     ui->setupUi(this);
+    ViewSetup::splitByStretch(ui->splitter);
     ViewSetup::bindCopyButton(ui->copyNodeIdButton, ui->nodeIdEdit);
 
     ViewSetup::installDelegate(ui->addressTree);

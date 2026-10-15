@@ -24,7 +24,7 @@ QColor status(StatusKind kind)
     const bool dark = AppPalette::isDark(QGuiApplication::palette());
     switch (kind) {
     case StatusKind::Good:     return QColor(0x22c55e);
-    case StatusKind::Info:     return dark ? QColor(0x3b82f6) : QColor(0x2563eb);
+    case StatusKind::Info:     return QColor(0x3b9dff);
     case StatusKind::Warning:  return QColor(0xeab308);
     case StatusKind::Error:    return QColor(0xef4444);
     case StatusKind::Inactive: return dark ? QColor(0x6b7280) : QColor(0x9ca3af);

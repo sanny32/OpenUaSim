@@ -9,6 +9,7 @@
 #include <QIcon>
 
 #include "application.h"
+#include "appstyle.h"
 
 ///
 /// \brief Constructs the application, installs the style, and applies the saved theme.
@@ -23,9 +24,9 @@ Application::Application(int &argc, char **argv)
     setApplicationVersion(QStringLiteral(APP_VERSION));
     setWindowIcon(QIcon(QStringLiteral(":/icons/app.svg")));
 
-    // Fusion renders entirely from the palette, which is what makes both themes possible
-    // without style sheets.
-    setStyle(QStringLiteral("Fusion"));
+    // AppStyle draws on top of Fusion, which renders entirely from the palette: that is what
+    // makes both themes possible without style sheets.
+    setStyle(new AppStyle);
     _theme.applySavedMode();
 }
 

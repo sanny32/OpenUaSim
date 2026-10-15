@@ -24,6 +24,7 @@ LogPage::LogPage(QWidget *parent)
     , _filter(new LogFilterProxyModel(this))
 {
     ui->setupUi(this);
+    ViewSetup::splitByStretch(ui->splitter);
     ui->clearLogButton->setIcon(AppIcons::icon(QStringLiteral("trash")));
     ui->exportLogButton->setIcon(AppIcons::icon(QStringLiteral("download")));
 
@@ -56,9 +57,9 @@ void LogPage::setLogModel(LogModel *model)
 {
     _model = model;
     _filter->setSourceModel(model);
-    ui->logView->setColumnWidth(LogModel::ColTime, 220);
-    ui->logView->setColumnWidth(LogModel::ColLevel, 130);
-    ui->logView->setColumnWidth(LogModel::ColCategory, 130);
+    ui->logView->setColumnWidth(LogModel::ColTime, 170);
+    ui->logView->setColumnWidth(LogModel::ColLevel, 110);
+    ui->logView->setColumnWidth(LogModel::ColCategory, 105);
     refreshDetails();
 }
 

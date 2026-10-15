@@ -31,6 +31,7 @@ EndpointsPage::EndpointsPage(QWidget *parent)
     , _endpointsModel(new EndpointsModel(this))
 {
     ui->setupUi(this);
+    ViewSetup::splitByStretch(ui->splitter);
     ui->endpointsList->setIconSize(QSize(24, 24));
 
     ViewSetup::installDelegate(ui->endpointsList);

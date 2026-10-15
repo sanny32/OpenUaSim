@@ -27,6 +27,7 @@ SessionsPage::SessionsPage(QWidget *parent)
     , _sessionsModel(new SessionsModel(this))
 {
     ui->setupUi(this);
+    ViewSetup::splitByStretch(ui->splitter);
     ViewSetup::bindCopyButton(ui->copySessionIdButton, ui->sessionIdEdit);
     ui->showSubscriptionsButton->setIcon(AppIcons::icon(QStringLiteral("list")));
 

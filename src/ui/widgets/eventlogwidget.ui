@@ -13,26 +13,47 @@
   <property name="frameShape">
    <enum>QFrame::StyledPanel</enum>
   </property>
+  <property name="panel" stdset="0">
+   <bool>true</bool>
+  </property>
   <layout class="QVBoxLayout" name="mainLayout">
    <property name="spacing">
-    <number>8</number>
+    <number>0</number>
    </property>
    <property name="leftMargin">
-    <number>12</number>
+    <number>1</number>
    </property>
    <property name="topMargin">
-    <number>8</number>
+    <number>1</number>
    </property>
    <property name="rightMargin">
-    <number>12</number>
+    <number>1</number>
    </property>
    <property name="bottomMargin">
-    <number>8</number>
+    <number>4</number>
    </property>
    <item>
     <layout class="QHBoxLayout" name="headerLayout">
+     <property name="leftMargin">
+      <number>12</number>
+     </property>
+     <property name="topMargin">
+      <number>4</number>
+     </property>
+     <property name="rightMargin">
+      <number>10</number>
+     </property>
+     <property name="bottomMargin">
+      <number>4</number>
+     </property>
      <item>
       <widget class="QLabel" name="titleLabel">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>22</height>
+        </size>
+       </property>
        <property name="font">
         <font>
          <pointsize>11</pointsize>
@@ -61,7 +82,32 @@
     </layout>
    </item>
    <item>
+    <widget class="QFrame" name="headerSeparator">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>1</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>1</height>
+      </size>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="separator" stdset="0">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QTableView" name="logView">
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>

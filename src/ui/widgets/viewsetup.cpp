@@ -7,11 +7,14 @@
 ///
 
 #include <QAbstractButton>
+#include <QAction>
+#include <QCoreApplication>
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QHeaderView>
 #include <QLineEdit>
 #include <QSortFilterProxyModel>
+#include <QSplitter>
 #include <QTableView>
 #include <QTreeView>
 
@@ -23,6 +26,9 @@
 namespace ViewSetup {
 
 namespace {
+
+constexpr int kTableRowHeight = 34;
+constexpr int kSplitScale = 100;
 
 ///
 /// \brief Expands marked nodes below a parent, depth-first.
@@ -55,17 +61,34 @@ void installDelegate(QAbstractItemView *view)
 }
 
 ///
-/// \brief Installs the item delegate and left-aligns the header of a table.
+/// \brief Installs the item delegate, left-aligns the header and sets the design row height.
 /// \param view Table view to configure.
 /// \param sizing How the columns share the view width.
 ///
 void configureTable(QTableView *view, ColumnSizing sizing)
 {
     installDelegate(view);
+    view->verticalHeader()->setDefaultSectionSize(kTableRowHeight);
     QHeaderView *header = view->horizontalHeader();
     header->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    if (sizing == ColumnSizing::Stretch)
+    if (sizing == ColumnSizing::Stretch) {
         header->setSectionResizeMode(QHeaderView::Stretch);
+        // A stretched last section on top of evenly stretched ones overflows into a scroll bar.
+        header->setStretchLastSection(false);
+    }
+}
+
+///
+/// \brief Sizes the panes of a splitter in proportion to their horizontal stretch factors.
+/// \param splitter Splitter to size; panes without a stretch factor count as one.
+///
+void splitByStretch(QSplitter *splitter)
+{
+    // QSplitter scales oversized sizes down to the available width, keeping their ratio.
+    QList<int> sizes;
+    for (int i = 0; i < splitter->count(); ++i)
+        sizes.append(qMax(1, splitter->widget(i)->sizePolicy().horizontalStretch()) * kSplitScale);
+    splitter->setSizes(sizes);
 }
 
 ///
@@ -151,6 +174,19 @@ void bindCopyButton(QAbstractButton *button, QLineEdit *source)
     button->setIcon(AppIcons::icon(QStringLiteral("copy")));
     QObject::connect(button, &QAbstractButton::clicked, source, [source] {
         QGuiApplication::clipboard()->setText(source->text());
+    });
+}
+
+///
+/// \brief Adds a trailing copy button inside a line edit that copies its text to the clipboard.
+/// \param edit Line edit to extend.
+///
+void addCopyAction(QLineEdit *edit)
+{
+    QAction *copy = edit->addAction(AppIcons::icon(QStringLiteral("copy")), QLineEdit::TrailingPosition);
+    copy->setToolTip(QCoreApplication::translate("ViewSetup", "Copy"));
+    QObject::connect(copy, &QAction::triggered, edit, [edit] {
+        QGuiApplication::clipboard()->setText(edit->text());
     });
 }
 

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1672</width>
-    <height>941</height>
+    <width>1331</width>
+    <height>725</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,16 +16,16 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="centralLayout">
     <property name="spacing">
-     <number>10</number>
+     <number>20</number>
     </property>
     <property name="leftMargin">
-     <number>12</number>
+     <number>15</number>
     </property>
     <property name="topMargin">
      <number>10</number>
     </property>
     <property name="rightMargin">
-     <number>12</number>
+     <number>15</number>
     </property>
     <property name="bottomMargin">
      <number>4</number>
@@ -37,6 +37,18 @@
       </property>
       <item>
        <widget class="QPushButton" name="startButton">
+        <property name="toolbar" stdset="0">
+         <bool>true</bool>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>18</width>
+          <height>18</height>
+         </size>
+        </property>
+        <property name="accent" stdset="0">
+         <string notr="true">success</string>
+        </property>
         <property name="text">
          <string>Start Server</string>
         </property>
@@ -44,6 +56,15 @@
       </item>
       <item>
        <widget class="QPushButton" name="stopButton">
+        <property name="toolbar" stdset="0">
+         <bool>true</bool>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>18</width>
+          <height>18</height>
+         </size>
+        </property>
         <property name="text">
          <string>Stop Server</string>
         </property>
@@ -51,16 +72,37 @@
       </item>
       <item>
        <widget class="QFrame" name="toolbarSeparator1">
-        <property name="frameShape">
-         <enum>QFrame::VLine</enum>
+        <property name="minimumSize">
+         <size>
+          <width>1</width>
+          <height>0</height>
+         </size>
         </property>
-        <property name="frameShadow">
-         <enum>QFrame::Plain</enum>
+        <property name="maximumSize">
+         <size>
+          <width>1</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="separator" stdset="0">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QPushButton" name="addNodeButton">
+        <property name="toolbar" stdset="0">
+         <bool>true</bool>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>18</width>
+          <height>18</height>
+         </size>
+        </property>
         <property name="text">
          <string>Add Node</string>
         </property>
@@ -71,6 +113,15 @@
       </item>
       <item>
        <widget class="QPushButton" name="importModelButton">
+        <property name="toolbar" stdset="0">
+         <bool>true</bool>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>18</width>
+          <height>18</height>
+         </size>
+        </property>
         <property name="text">
          <string>Import Model</string>
         </property>
@@ -81,6 +132,15 @@
       </item>
       <item>
        <widget class="QPushButton" name="saveButton">
+        <property name="toolbar" stdset="0">
+         <bool>true</bool>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>18</width>
+          <height>18</height>
+         </size>
+        </property>
         <property name="text">
          <string>Save</string>
         </property>
@@ -110,9 +170,12 @@
         </property>
         <item>
          <widget class="QLineEdit" name="endpointEdit">
+          <property name="toolbar" stdset="0">
+           <bool>true</bool>
+          </property>
           <property name="minimumSize">
            <size>
-            <width>240</width>
+            <width>200</width>
             <height>0</height>
            </size>
           </property>
@@ -121,25 +184,27 @@
           </property>
          </widget>
         </item>
-        <item>
-         <widget class="QToolButton" name="copyEndpointButton">
-          <property name="toolTip">
-           <string>Copy endpoint URL</string>
-          </property>
-          <property name="autoRaise">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
        </layout>
       </item>
       <item>
        <widget class="QFrame" name="toolbarSeparator2">
-        <property name="frameShape">
-         <enum>QFrame::VLine</enum>
+        <property name="minimumSize">
+         <size>
+          <width>1</width>
+          <height>0</height>
+         </size>
         </property>
-        <property name="frameShadow">
-         <enum>QFrame::Plain</enum>
+        <property name="maximumSize">
+         <size>
+          <width>1</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="separator" stdset="0">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -170,7 +235,7 @@
        <bool>false</bool>
       </property>
       <property name="handleWidth">
-       <number>10</number>
+       <number>8</number>
       </property>
       <widget class="QTabWidget" name="tabWidget">
        <property name="sizePolicy">

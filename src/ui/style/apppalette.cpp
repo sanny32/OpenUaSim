@@ -33,13 +33,13 @@ struct Scheme
 };
 
 ///
-/// \brief Returns the dark scheme: navy surfaces with a blue accent.
+/// \brief Returns the dark scheme: navy window, slightly lighter panels, blue accent.
 /// \return Dark base colours.
 ///
 Scheme darkScheme()
 {
     return {
-        QColor(0x111827), QColor(0x0d131d), QColor(0x141c28), QColor(0x1c2533),
+        QColor(0x0e141e), QColor(0x141b27), QColor(0x19212e), QColor(0x1c2533),
         QColor(0xe5e7eb), QColor(0x6b7280), QColor(0x2b3546), QColor(0x1d63c9),
         QColor(0xffffff), QColor(0x60a5fa), QColor(0x1f2937),
     };

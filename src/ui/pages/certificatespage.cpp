@@ -29,6 +29,7 @@ CertificatesPage::CertificatesPage(QWidget *parent)
     , _certificatesModel(new CertificatesModel(this))
 {
     ui->setupUi(this);
+    ViewSetup::splitByStretch(ui->splitter);
     ui->openFolderButton->setIcon(AppIcons::icon(QStringLiteral("import")));
     ui->importButton->setIcon(AppIcons::icon(QStringLiteral("download")));
     ui->exportButton->setIcon(AppIcons::icon(QStringLiteral("upload")));

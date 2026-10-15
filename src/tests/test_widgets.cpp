@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 OpenUaSim contributors
 // SPDX-License-Identifier: MIT
 
+#include <QCheckBox>
 #include <QClipboard>
 #include <QHeaderView>
 #include <QLabel>
@@ -13,6 +14,13 @@
 #include <QToolButton>
 #include <QTreeView>
 
+#include <QScrollArea>
+#include <QSplitter>
+#include <QStyleFactory>
+#include <QTabBar>
+
+#include "apppalette.h"
+#include "appstyle.h"
 #include "data/serverstatus.h"
 #include "eventlogwidget.h"
 #include "itemdelegate.h"
@@ -72,7 +80,16 @@ private slots:
     void statCard();
     void mainStatusBar();
     void eventLogShowsAndClears();
+    void appStylePanelsAndSeparators();
+    void appStyleAccentButton();
+    void appStyleSelectedTab();
+    void appStyleEnlargesTabsAndToolbar();
+    void eventLogUsesCompactRows();
+    void appStyleMakesPanelScrollAreasTransparent();
+    void appStyleCheckBoxes();
+    void addCopyActionCopies();
     void configureTable();
+    void splitByStretchFollowsStretchFactors();
     void applyInitialStateExpandsAndSelects();
     void applyInitialStateFallsBackToFirstRow();
     void selectById();
@@ -112,7 +129,8 @@ void TestWidgets::delegateDecoratesStatus()
     InspectableDelegate delegate;
     const QStyleOptionViewItem option = delegate.optionFor(model.index(0, 0));
     QVERIFY(option.features.testFlag(QStyleOptionViewItem::HasDecoration));
-    QCOMPARE(option.decorationSize, QSize(16, 16));
+    QCOMPARE(option.decorationSize.width(), option.decorationSize.height());
+    QVERIFY(option.decorationSize.height() < option.fontMetrics.height());
 }
 
 void TestWidgets::delegateLeavesPlainCellsAlone()
@@ -134,7 +152,8 @@ void TestWidgets::delegateRaisesRowHeight()
     ItemDelegate delegate;
     QStyleOptionViewItem option;
     const int single = delegate.sizeHint(option, model.index(0, 0)).height();
-    QVERIFY(single >= 30);
+    QStyledItemDelegate plain;
+    QVERIFY(single > plain.sizeHint(option, model.index(0, 0)).height());
     QVERIFY(delegate.sizeHint(option, model.index(1, 0)).height() > single);
 }
 
@@ -191,6 +210,165 @@ void TestWidgets::eventLogShowsAndClears()
     QCOMPARE(model.rowCount(), 0);
 }
 
+void TestWidgets::appStylePanelsAndSeparators()
+{
+    AppStyle style;
+    const QPalette palette = AppPalette::build(true);
+    const auto centre = [](QWidget &widget) {
+        const QImage image = widget.grab().toImage();
+        return image.pixelColor(image.width() / 2, image.height() / 2);
+    };
+
+    QFrame panel;
+    panel.setStyle(&style);
+    panel.setPalette(palette);
+    panel.setFrameShape(QFrame::StyledPanel);
+    panel.setProperty(AppStyle::panelProperty, true);
+    panel.resize(60, 40);
+    QCOMPARE(centre(panel), palette.color(QPalette::Base));
+
+    QFrame card;
+    card.setStyle(&style);
+    card.setPalette(palette);
+    card.setFrameShape(QFrame::StyledPanel);
+    card.setProperty(AppStyle::cardProperty, true);
+    card.resize(60, 40);
+    QCOMPARE(centre(card), palette.color(QPalette::AlternateBase));
+
+    QFrame separator;
+    separator.setStyle(&style);
+    separator.setPalette(palette);
+    separator.setFrameShape(QFrame::StyledPanel);
+    separator.setProperty(AppStyle::separatorProperty, true);
+    separator.resize(60, 1);
+    QCOMPARE(separator.grab().toImage().pixelColor(30, 0), palette.color(QPalette::Mid));
+}
+
+void TestWidgets::appStyleAccentButton()
+{
+    AppStyle style;
+    QPushButton plain(QStringLiteral("Stop"));
+    QPushButton accent(QStringLiteral("Start"));
+    for (QPushButton *button : { &plain, &accent }) {
+        button->setStyle(&style);
+        button->setPalette(AppPalette::build(true));
+        button->resize(100, 30);
+    }
+    accent.setProperty(AppStyle::accentProperty, QStringLiteral("success"));
+
+    const QColor plainFill = plain.grab().toImage().pixelColor(5, 15);
+    const QColor accentFill = accent.grab().toImage().pixelColor(5, 15);
+    QVERIFY(accentFill.green() > accentFill.red());
+    QVERIFY(accentFill != plainFill);
+
+    accent.setEnabled(false);
+    plain.setEnabled(false);
+    QCOMPARE(accent.grab().toImage().pixelColor(5, 15), plain.grab().toImage().pixelColor(5, 15));
+}
+
+void TestWidgets::appStyleSelectedTab()
+{
+    AppStyle style;
+    const QPalette palette = AppPalette::build(false);
+    QTabBar bar;
+    bar.setStyle(&style);
+    bar.setPalette(palette);
+    bar.addTab(QStringLiteral("Status"));
+    bar.addTab(QStringLiteral("Objects"));
+    bar.setCurrentIndex(0);
+    bar.resize(bar.sizeHint());
+
+    const QImage image = bar.grab().toImage();
+    const QRect selected = bar.tabRect(0);
+    const QRect other = bar.tabRect(1);
+    QCOMPARE(image.pixelColor(selected.left() + 3, selected.center().y()), palette.color(QPalette::Highlight));
+    QVERIFY(image.pixelColor(other.left() + 3, other.center().y()) != palette.color(QPalette::Highlight));
+}
+
+void TestWidgets::appStyleEnlargesTabsAndToolbar()
+{
+    AppStyle style;
+    QStyle *fusion = QStyleFactory::create(QStringLiteral("Fusion"));
+
+    QStyleOptionTab tab;
+    const QSize contents(50, 16);
+    const QSize fusionTab = fusion->sizeFromContents(QStyle::CT_TabBarTab, &tab, contents);
+    const QSize appTab = style.sizeFromContents(QStyle::CT_TabBarTab, &tab, contents);
+    QVERIFY(appTab.width() > fusionTab.width());
+    QVERIFY(appTab.height() > fusionTab.height());
+
+    QPushButton plain;
+    QPushButton toolbar;
+    toolbar.setProperty(AppStyle::toolbarProperty, true);
+    QStyleOptionButton button;
+    const QSize plainSize = style.sizeFromContents(QStyle::CT_PushButton, &button, contents, &plain);
+    const QSize toolbarSize = style.sizeFromContents(QStyle::CT_PushButton, &button, contents, &toolbar);
+    QCOMPARE(plainSize, fusion->sizeFromContents(QStyle::CT_PushButton, &button, contents, &plain));
+    QVERIFY(toolbarSize.height() > plainSize.height());
+    QVERIFY(toolbarSize.width() > plainSize.width());
+    delete fusion;
+}
+
+void TestWidgets::eventLogUsesCompactRows()
+{
+    LogModel model;
+    EventLogWidget widget;
+    widget.setLogModel(&model);
+    const auto *view = widget.findChild<QTableView *>();
+    QTableView regular;
+    ViewSetup::configureTable(&regular);
+    QVERIFY(view->verticalHeader()->defaultSectionSize() < regular.verticalHeader()->defaultSectionSize());
+}
+
+void TestWidgets::appStyleMakesPanelScrollAreasTransparent()
+{
+    AppStyle style;
+    QScrollArea plain;
+    QScrollArea body;
+    body.setProperty(AppStyle::panelBodyProperty, true);
+    body.setWidget(new QWidget);
+    body.widget()->setAutoFillBackground(true);
+    style.polish(&plain);
+    style.polish(&body);
+
+    QVERIFY(plain.viewport()->autoFillBackground());
+    QVERIFY(!body.viewport()->autoFillBackground());
+    QVERIFY(!body.widget()->autoFillBackground());
+}
+
+void TestWidgets::appStyleCheckBoxes()
+{
+    AppStyle style;
+    const QPalette palette = AppPalette::build(true);
+    QCheckBox checked;
+    QCheckBox unchecked;
+    for (QCheckBox *box : { &checked, &unchecked }) {
+        box->setStyle(&style);
+        box->setPalette(palette);
+        box->resize(box->sizeHint());
+    }
+    checked.setChecked(true);
+
+    QStyleOptionButton option;
+    option.initFrom(&checked);
+    const QRect indicator = style.subElementRect(QStyle::SE_CheckBoxIndicator, &option, &checked);
+    QCOMPARE(indicator.width(), style.pixelMetric(QStyle::PM_IndicatorWidth));
+
+    const QPoint corner = indicator.topLeft()
+                          + QPoint(indicator.width() * 4 / 5, indicator.height() * 4 / 5);
+    QCOMPARE(checked.grab().toImage().pixelColor(corner), palette.color(QPalette::Highlight));
+    QCOMPARE(unchecked.grab().toImage().pixelColor(indicator.center()), palette.color(QPalette::Base));
+}
+
+void TestWidgets::addCopyActionCopies()
+{
+    QLineEdit edit(QStringLiteral("opc.tcp://localhost:4840"));
+    ViewSetup::addCopyAction(&edit);
+    QCOMPARE(edit.actions().size(), 1);
+    edit.actions().first()->trigger();
+    QCOMPARE(QGuiApplication::clipboard()->text(), QStringLiteral("opc.tcp://localhost:4840"));
+}
+
 void TestWidgets::configureTable()
 {
     QStandardItemModel model(1, 3);
@@ -205,6 +383,28 @@ void TestWidgets::configureTable()
     interactive.setModel(&model);
     ViewSetup::configureTable(&interactive, ViewSetup::ColumnSizing::Interactive);
     QCOMPARE(interactive.horizontalHeader()->sectionResizeMode(1), QHeaderView::Interactive);
+}
+
+void TestWidgets::splitByStretchFollowsStretchFactors()
+{
+    QSplitter splitter;
+    for (int stretch : { 1, 2, 0 }) {
+        auto *pane = new QWidget;
+        QSizePolicy policy = pane->sizePolicy();
+        policy.setHorizontalStretch(stretch);
+        pane->setSizePolicy(policy);
+        splitter.addWidget(pane);
+    }
+    splitter.resize(400, 100);
+    splitter.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&splitter));
+
+    ViewSetup::splitByStretch(&splitter);
+    const QList<int> sizes = splitter.sizes();
+    QCOMPARE(sizes.size(), 3);
+    const QByteArray text = QStringLiteral("%1 %2 %3").arg(sizes.at(0)).arg(sizes.at(1)).arg(sizes.at(2)).toUtf8();
+    QVERIFY2(qAbs(sizes.at(1) - 2 * sizes.at(0)) <= 6, text.constData());
+    QVERIFY2(qAbs(sizes.at(2) - sizes.at(0)) <= 6, text.constData());
 }
 
 void TestWidgets::applyInitialStateExpandsAndSelects()

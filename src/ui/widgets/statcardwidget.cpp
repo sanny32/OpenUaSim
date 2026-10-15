@@ -15,8 +15,8 @@
 
 namespace {
 
-constexpr int kIconSize = 32;
-constexpr int kChevronSize = 18;
+constexpr int kIconSize = 30;
+constexpr int kChevronSize = 15;
 
 }
 

@@ -2,6 +2,12 @@
 <ui version="4.0">
  <class>MainStatusBarWidget</class>
  <widget class="QWidget" name="MainStatusBarWidget">
+  <property name="minimumSize">
+   <size>
+    <width>0</width>
+    <height>36</height>
+   </size>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -18,24 +24,36 @@
     <number>8</number>
    </property>
    <property name="topMargin">
-    <number>2</number>
+    <number>5</number>
    </property>
    <property name="rightMargin">
     <number>8</number>
    </property>
    <property name="bottomMargin">
-    <number>2</number>
+    <number>5</number>
    </property>
    <item>
     <widget class="StatusIndicator" name="serverIndicator" native="true"/>
    </item>
    <item>
     <widget class="QFrame" name="separator1">
-     <property name="frameShape">
-      <enum>QFrame::VLine</enum>
+     <property name="minimumSize">
+      <size>
+       <width>1</width>
+       <height>0</height>
+      </size>
      </property>
-     <property name="frameShadow">
-      <enum>QFrame::Plain</enum>
+     <property name="maximumSize">
+      <size>
+       <width>1</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="separator" stdset="0">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
@@ -44,11 +62,23 @@
    </item>
    <item>
     <widget class="QFrame" name="separator2">
-     <property name="frameShape">
-      <enum>QFrame::VLine</enum>
+     <property name="minimumSize">
+      <size>
+       <width>1</width>
+       <height>0</height>
+      </size>
      </property>
-     <property name="frameShadow">
-      <enum>QFrame::Plain</enum>
+     <property name="maximumSize">
+      <size>
+       <width>1</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="separator" stdset="0">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
