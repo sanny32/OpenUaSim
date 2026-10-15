@@ -1,0 +1,93 @@
+// SPDX-FileCopyrightText: 2026 OpenUaSim contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file viewsetup.h
+/// \brief Declares helpers shared by the item views of the pages.
+///
+
+#pragma once
+
+#include <QString>
+
+class QAbstractButton;
+class QAbstractItemModel;
+class QAbstractItemView;
+class QLineEdit;
+class QSortFilterProxyModel;
+class QTableView;
+class QTreeView;
+
+namespace ViewSetup {
+
+///
+/// \brief Installs the application item delegate on a view.
+/// \param view View to configure.
+///
+void installDelegate(QAbstractItemView *view);
+
+///
+/// \brief How a table distributes its width between columns.
+///
+enum class ColumnSizing {
+    /// \brief Columns share the width evenly and follow the view size.
+    Stretch,
+    /// \brief Columns keep the widths the caller sets; the last one fills the rest.
+    Interactive
+};
+
+///
+/// \brief Installs the item delegate and left-aligns the header of a table.
+/// \param view Table view to configure.
+/// \param sizing How the columns share the view width.
+///
+void configureTable(QTableView *view, ColumnSizing sizing = ColumnSizing::Stretch);
+
+///
+/// \brief Puts a case-insensitive, recursive text filter between a tree model and its view
+///        and adds a search icon to the line edit.
+/// \param view Tree view to configure.
+/// \param source Model to filter.
+/// \param search Line edit whose text drives the filter.
+/// \return Proxy model, owned by the view.
+///
+QSortFilterProxyModel *attachSearch(QTreeView *view, QAbstractItemModel *source, QLineEdit *search);
+
+///
+/// \brief Expands the nodes marked expanded and selects the node marked current.
+/// \param view Tree view whose model provides ItemRoles::Expanded and ItemRoles::Current.
+///
+/// Selects the first top-level node when no node is marked current.
+///
+void applyInitialState(QTreeView *view);
+
+///
+/// \brief Selects the tree node carrying an identifier.
+/// \param view Tree view to update.
+/// \param id Value of ItemRoles::Id to look for.
+/// \return True when a node was found and selected.
+///
+bool selectById(QTreeView *view, const QString &id);
+
+///
+/// \brief Selects a table row and scrolls to it.
+/// \param view Table view to update.
+/// \param row Row to select; out-of-range rows clear the selection.
+///
+void selectRow(QTableView *view, int row);
+
+///
+/// \brief Gives a button the copy icon and makes it copy a line edit's text to the clipboard.
+/// \param button Copy button.
+/// \param source Line edit whose text is copied.
+///
+void bindCopyButton(QAbstractButton *button, QLineEdit *source);
+
+///
+/// \brief Returns the identifier of the current item of a view.
+/// \param view View to inspect.
+/// \return Value of ItemRoles::Id of the current index, or an empty string.
+///
+QString currentId(const QAbstractItemView *view);
+
+}

@@ -1,0 +1,70 @@
+// SPDX-FileCopyrightText: 2026 OpenUaSim contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file mainwindow.h
+/// \brief Declares the main application window.
+///
+
+#pragma once
+
+#include <QMainWindow>
+
+#include "data/serverstatus.h"
+
+namespace Ui {
+class MainWindow;
+}
+
+class AppTheme;
+class LogModel;
+class MainStatusBarWidget;
+class QAction;
+struct ServerSnapshot;
+
+///
+/// \brief Main window: server toolbar, the eight pages, the event log and the status bar.
+///
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    ///
+    /// \brief Builds the window.
+    /// \param theme Theme manager driven by the theme menu; null hides the theme button.
+    /// \param parent Parent widget.
+    ///
+    explicit MainWindow(AppTheme *theme = nullptr, QWidget *parent = nullptr);
+
+    ///
+    /// \brief Destroys the window.
+    ///
+    ~MainWindow() override;
+
+    ///
+    /// \brief Shows a server state on every page.
+    /// \param snapshot Server state to show.
+    ///
+    void setSnapshot(const ServerSnapshot &snapshot);
+
+    ///
+    /// \brief Returns the log shared by the event log panel and the log page.
+    /// \return Server log model.
+    ///
+    LogModel *logModel() const;
+
+private:
+    void setupIcons();
+    void setupThemeMenu();
+    void syncThemeActions();
+    void selectTheme(QAction *action);
+    void handleTabChange(int index);
+    void updateStatusBarNote();
+
+    Ui::MainWindow *ui;
+    MainStatusBarWidget *_statusWidget;
+    LogModel *_logModel;
+    AppTheme *_theme;
+    ServerStatus _status;
+};
