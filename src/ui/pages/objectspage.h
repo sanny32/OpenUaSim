@@ -57,6 +57,7 @@ public:
     const VariablesModel *variablesModel() const;
 
 private:
+    void fillCombos();
     void showTreeNode(const QModelIndex &current);
     void showObject(const QString &objectId, const QString &objectName);
     void showVariable(const QModelIndex &current);

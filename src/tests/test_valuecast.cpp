@@ -1,0 +1,98 @@
+// SPDX-FileCopyrightText: 2026 OpenUaSim contributors
+// SPDX-License-Identifier: MIT
+
+#include <QDateTime>
+#include <QTimeZone>
+#include <QTest>
+
+#include <limits>
+
+#include "simulation/valuecast.h"
+
+class TestValueCast : public QObject
+{
+    Q_OBJECT
+
+private slots:
+    void convertsToType_data();
+    void convertsToType();
+    void nanBecomesZero();
+    void dateTimeCountsEpochSeconds();
+    void unsupportedTypeIsInvalid();
+    void defaultValues();
+    void listsSupportedTypes();
+};
+
+void TestValueCast::convertsToType_data()
+{
+    QTest::addColumn<double>("value");
+    QTest::addColumn<QString>("dataType");
+    QTest::addColumn<QVariant>("expected");
+
+    QTest::newRow("boolean rounds to true") << 0.6 << "Boolean" << QVariant(true);
+    QTest::newRow("boolean rounds to false") << 0.4 << "Boolean" << QVariant(false);
+    QTest::newRow("sbyte saturates high") << 1000.0 << "SByte" << QVariant::fromValue(qint8(127));
+    QTest::newRow("sbyte saturates low") << -1000.0 << "SByte" << QVariant::fromValue(qint8(-128));
+    QTest::newRow("byte clamps negative") << -5.0 << "Byte" << QVariant::fromValue(quint8(0));
+    QTest::newRow("int16 rounds") << 12.5 << "Int16" << QVariant::fromValue(qint16(13));
+    QTest::newRow("uint16 saturates") << 1e9 << "UInt16" << QVariant::fromValue(quint16(65535));
+    QTest::newRow("int32 rounds negative") << -2.5 << "Int32" << QVariant::fromValue(qint32(-3));
+    QTest::newRow("uint32 clamps negative") << -1.0 << "UInt32" << QVariant::fromValue(quint32(0));
+    QTest::newRow("int64 saturates") << 1e30 << "Int64"
+                                     << QVariant::fromValue(std::numeric_limits<qint64>::max());
+    QTest::newRow("uint64 saturates") << 1e30 << "UInt64"
+                                      << QVariant::fromValue(std::numeric_limits<quint64>::max());
+    QTest::newRow("float") << 1.5 << "Float" << QVariant::fromValue(1.5f);
+    QTest::newRow("double") << 1.25 << "Double" << QVariant::fromValue(1.25);
+    QTest::newRow("string") << 3.14159265 << "String" << QVariant(QStringLiteral("3.14159"));
+}
+
+void TestValueCast::convertsToType()
+{
+    QFETCH(double, value);
+    QFETCH(QString, dataType);
+    QFETCH(QVariant, expected);
+
+    const QVariant actual = ValueCast::fromDouble(value, dataType);
+    QCOMPARE(actual.metaType(), expected.metaType());
+    QCOMPARE(actual, expected);
+}
+
+void TestValueCast::nanBecomesZero()
+{
+    QCOMPARE(ValueCast::fromDouble(qQNaN(), QStringLiteral("Int32")), QVariant::fromValue(qint32(0)));
+}
+
+void TestValueCast::dateTimeCountsEpochSeconds()
+{
+    const QDateTime time = ValueCast::fromDouble(60.0, QStringLiteral("DateTime")).toDateTime();
+    QCOMPARE(time, QDateTime(QDate(1970, 1, 1), QTime(0, 1), QTimeZone::UTC));
+}
+
+void TestValueCast::unsupportedTypeIsInvalid()
+{
+    QVERIFY(!ValueCast::fromDouble(1.0, QStringLiteral("Guid")).isValid());
+    QVERIFY(!ValueCast::defaultValue(QStringLiteral("Guid")).isValid());
+    QVERIFY(!ValueCast::isSupported(QStringLiteral("Guid")));
+}
+
+void TestValueCast::defaultValues()
+{
+    QCOMPARE(ValueCast::defaultValue(QStringLiteral("Boolean")), QVariant(false));
+    QCOMPARE(ValueCast::defaultValue(QStringLiteral("Double")), QVariant::fromValue(0.0));
+    QCOMPARE(ValueCast::defaultValue(QStringLiteral("String")), QVariant(QString()));
+}
+
+void TestValueCast::listsSupportedTypes()
+{
+    const QStringList types = ValueCast::dataTypes();
+    QCOMPARE(types.size(), 13);
+    for (const QString &type : types) {
+        QVERIFY(ValueCast::isSupported(type));
+        QVERIFY2(ValueCast::fromDouble(1.0, type).isValid(), qPrintable(type));
+    }
+}
+
+QTEST_GUILESS_MAIN(TestValueCast)
+
+#include "test_valuecast.moc"

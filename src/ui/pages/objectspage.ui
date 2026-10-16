@@ -478,71 +478,6 @@
               </item>
               <item row="2" column="1">
                <widget class="QComboBox" name="dataTypeCombo">
-                <item>
-                 <property name="text">
-                  <string>Boolean</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>SByte</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Byte</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Int16</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>UInt16</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Int32</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>UInt32</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Int64</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>UInt64</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Float</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Double</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>String</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>DateTime</string>
-                 </property>
-                </item>
                </widget>
               </item>
               <item row="3" column="0">
@@ -602,41 +537,6 @@
               </item>
               <item row="5" column="1">
                <widget class="QComboBox" name="simulationCombo">
-                <item>
-                 <property name="text">
-                  <string>None</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Sine wave</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Square wave</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Triangle wave</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Ramp</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Random</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Step</string>
-                 </property>
-                </item>
                </widget>
               </item>
               <item row="6" column="0">

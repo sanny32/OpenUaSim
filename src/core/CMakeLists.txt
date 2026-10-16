@@ -41,6 +41,11 @@ add_library(ouasim_core STATIC
     models/treemodel.h
     models/variablesmodel.cpp
     models/variablesmodel.h
+
+    simulation/signalgenerator.cpp
+    simulation/signalgenerator.h
+    simulation/valuecast.cpp
+    simulation/valuecast.h
 )
 
 target_include_directories(ouasim_core PUBLIC

@@ -52,16 +52,21 @@ VariableInfo variable(const QString &device, const QString &name, const QString 
 
 ///
 /// \brief Builds the simulation settings of a variable.
-/// \param function Simulation function name.
+/// \param function Waveform.
 /// \param intervalMs Update interval in milliseconds.
 /// \param amplitude Peak deviation.
 /// \param offset Centre value.
-/// \return Simulation settings.
+/// \return Simulation settings with the default period.
 ///
-SimulationSettings simulation(const QString &function, int intervalMs, double amplitude,
+SimulationSettings simulation(SimulationFunction function, int intervalMs, double amplitude,
                               double offset)
 {
-    return { function, intervalMs, amplitude, offset };
+    SimulationSettings settings;
+    settings.function = function;
+    settings.intervalMs = intervalMs;
+    settings.amplitude = amplitude;
+    settings.offset = offset;
+    return settings;
 }
 
 ///
@@ -79,35 +84,35 @@ QList<QPair<QString, QList<VariableInfo>>> devices()
     const QString running = QStringLiteral("status-good");
 
     VariableInfo pumpPressure = variable(pump, QStringLiteral("Pressure"), QStringLiteral("gauge"),
-                                         4.1, simulation(QStringLiteral("Random"), 500, 0.5, 4.0));
+                                         4.1, simulation(SimulationFunction::Random, 500, 0.5, 4.0));
     pumpPressure.quality = VariableInfo::Quality::Uncertain;
 
     return {
         { motor, {
             variable(motor, QStringLiteral("Speed"), signal, 1487.6,
-                     simulation(QStringLiteral("Sine wave"), 100, 500.0, 1000.0)),
+                     simulation(SimulationFunction::Sine, 100, 500.0, 1000.0)),
             variable(motor, QStringLiteral("Temperature"), thermometer, 46.2,
-                     simulation(QStringLiteral("Ramp"), 1000, 10.0, 40.0)),
+                     simulation(SimulationFunction::Ramp, 1000, 10.0, 40.0)),
             variable(motor, QStringLiteral("Running"), running, true),
         } },
         { conveyor, {
             variable(conveyor, QStringLiteral("Speed"), signal, 1.2,
-                     simulation(QStringLiteral("Square wave"), 2000, 0.4, 1.0)),
+                     simulation(SimulationFunction::Square, 2000, 0.4, 1.0)),
             variable(conveyor, QStringLiteral("Load"), QStringLiteral("gauge"), 62.5,
-                     simulation(QStringLiteral("Random"), 1000, 20.0, 60.0)),
+                     simulation(SimulationFunction::Random, 1000, 20.0, 60.0)),
             variable(conveyor, QStringLiteral("Running"), running, true),
         } },
         { pump, {
             variable(pump, QStringLiteral("Flow"), signal, 12.8,
-                     simulation(QStringLiteral("Sine wave"), 250, 3.0, 12.0)),
+                     simulation(SimulationFunction::Sine, 250, 3.0, 12.0)),
             pumpPressure,
             variable(pump, QStringLiteral("Running"), running, true),
         } },
         { tank, {
             variable(tank, QStringLiteral("Level"), QStringLiteral("gauge"), 73.4,
-                     simulation(QStringLiteral("Triangle wave"), 1000, 25.0, 50.0)),
+                     simulation(SimulationFunction::Triangle, 1000, 25.0, 50.0)),
             variable(tank, QStringLiteral("Temperature"), thermometer, 21.7,
-                     simulation(QStringLiteral("Random"), 5000, 1.5, 21.0)),
+                     simulation(SimulationFunction::Random, 5000, 1.5, 21.0)),
             variable(tank, QStringLiteral("InletValve"), QStringLiteral("status-inactive"), false),
         } },
     };

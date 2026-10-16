@@ -8,6 +8,8 @@
 
 #include "itemroles.h"
 #include "objectspage.h"
+#include "simulation/signalgenerator.h"
+#include "simulation/valuecast.h"
 #include "treemodel.h"
 #include "ui_objectspage.h"
 #include "variablesmodel.h"
@@ -24,6 +26,7 @@ ObjectsPage::ObjectsPage(QWidget *parent)
     , _variablesModel(new VariablesModel(this))
 {
     ui->setupUi(this);
+    fillCombos();
     ViewSetup::splitByStretch(ui->splitter);
     ViewSetup::bindCopyButton(ui->copyNodeIdButton, ui->nodeIdEdit);
 
@@ -118,13 +121,22 @@ void ObjectsPage::showVariable(const QModelIndex &current)
     ui->displayNameEdit->setText(variable.displayName);
     ui->dataTypeCombo->setCurrentText(variable.dataType);
     ui->accessCombo->setCurrentText(variable.access);
-    ui->simulationCombo->setCurrentText(variable.simulation.function.isEmpty()
-                                            ? ui->simulationCombo->itemText(0)
-                                            : variable.simulation.function);
+    ui->simulationCombo->setCurrentIndex(
+        ui->simulationCombo->findData(int(variable.simulation.function)));
     ui->intervalSpin->setValue(variable.simulation.intervalMs);
     ui->intervalUnitCombo->setCurrentIndex(0);
     ui->amplitudeSpin->setValue(variable.simulation.amplitude);
     ui->offsetSpin->setValue(variable.simulation.offset);
+}
+
+///
+/// \brief Lists the supported data types and simulation functions.
+///
+void ObjectsPage::fillCombos()
+{
+    ui->dataTypeCombo->addItems(ValueCast::dataTypes());
+    for (SimulationFunction function : SignalGenerator::functions())
+        ui->simulationCombo->addItem(SignalGenerator::displayName(function), int(function));
 }
 
 ///
