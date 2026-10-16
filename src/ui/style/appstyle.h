@@ -10,6 +10,8 @@
 
 #include <QProxyStyle>
 
+class QStyleOptionButton;
+
 ///
 /// \brief Fusion-based proxy style adding the application's look without changing metrics.
 ///
@@ -57,7 +59,7 @@ public:
                        const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Draws tab shapes and labels; defers everything else to Fusion.
+    /// \brief Draws tab shapes and labels and flat toolbar button labels; defers everything else to Fusion.
     /// \param element Control element to draw.
     /// \param option Style option of the element.
     /// \param painter Painter to draw with.
@@ -107,4 +109,5 @@ private:
     void drawCheckIndicator(const QStyleOption *option, QPainter *painter) const;
     void drawAccentButton(const QStyleOption *option, QPainter *painter, const QColor &accent) const;
     void drawTabShape(const QStyleOption *option, QPainter *painter) const;
+    void drawToolbarButtonLabel(const QStyleOptionButton *button, QPainter *painter) const;
 };

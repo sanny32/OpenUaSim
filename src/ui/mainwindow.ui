@@ -99,8 +99,8 @@
         </property>
         <property name="iconSize">
          <size>
-          <width>18</width>
-          <height>18</height>
+          <width>22</width>
+          <height>22</height>
          </size>
         </property>
         <property name="text">
@@ -118,8 +118,8 @@
         </property>
         <property name="iconSize">
          <size>
-          <width>18</width>
-          <height>18</height>
+          <width>22</width>
+          <height>22</height>
          </size>
         </property>
         <property name="text">
@@ -137,8 +137,8 @@
         </property>
         <property name="iconSize">
          <size>
-          <width>18</width>
-          <height>18</height>
+          <width>22</width>
+          <height>22</height>
          </size>
         </property>
         <property name="text">

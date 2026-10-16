@@ -13,6 +13,7 @@
 #include <QPainterPath>
 #include <QScrollArea>
 #include <QStyleFactory>
+#include <QStyleOptionButton>
 #include <QStyleOptionTab>
 #include <QWidget>
 
@@ -27,6 +28,8 @@ constexpr int kTabPadding = 22;
 constexpr int kTabHeight = 34;
 constexpr int kToolbarExtraWidth = 38;
 constexpr int kToolbarHeight = 34;
+constexpr int kFlatToolbarPadding = 10;
+constexpr int kToolbarIconGap = 10;
 constexpr int kInputHeight = 30;
 constexpr int kHeaderHeight = 29;
 constexpr int kHeaderMargin = 6;
@@ -43,6 +46,21 @@ constexpr int kCheckIndicatorSize = 14;
 bool isToolbarWidget(const QWidget *widget)
 {
     return widget && widget->property(AppStyle::toolbarProperty).toBool();
+}
+
+///
+/// \brief Returns the button option of a flat toolbar button showing both an icon and a text.
+/// \param option Style option of the control.
+/// \param widget Widget being drawn or measured.
+/// \return Button option, or null for any other control.
+///
+const QStyleOptionButton *flatToolbarButton(const QStyleOption *option, const QWidget *widget)
+{
+    const auto *button = qstyleoption_cast<const QStyleOptionButton *>(option);
+    if (!button || !isToolbarWidget(widget) || !button->features.testFlag(QStyleOptionButton::Flat)
+        || button->icon.isNull() || button->text.isEmpty())
+        return nullptr;
+    return button;
 }
 
 ///
@@ -116,7 +134,7 @@ void AppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *optio
 }
 
 ///
-/// \brief Draws tab shapes and labels; defers everything else to Fusion.
+/// \brief Draws tab shapes and labels and flat toolbar button labels; defers everything else to Fusion.
 /// \param element Control element to draw.
 /// \param option Style option of the element.
 /// \param painter Painter to draw with.
@@ -128,6 +146,19 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option, Q
     if (element == CE_TabBarTabShape) {
         drawTabShape(option, painter);
         return;
+    }
+    if (element == CE_PushButton) {
+        if (const QStyleOptionButton *button = flatToolbarButton(option, widget)) {
+            proxy()->drawControl(CE_PushButtonBevel, button, painter, widget);
+            drawToolbarButtonLabel(button, painter);
+            if (button->state.testFlag(State_HasFocus)) {
+                QStyleOptionFocusRect focus;
+                focus.QStyleOption::operator=(*button);
+                focus.rect = subElementRect(SE_PushButtonFocusRect, button, widget);
+                proxy()->drawPrimitive(PE_FrameFocusRect, &focus, painter, widget);
+            }
+            return;
+        }
     }
     if (element == CE_TabBarTabLabel) {
         if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option)) {
@@ -163,7 +194,11 @@ QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
         size.setHeight(qMax(size.height(), kTabHeight));
         break;
     case CT_PushButton:
-        if (isToolbarWidget(widget)) {
+        if (const QStyleOptionButton *button = flatToolbarButton(option, widget)) {
+            const int textWidth = button->fontMetrics.size(Qt::TextShowMnemonic, button->text).width();
+            size.setWidth(2 * kFlatToolbarPadding + button->iconSize.width() + kToolbarIconGap + textWidth);
+            size.setHeight(qMax(size.height(), kToolbarHeight));
+        } else if (isToolbarWidget(widget)) {
             size.rwidth() += kToolbarExtraWidth;
             size.setHeight(qMax(size.height(), kToolbarHeight));
         }
@@ -339,4 +374,25 @@ void AppStyle::drawTabShape(const QStyleOption *option, QPainter *painter) const
     painter->setBrush(fill);
     painter->drawPath(path);
     painter->restore();
+}
+
+///
+/// \brief Draws the icon and the text of a flat toolbar button with the design gap between them.
+/// \param button Button option.
+/// \param painter Painter to draw with.
+///
+void AppStyle::drawToolbarButtonLabel(const QStyleOptionButton *button, QPainter *painter) const
+{
+    const bool enabled = button->state.testFlag(State_Enabled);
+    const QRect contents = button->rect.adjusted(kFlatToolbarPadding, 0, -kFlatToolbarPadding, 0);
+    const QRect iconRect = alignedRect(button->direction, Qt::AlignLeft | Qt::AlignVCenter,
+                                       button->iconSize, contents);
+    const QPixmap pixmap = button->icon.pixmap(button->iconSize, painter->device()->devicePixelRatio(),
+                                               enabled ? QIcon::Normal : QIcon::Disabled);
+    drawItemPixmap(painter, iconRect, Qt::AlignCenter, pixmap);
+
+    const QRect textRect = visualRect(button->direction, contents,
+                                      contents.adjusted(button->iconSize.width() + kToolbarIconGap, 0, 0, 0));
+    drawItemText(painter, textRect, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextShowMnemonic,
+                 button->palette, enabled, button->text, QPalette::ButtonText);
 }

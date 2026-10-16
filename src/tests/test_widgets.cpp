@@ -82,6 +82,7 @@ private slots:
     void appStyleAccentButton();
     void appStyleSelectedTab();
     void appStyleEnlargesTabsAndToolbar();
+    void appStyleSpacesFlatToolbarButtons();
     void eventLogUsesCompactRows();
     void appStyleMakesPanelScrollAreasTransparent();
     void appStyleCheckBoxes();
@@ -279,6 +280,39 @@ void TestWidgets::appStyleEnlargesTabsAndToolbar()
     QVERIFY(toolbarSize.height() > plainSize.height());
     QVERIFY(toolbarSize.width() > plainSize.width());
     delete fusion;
+}
+
+void TestWidgets::appStyleSpacesFlatToolbarButtons()
+{
+    AppStyle style;
+    QPixmap square(22, 22);
+    square.fill(Qt::red);
+
+    QPushButton button(QIcon(square), QStringLiteral("Add Node"));
+    button.setStyle(&style);
+    button.setProperty(AppStyle::toolbarProperty, true);
+    button.setFlat(true);
+    button.setIconSize(square.size());
+    const int textWidth = button.fontMetrics().size(Qt::TextShowMnemonic, button.text()).width();
+    QCOMPARE(button.sizeHint().width(), 2 * 10 + 22 + 10 + textWidth);
+    QVERIFY(button.sizeHint().height() >= 34);
+
+    button.resize(button.sizeHint());
+    const QImage image = button.grab().toImage();
+    const int middle = image.height() / 2;
+    QVERIFY(image.pixelColor(9, middle) != QColor(Qt::red));
+    QCOMPARE(image.pixelColor(10, middle), QColor(Qt::red));
+    QCOMPARE(image.pixelColor(31, middle), QColor(Qt::red));
+    for (int x = 32; x < 42; ++x) {
+        for (int y = 0; y < image.height(); ++y)
+            QVERIFY(image.pixelColor(x, y) == image.pixelColor(x, 0));
+    }
+
+    QPushButton bordered(QIcon(square), QStringLiteral("Add Node"));
+    bordered.setStyle(&style);
+    bordered.setProperty(AppStyle::toolbarProperty, true);
+    bordered.setIconSize(square.size());
+    QVERIFY(bordered.sizeHint().width() != button.sizeHint().width());
 }
 
 void TestWidgets::eventLogUsesCompactRows()
