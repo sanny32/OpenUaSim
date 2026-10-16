@@ -1,0 +1,11 @@
+set(QT_COMMON_COMPONENTS Core Gui Widgets Svg)
+
+find_package(Qt6 6.9 COMPONENTS ${QT_COMMON_COMPONENTS} REQUIRED)
+set(QT_VERSION_MAJOR 6)
+
+if(OUASIM_BUILD_TESTS)
+    find_package(Qt6 COMPONENTS Test REQUIRED)
+endif()
+
+get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+get_filename_component(QT_BINARY_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)

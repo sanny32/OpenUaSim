@@ -1,0 +1,28 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="icons/add-circle.svg">res/icons/add-circle.svg</file>
+        <file alias="icons/app.svg">res/icons/app.svg</file>
+        <file alias="icons/certificate.svg">res/icons/certificate.svg</file>
+        <file alias="icons/copy.svg">res/icons/copy.svg</file>
+        <file alias="icons/download.svg">res/icons/download.svg</file>
+        <file alias="icons/folder.svg">res/icons/folder.svg</file>
+        <file alias="icons/gauge.svg">res/icons/gauge.svg</file>
+        <file alias="icons/import.svg">res/icons/import.svg</file>
+        <file alias="icons/list.svg">res/icons/list.svg</file>
+        <file alias="icons/play.svg">res/icons/play.svg</file>
+        <file alias="icons/save.svg">res/icons/save.svg</file>
+        <file alias="icons/search.svg">res/icons/search.svg</file>
+        <file alias="icons/settings.svg">res/icons/settings.svg</file>
+        <file alias="icons/shield-check.svg">res/icons/shield-check.svg</file>
+        <file alias="icons/shield-x.svg">res/icons/shield-x.svg</file>
+        <file alias="icons/signal.svg">res/icons/signal.svg</file>
+        <file alias="icons/status-good.svg">res/icons/status-good.svg</file>
+        <file alias="icons/status-inactive.svg">res/icons/status-inactive.svg</file>
+        <file alias="icons/stop.svg">res/icons/stop.svg</file>
+        <file alias="icons/theme.svg">res/icons/theme.svg</file>
+        <file alias="icons/thermometer.svg">res/icons/thermometer.svg</file>
+        <file alias="icons/trash.svg">res/icons/trash.svg</file>
+        <file alias="icons/upload.svg">res/icons/upload.svg</file>
+        <file alias="icons/user.svg">res/icons/user.svg</file>
+    </qresource>
+</RCC>

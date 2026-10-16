@@ -1,0 +1,7 @@
+set(PROJECT_PRERELEASE "" CACHE STRING "pre-release suffix, e.g. beta1, rc1")
+
+if(PROJECT_PRERELEASE)
+    set(PROJECT_VERSION "${PROJECT_VERSION}-${PROJECT_PRERELEASE}")
+endif()
+
+string(TIMESTAMP CURRENT_YEAR "%Y")
