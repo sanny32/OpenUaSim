@@ -11,12 +11,14 @@
 #include <QMessageBox>
 #include <QTimer>
 
+#include "addnodedialog.h"
 #include "appicons.h"
 #include "apptheme.h"
 #include "data/serversnapshot.h"
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
+#include "project/projectnodes.h"
 #include "server/servercontroller.h"
 #include "ui_mainwindow.h"
 #include "viewsetup.h"
@@ -101,11 +103,17 @@ void MainWindow::setController(ServerController *controller)
     connect(controller, &ServerController::valuesChanged, ui->objectsPage, &ObjectsPage::updateValues);
     connect(controller, &ServerController::logAppended, this, &MainWindow::appendLog);
     connect(controller, &ServerController::startFailed, this, &MainWindow::showStartFailure);
+    connect(controller, &ServerController::variableChanged, ui->objectsPage, &ObjectsPage::updateVariable);
+    connect(ui->objectsPage, &ObjectsPage::variableChangeRequested, this, &MainWindow::applyVariableChange);
+    connect(ui->objectsPage, &ObjectsPage::currentNodeChanged, this, &MainWindow::updateNodeActions);
+    connect(ui->actionAddNode, &QAction::triggered, this, &MainWindow::showAddNodeDialog);
+    connect(ui->actionDeleteNode, &QAction::triggered, this, &MainWindow::confirmDeleteNode);
 
     _statusTimer->setInterval(kStatusRefreshMs);
     connect(_statusTimer, &QTimer::timeout, this, &MainWindow::refreshStatus);
     _statusTimer->start();
     reloadSnapshot();
+    updateNodeActions();
 }
 
 ///
@@ -174,6 +182,8 @@ void MainWindow::setupActions()
     connect(ui->actionStartServer, &QAction::enabledChanged, ui->startButton, &QWidget::setEnabled);
     connect(ui->actionStopServer, &QAction::enabledChanged, ui->stopButton, &QWidget::setEnabled);
 
+    ui->objectsPage->setTreeActions({ ui->actionAddNode, ui->actionDeleteNode });
+    ui->actionDeleteNode->setEnabled(false);
     connect(ui->actionEventLog, &QAction::toggled, this, &MainWindow::updateEventLogVisibility);
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
     connect(ui->actionAbout, &QAction::triggered, this, &MainWindow::showAbout);
@@ -351,7 +361,104 @@ void MainWindow::refreshSessions()
 ///
 void MainWindow::showStartFailure(const QString &reason)
 {
-    auto *box = new QMessageBox(QMessageBox::Warning, tr("Server not started"), reason, QMessageBox::Ok, this);
+    showError(tr("Server not started"), reason);
+}
+
+///
+/// \brief Shows a warning without blocking the event loop.
+/// \param title Window title.
+/// \param text Message.
+///
+void MainWindow::showError(const QString &title, const QString &text)
+{
+    auto *box = new QMessageBox(QMessageBox::Warning, title, text, QMessageBox::Ok, this);
     box->setAttribute(Qt::WA_DeleteOnClose);
     box->open();
+}
+
+///
+/// \brief Opens the Add Node dialog for the selected folder or object, or for the top level.
+///
+void MainWindow::showAddNodeDialog()
+{
+    if (!_controller)
+        return;
+    const QList<NodeDefinition> &nodes = _controller->project().nodes;
+    const NodeDefinition *selected = ProjectNodes::find(nodes, ui->objectsPage->currentNodeId());
+    if (selected && selected->kind == NodeDefinition::Kind::Variable)
+        selected = ProjectNodes::find(nodes, ui->objectsPage->currentContainerId());
+    _pendingParentId = selected ? selected->nodeId : QString();
+
+    auto *dialog = new AddNodeDialog(selected ? selected->browseName : tr("Objects"),
+                                     ProjectNodes::childNames(nodes, _pendingParentId),
+                                     ProjectNodes::nodeIds(nodes), this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &QDialog::accepted, this, &MainWindow::addNodeFromDialog);
+    dialog->open();
+}
+
+///
+/// \brief Adds the node described by the accepted Add Node dialog and selects it.
+///
+void MainWindow::addNodeFromDialog()
+{
+    const auto *dialog = qobject_cast<const AddNodeDialog *>(sender());
+    if (!dialog || !_controller)
+        return;
+    QString error;
+    const QString nodeId = _controller->addNode(_pendingParentId, dialog->node(), &error);
+    if (nodeId.isEmpty()) {
+        showError(tr("Node not added"), error);
+        return;
+    }
+    ui->objectsPage->selectNode(nodeId);
+}
+
+///
+/// \brief Asks before deleting the selected project node with its children.
+///
+void MainWindow::confirmDeleteNode()
+{
+    if (!_controller)
+        return;
+    const NodeDefinition *node = ProjectNodes::find(_controller->project().nodes, ui->objectsPage->currentNodeId());
+    if (!node)
+        return;
+    _pendingDeleteId = node->nodeId;
+    auto *box = new QMessageBox(QMessageBox::Question, tr("Delete Node"),
+                                tr("Delete '%1' and everything below it?").arg(node->browseName),
+                                QMessageBox::Yes | QMessageBox::Cancel, this);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    connect(box, &QDialog::finished, this, &MainWindow::deletePendingNode);
+    box->open();
+}
+
+///
+/// \brief Deletes the node the Delete Node question was answered Yes for.
+///
+void MainWindow::deletePendingNode()
+{
+    const auto *box = qobject_cast<const QMessageBox *>(sender());
+    if (_controller && box && box->standardButton(box->clickedButton()) == QMessageBox::Yes)
+        _controller->removeNode(_pendingDeleteId);
+}
+
+///
+/// \brief Applies edited variable properties and reports a refused change.
+/// \param variable Variable with the edited fields.
+///
+void MainWindow::applyVariableChange(const VariableInfo &variable)
+{
+    QString error;
+    if (_controller && !_controller->updateVariable(variable, &error))
+        showError(tr("Changes not applied"), error);
+}
+
+///
+/// \brief Enables Delete Node only for nodes of the project.
+///
+void MainWindow::updateNodeActions()
+{
+    ui->actionDeleteNode->setEnabled(
+        _controller && ProjectNodes::find(_controller->project().nodes, ui->objectsPage->currentNodeId()));
 }

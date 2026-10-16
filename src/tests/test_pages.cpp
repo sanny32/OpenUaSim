@@ -12,6 +12,8 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSignalSpy>
+#include <QSpinBox>
 #include <QTableView>
 #include <QTest>
 #include <QTreeView>
@@ -35,6 +37,8 @@
 #include "typespage.h"
 #include "variablesmodel.h"
 #include "viewsetup.h"
+
+Q_DECLARE_METATYPE(VariableInfo)
 
 namespace {
 
@@ -66,6 +70,11 @@ private slots:
     void objectsPageShowsObjects();
     void objectsPageClearsForFolders();
     void objectsPageUpdatesValues();
+    void objectsPageAppliesEditedProperties();
+    void objectsPageRevertsEdits();
+    void objectsPageKeepsSelectionOnReload();
+    void objectsPageUpdatesOneVariable();
+    void objectsPageReportsCurrentNode();
     void typesPage();
     void namespacesPage();
     void endpointsPage();
@@ -168,6 +177,84 @@ void TestPages::objectsPageUpdatesValues()
 
     QVERIFY(ViewSetup::selectById(child<QTreeView>(page, "addressTree"), QStringLiteral("ns=2;s=Pump_01")));
     QCOMPARE(page.variablesModel()->item(0).value.toDouble(), 3.0);
+}
+
+void TestPages::objectsPageAppliesEditedProperties()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    QSignalSpy requested(&page, &ObjectsPage::variableChangeRequested);
+
+    child<QLineEdit>(page, "displayNameEdit")->setText(QStringLiteral(" Rpm "));
+    child<QComboBox>(page, "dataTypeCombo")->setCurrentText(QStringLiteral("Int32"));
+    child<QComboBox>(page, "accessCombo")->setCurrentText(QStringLiteral("Read"));
+    child<QComboBox>(page, "simulationCombo")->setCurrentText(QStringLiteral("Ramp"));
+    child<QSpinBox>(page, "intervalSpin")->setValue(2);
+    child<QComboBox>(page, "intervalUnitCombo")->setCurrentIndex(1);
+    child<QSpinBox>(page, "periodSpin")->setValue(4000);
+    child<QDoubleSpinBox>(page, "amplitudeSpin")->setValue(5.0);
+    child<QDoubleSpinBox>(page, "offsetSpin")->setValue(-1.0);
+    child<QPushButton>(page, "applyButton")->click();
+
+    QCOMPARE(requested.count(), 1);
+    const VariableInfo variable = requested.first().first().value<VariableInfo>();
+    QCOMPARE(variable.nodeId, QStringLiteral("ns=2;s=Motor_01.Speed"));
+    QCOMPARE(variable.displayName, QStringLiteral("Rpm"));
+    QCOMPARE(variable.dataType, QStringLiteral("Int32"));
+    QCOMPARE(variable.access, QStringLiteral("Read"));
+    QCOMPARE(variable.simulation.function, SimulationFunction::Ramp);
+    QCOMPARE(variable.simulation.intervalMs, 2000);
+    QCOMPARE(variable.simulation.periodMs, 4000);
+    QCOMPARE(variable.simulation.amplitude, 5.0);
+    QCOMPARE(variable.simulation.offset, -1.0);
+}
+
+void TestPages::objectsPageRevertsEdits()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    child<QLineEdit>(page, "displayNameEdit")->setText(QStringLiteral("Changed"));
+    child<QPushButton>(page, "revertButton")->click();
+    QCOMPARE(text(page, "displayNameEdit"), QStringLiteral("Speed"));
+}
+
+void TestPages::objectsPageKeepsSelectionOnReload()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    QVERIFY(page.selectNode(QStringLiteral("ns=2;s=Tank_01.Level")));
+    ViewSetup::selectRow(child<QTableView>(page, "variablesView"), 1);
+
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    QCOMPARE(page.currentNodeId(), QStringLiteral("ns=2;s=Tank_01.Temperature"));
+    QCOMPARE(page.currentContainerId(), QStringLiteral("ns=2;s=Tank_01"));
+}
+
+void TestPages::objectsPageUpdatesOneVariable()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    VariableInfo speed = page.variablesModel()->item(0);
+    speed.access = QStringLiteral("Read");
+    speed.simulation.amplitude = 7.0;
+    page.updateVariable(speed);
+
+    QCOMPARE(page.variablesModel()->item(0).access, QStringLiteral("Read"));
+    QCOMPARE(child<QDoubleSpinBox>(page, "amplitudeSpin")->value(), 7.0);
+    QCOMPARE(child<QComboBox>(page, "accessCombo")->currentText(), QStringLiteral("Read"));
+}
+
+void TestPages::objectsPageReportsCurrentNode()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    QSignalSpy changed(&page, &ObjectsPage::currentNodeChanged);
+    QVERIFY(page.selectNode(QStringLiteral("i=85")));
+    QCOMPARE(page.currentNodeId(), QStringLiteral("i=85"));
+    QVERIFY(page.currentContainerId() == QStringLiteral("i=85"));
+    QVERIFY(changed.count() > 0);
+    QCOMPARE(changed.last().first().toString(), QStringLiteral("i=85"));
+    QVERIFY(!page.selectNode(QStringLiteral("ns=9;s=None")));
 }
 
 void TestPages::typesPage()

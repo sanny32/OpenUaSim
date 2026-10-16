@@ -19,6 +19,7 @@ namespace Ui {
 class ObjectsPage;
 }
 
+class QAction;
 class QItemSelection;
 class TreeModel;
 class VariablesModel;
@@ -62,15 +63,64 @@ public:
     ///
     const VariablesModel *variablesModel() const;
 
+    ///
+    /// \brief Shows changed settings of one variable without rebuilding the tree.
+    /// \param variable Updated description.
+    ///
+    void updateVariable(const VariableInfo &variable);
+
+    ///
+    /// \brief Selects a node of the address space tree.
+    /// \param nodeId Node id.
+    /// \return False when the tree has no such node.
+    ///
+    bool selectNode(const QString &nodeId);
+
+    ///
+    /// \brief Returns the node the tree selection or the variables table points at.
+    /// \return Node id of the tree node or variable row the user selected last; empty when none.
+    ///
+    QString currentNodeId() const;
+
+    ///
+    /// \brief Returns the node shown in the variables table, i.e. the owner of the variables.
+    /// \return Node id of the folder or object whose variables are listed; empty when none.
+    ///
+    QString currentContainerId() const;
+
+    ///
+    /// \brief Adds actions to the context menu of the address space tree.
+    /// \param actions Actions in menu order.
+    ///
+    void setTreeActions(const QList<QAction *> &actions);
+
+signals:
+    ///
+    /// \brief Asks to apply edited properties of the shown variable.
+    /// \param variable Variable with the edited display name, data type, access and simulation.
+    ///
+    void variableChangeRequested(const VariableInfo &variable);
+
+    ///
+    /// \brief Announces that the current node changed.
+    /// \param nodeId Node id now returned by currentNodeId().
+    ///
+    void currentNodeChanged(const QString &nodeId);
+
 private:
     void fillCombos();
     void showTreeNode(const QModelIndex &current);
     void showObject(const QString &objectId, const QString &objectName);
     void showVariable(const QModelIndex &current);
     void clearProperties();
+    void applyProperties();
+    void revertProperties();
+    VariableInfo editedVariable() const;
 
     Ui::ObjectsPage *ui;
     TreeModel *_treeModel;
     VariablesModel *_variablesModel;
     QHash<QString, QList<VariableInfo>> _variables;
+    QString _containerId;
+    QString _currentNodeId;
 };

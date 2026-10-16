@@ -29,6 +29,14 @@ namespace SnapshotBuilder {
 QList<TreeNode> addressSpaceTree(const QList<NodeDefinition> &nodes);
 
 ///
+/// \brief Describes a variable for the variables table.
+/// \param node Variable definition.
+/// \param addressSpace Built nodes providing the live value and quality.
+/// \return Description; an unbuilt variable shows its initial value with Bad quality.
+///
+VariableInfo variableInfo(const NodeDefinition &node, const AddressSpace &addressSpace);
+
+///
 /// \brief Lists the variables of every folder and object.
 /// \param nodes Project node tree with node ids.
 /// \param addressSpace Built nodes providing live values and quality.

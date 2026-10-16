@@ -1,6 +1,8 @@
 set(UI_FILES
     mainwindow.ui
 
+    dialogs/addnodedialog.ui
+
     pages/certificatespage.ui
     pages/endpointspage.ui
     pages/logpage.ui
@@ -23,6 +25,10 @@ add_library(ouasim_ui STATIC
     application.h
     apptheme.cpp
     apptheme.h
+
+    dialogs/addnodedialog.cpp
+    dialogs/addnodedialog.h
+
     mainwindow.cpp
     mainwindow.h
     ${UI_FILES}
@@ -62,11 +68,12 @@ add_library(ouasim_ui STATIC
 )
 
 set_target_properties(ouasim_ui PROPERTIES
-    AUTOUIC_SEARCH_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/pages;${CMAKE_CURRENT_SOURCE_DIR}/widgets"
+    AUTOUIC_SEARCH_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/dialogs;${CMAKE_CURRENT_SOURCE_DIR}/pages;${CMAKE_CURRENT_SOURCE_DIR}/widgets"
 )
 
 target_include_directories(ouasim_ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialogs
     ${CMAKE_CURRENT_SOURCE_DIR}/pages
     ${CMAKE_CURRENT_SOURCE_DIR}/style
     ${CMAKE_CURRENT_SOURCE_DIR}/widgets

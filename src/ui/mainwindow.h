@@ -24,6 +24,7 @@ class ServerController;
 struct LogEntry;
 struct ServerSnapshot;
 struct ServerStatus;
+struct VariableInfo;
 
 ///
 /// \brief Main window: menu bar, server toolbar, the eight pages, the event log and the status bar.
@@ -84,6 +85,13 @@ private:
     void appendLog(const LogEntry &entry);
     void refreshSessions();
     void showStartFailure(const QString &reason);
+    void showError(const QString &title, const QString &text);
+    void showAddNodeDialog();
+    void addNodeFromDialog();
+    void confirmDeleteNode();
+    void deletePendingNode();
+    void applyVariableChange(const VariableInfo &variable);
+    void updateNodeActions();
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_statusWidget;
@@ -91,6 +99,8 @@ private:
     AppTheme *_theme;
     ServerController *_controller = nullptr;
     QTimer *_statusTimer;
+    QString _pendingParentId;
+    QString _pendingDeleteId;
     QActionGroup *_pageActions = nullptr;
     bool _contentSplitApplied = false;
 };

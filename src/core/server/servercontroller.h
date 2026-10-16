@@ -48,6 +48,31 @@ public:
     void setProject(const ProjectConfig &project);
 
     ///
+    /// \brief Adds a node and rebuilds the address space.
+    /// \param parentId Folder or object id; empty for the top level.
+    /// \param node Node to add; an empty node id is assigned from the browse path.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return Node id of the added node, or empty when it was refused.
+    ///
+    QString addNode(const QString &parentId, const NodeDefinition &node, QString *error = nullptr);
+
+    ///
+    /// \brief Removes a node with its children and rebuilds the address space.
+    /// \param nodeId Node to remove.
+    /// \return False when the project has no such node.
+    ///
+    bool removeNode(const QString &nodeId);
+
+    ///
+    /// \brief Applies edited variable properties.
+    /// \param variable Node id with the new display name, data type, access and simulation.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return False when the change was refused. A new name or data type rebuilds the address
+    ///         space; access and simulation changes apply to the live variable.
+    ///
+    bool updateVariable(const VariableInfo &variable, QString *error = nullptr);
+
+    ///
     /// \brief Returns the served project.
     /// \return Project with every node id assigned.
     ///
@@ -128,6 +153,12 @@ signals:
     void projectChanged();
 
     ///
+    /// \brief Announces new access or simulation settings of a variable whose node was kept.
+    /// \param variable Updated description.
+    ///
+    void variableChanged(const VariableInfo &variable);
+
+    ///
     /// \brief Announces variable values changed by the simulation or by clients.
     /// \param values New values keyed by node id.
     ///
@@ -151,6 +182,7 @@ signals:
     void startFailed(const QString &reason);
 
 private:
+    void rebuildNodes();
     void appendLog(const LogEntry &entry);
     void handleClientWrite(const QString &nodeId, const QVariant &value);
 

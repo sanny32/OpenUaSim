@@ -155,6 +155,21 @@ bool AddressSpace::setValue(const QString &nodeId, const QVariant &value)
 }
 
 ///
+/// \brief Changes who may read and write a variable.
+/// \param nodeId Variable node id.
+/// \param access "Read", "Write" or "Read/Write".
+/// \return False for an unknown variable.
+///
+bool AddressSpace::setAccess(const QString &nodeId, const QString &access)
+{
+    QUaBaseDataVariable *variable = _variables.value(nodeId);
+    if (!variable)
+        return false;
+    applyAccess(variable, access);
+    return true;
+}
+
+///
 /// \brief Builds one node and, when that succeeds, its children.
 /// \param parent Server node receiving the new node.
 /// \param node Definition to build.

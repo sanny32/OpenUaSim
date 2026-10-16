@@ -5,11 +5,14 @@
 #include <QTest>
 
 #include "project/defaultproject.h"
+#include "project/projectnodes.h"
 #include "server/servercontroller.h"
+#include "server/snapshotbuilder.h"
 #include "testport.h"
 #include "uatestclient.h"
 
 Q_DECLARE_METATYPE(LogEntry)
+Q_DECLARE_METATYPE(VariableInfo)
 
 namespace {
 
@@ -49,7 +52,105 @@ private slots:
     void sessionsAreForwarded();
     void snapshotIncludesLog();
     void logIsBounded();
+    void addNodeRebuildsAddressSpace();
+    void addNodeReportsRefusal();
+    void removeNodeRebuildsAddressSpace();
+    void updateVariableAppliesLiveSettings();
+    void updateVariableRenameRebuilds();
+    void updateVariableReportsRefusal();
 };
+
+void TestServerController::addNodeRebuildsAddressSpace()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QSignalSpy changed(&controller, &ServerController::projectChanged);
+
+    NodeDefinition outlet;
+    outlet.kind = NodeDefinition::Kind::Variable;
+    outlet.browseName = QStringLiteral("Outlet");
+    const QString id = controller.addNode(QStringLiteral("ns=1;s=Tank_01"), outlet);
+    QCOMPARE(id, QStringLiteral("ns=1;s=FactoryLine_01.Tank_01.Outlet"));
+    QCOMPARE(changed.count(), 1);
+    QVERIFY(controller.addressSpace().hasVariable(id));
+    QCOMPARE(controller.addressSpace().nodeCount(), 18);
+}
+
+void TestServerController::addNodeReportsRefusal()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QSignalSpy changed(&controller, &ServerController::projectChanged);
+    NodeDefinition unnamed;
+    QString error;
+    QVERIFY(controller.addNode(QString(), unnamed, &error).isEmpty());
+    QCOMPARE(error, QStringLiteral("The browse name is empty"));
+    QCOMPARE(changed.count(), 0);
+}
+
+void TestServerController::removeNodeRebuildsAddressSpace()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QVERIFY(controller.removeNode(QStringLiteral("ns=1;s=Motor_01")));
+    QVERIFY(!controller.addressSpace().hasVariable(QStringLiteral("ns=1;s=Motor_01.Speed")));
+    QCOMPARE(controller.addressSpace().nodeCount(), 13);
+    QVERIFY(!controller.removeNode(QStringLiteral("ns=1;s=Motor_01")));
+}
+
+void TestServerController::updateVariableAppliesLiveSettings()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QVERIFY(controller.start());
+    QSignalSpy structure(&controller, &ServerController::projectChanged);
+    QSignalSpy variable(&controller, &ServerController::variableChanged);
+
+    VariableInfo valve = SnapshotBuilder::variableInfo(
+        *ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Tank_01.InletValve")),
+        controller.addressSpace());
+    valve.access = QStringLiteral("Read");
+    valve.simulation.function = SimulationFunction::Square;
+    valve.simulation.intervalMs = 50;
+    QVERIFY(controller.updateVariable(valve));
+
+    QCOMPARE(structure.count(), 0);
+    QCOMPARE(variable.count(), 1);
+    QCOMPARE(variable.first().first().value<VariableInfo>().access, QStringLiteral("Read"));
+    QCOMPARE(ProjectNodes::find(controller.project().nodes, valve.nodeId)->simulation.function,
+             SimulationFunction::Square);
+
+    UaTestClient client;
+    QCOMPARE(client.connect(controller.server().endpointUrl()), UA_STATUSCODE_GOOD);
+    QVERIFY(client.writeValue(valve.nodeId, true) != UA_STATUSCODE_GOOD);
+}
+
+void TestServerController::updateVariableRenameRebuilds()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QSignalSpy structure(&controller, &ServerController::projectChanged);
+
+    VariableInfo level;
+    level.nodeId = QStringLiteral("ns=1;s=Tank_01.Level");
+    level.displayName = QStringLiteral("FillLevel");
+    level.dataType = QStringLiteral("Float");
+    level.access = QStringLiteral("Read/Write");
+    QVERIFY(controller.updateVariable(level));
+    QCOMPARE(structure.count(), 1);
+    QCOMPARE(controller.addressSpace().value(level.nodeId).typeId(), int(QMetaType::Float));
+}
+
+void TestServerController::updateVariableReportsRefusal()
+{
+    ServerController controller;
+    controller.setProject(project());
+    VariableInfo unknown;
+    unknown.nodeId = QStringLiteral("ns=1;s=None");
+    QString error;
+    QVERIFY(!controller.updateVariable(unknown, &error));
+    QCOMPARE(error, QStringLiteral("'ns=1;s=None' is not a variable"));
+}
 
 void TestServerController::setProjectBuildsNodes()
 {

@@ -91,6 +91,14 @@ public:
     ///
     bool setValue(const QString &nodeId, const QVariant &value) override;
 
+    ///
+    /// \brief Changes who may read and write a variable.
+    /// \param nodeId Variable node id.
+    /// \param access "Read", "Write" or "Read/Write".
+    /// \return False for an unknown variable.
+    ///
+    bool setAccess(const QString &nodeId, const QString &access);
+
 signals:
     ///
     /// \brief Announces a value written by an OPC UA client.

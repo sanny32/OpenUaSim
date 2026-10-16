@@ -9,6 +9,8 @@
 #pragma once
 
 #include <QList>
+#include <QSet>
+#include <QStringList>
 
 #include "data/projectconfig.h"
 
@@ -28,5 +30,60 @@ int assignMissingNodeIds(QList<NodeDefinition> &nodes);
 /// \return Number of nodes at every depth.
 ///
 int count(const QList<NodeDefinition> &nodes);
+
+///
+/// \brief Finds a node by id.
+/// \param nodes Node tree.
+/// \param nodeId Node id to look for.
+/// \return Node, or null when no node has that id.
+///
+const NodeDefinition *find(const QList<NodeDefinition> &nodes, const QString &nodeId);
+
+///
+/// \brief Returns the node ids used in a tree.
+/// \param nodes Node tree.
+/// \return Non-empty node ids.
+///
+QSet<QString> nodeIds(const QList<NodeDefinition> &nodes);
+
+///
+/// \brief Returns the browse names of the children of a container.
+/// \param nodes Node tree.
+/// \param parentId Folder or object id; empty for the top level.
+/// \return Browse names, or empty when the parent is unknown.
+///
+QStringList childNames(const QList<NodeDefinition> &nodes, const QString &parentId);
+
+///
+/// \brief Adds a node below a container.
+/// \param nodes Node tree to extend.
+/// \param parentId Folder or object id; empty for the top level.
+/// \param node Node to add; an empty node id is assigned from the browse path.
+/// \param error Receives the reason on failure; may be null.
+/// \return Node id of the added node, or empty when the parent is unknown or is a variable,
+///         the browse name is empty or used by a sibling, the node id is already used or
+///         the data type is unsupported.
+///
+QString insert(QList<NodeDefinition> &nodes, const QString &parentId, const NodeDefinition &node,
+               QString *error = nullptr);
+
+///
+/// \brief Removes a node with its children.
+/// \param nodes Node tree to shrink.
+/// \param nodeId Node to remove.
+/// \return False when no node has that id.
+///
+bool remove(QList<NodeDefinition> &nodes, const QString &nodeId);
+
+///
+/// \brief Replaces the editable fields of a variable.
+/// \param nodes Node tree holding the variable.
+/// \param variable Variable with its node id and the new browse name, data type, access and
+///        simulation; the initial value is converted when the data type changes.
+/// \param error Receives the reason on failure; may be null.
+/// \return False when the node is unknown or not a variable, the browse name is empty or used
+///         by a sibling, or the data type is unsupported.
+///
+bool updateVariable(QList<NodeDefinition> &nodes, const NodeDefinition &variable, QString *error = nullptr);
 
 }

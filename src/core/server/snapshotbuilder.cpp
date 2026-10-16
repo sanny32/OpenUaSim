@@ -99,27 +99,6 @@ bool selectFirstVariable(QList<TreeNode> &nodes)
 }
 
 ///
-/// \brief Describes a variable for the variables table.
-/// \param node Variable definition.
-/// \param addressSpace Built nodes providing the live value.
-/// \return Variable description.
-///
-VariableInfo variableInfo(const NodeDefinition &node, const AddressSpace &addressSpace)
-{
-    const bool built = addressSpace.hasVariable(node.nodeId);
-    VariableInfo info;
-    info.nodeId = node.nodeId;
-    info.displayName = node.browseName;
-    info.icon = iconOf(node);
-    info.value = built ? addressSpace.value(node.nodeId) : node.initialValue;
-    info.dataType = node.dataType;
-    info.access = node.access;
-    info.quality = built ? addressSpace.quality(node.nodeId) : VariableInfo::Quality::Bad;
-    info.simulation = node.simulation;
-    return info;
-}
-
-///
 /// \brief Collects the variables below each container.
 /// \param nodes Siblings to visit.
 /// \param addressSpace Built nodes.
@@ -134,7 +113,7 @@ void collectVariables(const QList<NodeDefinition> &nodes, const AddressSpace &ad
         QList<VariableInfo> variables;
         for (const NodeDefinition &child : node.children) {
             if (child.kind == NodeDefinition::Kind::Variable)
-                variables.append(variableInfo(child, addressSpace));
+                variables.append(SnapshotBuilder::variableInfo(child, addressSpace));
         }
         if (!variables.isEmpty())
             result.insert(node.nodeId, variables);
@@ -179,6 +158,27 @@ QList<TreeNode> addressSpaceTree(const QList<NodeDefinition> &nodes)
                        standardFolder(QStringLiteral("VariableTypes"), QStringLiteral("i=89")) };
 
     return { objects, types, standardFolder(QStringLiteral("Views"), QStringLiteral("i=87")) };
+}
+
+///
+/// \brief Describes a variable for the variables table.
+/// \param node Variable definition.
+/// \param addressSpace Built nodes providing the live value and quality.
+/// \return Description; an unbuilt variable shows its initial value with Bad quality.
+///
+VariableInfo variableInfo(const NodeDefinition &node, const AddressSpace &addressSpace)
+{
+    const bool built = addressSpace.hasVariable(node.nodeId);
+    VariableInfo info;
+    info.nodeId = node.nodeId;
+    info.displayName = node.browseName;
+    info.icon = iconOf(node);
+    info.value = built ? addressSpace.value(node.nodeId) : node.initialValue;
+    info.dataType = node.dataType;
+    info.access = node.access;
+    info.quality = built ? addressSpace.quality(node.nodeId) : VariableInfo::Quality::Bad;
+    info.simulation = node.simulation;
+    return info;
 }
 
 ///

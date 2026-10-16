@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include <QAction>
+#include <QComboBox>
+#include <QLabel>
 #include <QApplication>
 #include <QFontDatabase>
 #include <QLineEdit>
@@ -18,6 +20,7 @@
 #include <QTest>
 #include <QToolButton>
 
+#include "addnodedialog.h"
 #include "apppalette.h"
 #include "appstyle.h"
 #include "apptheme.h"
@@ -26,7 +29,9 @@
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
 #include "mock/mockdata.h"
+#include "objectspage.h"
 #include "project/defaultproject.h"
+#include "project/projectnodes.h"
 #include "server/servercontroller.h"
 #include "statusindicator.h"
 #include "testport.h"
@@ -64,6 +69,10 @@ private slots:
     void serverActionsFollowRunningState();
     void controllerDrivesWindow();
     void startFailureShowsMessage();
+    void addNodeThroughDialog();
+    void deleteNodeAfterConfirmation();
+    void deleteNodeFollowsSelection();
+    void refusedVariableChangeShowsMessage();
     void panelsFitTheDefaultWindow();
 };
 
@@ -323,6 +332,80 @@ void TestMainWindow::startFailureShowsMessage()
     auto *box = window.findChild<QMessageBox *>();
     QVERIFY(box);
     QCOMPARE(box->text(), QStringLiteral("No endpoint is enabled"));
+    box->close();
+}
+
+void TestMainWindow::addNodeThroughDialog()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+    auto *page = child<ObjectsPage>(window, "objectsPage");
+    QVERIFY(page->selectNode(QStringLiteral("ns=1;s=Tank_01.Level")));
+
+    child<QAction>(window, "actionAddNode")->trigger();
+    auto *dialog = window.findChild<AddNodeDialog *>();
+    QVERIFY(dialog);
+    QCOMPARE(child<QLabel>(*dialog, "parentValue")->text(), QStringLiteral("Tank_01"));
+    child<QComboBox>(*dialog, "kindCombo")->setCurrentIndex(2);
+    child<QLineEdit>(*dialog, "browseNameEdit")->setText(QStringLiteral("Outlet"));
+    dialog->accept();
+
+    const QString id = QStringLiteral("ns=1;s=FactoryLine_01.Tank_01.Outlet");
+    QVERIFY(ProjectNodes::find(controller.project().nodes, id));
+    QCOMPARE(page->currentNodeId(), id);
+}
+
+void TestMainWindow::deleteNodeAfterConfirmation()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+    QVERIFY(child<ObjectsPage>(window, "objectsPage")->selectNode(QStringLiteral("ns=1;s=Pump_01")));
+
+    child<QAction>(window, "actionDeleteNode")->trigger();
+    auto *question = window.findChild<QMessageBox *>();
+    QVERIFY(question);
+    question->button(QMessageBox::Cancel)->click();
+    QVERIFY(ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Pump_01")));
+
+    QTRY_VERIFY(!window.findChild<QMessageBox *>());
+    child<QAction>(window, "actionDeleteNode")->trigger();
+    window.findChild<QMessageBox *>()->button(QMessageBox::Yes)->click();
+    QVERIFY(!ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Pump_01")));
+}
+
+void TestMainWindow::deleteNodeFollowsSelection()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    QVERIFY(!child<QAction>(window, "actionDeleteNode")->isEnabled());
+    window.setController(&controller);
+    auto *page = child<ObjectsPage>(window, "objectsPage");
+
+    QVERIFY(page->selectNode(QStringLiteral("i=85")));
+    QVERIFY(!child<QAction>(window, "actionDeleteNode")->isEnabled());
+    QVERIFY(page->selectNode(QStringLiteral("ns=1;s=Motor_01")));
+    QVERIFY(child<QAction>(window, "actionDeleteNode")->isEnabled());
+}
+
+void TestMainWindow::refusedVariableChangeShowsMessage()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+    auto *page = child<ObjectsPage>(window, "objectsPage");
+    QVERIFY(page->selectNode(QStringLiteral("ns=1;s=Motor_01.Speed")));
+
+    child<QLineEdit>(*page, "displayNameEdit")->setText(QStringLiteral("Running"));
+    child<QPushButton>(*page, "applyButton")->click();
+    auto *box = window.findChild<QMessageBox *>();
+    QVERIFY(box);
+    QCOMPARE(box->text(), QStringLiteral("A sibling is already named 'Running'"));
     box->close();
 }
 
