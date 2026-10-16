@@ -41,7 +41,6 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     ui->setupUi(this);
     setWindowTitle(QStringLiteral(APP_NAME));
     ui->statusBar->addWidget(_statusWidget, 1);
-    ui->serverIndicator->setColoredText(true);
 
     setupIcons();
     setupActions();
@@ -71,17 +70,14 @@ MainWindow::~MainWindow()
 ///
 void MainWindow::setSnapshot(const ServerSnapshot &snapshot)
 {
-    _status = snapshot.status;
+    const ServerStatus &status = snapshot.status;
+    ui->endpointEdit->setText(status.primaryEndpoint);
+    ui->actionStartServer->setEnabled(!status.running);
+    ui->actionStopServer->setEnabled(status.running);
+    ui->actionRestartServer->setEnabled(status.running);
+    _statusWidget->setServerStatus(status);
 
-    ui->endpointEdit->setText(_status.primaryEndpoint);
-    ui->serverIndicator->setStatus(_status.running ? StatusKind::Good : StatusKind::Inactive,
-                                   _status.running ? tr("Running") : tr("Stopped"));
-    ui->actionStartServer->setEnabled(!_status.running);
-    ui->actionStopServer->setEnabled(_status.running);
-    ui->actionRestartServer->setEnabled(_status.running);
-    _statusWidget->setServerStatus(_status);
-
-    ui->statusPage->setStatus(_status);
+    ui->statusPage->setStatus(status);
     ui->objectsPage->setAddressSpace(snapshot.addressSpace, snapshot.variables);
     ui->typesPage->setTypes(snapshot.typeTree, snapshot.types);
     ui->namespacesPage->setNamespaces(snapshot.namespaces);
@@ -89,7 +85,6 @@ void MainWindow::setSnapshot(const ServerSnapshot &snapshot)
     ui->certificatesPage->setCertificates(snapshot.certificates);
     ui->sessionsPage->setSessions(snapshot.sessions);
     _logModel->setItems(snapshot.log);
-    updateStatusBarNote();
 }
 
 ///
@@ -269,12 +264,10 @@ void MainWindow::updateEventLogVisibility()
 }
 
 ///
-/// \brief Shows the log size on the log page and the node count elsewhere.
+/// \brief Shows the log size on the log page and clears the note elsewhere.
 ///
 void MainWindow::updateStatusBarNote()
 {
-    if (ui->tabWidget->currentWidget() == ui->logPage)
-        _statusWidget->setTrailingText(tr("Log entries: %1").arg(_logModel->rowCount()));
-    else
-        _statusWidget->setTrailingText(tr("Nodes: %1").arg(_status.totalNodes));
+    const bool onLogPage = ui->tabWidget->currentWidget() == ui->logPage;
+    _statusWidget->setTrailingText(onLogPage ? tr("Log entries: %1").arg(_logModel->rowCount()) : QString());
 }

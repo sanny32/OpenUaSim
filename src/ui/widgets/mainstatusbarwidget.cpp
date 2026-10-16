@@ -41,7 +41,7 @@ void MainStatusBarWidget::setServerStatus(const ServerStatus &status)
 }
 
 ///
-/// \brief Sets the right-aligned note, e.g. the node or log entry count.
+/// \brief Sets the right-aligned note, e.g. the log entry count.
 /// \param text Note text.
 ///
 void MainStatusBarWidget::setTrailingText(const QString &text)

@@ -10,8 +10,6 @@
 
 #include <QMainWindow>
 
-#include "data/serverstatus.h"
-
 namespace Ui {
 class MainWindow;
 }
@@ -76,6 +74,5 @@ private:
     LogModel *_logModel;
     AppTheme *_theme;
     QActionGroup *_pageActions = nullptr;
-    ServerStatus _status;
     bool _contentSplitApplied = false;
 };

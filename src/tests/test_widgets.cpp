@@ -161,8 +161,8 @@ void TestWidgets::mainStatusBar()
 
     MainStatusBarWidget bar;
     bar.setServerStatus(status);
-    bar.setTrailingText(QStringLiteral("Nodes: 27"));
-    QCOMPARE(bar.trailingText(), QStringLiteral("Nodes: 27"));
+    bar.setTrailingText(QStringLiteral("Log entries: 27"));
+    QCOMPARE(bar.trailingText(), QStringLiteral("Log entries: 27"));
     QCOMPARE(bar.findChild<StatusIndicator *>()->status(), StatusKind::Good);
     QCOMPARE(bar.findChild<StatusIndicator *>()->text(), QStringLiteral("Server running"));
     QVERIFY(!bar.findChild<QLabel *>(QStringLiteral("endpointLabel")));

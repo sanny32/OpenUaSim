@@ -209,9 +209,6 @@
        </widget>
       </item>
       <item>
-       <widget class="StatusIndicator" name="serverIndicator" native="true"/>
-      </item>
-      <item>
        <widget class="QToolButton" name="themeButton">
         <property name="toolTip">
          <string>Color theme</string>
@@ -491,11 +488,6 @@
   </action>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>StatusIndicator</class>
-   <extends>QWidget</extends>
-   <header>statusindicator.h</header>
-  </customwidget>
   <customwidget>
    <class>EventLogWidget</class>
    <extends>QFrame</extends>

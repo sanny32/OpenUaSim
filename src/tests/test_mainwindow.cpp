@@ -75,7 +75,11 @@ void TestMainWindow::showsSnapshot()
     window.setSnapshot(snapshot);
 
     QCOMPARE(child<QLineEdit>(window, "endpointEdit")->text(), snapshot.status.primaryEndpoint);
-    QCOMPARE(child<StatusIndicator>(window, "serverIndicator")->status(), StatusKind::Good);
+    const QList<StatusIndicator *> indicators
+        = window.findChildren<StatusIndicator *>(QStringLiteral("serverIndicator"));
+    QCOMPARE(indicators.size(), 1);
+    QVERIFY(qobject_cast<MainStatusBarWidget *>(indicators.first()->parentWidget()));
+    QCOMPARE(indicators.first()->status(), StatusKind::Good);
     QVERIFY(!child<QPushButton>(window, "startButton")->isEnabled());
     QVERIFY(child<QPushButton>(window, "stopButton")->isEnabled());
     QCOMPARE(window.logModel()->rowCount(), snapshot.log.size());
@@ -133,12 +137,15 @@ void TestMainWindow::statusBarNoteFollowsTab()
     auto *tabs = child<QTabWidget>(window, "tabWidget");
     auto *bar = window.findChild<MainStatusBarWidget *>();
 
-    QCOMPARE(bar->trailingText(), QStringLiteral("Nodes: %1").arg(snapshot.status.totalNodes));
+    QVERIFY(bar->trailingText().isEmpty());
     tabs->setCurrentWidget(child<QWidget>(window, "logPage"));
     QCOMPARE(bar->trailingText(), QStringLiteral("Log entries: %1").arg(snapshot.log.size()));
 
     window.logModel()->clear();
     QCOMPARE(bar->trailingText(), QStringLiteral("Log entries: 0"));
+
+    tabs->setCurrentIndex(0);
+    QVERIFY(bar->trailingText().isEmpty());
 }
 
 void TestMainWindow::themeButtonHiddenWithoutTheme()
