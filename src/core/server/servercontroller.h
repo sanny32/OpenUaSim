@@ -97,10 +97,57 @@ public:
     bool exportNodeSet(const QString &fileName, QString *error = nullptr) const;
 
     ///
-    /// \brief Tells whether the running server still serves older endpoint settings.
-    /// \return True after setEndpoints() on a running server until it restarts or stops.
+    /// \brief Tells whether the running server still serves older endpoint or certificate settings.
+    /// \return True after such a change on a running server until it restarts or stops.
     ///
     bool isRestartRequired() const;
+
+    ///
+    /// \brief Returns the PKI store, e.g. to point tests at a temporary directory.
+    /// \return Store owned by the controller.
+    ///
+    CertificateStore &certificateStore();
+
+    ///
+    /// \brief Lists the certificates of the PKI store.
+    /// \return Certificates of every folder.
+    ///
+    QList<CertificateInfo> certificates() const;
+
+    ///
+    /// \brief Adds a client or issuer certificate to the PKI store.
+    /// \param fileName PEM or DER certificate.
+    /// \param category Trusted, Rejected or Issuer folder.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return True when the certificate was stored.
+    ///
+    bool importCertificate(const QString &fileName, CertificateInfo::Category category, QString *error = nullptr);
+
+    ///
+    /// \brief Installs the server certificate and private key used by secure endpoints.
+    /// \param certificateFile PEM or DER certificate.
+    /// \param keyFile PEM or DER private key.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return True when both were stored.
+    ///
+    bool installServerCertificate(const QString &certificateFile, const QString &keyFile, QString *error = nullptr);
+
+    ///
+    /// \brief Moves a stored certificate, e.g. to trust a rejected client.
+    /// \param filePath Stored certificate file.
+    /// \param category Target folder.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return True when the certificate was moved.
+    ///
+    bool moveCertificate(const QString &filePath, CertificateInfo::Category category, QString *error = nullptr);
+
+    ///
+    /// \brief Deletes a stored certificate.
+    /// \param filePath Stored certificate file.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return True when the certificate was deleted.
+    ///
+    bool removeCertificate(const QString &filePath, QString *error = nullptr);
 
     ///
     /// \brief Returns the served project.
@@ -199,6 +246,11 @@ signals:
     void endpointsChanged();
 
     ///
+    /// \brief Announces that the PKI store changed.
+    ///
+    void certificatesChanged();
+
+    ///
     /// \brief Announces whether the server must restart to apply the endpoint settings.
     /// \param required New state.
     ///
@@ -232,6 +284,7 @@ private:
     void setRestartRequired(bool required);
     bool loadNodeSet(const QString &fileName, QString *error);
     void loadProjectNodeSets();
+    bool finishCertificateChange(bool changed);
     void appendLog(const LogEntry &entry);
     void handleClientWrite(const QString &nodeId, const QVariant &value);
 
@@ -242,4 +295,5 @@ private:
     QList<LogEntry> _log;
     bool _restartRequired = false;
     QStringList _loadedNodeSets;
+    CertificateStore _certificates;
 };

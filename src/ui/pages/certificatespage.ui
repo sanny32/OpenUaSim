@@ -649,6 +649,16 @@
                 </property>
                </widget>
               </item>
+              <item>
+               <widget class="QToolButton" name="deleteButton">
+                <property name="text">
+                 <string>Delete</string>
+                </property>
+                <property name="toolTip">
+                 <string>Delete</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
            </item>

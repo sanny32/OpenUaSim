@@ -14,6 +14,7 @@
 #include "data/logentry.h"
 #include "data/projectconfig.h"
 #include "data/sessioninfo.h"
+#include "pki/certificatestore.h"
 #include "sessiontracker.h"
 
 class QUaServer;
@@ -46,6 +47,12 @@ public:
     /// \return True when the server runs; otherwise startFailed() tells why.
     ///
     bool start(const ProjectConfig &project);
+
+    ///
+    /// \brief Sets the certificates applied on the next start; ignored in builds without encryption.
+    /// \param material Server certificate and key with the trusted and issuer certificates.
+    ///
+    void setPkiMaterial(const PkiMaterial &material);
 
     ///
     /// \brief Stops listening and closes every session; does nothing when stopped.
@@ -126,4 +133,5 @@ private:
     SessionTracker _sessions;
     QDateTime _startTime;
     QString _endpointUrl;
+    PkiMaterial _pki;
 };

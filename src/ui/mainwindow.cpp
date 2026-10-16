@@ -9,7 +9,9 @@
 #include <QActionGroup>
 #include <QApplication>
 #include <QCloseEvent>
+#include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QLabel>
 #include <QMessageBox>
 #include <QTimer>
@@ -49,7 +51,7 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     , _logModel(new LogModel(this))
     , _theme(theme)
     , _statusTimer(new QTimer(this))
-    , _restartNote(new QLabel(tr("Restart the server to apply the endpoint changes"), this))
+    , _restartNote(new QLabel(tr("Restart the server to apply the changes"), this))
 {
     ui->setupUi(this);
     setWindowTitle(QStringLiteral(APP_NAME));
@@ -117,6 +119,11 @@ void MainWindow::setController(ServerController *controller)
     connect(ui->objectsPage, &ObjectsPage::currentNodeChanged, this, &MainWindow::updateNodeActions);
     connect(ui->actionAddNode, &QAction::triggered, this, &MainWindow::showAddNodeDialog);
     connect(ui->actionDeleteNode, &QAction::triggered, this, &MainWindow::confirmDeleteNode);
+    connect(ui->certificatesPage, &CertificatesPage::importRequested, this, &MainWindow::importCertificate);
+    connect(ui->certificatesPage, &CertificatesPage::exportRequested, this, &MainWindow::exportCertificate);
+    connect(ui->certificatesPage, &CertificatesPage::moveRequested, this, &MainWindow::moveCertificate);
+    connect(ui->certificatesPage, &CertificatesPage::deleteRequested, this, &MainWindow::confirmDeleteCertificate);
+    connect(controller, &ServerController::certificatesChanged, this, &MainWindow::reloadCertificates);
     connect(ui->actionImportModel, &QAction::triggered, this, &MainWindow::importModel);
     connect(ui->actionExportModel, &QAction::triggered, this, &MainWindow::exportModel);
     connect(ui->endpointsPage, &EndpointsPage::endpointsChangeRequested, this, &MainWindow::applyEndpoints);
@@ -224,6 +231,36 @@ bool MainWindow::exportModelTo(const QString &fileName)
     if (_controller && _controller->exportNodeSet(fileName, &error))
         return true;
     showError(tr("Model not exported"), error);
+    return false;
+}
+
+///
+/// \brief Adds a client or issuer certificate to the PKI store, reporting a refused file.
+/// \param fileName PEM or DER certificate.
+/// \param category Trusted, Rejected or Issuer folder.
+/// \return True when the certificate was stored.
+///
+bool MainWindow::importCertificateFrom(const QString &fileName, CertificateInfo::Category category)
+{
+    QString error;
+    if (_controller && _controller->importCertificate(fileName, category, &error))
+        return true;
+    showError(tr("Certificate not imported"), error);
+    return false;
+}
+
+///
+/// \brief Installs the server certificate and key, reporting refused files.
+/// \param certificateFile PEM or DER certificate.
+/// \param keyFile PEM or DER private key.
+/// \return True when both were stored.
+///
+bool MainWindow::installServerCertificateFrom(const QString &certificateFile, const QString &keyFile)
+{
+    QString error;
+    if (_controller && _controller->installServerCertificate(certificateFile, keyFile, &error))
+        return true;
+    showError(tr("Server certificate not installed"), error);
     return false;
 }
 
@@ -671,6 +708,90 @@ void MainWindow::exportModel()
                                                           NodeSetWriter::fileFilter());
     if (!fileName.isEmpty())
         exportModelTo(fileName);
+}
+
+///
+/// \brief Picks a certificate, and for the server folder also its private key, and stores it.
+/// \param category Folder the certificate goes to.
+///
+void MainWindow::importCertificate(CertificateInfo::Category category)
+{
+    const QString filter = tr("Certificates (*.der *.pem *.crt *.cer);;All files (*)");
+    const QString certificate = QFileDialog::getOpenFileName(this, tr("Import Certificate"), QString(), filter);
+    if (certificate.isEmpty())
+        return;
+    if (category != CertificateInfo::Category::Application) {
+        importCertificateFrom(certificate, category);
+        return;
+    }
+    const QString key = QFileDialog::getOpenFileName(this, tr("Private Key of the Server Certificate"), QString(),
+                                                     tr("Private keys (*.pem *.key *.der);;All files (*)"));
+    if (!key.isEmpty())
+        installServerCertificateFrom(certificate, key);
+}
+
+///
+/// \brief Saves a copy of a stored certificate.
+/// \param filePath Stored certificate file.
+///
+void MainWindow::exportCertificate(const QString &filePath)
+{
+    const QString target = QFileDialog::getSaveFileName(this, tr("Export Certificate"), QFileInfo(filePath).fileName(),
+                                                        tr("DER certificates (*.der)"));
+    if (target.isEmpty())
+        return;
+    QFile::remove(target);
+    if (!QFile::copy(filePath, target))
+        showError(tr("Certificate not exported"), tr("Cannot write '%1'").arg(target));
+}
+
+///
+/// \brief Trusts or rejects a stored certificate.
+/// \param filePath Stored certificate file.
+/// \param category Target folder.
+///
+void MainWindow::moveCertificate(const QString &filePath, CertificateInfo::Category category)
+{
+    QString error;
+    if (_controller && !_controller->moveCertificate(filePath, category, &error))
+        showError(tr("Certificate not moved"), error);
+}
+
+///
+/// \brief Asks before deleting a stored certificate.
+/// \param filePath Stored certificate file.
+///
+void MainWindow::confirmDeleteCertificate(const QString &filePath)
+{
+    _pendingCertificate = filePath;
+    auto *box = new QMessageBox(QMessageBox::Question, tr("Delete Certificate"),
+                                tr("Delete '%1'?").arg(QFileInfo(filePath).fileName()),
+                                QMessageBox::Yes | QMessageBox::Cancel, this);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    connect(box, &QDialog::finished, this, &MainWindow::deletePendingCertificate);
+    box->open();
+}
+
+///
+/// \brief Deletes the certificate the Delete Certificate question was answered Yes for.
+///
+void MainWindow::deletePendingCertificate()
+{
+    const auto *box = qobject_cast<const QMessageBox *>(sender());
+    if (!_controller || !box || box->standardButton(box->clickedButton()) != QMessageBox::Yes)
+        return;
+    QString error;
+    if (!_controller->removeCertificate(_pendingCertificate, &error))
+        showError(tr("Certificate not deleted"), error);
+}
+
+///
+/// \brief Shows the current contents of the PKI store.
+///
+void MainWindow::reloadCertificates()
+{
+    if (_controller)
+        ui->certificatesPage->setCertificates(_controller->certificates());
 }
 
 ///

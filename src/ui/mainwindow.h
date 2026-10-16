@@ -10,6 +10,8 @@
 
 #include <QMainWindow>
 
+#include "data/certificateinfo.h"
+
 namespace Ui {
 class MainWindow;
 }
@@ -102,6 +104,22 @@ public:
     bool exportModelTo(const QString &fileName);
 
     ///
+    /// \brief Adds a client or issuer certificate to the PKI store, reporting a refused file.
+    /// \param fileName PEM or DER certificate.
+    /// \param category Trusted, Rejected or Issuer folder.
+    /// \return True when the certificate was stored.
+    ///
+    bool importCertificateFrom(const QString &fileName, CertificateInfo::Category category);
+
+    ///
+    /// \brief Installs the server certificate and key, reporting refused files.
+    /// \param certificateFile PEM or DER certificate.
+    /// \param keyFile PEM or DER private key.
+    /// \return True when both were stored.
+    ///
+    bool installServerCertificateFrom(const QString &certificateFile, const QString &keyFile);
+
+    ///
     /// \brief Returns the log shared by the event log panel and the log page.
     /// \return Server log model.
     ///
@@ -146,6 +164,12 @@ private:
     void updateWindowTitle();
     void importModel();
     void exportModel();
+    void importCertificate(CertificateInfo::Category category);
+    void exportCertificate(const QString &filePath);
+    void moveCertificate(const QString &filePath, CertificateInfo::Category category);
+    void confirmDeleteCertificate(const QString &filePath);
+    void deletePendingCertificate();
+    void reloadCertificates();
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_statusWidget;
@@ -157,6 +181,7 @@ private:
     QLabel *_restartNote;
     QString _pendingParentId;
     QString _pendingDeleteId;
+    QString _pendingCertificate;
     QActionGroup *_pageActions = nullptr;
     bool _contentSplitApplied = false;
 };

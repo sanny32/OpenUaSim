@@ -43,6 +43,9 @@ add_library(ouasim_core STATIC
     models/variablesmodel.cpp
     models/variablesmodel.h
 
+    pki/certificatestore.cpp
+    pki/certificatestore.h
+
     project/defaultproject.cpp
     project/defaultproject.h
     project/nodesetwriter.cpp
@@ -88,5 +91,6 @@ target_include_directories(ouasim_core PUBLIC
 target_link_libraries(ouasim_core PUBLIC
     Qt${QT_VERSION_MAJOR}::Core
 )
+target_link_libraries(ouasim_core PRIVATE Qt${QT_VERSION_MAJOR}::Network)
 
 ouasim_link_quaserver(ouasim_core)

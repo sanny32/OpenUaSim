@@ -51,9 +51,43 @@ public:
     ///
     const CertificatesModel *certificatesModel() const;
 
+signals:
+    ///
+    /// \brief Asks to import a certificate into the selected folder.
+    /// \param category Selected store folder.
+    ///
+    void importRequested(CertificateInfo::Category category);
+
+    ///
+    /// \brief Asks to save a copy of the selected certificate.
+    /// \param filePath Stored certificate file.
+    ///
+    void exportRequested(const QString &filePath);
+
+    ///
+    /// \brief Asks to move the selected certificate, i.e. to trust or reject it.
+    /// \param filePath Stored certificate file.
+    /// \param category Target folder.
+    ///
+    void moveRequested(const QString &filePath, CertificateInfo::Category category);
+
+    ///
+    /// \brief Asks to delete the selected certificate.
+    /// \param filePath Stored certificate file.
+    ///
+    void deleteRequested(const QString &filePath);
+
 private:
     void showCategory(const QModelIndex &current);
     void showCertificate(const QModelIndex &current);
+    int currentCategory() const;
+    QString currentFilePath() const;
+    void requestImport();
+    void requestExport();
+    void requestTrust();
+    void requestReject();
+    void requestDelete();
+    void openContainingFolder();
 
     Ui::CertificatesPage *ui;
     TreeModel *_categoriesModel;

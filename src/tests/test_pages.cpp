@@ -16,6 +16,7 @@
 #include <QSpinBox>
 #include <QStandardItemModel>
 #include <QTableView>
+#include <QToolButton>
 #include <QTest>
 #include <QTreeView>
 
@@ -40,6 +41,7 @@
 #include "viewsetup.h"
 
 Q_DECLARE_METATYPE(VariableInfo)
+Q_DECLARE_METATYPE(CertificateInfo::Category)
 
 namespace {
 
@@ -84,6 +86,7 @@ private slots:
     void endpointsPageRevertsAndKeepsRow();
     void endpointsPageOffersSecurityOfTheBuild();
     void certificatesPage();
+    void certificatesPageRequestsActions();
     void certificateDetailsShowEveryLine();
     void certificateDetailsKeepTheirWidth();
     void sessionsPage();
@@ -408,6 +411,32 @@ void TestPages::endpointsPageOffersSecurityOfTheBuild()
     QVERIFY(!policies->item(3)->isEnabled());
     QVERIFY(!policies->item(3)->toolTip().isEmpty());
 #endif
+}
+
+void TestPages::certificatesPageRequestsActions()
+{
+    CertificatesPage page;
+    page.setCertificates(_snapshot.certificates);
+    QSignalSpy imported(&page, &CertificatesPage::importRequested);
+    QSignalSpy moved(&page, &CertificatesPage::moveRequested);
+    QSignalSpy deleted(&page, &CertificatesPage::deleteRequested);
+    QSignalSpy exported(&page, &CertificatesPage::exportRequested);
+    const QString selected = page.certificatesModel()->item(0).filePath;
+
+    child<QPushButton>(page, "importButton")->click();
+    QCOMPARE(imported.first().first().value<CertificateInfo::Category>(), CertificateInfo::Category::Trusted);
+    child<QPushButton>(page, "rejectButton")->click();
+    QCOMPARE(moved.first().at(0).toString(), selected);
+    QCOMPARE(moved.first().at(1).value<CertificateInfo::Category>(), CertificateInfo::Category::Rejected);
+    child<QToolButton>(page, "deleteButton")->click();
+    QCOMPARE(deleted.first().first().toString(), selected);
+    child<QPushButton>(page, "exportButton")->click();
+    QCOMPARE(exported.first().first().toString(), selected);
+
+    const QString rejected = QString::number(static_cast<int>(CertificateInfo::Category::Rejected));
+    QVERIFY(ViewSetup::selectById(child<QTreeView>(page, "categoriesList"), rejected));
+    page.setCertificates(_snapshot.certificates);
+    QCOMPARE(child<QLabel>(page, "certificatesTitle")->text(), QStringLiteral("Rejected Certificates"));
 }
 
 void TestPages::certificatesPage()

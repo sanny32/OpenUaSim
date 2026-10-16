@@ -133,6 +133,15 @@ bool SimServer::start(const ProjectConfig &project)
 }
 
 ///
+/// \brief Sets the certificates applied on the next start; ignored in builds without encryption.
+/// \param material Server certificate and key with the trusted and issuer certificates.
+///
+void SimServer::setPkiMaterial(const PkiMaterial &material)
+{
+    _pki = material;
+}
+
+///
 /// \brief Stops listening and closes every session; does nothing when stopped.
 ///
 void SimServer::stop()
@@ -230,6 +239,10 @@ bool SimServer::configureSecurity(const ListenerSettings &listener)
 {
     const bool wantsSecure = listener.securityModes != QStringList { QStringLiteral("None") };
 #ifdef OUASIM_HAVE_ENCRYPTION
+    _server->setCertificate(_pki.certificate);
+    _server->setPrivateKey(_pki.privateKey);
+    _server->setTrustedCertificates(_pki.trusted);
+    _server->setIssuerCertificates(_pki.issuers);
     _server->setSecurityPolicies(securityPolicies(listener.securityPolicies));
     _server->setSecurityModes(securityModes(listener.securityModes));
     const bool secureAvailable = !_server->certificate().isEmpty() && !_server->privateKey().isEmpty();

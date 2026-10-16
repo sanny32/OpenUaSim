@@ -185,12 +185,78 @@ bool ServerController::setEndpoints(const QList<EndpointInfo> &endpoints, QStrin
 }
 
 ///
-/// \brief Tells whether the running server still serves older endpoint settings.
-/// \return True after setEndpoints() on a running server until it restarts or stops.
+/// \brief Tells whether the running server still serves older endpoint or certificate settings.
+/// \return True after such a change on a running server until it restarts or stops.
 ///
 bool ServerController::isRestartRequired() const
 {
     return _restartRequired;
+}
+
+///
+/// \brief Returns the PKI store, e.g. to point tests at a temporary directory.
+/// \return Store owned by the controller.
+///
+CertificateStore &ServerController::certificateStore()
+{
+    return _certificates;
+}
+
+///
+/// \brief Lists the certificates of the PKI store.
+/// \return Certificates of every folder.
+///
+QList<CertificateInfo> ServerController::certificates() const
+{
+    return _certificates.certificates();
+}
+
+///
+/// \brief Adds a client or issuer certificate to the PKI store.
+/// \param fileName PEM or DER certificate.
+/// \param category Trusted, Rejected or Issuer folder.
+/// \param error Receives the reason on failure; may be null.
+/// \return True when the certificate was stored.
+///
+bool ServerController::importCertificate(const QString &fileName, CertificateInfo::Category category, QString *error)
+{
+    return finishCertificateChange(!_certificates.importCertificate(fileName, category, error).isEmpty());
+}
+
+///
+/// \brief Installs the server certificate and private key used by secure endpoints.
+/// \param certificateFile PEM or DER certificate.
+/// \param keyFile PEM or DER private key.
+/// \param error Receives the reason on failure; may be null.
+/// \return True when both were stored.
+///
+bool ServerController::installServerCertificate(const QString &certificateFile, const QString &keyFile,
+                                                QString *error)
+{
+    return finishCertificateChange(_certificates.installServerCertificate(certificateFile, keyFile, error));
+}
+
+///
+/// \brief Moves a stored certificate, e.g. to trust a rejected client.
+/// \param filePath Stored certificate file.
+/// \param category Target folder.
+/// \param error Receives the reason on failure; may be null.
+/// \return True when the certificate was moved.
+///
+bool ServerController::moveCertificate(const QString &filePath, CertificateInfo::Category category, QString *error)
+{
+    return finishCertificateChange(!_certificates.move(filePath, category, error).isEmpty());
+}
+
+///
+/// \brief Deletes a stored certificate.
+/// \param filePath Stored certificate file.
+/// \param error Receives the reason on failure; may be null.
+/// \return True when the certificate was deleted.
+///
+bool ServerController::removeCertificate(const QString &filePath, QString *error)
+{
+    return finishCertificateChange(_certificates.remove(filePath, error));
 }
 
 ///
@@ -220,6 +286,7 @@ ServerSnapshot ServerController::snapshot(const QDateTime &now) const
 {
     ServerSnapshot result = SnapshotBuilder::build(_project, _server, _addressSpace, now);
     result.log = _log;
+    result.certificates = _certificates.certificates();
     return result;
 }
 
@@ -275,6 +342,7 @@ AddressSpace &ServerController::addressSpace()
 ///
 bool ServerController::start()
 {
+    _server.setPkiMaterial(_certificates.material());
     if (!_server.start(_project))
         return false;
     _engine.start();
@@ -354,6 +422,21 @@ void ServerController::loadProjectNodeSets()
             appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
                                        tr("Model '%1' stays loaded until OpenUaSim restarts").arg(loaded)));
     }
+}
+
+///
+/// \brief Announces a successful PKI change, which a running server applies on restart.
+/// \param changed Whether the store changed.
+/// \return The value of changed, so callers can return it directly.
+///
+bool ServerController::finishCertificateChange(bool changed)
+{
+    if (!changed)
+        return false;
+    if (isRunning())
+        setRestartRequired(true);
+    emit certificatesChanged();
+    return true;
 }
 
 ///
