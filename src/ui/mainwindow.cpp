@@ -8,6 +8,8 @@
 
 #include <QActionGroup>
 #include <QApplication>
+#include <QCloseEvent>
+#include <QFileDialog>
 #include <QLabel>
 #include <QMessageBox>
 #include <QTimer>
@@ -19,6 +21,8 @@
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
+#include "project/projectdocument.h"
+#include "project/projectfile.h"
 #include "project/projectnodes.h"
 #include "server/servercontroller.h"
 #include "ui_mainwindow.h"
@@ -130,6 +134,78 @@ void MainWindow::setController(ServerController *controller)
 LogModel *MainWindow::logModel() const
 {
     return _logModel;
+}
+
+///
+/// \brief Binds the File menu to the project document and shows its name in the title.
+/// \param document Document of the served project; must outlive the window.
+///
+void MainWindow::setDocument(ProjectDocument *document)
+{
+    _document = document;
+    connect(ui->actionNewProject, &QAction::triggered, this, &MainWindow::newProject);
+    connect(ui->actionOpenProject, &QAction::triggered, this, &MainWindow::openProject);
+    connect(ui->actionSaveProject, &QAction::triggered, this, &MainWindow::saveProject);
+    connect(ui->actionSaveProjectAs, &QAction::triggered, this, &MainWindow::saveProjectAs);
+    connect(document, &ProjectDocument::fileNameChanged, this, &MainWindow::updateWindowTitle);
+    connect(document, &ProjectDocument::modifiedChanged, this, &MainWindow::updateWindowTitle);
+    updateWindowTitle();
+}
+
+///
+/// \brief Serves a project file, reporting a file that cannot be read.
+/// \param fileName File to open.
+/// \return True when the file was opened.
+///
+bool MainWindow::openProjectFile(const QString &fileName)
+{
+    QString error;
+    if (_document && _document->open(fileName, &error))
+        return true;
+    showError(tr("Project not opened"), error);
+    return false;
+}
+
+///
+/// \brief Saves the project to a file, reporting a file that cannot be written.
+/// \param fileName Target path.
+/// \return True when the file was written.
+///
+bool MainWindow::saveProjectTo(const QString &fileName)
+{
+    QString error;
+    if (_document && _document->saveAs(fileName, &error))
+        return true;
+    showError(tr("Project not saved"), error);
+    return false;
+}
+
+///
+/// \brief Asks whether unsaved changes may be dropped, offering to save them first.
+/// \return True when nothing is unsaved, the changes were saved or the user discards them.
+///
+bool MainWindow::confirmDiscardChanges()
+{
+    if (!_document || !_document->isModified())
+        return true;
+    const QMessageBox::StandardButton answer = QMessageBox::warning(
+        this, tr("Unsaved Changes"), tr("Save the changes to '%1'?").arg(_document->displayName()),
+        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+    if (answer == QMessageBox::Save)
+        return saveProject();
+    return answer == QMessageBox::Discard;
+}
+
+///
+/// \brief Keeps the window open when the user cancels dropping unsaved changes.
+/// \param event Close event.
+///
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (confirmDiscardChanges())
+        QMainWindow::closeEvent(event);
+    else
+        event->ignore();
 }
 
 ///
@@ -490,6 +566,63 @@ void MainWindow::reloadEndpoints()
 void MainWindow::updateRestartNote(bool required)
 {
     _restartNote->setVisible(required);
+}
+
+///
+/// \brief Replaces the project with the default one once unsaved changes are settled.
+///
+void MainWindow::newProject()
+{
+    if (_document && confirmDiscardChanges())
+        _document->newProject();
+}
+
+///
+/// \brief Picks and opens a project file once unsaved changes are settled.
+///
+void MainWindow::openProject()
+{
+    if (!_document || !confirmDiscardChanges())
+        return;
+    const QString fileName = QFileDialog::getOpenFileName(this, tr("Open Project"), _document->fileName(),
+                                                          ProjectFile::fileFilter());
+    if (!fileName.isEmpty())
+        openProjectFile(fileName);
+}
+
+///
+/// \brief Saves to the document's file, asking for one when the project was never saved.
+/// \return True when the project was written.
+///
+bool MainWindow::saveProject()
+{
+    if (!_document)
+        return false;
+    if (_document->fileName().isEmpty())
+        return saveProjectAs();
+    return saveProjectTo(_document->fileName());
+}
+
+///
+/// \brief Asks for a file name and saves the project there.
+/// \return True when the project was written.
+///
+bool MainWindow::saveProjectAs()
+{
+    if (!_document)
+        return false;
+    const QString fileName = QFileDialog::getSaveFileName(this, tr("Save Project As"), _document->fileName(),
+                                                          ProjectFile::fileFilter());
+    return !fileName.isEmpty() && saveProjectTo(fileName);
+}
+
+///
+/// \brief Shows the project name and an unsaved-changes mark in the title.
+///
+void MainWindow::updateWindowTitle()
+{
+    setWindowTitle(QStringLiteral("%1[*] - %2").arg(_document->displayName(), QStringLiteral(APP_NAME)));
+    setWindowModified(_document->isModified());
 }
 
 ///

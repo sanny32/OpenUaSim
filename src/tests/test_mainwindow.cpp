@@ -18,6 +18,8 @@
 #include <QSplitter>
 #include <QStatusBar>
 #include <QTabWidget>
+#include <QTemporaryDir>
+#include <QTimer>
 #include <QTableView>
 #include <QTest>
 #include <QToolButton>
@@ -34,6 +36,7 @@
 #include "mock/mockdata.h"
 #include "objectspage.h"
 #include "project/defaultproject.h"
+#include "project/projectdocument.h"
 #include "project/projectnodes.h"
 #include "server/servercontroller.h"
 #include "statusindicator.h"
@@ -79,6 +82,10 @@ private slots:
     void refusedVariableChangeShowsMessage();
     void endpointChangesShowRestartNote();
     void refusedEndpointChangeShowsMessage();
+    void titleShowsDocumentAndChanges();
+    void savesAndOpensProjectFiles();
+    void openFailureShowsMessage();
+    void closingAsksAboutUnsavedChanges();
     void panelsFitTheDefaultWindow();
 };
 
@@ -462,6 +469,84 @@ void TestMainWindow::refusedEndpointChangeShowsMessage()
     QVERIFY(box);
     QVERIFY(box->text().contains(QStringLiteral("must share one port")));
     box->close();
+}
+
+void TestMainWindow::titleShowsDocumentAndChanges()
+{
+    ServerController controller;
+    ProjectDocument document(&controller);
+    document.newProject();
+    MainWindow window;
+    window.setController(&controller);
+    window.setDocument(&document);
+
+    QCOMPARE(window.windowTitle(), QStringLiteral("Untitled[*] - OpenUaSim"));
+    QVERIFY(!window.isWindowModified());
+    QVERIFY(controller.removeNode(QStringLiteral("ns=1;s=Pump_01")));
+    QVERIFY(window.isWindowModified());
+
+    QTemporaryDir directory;
+    QVERIFY(window.saveProjectTo(directory.filePath(QStringLiteral("line.ouasim"))));
+    QCOMPARE(window.windowTitle(), QStringLiteral("line.ouasim[*] - OpenUaSim"));
+    QVERIFY(!window.isWindowModified());
+}
+
+void TestMainWindow::savesAndOpensProjectFiles()
+{
+    QTemporaryDir directory;
+    const QString fileName = directory.filePath(QStringLiteral("line.ouasim"));
+    ServerController controller;
+    ProjectDocument document(&controller);
+    document.newProject();
+    MainWindow window;
+    window.setController(&controller);
+    window.setDocument(&document);
+
+    QVERIFY(controller.removeNode(QStringLiteral("ns=1;s=Pump_01")));
+    QVERIFY(window.saveProjectTo(fileName));
+    document.newProject();
+    QVERIFY(window.openProjectFile(fileName));
+    QVERIFY(!ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Pump_01")));
+    QCOMPARE(child<QTableView>(window, "variablesView")->model()->rowCount(), 3);
+}
+
+void TestMainWindow::openFailureShowsMessage()
+{
+    ServerController controller;
+    ProjectDocument document(&controller);
+    document.newProject();
+    MainWindow window;
+    window.setController(&controller);
+    window.setDocument(&document);
+
+    QVERIFY(!window.openProjectFile(QStringLiteral("missing.ouasim")));
+    auto *box = window.findChild<QMessageBox *>();
+    QVERIFY(box);
+    QVERIFY(box->text().startsWith(QStringLiteral("Cannot open")));
+    box->close();
+}
+
+void TestMainWindow::closingAsksAboutUnsavedChanges()
+{
+    ServerController controller;
+    ProjectDocument document(&controller);
+    document.newProject();
+    MainWindow window;
+    window.setController(&controller);
+    window.setDocument(&document);
+    window.show();
+    QVERIFY(controller.removeNode(QStringLiteral("ns=1;s=Pump_01")));
+
+    QTimer::singleShot(0, &window, [&window] {
+        window.findChild<QMessageBox *>()->button(QMessageBox::Cancel)->click();
+    });
+    QVERIFY(!window.close());
+    QVERIFY(window.isVisible());
+
+    QTimer::singleShot(0, &window, [&window] {
+        window.findChild<QMessageBox *>()->button(QMessageBox::Discard)->click();
+    });
+    QVERIFY(window.close());
 }
 
 void TestMainWindow::panelsFitTheDefaultWindow()

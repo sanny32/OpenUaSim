@@ -19,6 +19,7 @@ class LogModel;
 class MainStatusBarWidget;
 class QAction;
 class QActionGroup;
+class ProjectDocument;
 class QLabel;
 struct EndpointInfo;
 class QTimer;
@@ -61,6 +62,32 @@ public:
     void setController(ServerController *controller);
 
     ///
+    /// \brief Binds the File menu to the project document and shows its name in the title.
+    /// \param document Document of the served project; must outlive the window.
+    ///
+    void setDocument(ProjectDocument *document);
+
+    ///
+    /// \brief Serves a project file, reporting a file that cannot be read.
+    /// \param fileName File to open.
+    /// \return True when the file was opened.
+    ///
+    bool openProjectFile(const QString &fileName);
+
+    ///
+    /// \brief Saves the project to a file, reporting a file that cannot be written.
+    /// \param fileName Target path.
+    /// \return True when the file was written.
+    ///
+    bool saveProjectTo(const QString &fileName);
+
+    ///
+    /// \brief Asks whether unsaved changes may be dropped, offering to save them first.
+    /// \return True when nothing is unsaved, the changes were saved or the user discards them.
+    ///
+    bool confirmDiscardChanges();
+
+    ///
     /// \brief Returns the log shared by the event log panel and the log page.
     /// \return Server log model.
     ///
@@ -68,6 +95,7 @@ public:
 
 protected:
     void showEvent(QShowEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
 private:
     void setupIcons();
@@ -97,12 +125,18 @@ private:
     void applyEndpoints(const QList<EndpointInfo> &endpoints);
     void reloadEndpoints();
     void updateRestartNote(bool required);
+    void newProject();
+    void openProject();
+    bool saveProject();
+    bool saveProjectAs();
+    void updateWindowTitle();
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_statusWidget;
     LogModel *_logModel;
     AppTheme *_theme;
     ServerController *_controller = nullptr;
+    ProjectDocument *_document = nullptr;
     QTimer *_statusTimer;
     QLabel *_restartNote;
     QString _pendingParentId;

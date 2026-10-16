@@ -62,8 +62,10 @@ void ServerController::setProject(const ProjectConfig &project)
 QString ServerController::addNode(const QString &parentId, const NodeDefinition &node, QString *error)
 {
     const QString nodeId = ProjectNodes::insert(_project.nodes, parentId, node, error);
-    if (!nodeId.isEmpty())
+    if (!nodeId.isEmpty()) {
         rebuildNodes();
+        emit projectEdited();
+    }
     return nodeId;
 }
 
@@ -77,6 +79,7 @@ bool ServerController::removeNode(const QString &nodeId)
     if (!ProjectNodes::remove(_project.nodes, nodeId))
         return false;
     rebuildNodes();
+    emit projectEdited();
     return true;
 }
 
@@ -105,6 +108,7 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
     if (!ProjectNodes::updateVariable(_project.nodes, edited, error))
         return false;
 
+    emit projectEdited();
     if (structural) {
         rebuildNodes();
         return true;
@@ -136,6 +140,7 @@ bool ServerController::setEndpoints(const QList<EndpointInfo> &endpoints, QStrin
     if (isRunning())
         setRestartRequired(true);
     emit endpointsChanged();
+    emit projectEdited();
     return true;
 }
 

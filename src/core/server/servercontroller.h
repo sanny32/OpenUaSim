@@ -167,6 +167,11 @@ signals:
     void projectChanged();
 
     ///
+    /// \brief Announces that a node or endpoint edit changed the project.
+    ///
+    void projectEdited();
+
+    ///
     /// \brief Announces new access or simulation settings of a variable whose node was kept.
     /// \param variable Updated description.
     ///

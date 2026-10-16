@@ -3,7 +3,7 @@
 
 #include "application.h"
 #include "mainwindow.h"
-#include "project/defaultproject.h"
+#include "project/projectdocument.h"
 #include "server/servercontroller.h"
 
 ///
@@ -17,10 +17,12 @@ int main(int argc, char *argv[])
     Application app(argc, argv);
 
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    ProjectDocument document(&controller);
+    document.openLast();
 
     MainWindow window(&app.theme());
     window.setController(&controller);
+    window.setDocument(&document);
     window.show();
 
     return app.exec();
