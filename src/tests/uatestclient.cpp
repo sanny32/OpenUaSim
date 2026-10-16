@@ -1,0 +1,142 @@
+// SPDX-FileCopyrightText: 2026 OpenUaSim contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file uatestclient.cpp
+/// \brief Implements a blocking OPC UA client for tests that talk to an in-process server.
+///
+
+#include <atomic>
+#include <cstring>
+#include <thread>
+
+#include <QCoreApplication>
+
+#include <QUaServer>
+#include <quatypesconverter.h>
+
+#include <open62541/client_config_default.h>
+#include <open62541/client_highlevel.h>
+#include <open62541/plugin/log_stdout.h>
+
+#include "uatestclient.h"
+
+///
+/// \brief Creates a client that logs only warnings and errors.
+///
+UaTestClient::UaTestClient()
+{
+    UA_ClientConfig config;
+    std::memset(&config, 0, sizeof(UA_ClientConfig));
+    config.logging = UA_Log_Stdout_new(UA_LOGLEVEL_WARNING);
+    UA_ClientConfig_setDefault(&config);
+    config.timeout = 5000;
+    // Test servers have no certificate, so user names travel over SecurityPolicy None.
+    config.allowNonePolicyPassword = true;
+    _client = UA_Client_newWithConfig(&config);
+}
+
+///
+/// \brief Disconnects and releases the client.
+///
+UaTestClient::~UaTestClient()
+{
+    disconnect();
+    UA_Client_delete(_client);
+}
+
+///
+/// \brief Opens an anonymous session.
+/// \param url Endpoint URL.
+/// \return Service result.
+///
+UA_StatusCode UaTestClient::connect(const QString &url)
+{
+    const QByteArray endpoint = url.toUtf8();
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
+    runInWorker([&] { status = UA_Client_connect(_client, endpoint.constData()); });
+    return status;
+}
+
+///
+/// \brief Opens a session authenticated with a user name and password.
+/// \param url Endpoint URL.
+/// \param userName User name.
+/// \param password Password.
+/// \return Service result.
+///
+UA_StatusCode UaTestClient::connectUsername(const QString &url, const QString &userName, const QString &password)
+{
+    const QByteArray endpoint = url.toUtf8();
+    const QByteArray user = userName.toUtf8();
+    const QByteArray pass = password.toUtf8();
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
+    runInWorker([&] {
+        status = UA_Client_connectUsername(_client, endpoint.constData(), user.constData(), pass.constData());
+    });
+    return status;
+}
+
+///
+/// \brief Closes the session and the secure channel, if any.
+/// \return Service result.
+///
+UA_StatusCode UaTestClient::disconnect()
+{
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
+    runInWorker([&] { status = UA_Client_disconnect(_client); });
+    return status;
+}
+
+///
+/// \brief Reads the Value attribute of a node.
+/// \param nodeId Node id in XML notation, e.g. "ns=1;s=Motor_01.Speed".
+/// \param value Receives the value on success.
+/// \return Service result.
+///
+UA_StatusCode UaTestClient::readValue(const QString &nodeId, QVariant &value)
+{
+    UA_NodeId id = QUaNodeId(nodeId).toUaNodeId();
+    UA_Variant uaValue;
+    UA_Variant_init(&uaValue);
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
+    runInWorker([&] { status = UA_Client_readValueAttribute(_client, id, &uaValue); });
+    if (status == UA_STATUSCODE_GOOD)
+        value = QUaTypesConverter::uaVariantToQVariant(uaValue);
+    UA_Variant_clear(&uaValue);
+    UA_NodeId_clear(&id);
+    return status;
+}
+
+///
+/// \brief Writes the Value attribute of a node.
+/// \param nodeId Node id in XML notation.
+/// \param value Value to write; its Qt type selects the OPC UA type.
+/// \return Service result.
+///
+UA_StatusCode UaTestClient::writeValue(const QString &nodeId, const QVariant &value)
+{
+    UA_NodeId id = QUaNodeId(nodeId).toUaNodeId();
+    UA_Variant uaValue = QUaTypesConverter::uaVariantFromQVariant(value);
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
+    runInWorker([&] { status = UA_Client_writeValueAttribute(_client, id, &uaValue); });
+    UA_Variant_clear(&uaValue);
+    UA_NodeId_clear(&id);
+    return status;
+}
+
+///
+/// \brief Runs a blocking client call on a worker thread while processing events here.
+/// \param job Client call.
+///
+void UaTestClient::runInWorker(const std::function<void()> &job)
+{
+    std::atomic_bool done { false };
+    std::thread worker([&] {
+        job();
+        done = true;
+    });
+    while (!done)
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
+    worker.join();
+}

@@ -40,6 +40,11 @@ function(ouasim_add_test test_name source_file)
     target_link_libraries(${test_name} PRIVATE ouasim_core)
 endfunction()
 
+function(ouasim_add_server_test test_name source_file)
+    ouasim_add_test(${test_name} ${source_file})
+    target_sources(${test_name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/uatestclient.cpp")
+endfunction()
+
 function(ouasim_add_ui_test test_name source_file)
     ouasim_register_test(${test_name} ${source_file})
     target_sources(${test_name} PRIVATE "${PROJECT_SOURCE_DIR}/app/resources.qrc")

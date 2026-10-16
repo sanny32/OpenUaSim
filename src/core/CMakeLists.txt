@@ -48,6 +48,15 @@ add_library(ouasim_core STATIC
     project/projectfile.cpp
     project/projectfile.h
 
+    server/listenersettings.cpp
+    server/listenersettings.h
+    server/logmapper.cpp
+    server/logmapper.h
+    server/sessiontracker.cpp
+    server/sessiontracker.h
+    server/simserver.cpp
+    server/simserver.h
+
     simulation/signalgenerator.cpp
     simulation/signalgenerator.h
     simulation/valuecast.cpp
