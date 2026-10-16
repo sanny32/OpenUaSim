@@ -173,7 +173,7 @@
       </property>
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>80</horstretch>
+        <horstretch>70</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
@@ -313,7 +313,7 @@
       </property>
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>42</horstretch>
+        <horstretch>52</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
@@ -424,6 +424,12 @@
            <item>
             <widget class="QWidget" name="detailsHost">
              <layout class="QGridLayout" name="detailsForm" columnstretch="0,1">
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
               <property name="horizontalSpacing">
                <number>13</number>
               </property>
@@ -431,33 +437,48 @@
                <number>5</number>
               </property>
               <item row="0" column="0">
-               <widget class="QLabel" name="commonNameLabel">
-                <property name="text">
-                 <string>Common Name</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QLineEdit" name="commonNameEdit">
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
                <widget class="QLabel" name="subjectLabel">
                 <property name="text">
                  <string>Subject</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="1">
+              <item row="0" column="1">
                <widget class="QPlainTextEdit" name="subjectEdit">
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>70</height>
-                 </size>
+                <property name="lineWrapMode">
+                 <enum>QPlainTextEdit::NoWrap</enum>
+                </property>
+                <property name="verticalScrollBarPolicy">
+                 <enum>Qt::ScrollBarAlwaysOff</enum>
+                </property>
+                <property name="horizontalScrollBarPolicy">
+                 <enum>Qt::ScrollBarAlwaysOff</enum>
+                </property>
+                <property name="tabChangesFocus">
+                 <bool>true</bool>
+                </property>
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="issuerLabel">
+                <property name="text">
+                 <string>Issuer</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QPlainTextEdit" name="issuerEdit">
+                <property name="lineWrapMode">
+                 <enum>QPlainTextEdit::NoWrap</enum>
+                </property>
+                <property name="verticalScrollBarPolicy">
+                 <enum>Qt::ScrollBarAlwaysOff</enum>
+                </property>
+                <property name="horizontalScrollBarPolicy">
+                 <enum>Qt::ScrollBarAlwaysOff</enum>
                 </property>
                 <property name="tabChangesFocus">
                  <bool>true</bool>
@@ -468,114 +489,104 @@
                </widget>
               </item>
               <item row="2" column="0">
-               <widget class="QLabel" name="issuerLabel">
-                <property name="text">
-                 <string>Issuer</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QPlainTextEdit" name="issuerEdit">
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>70</height>
-                 </size>
-                </property>
-                <property name="tabChangesFocus">
-                 <bool>true</bool>
-                </property>
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
                <widget class="QLabel" name="serialNumberLabel">
                 <property name="text">
                  <string>Serial Number</string>
                 </property>
                </widget>
               </item>
-              <item row="3" column="1">
+              <item row="2" column="1">
                <widget class="QLineEdit" name="serialNumberEdit">
                 <property name="readOnly">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="validityLabel">
+                <property name="text">
+                 <string>Validity</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <layout class="QHBoxLayout" name="validityLayout">
+                <property name="spacing">
+                 <number>4</number>
+                </property>
+                <item>
+                 <widget class="QLineEdit" name="validFromEdit">
+                  <property name="toolTip">
+                   <string>Valid from</string>
+                  </property>
+                  <property name="readOnly">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="validitySeparatorLabel">
+                  <property name="text">
+                   <string notr="true">–</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="validToEdit">
+                  <property name="toolTip">
+                   <string>Valid to</string>
+                  </property>
+                  <property name="readOnly">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
               <item row="4" column="0">
-               <widget class="QLabel" name="validFromLabel">
-                <property name="text">
-                 <string>Valid From</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="1">
-               <widget class="QLineEdit" name="validFromEdit">
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="0">
-               <widget class="QLabel" name="validToLabel">
-                <property name="text">
-                 <string>Valid To</string>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="1">
-               <widget class="QLineEdit" name="validToEdit">
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="6" column="0">
                <widget class="QLabel" name="statusLabel">
                 <property name="text">
                  <string>Status</string>
                 </property>
                </widget>
               </item>
-              <item row="6" column="1">
+              <item row="4" column="1">
                <widget class="StatusIndicator" name="statusIndicator" native="true">
 </widget>
               </item>
-              <item row="7" column="0">
+              <item row="5" column="0">
                <widget class="QLabel" name="keyUsageLabel">
                 <property name="text">
                  <string>Key Usage</string>
                 </property>
                </widget>
               </item>
-              <item row="7" column="1">
+              <item row="5" column="1">
                <widget class="QLineEdit" name="keyUsageEdit">
                 <property name="readOnly">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
-              <item row="8" column="0">
+              <item row="6" column="0">
                <widget class="QLabel" name="filePathLabel">
                 <property name="text">
                  <string>File Path</string>
                 </property>
                </widget>
               </item>
-              <item row="8" column="1">
+              <item row="6" column="1">
                <layout class="QHBoxLayout" name="filePathLayout">
                 <property name="spacing">
                  <number>4</number>
                 </property>
                 <item>
                  <widget class="QPlainTextEdit" name="filePathEdit">
-                  <property name="maximumSize">
-                   <size>
-                    <width>16777215</width>
-                    <height>48</height>
-                   </size>
+                  <property name="verticalScrollBarPolicy">
+                   <enum>Qt::ScrollBarAlwaysOff</enum>
+                  </property>
+                  <property name="horizontalScrollBarPolicy">
+                   <enum>Qt::ScrollBarAlwaysOff</enum>
                   </property>
                   <property name="tabChangesFocus">
                    <bool>true</bool>

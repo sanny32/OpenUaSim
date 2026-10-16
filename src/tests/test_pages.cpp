@@ -7,7 +7,10 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
+#include <QPlainTextEdit>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QTableView>
 #include <QTest>
 #include <QTreeView>
@@ -65,6 +68,8 @@ private slots:
     void namespacesPage();
     void endpointsPage();
     void certificatesPage();
+    void certificateDetailsShowEveryLine();
+    void certificateDetailsKeepTheirWidth();
     void sessionsPage();
     void sessionsPageFiltersByState();
     void logPageFilters();
@@ -223,7 +228,8 @@ void TestPages::certificatesPage()
 
     QCOMPARE(page.certificatesModel()->rowCount(), 3);
     QCOMPARE(child<QLabel>(page, "certificatesTitle")->text(), QStringLiteral("Trusted Clients"));
-    QCOMPARE(text(page, "commonNameEdit"), QStringLiteral("OPC UA Client A"));
+    QVERIFY(child<QPlainTextEdit>(page, "subjectEdit")->toPlainText().startsWith(QStringLiteral("CN=OPC UA Client A")));
+    QCOMPARE(text(page, "validFromEdit"), QStringLiteral("2024-04-10 10:00:00"));
     QCOMPARE(child<StatusIndicator>(page, "statusIndicator")->status(), StatusKind::Good);
     QVERIFY(!child<QPushButton>(page, "trustButton")->isEnabled());
     QVERIFY(child<QPushButton>(page, "rejectButton")->isEnabled());
@@ -243,6 +249,40 @@ void TestPages::certificatesPage()
     page.setCertificates({});
     QCOMPARE(page.certificatesModel()->rowCount(), 0);
     QVERIFY(!child<QWidget>(page, "detailsHost")->isEnabled());
+}
+
+void TestPages::certificateDetailsShowEveryLine()
+{
+    CertificatesPage page;
+    page.resize(1300, 600);
+    page.setCertificates(_snapshot.certificates);
+    page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+
+    for (const char *name : { "subjectEdit", "issuerEdit" }) {
+        auto *edit = child<QPlainTextEdit>(page, name);
+        QCOMPARE(edit->blockCount(), 3);
+        QVERIFY2(edit->verticalScrollBar()->maximum() == 0, name);
+    }
+    const auto *subject = child<QPlainTextEdit>(page, "subjectEdit");
+    const int threeLines = subject->height();
+
+    CertificateInfo single = _snapshot.certificates.first();
+    single.category = CertificateInfo::Category::Trusted;
+    single.subject = QStringLiteral("CN=Single");
+    page.setCertificates({ single });
+    QCOMPARE(subject->blockCount(), 1);
+    QVERIFY(subject->height() < threeLines);
+    QCOMPARE(subject->verticalScrollBar()->maximum(), 0);
+}
+
+void TestPages::certificateDetailsKeepTheirWidth()
+{
+    CertificatesPage page;
+    page.setCertificates(_snapshot.certificates);
+    const auto *scroll = child<QScrollArea>(page, "detailsPanelScroll");
+    QVERIFY(scroll->minimumWidth() >= scroll->widget()->minimumSizeHint().width());
+    QVERIFY(page.minimumSizeHint().width() >= scroll->minimumWidth());
 }
 
 void TestPages::sessionsPage()
