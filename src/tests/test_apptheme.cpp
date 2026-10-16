@@ -45,7 +45,6 @@ private slots:
     void everyIconResourceLoads();
     void unknownIconIsNull();
     void paletteIconsFollowTheTheme();
-    void fixedIconsKeepTheirColor();
     void statusDots();
 };
 
@@ -130,18 +129,17 @@ void TestAppTheme::everyIconResourceLoads()
         QVERIFY2(strokeColor(icon).isValid(), qPrintable(name));
         ++count;
     }
-    QVERIFY(count > 20);
+    QVERIFY(count > 15);
 }
 
 void TestAppTheme::unknownIconIsNull()
 {
     QVERIFY(AppIcons::icon(QStringLiteral("does-not-exist")).isNull());
-    QVERIFY(AppIcons::icon(QStringLiteral("does-not-exist"), Qt::red).isNull());
 }
 
 void TestAppTheme::paletteIconsFollowTheTheme()
 {
-    const QIcon icon = AppIcons::icon(QStringLiteral("server"));
+    const QIcon icon = AppIcons::icon(QStringLiteral("save"));
     QApplication::setPalette(AppPalette::build(true));
     const QColor onDark = strokeColor(icon);
     QApplication::setPalette(AppPalette::build(false));
@@ -150,17 +148,6 @@ void TestAppTheme::paletteIconsFollowTheTheme()
     QVERIFY(onDark.isValid());
     QVERIFY(onLight.isValid());
     QVERIFY(onDark.lightness() > onLight.lightness());
-}
-
-void TestAppTheme::fixedIconsKeepTheirColor()
-{
-    const QIcon icon = AppIcons::icon(QStringLiteral("server"), QColor(0x22c55e));
-    QApplication::setPalette(AppPalette::build(true));
-    const QColor onDark = strokeColor(icon);
-    QApplication::setPalette(AppPalette::build(false));
-    QVERIFY(onDark.isValid());
-    QCOMPARE(strokeColor(icon), onDark);
-    QCOMPARE(onDark, QColor(0x22c55e));
 }
 
 void TestAppTheme::statusDots()

@@ -26,7 +26,7 @@ const QByteArray kCurrentColor = QByteArrayLiteral("currentColor");
 ///
 /// \brief Where an icon takes the colour that replaces \c currentColor.
 ///
-enum class Tint { Palette, Fixed, Status };
+enum class Tint { Palette, Status };
 
 ///
 /// \brief Icon engine rendering an SVG whose \c currentColor is resolved at paint time.
@@ -34,8 +34,8 @@ enum class Tint { Palette, Fixed, Status };
 class TintedSvgEngine : public QIconEngine
 {
 public:
-    TintedSvgEngine(const QByteArray &svg, Tint tint, const QColor &fixed, StatusKind status)
-        : _svg(svg), _tint(tint), _fixed(fixed), _status(status)
+    TintedSvgEngine(const QByteArray &svg, Tint tint, StatusKind status)
+        : _svg(svg), _tint(tint), _status(status)
     {
     }
 
@@ -51,7 +51,6 @@ private:
 
     QByteArray _svg;
     Tint _tint;
-    QColor _fixed;
     StatusKind _status;
 };
 
@@ -110,7 +109,7 @@ QPixmap TintedSvgEngine::scaledPixmap(const QSize &size, QIcon::Mode mode, QIcon
 ///
 QIconEngine *TintedSvgEngine::clone() const
 {
-    return new TintedSvgEngine(_svg, _tint, _fixed, _status);
+    return new TintedSvgEngine(_svg, _tint, _status);
 }
 
 ///
@@ -129,14 +128,8 @@ bool TintedSvgEngine::isNull()
 ///
 QColor TintedSvgEngine::colorFor(QIcon::Mode mode) const
 {
-    switch (_tint) {
-    case Tint::Fixed:
-        return _fixed;
-    case Tint::Status:
+    if (_tint == Tint::Status)
         return AppColors::status(_status);
-    case Tint::Palette:
-        break;
-    }
     const QPalette palette = QGuiApplication::palette();
     if (mode == QIcon::Disabled)
         return palette.color(QPalette::Disabled, QPalette::WindowText);
@@ -178,16 +171,14 @@ QByteArray readSvg(const QString &name)
 /// \brief Wraps an SVG source into a tinted icon.
 /// \param svg SVG source.
 /// \param tint Colour source.
-/// \param fixed Colour used with Tint::Fixed.
 /// \param status Status used with Tint::Status.
 /// \return Icon; null when the source is empty.
 ///
-QIcon tinted(const QByteArray &svg, Tint tint, const QColor &fixed = QColor(),
-             StatusKind status = StatusKind::None)
+QIcon tinted(const QByteArray &svg, Tint tint, StatusKind status = StatusKind::None)
 {
     if (svg.isEmpty())
         return {};
-    return QIcon(new TintedSvgEngine(svg, tint, fixed, status));
+    return QIcon(new TintedSvgEngine(svg, tint, status));
 }
 
 }
@@ -205,17 +196,6 @@ QIcon icon(const QString &name)
 }
 
 ///
-/// \brief Builds an icon drawn in a fixed colour.
-/// \param name Resource name under ":/icons/", without the ".svg" extension.
-/// \param color Colour replacing \c currentColor.
-/// \return Icon; null when the resource does not exist.
-///
-QIcon icon(const QString &name, const QColor &color)
-{
-    return tinted(readSvg(name), Tint::Fixed, color);
-}
-
-///
 /// \brief Builds the round indicator icon of a status.
 /// \param kind Status to show.
 /// \return Filled dot in the status colour; null for StatusKind::None.
@@ -227,7 +207,7 @@ QIcon statusDot(StatusKind kind)
     static const QByteArray dot = QByteArrayLiteral(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">"
         "<circle cx=\"12\" cy=\"12\" r=\"9.5\" fill=\"currentColor\"/></svg>");
-    return tinted(dot, Tint::Status, QColor(), kind);
+    return tinted(dot, Tint::Status, kind);
 }
 
 }

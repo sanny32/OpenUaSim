@@ -52,73 +52,6 @@ QString categoryIcon(CertificateInfo::Category category)
     return {};
 }
 
-///
-/// \brief Builds an expanded session group.
-/// \param title Group title, with a %1 placeholder for the session count.
-/// \param icon Group icon resource name.
-/// \param sessions Sessions of the group.
-/// \return Group node with one child per session.
-///
-TreeNode sessionGroup(const QString &title, const QString &icon, const QList<SessionInfo> &sessions)
-{
-    TreeNode group;
-    group.text = title.arg(sessions.size());
-    group.icon = icon;
-    group.kind = TreeNode::Kind::Category;
-    group.expanded = true;
-    for (const SessionInfo &session : sessions) {
-        TreeNode child;
-        child.text = session.name;
-        child.icon = QStringLiteral("user");
-        child.id = session.sessionId;
-        child.kind = TreeNode::Kind::Session;
-        group.children.append(child);
-    }
-    return group;
-}
-
-}
-
-///
-/// \brief Builds the namespace navigation tree.
-/// \param namespaces Namespace array.
-/// \return One expanded "All Namespaces" node listing "[index] uri" children keyed by URI.
-///
-QList<TreeNode> namespaceTree(const QList<NamespaceInfo> &namespaces)
-{
-    TreeNode root;
-    root.text = QCoreApplication::translate("TreeBuilders", "All Namespaces");
-    root.icon = QStringLiteral("database");
-    root.kind = TreeNode::Kind::Category;
-    root.expanded = true;
-    for (const NamespaceInfo &ns : namespaces) {
-        TreeNode child;
-        child.text = QStringLiteral("[%1] %2").arg(ns.index).arg(ns.uri);
-        child.icon = QStringLiteral("database");
-        child.id = ns.uri;
-        child.kind = TreeNode::Kind::Namespace;
-        root.children.append(child);
-    }
-    return { root };
-}
-
-///
-/// \brief Builds the flat endpoint list.
-/// \param endpoints Configured endpoints.
-/// \return One node per endpoint showing its name over its URL, keyed by URL.
-///
-QList<TreeNode> endpointList(const QList<EndpointInfo> &endpoints)
-{
-    QList<TreeNode> nodes;
-    for (const EndpointInfo &endpoint : endpoints) {
-        TreeNode node;
-        node.text = endpoint.name + QLatin1Char('\n') + endpoint.url();
-        node.icon = endpoint.icon;
-        node.id = endpoint.url();
-        node.kind = TreeNode::Kind::Endpoint;
-        nodes.append(node);
-    }
-    return nodes;
 }
 
 ///
@@ -151,27 +84,6 @@ QList<TreeNode> certificateCategories(const QList<CertificateInfo> &certificates
         nodes.append(node);
     }
     return nodes;
-}
-
-///
-/// \brief Builds the session navigation tree.
-/// \param sessions Active and closed sessions.
-/// \return Expanded "Active Sessions (n)" and "Closed Sessions (n)" groups whose
-///         children are keyed by session id.
-///
-QList<TreeNode> sessionTree(const QList<SessionInfo> &sessions)
-{
-    QList<SessionInfo> active;
-    QList<SessionInfo> closed;
-    for (const SessionInfo &session : sessions)
-        (session.active ? active : closed).append(session);
-
-    return {
-        sessionGroup(QCoreApplication::translate("TreeBuilders", "Active Sessions (%1)"),
-                     QStringLiteral("status-good"), active),
-        sessionGroup(QCoreApplication::translate("TreeBuilders", "Closed Sessions (%1)"),
-                     QStringLiteral("status-inactive"), closed),
-    };
 }
 
 }

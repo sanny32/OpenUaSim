@@ -18,7 +18,7 @@ class EndpointsPage;
 }
 
 class EndpointsModel;
-class TreeModel;
+class QSortFilterProxyModel;
 
 ///
 /// \brief Page listing the server endpoints and the settings of an endpoint.
@@ -52,11 +52,10 @@ public:
     const EndpointsModel *endpointsModel() const;
 
 private:
-    void showListItem(const QModelIndex &current);
     void showEndpoint(const QModelIndex &current);
     void updateCredentialFields();
 
     Ui::EndpointsPage *ui;
-    TreeModel *_listModel;
     EndpointsModel *_endpointsModel;
+    QSortFilterProxyModel *_searchModel;
 };

@@ -18,7 +18,7 @@ class NamespacesPage;
 }
 
 class NamespacesModel;
-class TreeModel;
+class QSortFilterProxyModel;
 
 ///
 /// \brief Page listing the namespace array and the details of a namespace.
@@ -52,10 +52,9 @@ public:
     const NamespacesModel *namespacesModel() const;
 
 private:
-    void showTreeNode(const QModelIndex &current);
     void showNamespace(const QModelIndex &current);
 
     Ui::NamespacesPage *ui;
-    TreeModel *_treeModel;
     NamespacesModel *_namespacesModel;
+    QSortFilterProxyModel *_searchModel;
 };

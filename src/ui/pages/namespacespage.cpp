@@ -6,12 +6,11 @@
 /// \brief Implements the namespaces page.
 ///
 
+#include <QSortFilterProxyModel>
+
 #include "appicons.h"
-#include "itemroles.h"
 #include "namespacesmodel.h"
 #include "namespacespage.h"
-#include "treebuilders.h"
-#include "treemodel.h"
 #include "ui_namespacespage.h"
 #include "viewsetup.h"
 
@@ -22,7 +21,6 @@
 NamespacesPage::NamespacesPage(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::NamespacesPage)
-    , _treeModel(new TreeModel(this))
     , _namespacesModel(new NamespacesModel(this))
 {
     ui->setupUi(this);
@@ -32,13 +30,9 @@ NamespacesPage::NamespacesPage(QWidget *parent)
     ui->importButton->setIcon(AppIcons::icon(QStringLiteral("download")));
     ui->exportButton->setIcon(AppIcons::icon(QStringLiteral("upload")));
 
-    ViewSetup::installDelegate(ui->namespacesTree);
-    ViewSetup::attachSearch(ui->namespacesTree, _treeModel, ui->searchEdit);
     ViewSetup::configureTable(ui->namespacesView);
-    ui->namespacesView->setModel(_namespacesModel);
+    _searchModel = ViewSetup::attachTableSearch(ui->namespacesView, _namespacesModel, ui->searchEdit);
 
-    connect(ui->namespacesTree->selectionModel(), &QItemSelectionModel::currentChanged,
-            this, &NamespacesPage::showTreeNode);
     connect(ui->namespacesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &NamespacesPage::showNamespace);
 }
@@ -58,8 +52,6 @@ NamespacesPage::~NamespacesPage()
 void NamespacesPage::setNamespaces(const QList<NamespaceInfo> &namespaces)
 {
     _namespacesModel->setItems(namespaces);
-    _treeModel->setNodes(TreeBuilders::namespaceTree(namespaces));
-    ViewSetup::applyInitialState(ui->namespacesTree);
     ViewSetup::selectRow(ui->namespacesView, 0);
 }
 
@@ -73,33 +65,16 @@ const NamespacesModel *NamespacesPage::namespacesModel() const
 }
 
 ///
-/// \brief Selects the table row of the namespace picked in the tree.
-/// \param current Selected tree index.
-///
-void NamespacesPage::showTreeNode(const QModelIndex &current)
-{
-    const QString uri = current.data(ItemRoles::Id).toString();
-    if (uri.isEmpty())
-        return;
-    const auto &items = _namespacesModel->items();
-    for (int row = 0; row < items.size(); ++row) {
-        if (items.at(row).uri == uri) {
-            ViewSetup::selectRow(ui->namespacesView, row);
-            return;
-        }
-    }
-}
-
-///
 /// \brief Fills the details panel from the selected namespace.
 /// \param current Selected table index.
 ///
 void NamespacesPage::showNamespace(const QModelIndex &current)
 {
-    ui->detailsHost->setEnabled(current.isValid());
-    if (!current.isValid())
+    const QModelIndex source = _searchModel->mapToSource(current);
+    ui->detailsHost->setEnabled(source.isValid());
+    if (!source.isValid())
         return;
-    const NamespaceInfo &ns = _namespacesModel->item(current.row());
+    const NamespaceInfo &ns = _namespacesModel->item(source.row());
     ui->indexEdit->setText(QString::number(ns.index));
     ui->uriEdit->setText(ns.uri);
     ui->versionEdit->setText(ns.version);

@@ -29,141 +29,6 @@
      <property name="handleWidth">
       <number>8</number>
      </property>
-     <widget class="QFrame" name="sessionsPanel">
-      <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
-      </property>
-      <property name="panel" stdset="0">
-       <bool>true</bool>
-      </property>
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>37</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <layout class="QVBoxLayout" name="sessionsPanelLayout">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-       <property name="leftMargin">
-        <number>1</number>
-       </property>
-       <property name="topMargin">
-        <number>1</number>
-       </property>
-       <property name="rightMargin">
-        <number>1</number>
-       </property>
-       <property name="bottomMargin">
-        <number>1</number>
-       </property>
-       <item>
-        <layout class="QHBoxLayout" name="sessionsPanelHeaderLayout">
-         <property name="leftMargin">
-          <number>12</number>
-         </property>
-         <property name="topMargin">
-          <number>5</number>
-         </property>
-         <property name="rightMargin">
-          <number>12</number>
-         </property>
-         <property name="bottomMargin">
-          <number>5</number>
-         </property>
-         <item>
-          <widget class="QLabel" name="sessionsTitle">
-           <property name="font">
-            <font>
-             <pointsize>11</pointsize>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>Sessions</string>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>22</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QFrame" name="sessionsPanelSeparator">
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>1</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>1</height>
-          </size>
-         </property>
-         <property name="separator" stdset="0">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QWidget" name="sessionsPanelBody">
-         <layout class="QVBoxLayout" name="sessionsPanelBodyLayout">
-          <property name="spacing">
-           <number>8</number>
-          </property>
-          <property name="leftMargin">
-           <number>10</number>
-          </property>
-          <property name="topMargin">
-           <number>6</number>
-          </property>
-          <property name="rightMargin">
-           <number>10</number>
-          </property>
-          <property name="bottomMargin">
-           <number>10</number>
-          </property>
-          <item>
-           <widget class="QLineEdit" name="searchEdit">
-            <property name="placeholderText">
-             <string>Search sessions...</string>
-            </property>
-            <property name="clearButtonEnabled">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QTreeView" name="sessionsTree">
-            <property name="editTriggers">
-             <set>QAbstractItemView::NoEditTriggers</set>
-            </property>
-            <property name="rootIsDecorated">
-             <bool>true</bool>
-            </property>
-            <property name="uniformRowHeights">
-             <bool>true</bool>
-            </property>
-            <property name="headerHidden">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-      </layout>
-     </widget>
      <widget class="QFrame" name="clientSessionsPanel">
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
@@ -173,7 +38,7 @@
       </property>
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>81</horstretch>
+        <horstretch>118</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
@@ -268,6 +133,42 @@
           <property name="bottomMargin">
            <number>10</number>
           </property>
+          <item>
+           <layout class="QHBoxLayout" name="filterLayout">
+            <property name="spacing">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QLineEdit" name="searchEdit">
+              <property name="placeholderText">
+               <string>Search sessions...</string>
+              </property>
+              <property name="clearButtonEnabled">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="stateFilterCombo">
+              <item>
+               <property name="text">
+                <string>All Sessions</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Active</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Closed</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
           <item>
            <widget class="QTableView" name="sessionsView">
             <property name="editTriggers">
@@ -623,7 +524,7 @@
             </widget>
            </item>
            <item>
-            <spacer name="spacer7">
+            <spacer name="spacer6">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>

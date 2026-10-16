@@ -13,7 +13,6 @@
 namespace {
 
 constexpr int kMinimumRowHeight = 27;
-constexpr int kMultiLinePadding = 21;
 constexpr double kStatusDotScale = 0.75;
 
 }
@@ -28,8 +27,7 @@ ItemDelegate::ItemDelegate(QObject *parent)
 }
 
 ///
-/// \brief Returns the cell size with the row height raised to the minimum and
-///        multi-line cells given extra vertical padding.
+/// \brief Returns the cell size with the row height raised to the minimum.
 /// \param option Style option of the cell.
 /// \param index Cell index.
 /// \return Cell size.
@@ -37,8 +35,7 @@ ItemDelegate::ItemDelegate(QObject *parent)
 QSize ItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     QSize size = QStyledItemDelegate::sizeHint(option, index);
-    const bool multiLine = index.data().toString().contains(QLatin1Char('\n'));
-    size.setHeight(qMax(size.height() + (multiLine ? kMultiLinePadding : 0), kMinimumRowHeight));
+    size.setHeight(qMax(size.height(), kMinimumRowHeight));
     return size;
 }
 

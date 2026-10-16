@@ -727,7 +727,7 @@
             </widget>
            </item>
            <item>
-            <spacer name="spacer3">
+            <spacer name="spacer2">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>

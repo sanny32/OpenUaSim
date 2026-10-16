@@ -6,11 +6,10 @@
 /// \brief Implements the endpoints page.
 ///
 
+#include <QSortFilterProxyModel>
+
 #include "endpointsmodel.h"
 #include "endpointspage.h"
-#include "itemroles.h"
-#include "treebuilders.h"
-#include "treemodel.h"
 #include "ui_endpointspage.h"
 #include "viewsetup.h"
 
@@ -27,20 +26,14 @@ const QString kPasswordMask = QStringLiteral("password");
 EndpointsPage::EndpointsPage(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::EndpointsPage)
-    , _listModel(new TreeModel(this))
     , _endpointsModel(new EndpointsModel(this))
 {
     ui->setupUi(this);
     ViewSetup::splitByStretch(ui->splitter);
-    ui->endpointsList->setIconSize(QSize(24, 24));
 
-    ViewSetup::installDelegate(ui->endpointsList);
-    ViewSetup::attachSearch(ui->endpointsList, _listModel, ui->searchEdit);
     ViewSetup::configureTable(ui->endpointsView);
-    ui->endpointsView->setModel(_endpointsModel);
+    _searchModel = ViewSetup::attachTableSearch(ui->endpointsView, _endpointsModel, ui->searchEdit);
 
-    connect(ui->endpointsList->selectionModel(), &QItemSelectionModel::currentChanged,
-            this, &EndpointsPage::showListItem);
     connect(ui->endpointsView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &EndpointsPage::showEndpoint);
     connect(ui->usernamePasswordCheck, &QCheckBox::toggled,
@@ -62,8 +55,7 @@ EndpointsPage::~EndpointsPage()
 void EndpointsPage::setEndpoints(const QList<EndpointInfo> &endpoints)
 {
     _endpointsModel->setItems(endpoints);
-    _listModel->setNodes(TreeBuilders::endpointList(endpoints));
-    ViewSetup::applyInitialState(ui->endpointsList);
+    ViewSetup::selectRow(ui->endpointsView, 0);
 }
 
 ///
@@ -76,32 +68,16 @@ const EndpointsModel *EndpointsPage::endpointsModel() const
 }
 
 ///
-/// \brief Selects the table row of the endpoint picked in the list.
-/// \param current Selected list index.
-///
-void EndpointsPage::showListItem(const QModelIndex &current)
-{
-    const QString url = current.data(ItemRoles::Id).toString();
-    const auto &items = _endpointsModel->items();
-    for (int row = 0; row < items.size(); ++row) {
-        if (items.at(row).url() == url) {
-            ViewSetup::selectRow(ui->endpointsView, row);
-            return;
-        }
-    }
-}
-
-///
-/// \brief Fills the properties panel from the selected endpoint and syncs the list.
+/// \brief Fills the properties panel from the selected endpoint.
 /// \param current Selected table index.
 ///
 void EndpointsPage::showEndpoint(const QModelIndex &current)
 {
-    ui->propertiesHost->setEnabled(current.isValid());
-    if (!current.isValid())
+    const QModelIndex source = _searchModel->mapToSource(current);
+    ui->propertiesHost->setEnabled(source.isValid());
+    if (!source.isValid())
         return;
-    const EndpointInfo &endpoint = _endpointsModel->item(current.row());
-    ViewSetup::selectById(ui->endpointsList, endpoint.url());
+    const EndpointInfo &endpoint = _endpointsModel->item(source.row());
 
     ui->nameEdit->setText(endpoint.name);
     ui->hostnameEdit->setText(endpoint.hostname);

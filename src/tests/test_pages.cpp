@@ -25,7 +25,6 @@
 #include "objectspage.h"
 #include "sessionsmodel.h"
 #include "sessionspage.h"
-#include "statcardwidget.h"
 #include "statusindicator.h"
 #include "statuspage.h"
 #include "subtypesmodel.h"
@@ -67,6 +66,7 @@ private slots:
     void endpointsPage();
     void certificatesPage();
     void sessionsPage();
+    void sessionsPageFiltersByState();
     void logPageFilters();
     void logPageSelectsFirstEntryWhenFilledLater();
     void logPageDetailsAndClear();
@@ -91,8 +91,9 @@ void TestPages::statusPage()
     QCOMPARE(child<QLabel>(page, "primaryEndpointValue")->text(), _snapshot.status.primaryEndpoint);
     QCOMPARE(child<QLabel>(page, "uptimeValue")->text(), QStringLiteral("00:27:36"));
     QCOMPARE(child<QLabel>(page, "totalNodesValue")->text(), QString::number(_snapshot.status.totalNodes));
-    QCOMPARE(child<StatCardWidget>(page, "clientsCard")->value(), QStringLiteral("1"));
-    QCOMPARE(child<StatCardWidget>(page, "securityCard")->value(), QStringLiteral("None, Sign, Sign & Encrypt"));
+    QCOMPARE(child<QLabel>(page, "clientsValue")->text(), QStringLiteral("1"));
+    QCOMPARE(child<QLabel>(page, "securityModesValue")->text(), QStringLiteral("None, Sign, Sign & Encrypt"));
+    QVERIFY(!page.findChild<QWidget *>(QStringLiteral("statisticsPanel")));
 }
 
 void TestPages::objectsPageStartsOnCurrentVariable()
@@ -184,9 +185,13 @@ void TestPages::namespacesPage()
     QCOMPARE(text(page, "indexEdit"), QStringLiteral("0"));
     QCOMPARE(text(page, "uriEdit"), QStringLiteral("http://opcfoundation.org/UA/"));
 
-    QVERIFY(ViewSetup::selectById(child<QTreeView>(page, "namespacesTree"), QStringLiteral("urn:openuasim:types")));
+    child<QLineEdit>(page, "searchEdit")->setText(QStringLiteral("openuasim:types"));
+    auto *view = child<QTableView>(page, "namespacesView");
+    QCOMPARE(view->model()->rowCount(), 1);
+    ViewSetup::selectRow(view, 0);
     QCOMPARE(text(page, "indexEdit"), QStringLiteral("4"));
     QCOMPARE(text(page, "versionEdit"), QStringLiteral("1.0.0"));
+    QVERIFY(!page.findChild<QTreeView *>());
 }
 
 void TestPages::endpointsPage()
@@ -200,9 +205,12 @@ void TestPages::endpointsPage()
     QVERIFY(!child<QLineEdit>(page, "usernameEdit")->isEnabled());
 
     ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 3);
-    QCOMPARE(ViewSetup::currentId(child<QTreeView>(page, "endpointsList")),
-             QStringLiteral("opc.tcp://localhost:4840/discovery"));
+    QCOMPARE(text(page, "nameEdit"), QStringLiteral("Discovery Endpoint"));
     QCOMPARE(child<QComboBox>(page, "securityPolicyCombo")->currentText(), QStringLiteral("None"));
+
+    child<QLineEdit>(page, "searchEdit")->setText(QStringLiteral("192.168"));
+    ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 0);
+    QCOMPARE(text(page, "nameEdit"), QStringLiteral("OPC UA (LAN)"));
 
     child<QCheckBox>(page, "usernamePasswordCheck")->setChecked(true);
     QVERIFY(child<QLineEdit>(page, "usernameEdit")->isEnabled());
@@ -247,10 +255,36 @@ void TestPages::sessionsPage()
     QCOMPARE(child<StatusIndicator>(page, "stateIndicator")->status(), StatusKind::Good);
     QCOMPARE(text(page, "subscriptionsEdit"), QStringLiteral("3"));
 
-    ViewSetup::selectRow(child<QTableView>(page, "sessionsView"), 1);
-    QCOMPARE(ViewSetup::currentId(child<QTreeView>(page, "sessionsTree")), QStringLiteral("ns=1;i=12344"));
+    auto *view = child<QTableView>(page, "sessionsView");
+    ViewSetup::selectRow(view, 1);
+    QCOMPARE(text(page, "sessionIdEdit"), QStringLiteral("ns=1;i=12344"));
     QCOMPARE(child<StatusIndicator>(page, "stateIndicator")->status(), StatusKind::Inactive);
     QCOMPARE(child<QComboBox>(page, "userIdentityCombo")->currentText(), QStringLiteral("Username"));
+}
+
+void TestPages::sessionsPageFiltersByState()
+{
+    SessionsPage page;
+    page.setSessions(_snapshot.sessions);
+    auto *view = child<QTableView>(page, "sessionsView");
+    auto *state = child<QComboBox>(page, "stateFilterCombo");
+
+    state->setCurrentIndex(1);
+    QCOMPARE(view->model()->rowCount(), 1);
+    QCOMPARE(text(page, "sessionIdEdit"), QStringLiteral("ns=1;i=12345"));
+
+    state->setCurrentIndex(2);
+    QCOMPARE(view->model()->rowCount(), _snapshot.sessions.size() - 1);
+    QCOMPARE(child<StatusIndicator>(page, "stateIndicator")->status(), StatusKind::Inactive);
+
+    child<QLineEdit>(page, "searchEdit")->setText(QStringLiteral("prosys"));
+    QCOMPARE(view->model()->rowCount(), 1);
+    ViewSetup::selectRow(view, 0);
+    QCOMPARE(text(page, "sessionNameEdit"), QStringLiteral("Prosys Client"));
+
+    child<QLineEdit>(page, "searchEdit")->clear();
+    state->setCurrentIndex(0);
+    QCOMPARE(view->model()->rowCount(), _snapshot.sessions.size());
 }
 
 void TestPages::logPageFilters()

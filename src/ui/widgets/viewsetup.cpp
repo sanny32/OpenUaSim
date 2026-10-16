@@ -31,6 +31,25 @@ constexpr int kTableRowHeight = 34;
 constexpr int kSplitScale = 100;
 
 ///
+/// \brief Puts a case-insensitive text filter between a model and a view, driven by a line edit.
+/// \param view View to show the filtered model; it owns the proxy.
+/// \param source Model to filter.
+/// \param search Line edit whose text drives the filter; it gets a search icon.
+/// \return Proxy model.
+///
+QSortFilterProxyModel *createSearchProxy(QAbstractItemView *view, QAbstractItemModel *source,
+                                         QLineEdit *search)
+{
+    auto *proxy = new QSortFilterProxyModel(view);
+    proxy->setSourceModel(source);
+    proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
+    view->setModel(proxy);
+    search->addAction(AppIcons::icon(QStringLiteral("search")), QLineEdit::LeadingPosition);
+    QObject::connect(search, &QLineEdit::textChanged, proxy, &QSortFilterProxyModel::setFilterFixedString);
+    return proxy;
+}
+
+///
 /// \brief Expands marked nodes below a parent, depth-first.
 /// \param view Tree view to update.
 /// \param parent Parent whose children are visited.
@@ -101,15 +120,25 @@ void splitByStretch(QSplitter *splitter)
 ///
 QSortFilterProxyModel *attachSearch(QTreeView *view, QAbstractItemModel *source, QLineEdit *search)
 {
-    auto *proxy = new QSortFilterProxyModel(view);
-    proxy->setSourceModel(source);
-    proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
+    QSortFilterProxyModel *proxy = createSearchProxy(view, source, search);
     proxy->setRecursiveFilteringEnabled(true);
     proxy->setAutoAcceptChildRows(true);
-    view->setModel(proxy);
-    search->addAction(AppIcons::icon(QStringLiteral("search")), QLineEdit::LeadingPosition);
-    QObject::connect(search, &QLineEdit::textChanged, proxy, &QSortFilterProxyModel::setFilterFixedString);
     QObject::connect(search, &QLineEdit::textChanged, view, &QTreeView::expandAll);
+    return proxy;
+}
+
+///
+/// \brief Puts a case-insensitive text filter over all columns between a table model and its view
+///        and adds a search icon to the line edit.
+/// \param view Table view to configure.
+/// \param source Model to filter.
+/// \param search Line edit whose text drives the filter.
+/// \return Proxy model, owned by the view.
+///
+QSortFilterProxyModel *attachTableSearch(QTableView *view, QAbstractItemModel *source, QLineEdit *search)
+{
+    QSortFilterProxyModel *proxy = createSearchProxy(view, source, search);
+    proxy->setFilterKeyColumn(-1);
     return proxy;
 }
 

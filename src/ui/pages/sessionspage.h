@@ -18,7 +18,7 @@ class SessionsPage;
 }
 
 class SessionsModel;
-class TreeModel;
+class QSortFilterProxyModel;
 
 ///
 /// \brief Page listing active and closed client sessions and the properties of a session.
@@ -52,10 +52,11 @@ public:
     const SessionsModel *sessionsModel() const;
 
 private:
-    void showTreeNode(const QModelIndex &current);
+    void applyStateFilter(int filter);
     void showSession(const QModelIndex &current);
 
     Ui::SessionsPage *ui;
-    TreeModel *_treeModel;
     SessionsModel *_sessionsModel;
+    QSortFilterProxyModel *_stateModel;
+    QSortFilterProxyModel *_searchModel;
 };

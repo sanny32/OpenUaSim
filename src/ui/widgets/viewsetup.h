@@ -61,6 +61,16 @@ void splitByStretch(QSplitter *splitter);
 QSortFilterProxyModel *attachSearch(QTreeView *view, QAbstractItemModel *source, QLineEdit *search);
 
 ///
+/// \brief Puts a case-insensitive text filter over all columns between a table model and its view
+///        and adds a search icon to the line edit.
+/// \param view Table view to configure.
+/// \param source Model to filter.
+/// \param search Line edit whose text drives the filter.
+/// \return Proxy model, owned by the view.
+///
+QSortFilterProxyModel *attachTableSearch(QTableView *view, QAbstractItemModel *source, QLineEdit *search);
+
+///
 /// \brief Expands the nodes marked expanded and selects the node marked current.
 /// \param view Tree view whose model provides ItemRoles::Expanded and ItemRoles::Current.
 ///

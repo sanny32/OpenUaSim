@@ -6,15 +6,23 @@
 /// \brief Implements the client sessions page.
 ///
 
+#include <QSortFilterProxyModel>
+
 #include "appicons.h"
 #include "formatting.h"
-#include "itemroles.h"
 #include "sessionsmodel.h"
 #include "sessionspage.h"
-#include "treebuilders.h"
-#include "treemodel.h"
 #include "ui_sessionspage.h"
 #include "viewsetup.h"
+
+namespace {
+
+///
+/// \brief Entries of the state filter combo box, in item order.
+///
+enum StateFilter { AllSessions, ActiveSessions, ClosedSessions };
+
+}
 
 ///
 /// \brief Builds the page.
@@ -23,23 +31,23 @@
 SessionsPage::SessionsPage(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::SessionsPage)
-    , _treeModel(new TreeModel(this))
     , _sessionsModel(new SessionsModel(this))
+    , _stateModel(new QSortFilterProxyModel(this))
 {
     ui->setupUi(this);
     ViewSetup::splitByStretch(ui->splitter);
     ViewSetup::bindCopyButton(ui->copySessionIdButton, ui->sessionIdEdit);
     ui->showSubscriptionsButton->setIcon(AppIcons::icon(QStringLiteral("list")));
 
-    ViewSetup::installDelegate(ui->sessionsTree);
-    ViewSetup::attachSearch(ui->sessionsTree, _treeModel, ui->searchEdit);
+    _stateModel->setSourceModel(_sessionsModel);
+    _stateModel->setFilterKeyColumn(SessionsModel::ColState);
     ViewSetup::configureTable(ui->sessionsView);
-    ui->sessionsView->setModel(_sessionsModel);
+    _searchModel = ViewSetup::attachTableSearch(ui->sessionsView, _stateModel, ui->searchEdit);
 
-    connect(ui->sessionsTree->selectionModel(), &QItemSelectionModel::currentChanged,
-            this, &SessionsPage::showTreeNode);
     connect(ui->sessionsView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &SessionsPage::showSession);
+    connect(ui->stateFilterCombo, &QComboBox::currentIndexChanged,
+            this, &SessionsPage::applyStateFilter);
 }
 
 ///
@@ -57,10 +65,7 @@ SessionsPage::~SessionsPage()
 void SessionsPage::setSessions(const QList<SessionInfo> &sessions)
 {
     _sessionsModel->setItems(sessions);
-    _treeModel->setNodes(TreeBuilders::sessionTree(sessions));
-    ViewSetup::applyInitialState(ui->sessionsTree);
-    if (!sessions.isEmpty())
-        ViewSetup::selectById(ui->sessionsTree, sessions.first().sessionId);
+    ViewSetup::selectRow(ui->sessionsView, 0);
 }
 
 ///
@@ -73,27 +78,31 @@ const SessionsModel *SessionsPage::sessionsModel() const
 }
 
 ///
-/// \brief Selects the table row of the session picked in the tree.
-/// \param current Selected tree index.
+/// \brief Limits the table to all, active or closed sessions and selects the first one shown.
+/// \param filter Index of the state filter combo box entry.
 ///
-void SessionsPage::showTreeNode(const QModelIndex &current)
+void SessionsPage::applyStateFilter(int filter)
 {
-    const int row = _sessionsModel->rowOf(current.data(ItemRoles::Id).toString());
-    if (row >= 0)
-        ViewSetup::selectRow(ui->sessionsView, row);
+    QString state;
+    if (filter == ActiveSessions)
+        state = SessionsModel::stateText(true);
+    else if (filter == ClosedSessions)
+        state = SessionsModel::stateText(false);
+    _stateModel->setFilterFixedString(state);
+    ViewSetup::selectRow(ui->sessionsView, 0);
 }
 
 ///
-/// \brief Fills the properties panel from the selected session and syncs the tree.
+/// \brief Fills the properties panel from the selected session.
 /// \param current Selected table index.
 ///
 void SessionsPage::showSession(const QModelIndex &current)
 {
-    ui->propertiesHost->setEnabled(current.isValid());
-    if (!current.isValid())
+    const QModelIndex source = _stateModel->mapToSource(_searchModel->mapToSource(current));
+    ui->propertiesHost->setEnabled(source.isValid());
+    if (!source.isValid())
         return;
-    const SessionInfo &session = _sessionsModel->item(current.row());
-    ViewSetup::selectById(ui->sessionsTree, session.sessionId);
+    const SessionInfo &session = _sessionsModel->item(source.row());
 
     ui->sessionIdEdit->setText(session.sessionId);
     ui->sessionNameEdit->setText(session.name);

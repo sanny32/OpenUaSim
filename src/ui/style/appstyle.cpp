@@ -94,11 +94,7 @@ void AppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *optio
                              const QWidget *widget) const
 {
     if (element == PE_Frame && widget && widget->property(panelProperty).toBool()) {
-        drawPanel(option, painter, option->palette.color(QPalette::Base));
-        return;
-    }
-    if (element == PE_Frame && widget && widget->property(cardProperty).toBool()) {
-        drawPanel(option, painter, option->palette.color(QPalette::AlternateBase));
+        drawPanel(option, painter);
         return;
     }
     if (element == PE_Frame && widget && widget->property(separatorProperty).toBool()) {
@@ -281,17 +277,16 @@ void AppStyle::drawCheckIndicator(const QStyleOption *option, QPainter *painter)
 }
 
 ///
-/// \brief Draws a rounded box outlined with the mid colour.
+/// \brief Draws a rounded box filled with the base colour and outlined with the mid colour.
 /// \param option Style option carrying the rectangle and palette.
 /// \param painter Painter to draw with.
-/// \param fill Background colour of the box.
 ///
-void AppStyle::drawPanel(const QStyleOption *option, QPainter *painter, const QColor &fill) const
+void AppStyle::drawPanel(const QStyleOption *option, QPainter *painter) const
 {
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
     painter->setPen(option->palette.color(QPalette::Mid));
-    painter->setBrush(fill);
+    painter->setBrush(option->palette.color(QPalette::Base));
     painter->drawRoundedRect(QRectF(option->rect).adjusted(0.5, 0.5, -0.5, -0.5),
                              cornerRadius(), cornerRadius());
     painter->restore();

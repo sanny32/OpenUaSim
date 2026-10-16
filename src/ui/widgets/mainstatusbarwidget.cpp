@@ -31,15 +31,13 @@ MainStatusBarWidget::~MainStatusBarWidget()
 }
 
 ///
-/// \brief Shows the server state, its primary endpoint and the client count.
+/// \brief Shows whether the server is running.
 /// \param status Server summary.
 ///
 void MainStatusBarWidget::setServerStatus(const ServerStatus &status)
 {
     ui->serverIndicator->setStatus(status.running ? StatusKind::Good : StatusKind::Inactive,
                                    status.running ? tr("Server running") : tr("Server stopped"));
-    ui->endpointLabel->setText(tr("Endpoint: %1").arg(status.primaryEndpoint));
-    ui->clientsLabel->setText(tr("%n client(s) connected", nullptr, status.clientsConnected));
 }
 
 ///

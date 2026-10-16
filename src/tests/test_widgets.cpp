@@ -27,7 +27,6 @@
 #include "itemroles.h"
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
-#include "statcardwidget.h"
 #include "statusindicator.h"
 #include "treemodel.h"
 #include "viewsetup.h"
@@ -77,7 +76,6 @@ private slots:
     void delegateDecoratesStatus();
     void delegateLeavesPlainCellsAlone();
     void delegateRaisesRowHeight();
-    void statCard();
     void mainStatusBar();
     void eventLogShowsAndClears();
     void appStylePanelsAndSeparators();
@@ -95,6 +93,7 @@ private slots:
     void selectById();
     void selectRow();
     void attachSearchFilters();
+    void attachTableSearchFiltersAllColumns();
     void bindCopyButtonCopies();
 };
 
@@ -147,43 +146,25 @@ void TestWidgets::delegateRaisesRowHeight()
 {
     QStandardItemModel model(1, 1);
     model.setData(model.index(0, 0), QStringLiteral("text"));
-    model.insertRow(1);
-    model.setData(model.index(1, 0), QStringLiteral("name\nopc.tcp://localhost:4840"));
     ItemDelegate delegate;
     QStyleOptionViewItem option;
-    const int single = delegate.sizeHint(option, model.index(0, 0)).height();
     QStyledItemDelegate plain;
-    QVERIFY(single > plain.sizeHint(option, model.index(0, 0)).height());
-    QVERIFY(delegate.sizeHint(option, model.index(1, 0)).height() > single);
-}
-
-void TestWidgets::statCard()
-{
-    StatCardWidget card;
-    card.setIcon(QStringLiteral("users"), Qt::blue);
-    card.setCaption(QStringLiteral("Clients Connected"));
-    card.setValue(QStringLiteral("1"));
-    QCOMPARE(card.value(), QStringLiteral("1"));
-    QVERIFY(!card.findChild<QLabel *>(QStringLiteral("iconLabel"))->pixmap().isNull());
-
-    card.setChevronVisible(false);
-    QVERIFY(card.findChild<QLabel *>(QStringLiteral("chevronLabel"))->isHidden());
+    QVERIFY(delegate.sizeHint(option, model.index(0, 0)).height()
+            > plain.sizeHint(option, model.index(0, 0)).height());
 }
 
 void TestWidgets::mainStatusBar()
 {
     ServerStatus status;
     status.running = true;
-    status.primaryEndpoint = QStringLiteral("opc.tcp://localhost:4840");
-    status.clientsConnected = 1;
 
     MainStatusBarWidget bar;
     bar.setServerStatus(status);
     bar.setTrailingText(QStringLiteral("Nodes: 27"));
     QCOMPARE(bar.trailingText(), QStringLiteral("Nodes: 27"));
     QCOMPARE(bar.findChild<StatusIndicator *>()->status(), StatusKind::Good);
-    QCOMPARE(bar.findChild<QLabel *>(QStringLiteral("endpointLabel"))->text(),
-             QStringLiteral("Endpoint: opc.tcp://localhost:4840"));
+    QCOMPARE(bar.findChild<StatusIndicator *>()->text(), QStringLiteral("Server running"));
+    QVERIFY(!bar.findChild<QLabel *>(QStringLiteral("endpointLabel")));
 
     status.running = false;
     bar.setServerStatus(status);
@@ -226,14 +207,6 @@ void TestWidgets::appStylePanelsAndSeparators()
     panel.setProperty(AppStyle::panelProperty, true);
     panel.resize(60, 40);
     QCOMPARE(centre(panel), palette.color(QPalette::Base));
-
-    QFrame card;
-    card.setStyle(&style);
-    card.setPalette(palette);
-    card.setFrameShape(QFrame::StyledPanel);
-    card.setProperty(AppStyle::cardProperty, true);
-    card.resize(60, 40);
-    QCOMPARE(centre(card), palette.color(QPalette::AlternateBase));
 
     QFrame separator;
     separator.setStyle(&style);
@@ -478,6 +451,27 @@ void TestWidgets::attachSearchFilters()
 
     search.clear();
     QCOMPARE(proxy->rowCount(), 2);
+}
+
+void TestWidgets::attachTableSearchFiltersAllColumns()
+{
+    QStandardItemModel model(3, 2);
+    model.setData(model.index(0, 0), QStringLiteral("localhost"));
+    model.setData(model.index(1, 1), QStringLiteral("Basic256Sha256"));
+    model.setData(model.index(2, 0), QStringLiteral("discovery"));
+    QTableView view;
+    QLineEdit search;
+    QSortFilterProxyModel *proxy = ViewSetup::attachTableSearch(&view, &model, &search);
+
+    QCOMPARE(view.model(), proxy);
+    QCOMPARE(search.actions().size(), 1);
+    search.setText(QStringLiteral("sha256"));
+    QCOMPARE(proxy->rowCount(), 1);
+    QCOMPARE(proxy->mapToSource(proxy->index(0, 0)).row(), 1);
+    search.setText(QStringLiteral("DISCO"));
+    QCOMPARE(proxy->rowCount(), 1);
+    search.clear();
+    QCOMPARE(proxy->rowCount(), 3);
 }
 
 void TestWidgets::bindCopyButtonCopies()

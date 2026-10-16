@@ -17,7 +17,7 @@ class MainStatusBarWidget;
 struct ServerStatus;
 
 ///
-/// \brief Status bar content: server state, endpoint, client count and a trailing note.
+/// \brief Status bar content: server state and a trailing note.
 ///
 class MainStatusBarWidget : public QWidget
 {
@@ -36,7 +36,7 @@ public:
     ~MainStatusBarWidget() override;
 
     ///
-    /// \brief Shows the server state, its primary endpoint and the client count.
+    /// \brief Shows whether the server is running.
     /// \param status Server summary.
     ///
     void setServerStatus(const ServerStatus &status);

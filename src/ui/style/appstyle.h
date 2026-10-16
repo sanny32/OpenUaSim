@@ -15,8 +15,6 @@
 ///
 /// Widgets opt in through dynamic properties set in the .ui files:
 /// - \c panel (bool) on a QFrame draws a rounded card filled with the base colour;
-/// - \c card (bool) on a QFrame draws the same box in the alternate base colour, for cards
-///   nested inside a panel;
 /// - \c panelBody (bool) on a QScrollArea inside a panel lets the panel colour show through;
 /// - \c separator (bool) on a one-pixel StyledPanel QFrame draws a line in the mid colour,
 ///   which stays subtle in both themes unlike QFrame::HLine;
@@ -33,8 +31,6 @@ class AppStyle : public QProxyStyle
 public:
     /// \brief Name of the bool property marking a QFrame as a panel.
     static constexpr const char *panelProperty = "panel";
-    /// \brief Name of the bool property marking a QFrame as a card nested in a panel.
-    static constexpr const char *cardProperty = "card";
     /// \brief Name of the bool property marking a QScrollArea as the scrolling body of a panel.
     static constexpr const char *panelBodyProperty = "panelBody";
     /// \brief Name of the bool property marking a QFrame as a separator line.
@@ -107,7 +103,7 @@ public:
     static constexpr int cornerRadius() { return 6; }
 
 private:
-    void drawPanel(const QStyleOption *option, QPainter *painter, const QColor &fill) const;
+    void drawPanel(const QStyleOption *option, QPainter *painter) const;
     void drawCheckIndicator(const QStyleOption *option, QPainter *painter) const;
     void drawAccentButton(const QStyleOption *option, QPainter *painter, const QColor &accent) const;
     void drawTabShape(const QStyleOption *option, QPainter *painter) const;

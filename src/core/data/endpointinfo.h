@@ -17,8 +17,6 @@ struct EndpointInfo
 {
     /// \brief User-facing endpoint name.
     QString name;
-    /// \brief Resource name of the icon.
-    QString icon;
     /// \brief URL scheme, e.g. "opc.tcp".
     QString protocol;
     /// \brief Host name or address.

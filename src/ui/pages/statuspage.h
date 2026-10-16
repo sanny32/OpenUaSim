@@ -42,7 +42,5 @@ public:
     void setStatus(const ServerStatus &status);
 
 private:
-    void setupCards();
-
     Ui::StatusPage *ui;
 };

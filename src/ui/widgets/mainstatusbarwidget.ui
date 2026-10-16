@@ -36,56 +36,6 @@
     <widget class="StatusIndicator" name="serverIndicator" native="true"/>
    </item>
    <item>
-    <widget class="QFrame" name="separator1">
-     <property name="minimumSize">
-      <size>
-       <width>1</width>
-       <height>0</height>
-      </size>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>1</width>
-       <height>16777215</height>
-      </size>
-     </property>
-     <property name="frameShape">
-      <enum>QFrame::StyledPanel</enum>
-     </property>
-     <property name="separator" stdset="0">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="endpointLabel"/>
-   </item>
-   <item>
-    <widget class="QFrame" name="separator2">
-     <property name="minimumSize">
-      <size>
-       <width>1</width>
-       <height>0</height>
-      </size>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>1</width>
-       <height>16777215</height>
-      </size>
-     </property>
-     <property name="frameShape">
-      <enum>QFrame::StyledPanel</enum>
-     </property>
-     <property name="separator" stdset="0">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="clientsLabel"/>
-   </item>
-   <item>
     <spacer name="statusSpacer">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>

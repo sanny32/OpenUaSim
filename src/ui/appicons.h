@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include <QColor>
 #include <QIcon>
 #include <QString>
 
@@ -26,14 +25,6 @@ namespace AppIcons {
 /// \return Icon; null when the resource does not exist.
 ///
 QIcon icon(const QString &name);
-
-///
-/// \brief Builds an icon drawn in a fixed colour.
-/// \param name Resource name under ":/icons/", without the ".svg" extension.
-/// \param color Colour replacing \c currentColor.
-/// \return Icon; null when the resource does not exist.
-///
-QIcon icon(const QString &name, const QColor &color);
 
 ///
 /// \brief Builds the round indicator icon of a status.

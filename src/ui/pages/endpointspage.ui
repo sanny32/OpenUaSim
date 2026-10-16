@@ -29,141 +29,6 @@
      <property name="handleWidth">
       <number>8</number>
      </property>
-     <widget class="QFrame" name="endpointsPanel">
-      <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
-      </property>
-      <property name="panel" stdset="0">
-       <bool>true</bool>
-      </property>
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>41</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <layout class="QVBoxLayout" name="endpointsPanelLayout">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-       <property name="leftMargin">
-        <number>1</number>
-       </property>
-       <property name="topMargin">
-        <number>1</number>
-       </property>
-       <property name="rightMargin">
-        <number>1</number>
-       </property>
-       <property name="bottomMargin">
-        <number>1</number>
-       </property>
-       <item>
-        <layout class="QHBoxLayout" name="endpointsPanelHeaderLayout">
-         <property name="leftMargin">
-          <number>12</number>
-         </property>
-         <property name="topMargin">
-          <number>5</number>
-         </property>
-         <property name="rightMargin">
-          <number>12</number>
-         </property>
-         <property name="bottomMargin">
-          <number>5</number>
-         </property>
-         <item>
-          <widget class="QLabel" name="endpointsTitle">
-           <property name="font">
-            <font>
-             <pointsize>11</pointsize>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>Endpoints</string>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>22</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QFrame" name="endpointsPanelSeparator">
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>1</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>1</height>
-          </size>
-         </property>
-         <property name="separator" stdset="0">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QWidget" name="endpointsPanelBody">
-         <layout class="QVBoxLayout" name="endpointsPanelBodyLayout">
-          <property name="spacing">
-           <number>8</number>
-          </property>
-          <property name="leftMargin">
-           <number>10</number>
-          </property>
-          <property name="topMargin">
-           <number>6</number>
-          </property>
-          <property name="rightMargin">
-           <number>10</number>
-          </property>
-          <property name="bottomMargin">
-           <number>10</number>
-          </property>
-          <item>
-           <widget class="QLineEdit" name="searchEdit">
-            <property name="placeholderText">
-             <string>Search endpoints...</string>
-            </property>
-            <property name="clearButtonEnabled">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QTreeView" name="endpointsList">
-            <property name="editTriggers">
-             <set>QAbstractItemView::NoEditTriggers</set>
-            </property>
-            <property name="rootIsDecorated">
-             <bool>false</bool>
-            </property>
-            <property name="uniformRowHeights">
-             <bool>true</bool>
-            </property>
-            <property name="headerHidden">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-      </layout>
-     </widget>
      <widget class="QFrame" name="serverEndpointsPanel">
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
@@ -173,7 +38,7 @@
       </property>
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>76</horstretch>
+        <horstretch>117</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
@@ -268,6 +133,16 @@
           <property name="bottomMargin">
            <number>10</number>
           </property>
+          <item>
+           <widget class="QLineEdit" name="searchEdit">
+            <property name="placeholderText">
+             <string>Search endpoints...</string>
+            </property>
+            <property name="clearButtonEnabled">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
           <item>
            <widget class="QTableView" name="endpointsView">
             <property name="editTriggers">
@@ -621,7 +496,7 @@
             </widget>
            </item>
            <item>
-            <spacer name="spacer5">
+            <spacer name="spacer4">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>
