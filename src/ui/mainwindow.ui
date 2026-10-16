@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1331</width>
-    <height>750</height>
+    <height>771</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -303,6 +303,60 @@
     </item>
    </layout>
   </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <addaction name="actionNewProject"/>
+    <addaction name="actionOpenProject"/>
+    <addaction name="actionSaveProject"/>
+    <addaction name="actionSaveProjectAs"/>
+    <addaction name="separator"/>
+    <addaction name="actionImportModel"/>
+    <addaction name="actionExportModel"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuServer">
+    <property name="title">
+     <string>&amp;Server</string>
+    </property>
+    <addaction name="actionStartServer"/>
+    <addaction name="actionStopServer"/>
+    <addaction name="actionRestartServer"/>
+    <addaction name="separator"/>
+    <addaction name="actionAddNode"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <widget class="QMenu" name="menuTheme">
+     <property name="title">
+      <string>&amp;Theme</string>
+     </property>
+     <addaction name="actionThemeSystem"/>
+     <addaction name="actionThemeLight"/>
+     <addaction name="actionThemeDark"/>
+    </widget>
+    <addaction name="separator"/>
+    <addaction name="actionEventLog"/>
+    <addaction name="separator"/>
+    <addaction name="menuTheme"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+    <addaction name="actionAboutQt"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuServer"/>
+   <addaction name="menuView"/>
+   <addaction name="menuHelp"/>
+  </widget>
   <widget class="QStatusBar" name="statusBar">
    <property name="sizeGripEnabled">
     <bool>false</bool>
@@ -313,7 +367,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>System</string>
+    <string>&amp;System</string>
    </property>
   </action>
   <action name="actionThemeLight">
@@ -321,7 +375,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Light</string>
+    <string>&amp;Light</string>
    </property>
   </action>
   <action name="actionThemeDark">
@@ -329,7 +383,110 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Dark</string>
+    <string>&amp;Dark</string>
+   </property>
+  </action>
+  <action name="actionNewProject">
+   <property name="text">
+    <string>&amp;New Project</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="actionOpenProject">
+   <property name="text">
+    <string>&amp;Open Project...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionSaveProject">
+   <property name="text">
+    <string>&amp;Save Project</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionSaveProjectAs">
+   <property name="text">
+    <string>Save Project &amp;As...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
+  </action>
+  <action name="actionImportModel">
+   <property name="text">
+    <string>&amp;Import Model...</string>
+   </property>
+  </action>
+  <action name="actionExportModel">
+   <property name="text">
+    <string>&amp;Export Model...</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>E&amp;xit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionStartServer">
+   <property name="text">
+    <string>&amp;Start Server</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
+   </property>
+  </action>
+  <action name="actionStopServer">
+   <property name="text">
+    <string>S&amp;top Server</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+F5</string>
+   </property>
+  </action>
+  <action name="actionRestartServer">
+   <property name="text">
+    <string>&amp;Restart Server</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+F5</string>
+   </property>
+  </action>
+  <action name="actionAddNode">
+   <property name="text">
+    <string>&amp;Add Node...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+N</string>
+   </property>
+  </action>
+  <action name="actionEventLog">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Event Log</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>&amp;About OpenUaSim</string>
+   </property>
+  </action>
+  <action name="actionAboutQt">
+   <property name="text">
+    <string>About &amp;Qt</string>
    </property>
   </action>
  </widget>

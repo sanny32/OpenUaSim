@@ -20,10 +20,11 @@ class AppTheme;
 class LogModel;
 class MainStatusBarWidget;
 class QAction;
+class QActionGroup;
 struct ServerSnapshot;
 
 ///
-/// \brief Main window: server toolbar, the eight pages, the event log and the status bar.
+/// \brief Main window: menu bar, server toolbar, the eight pages, the event log and the status bar.
 ///
 class MainWindow : public QMainWindow
 {
@@ -59,16 +60,22 @@ protected:
 
 private:
     void setupIcons();
+    void setupActions();
+    void setupViewMenu();
+    void selectPage(QAction *action);
+    void showAbout();
     void setupThemeMenu();
     void syncThemeActions();
     void selectTheme(QAction *action);
     void handleTabChange(int index);
+    void updateEventLogVisibility();
     void updateStatusBarNote();
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_statusWidget;
     LogModel *_logModel;
     AppTheme *_theme;
+    QActionGroup *_pageActions = nullptr;
     ServerStatus _status;
     bool _contentSplitApplied = false;
 };

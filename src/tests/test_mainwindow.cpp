@@ -4,7 +4,9 @@
 #include <QAction>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMenuBar>
 #include <QPushButton>
+#include <QSignalSpy>
 #include <QSplitter>
 #include <QTabWidget>
 #include <QTest>
@@ -45,6 +47,11 @@ private slots:
     void statusBarNoteFollowsTab();
     void themeButtonHiddenWithoutTheme();
     void themeMenuSwitchesTheme();
+    void menuBarListsMenus();
+    void viewMenuSwitchesPages();
+    void eventLogActionTogglesPanel();
+    void toolbarButtonsTriggerMenuActions();
+    void serverActionsFollowRunningState();
 };
 
 void TestMainWindow::hasAllPages()
@@ -58,7 +65,7 @@ void TestMainWindow::hasAllPages()
     for (int i = 0; i < expected.size(); ++i)
         QCOMPARE(tabs->tabText(i), expected.at(i));
     QCOMPARE(window.windowTitle(), QStringLiteral("OpenUaSim"));
-    QCOMPARE(window.size(), QSize(1331, 750));
+    QCOMPARE(window.size(), QSize(1331, 771));
 }
 
 void TestMainWindow::showsSnapshot()
@@ -138,6 +145,7 @@ void TestMainWindow::themeButtonHiddenWithoutTheme()
 {
     MainWindow window;
     QVERIFY(child<QToolButton>(window, "themeButton")->isHidden());
+    QVERIFY(!child<QMenu>(window, "menuTheme")->menuAction()->isVisible());
 }
 
 void TestMainWindow::themeMenuSwitchesTheme()
@@ -148,7 +156,8 @@ void TestMainWindow::themeMenuSwitchesTheme()
 
     auto *button = child<QToolButton>(window, "themeButton");
     QVERIFY(!button->isHidden());
-    QVERIFY(button->menu());
+    QCOMPARE(button->menu(), child<QMenu>(window, "menuTheme"));
+    QVERIFY(button->menu()->menuAction()->isVisible());
     QCOMPARE(button->menu()->actions().size(), 3);
     QVERIFY(child<QAction>(window, "actionThemeLight")->isChecked());
 
@@ -159,6 +168,93 @@ void TestMainWindow::themeMenuSwitchesTheme()
 
     child<QAction>(window, "actionThemeSystem")->trigger();
     QCOMPARE(theme.mode(), AppTheme::Mode::System);
+}
+
+void TestMainWindow::menuBarListsMenus()
+{
+    MainWindow window;
+    QStringList titles;
+    for (const QAction *action : window.menuBar()->actions())
+        titles.append(action->text());
+    QCOMPARE(titles, QStringList({ QStringLiteral("&File"), QStringLiteral("&Server"),
+                                   QStringLiteral("&View"), QStringLiteral("&Help") }));
+}
+
+void TestMainWindow::viewMenuSwitchesPages()
+{
+    MainWindow window;
+    auto *tabs = child<QTabWidget>(window, "tabWidget");
+    const QList<QAction *> actions = child<QMenu>(window, "menuView")->actions().mid(0, tabs->count());
+
+    for (int i = 0; i < tabs->count(); ++i) {
+        QCOMPARE(actions.at(i)->text(), tabs->tabText(i));
+        QCOMPARE(actions.at(i)->shortcut(), QKeySequence(Qt::CTRL | Qt::Key(Qt::Key_1 + i)));
+    }
+    QVERIFY(actions.at(0)->isChecked());
+
+    actions.at(2)->trigger();
+    QCOMPARE(tabs->currentIndex(), 2);
+
+    tabs->setCurrentIndex(5);
+    QVERIFY(actions.at(5)->isChecked());
+    QVERIFY(!actions.at(2)->isChecked());
+}
+
+void TestMainWindow::eventLogActionTogglesPanel()
+{
+    MainWindow window;
+    window.show();
+    auto *eventLog = child<EventLogWidget>(window, "eventLog");
+    auto *action = child<QAction>(window, "actionEventLog");
+    auto *tabs = child<QTabWidget>(window, "tabWidget");
+
+    action->setChecked(false);
+    QVERIFY(!eventLog->isVisible());
+    tabs->setCurrentIndex(1);
+    QVERIFY(!eventLog->isVisible());
+
+    action->setChecked(true);
+    QVERIFY(eventLog->isVisible());
+
+    tabs->setCurrentWidget(child<QWidget>(window, "logPage"));
+    QVERIFY(!eventLog->isVisible());
+    QVERIFY(!action->isEnabled());
+}
+
+void TestMainWindow::toolbarButtonsTriggerMenuActions()
+{
+    MainWindow window;
+    const QList<QPair<const char *, const char *>> pairs = {
+        { "addNodeButton", "actionAddNode" },
+        { "importModelButton", "actionImportModel" },
+        { "saveButton", "actionSaveProject" },
+    };
+    for (const auto &pair : pairs) {
+        QSignalSpy triggered(child<QAction>(window, pair.second), &QAction::triggered);
+        child<QPushButton>(window, pair.first)->click();
+        QVERIFY2(triggered.count() == 1, pair.first);
+    }
+}
+
+void TestMainWindow::serverActionsFollowRunningState()
+{
+    ServerSnapshot snapshot = MockData::snapshot();
+    snapshot.status.running = true;
+    MainWindow window;
+    window.setSnapshot(snapshot);
+
+    QSignalSpy stopped(child<QAction>(window, "actionStopServer"), &QAction::triggered);
+    child<QPushButton>(window, "stopButton")->click();
+    QCOMPARE(stopped.count(), 1);
+    QVERIFY(!child<QAction>(window, "actionStartServer")->isEnabled());
+    QVERIFY(child<QAction>(window, "actionRestartServer")->isEnabled());
+
+    snapshot.status.running = false;
+    window.setSnapshot(snapshot);
+    QVERIFY(child<QPushButton>(window, "startButton")->isEnabled());
+    QVERIFY(!child<QPushButton>(window, "stopButton")->isEnabled());
+    QVERIFY(!child<QAction>(window, "actionStopServer")->isEnabled());
+    QVERIFY(!child<QAction>(window, "actionRestartServer")->isEnabled());
 }
 
 QTEST_MAIN(TestMainWindow)

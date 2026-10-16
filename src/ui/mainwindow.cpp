@@ -7,7 +7,8 @@
 ///
 
 #include <QActionGroup>
-#include <QMenu>
+#include <QApplication>
+#include <QMessageBox>
 
 #include "appicons.h"
 #include "apptheme.h"
@@ -21,6 +22,7 @@
 namespace {
 
 constexpr double kEventLogShare = 0.28;
+constexpr int kPageShortcutCount = 9;
 
 }
 
@@ -42,6 +44,8 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     ui->serverIndicator->setColoredText(true);
 
     setupIcons();
+    setupActions();
+    setupViewMenu();
     setupThemeMenu();
 
     ui->eventLog->setLogModel(_logModel);
@@ -72,8 +76,9 @@ void MainWindow::setSnapshot(const ServerSnapshot &snapshot)
     ui->endpointEdit->setText(_status.primaryEndpoint);
     ui->serverIndicator->setStatus(_status.running ? StatusKind::Good : StatusKind::Inactive,
                                    _status.running ? tr("Running") : tr("Stopped"));
-    ui->startButton->setEnabled(!_status.running);
-    ui->stopButton->setEnabled(_status.running);
+    ui->actionStartServer->setEnabled(!_status.running);
+    ui->actionStopServer->setEnabled(_status.running);
+    ui->actionRestartServer->setEnabled(_status.running);
     _statusWidget->setServerStatus(_status);
 
     ui->statusPage->setStatus(_status);
@@ -115,36 +120,102 @@ void MainWindow::showEvent(QShowEvent *event)
 }
 
 ///
-/// \brief Gives the toolbar buttons their icons.
+/// \brief Gives the toolbar buttons and the menu actions their icons.
 ///
 void MainWindow::setupIcons()
 {
-    ui->startButton->setIcon(AppIcons::icon(QStringLiteral("play")));
-    ui->stopButton->setIcon(AppIcons::icon(QStringLiteral("stop")));
-    ui->addNodeButton->setIcon(AppIcons::icon(QStringLiteral("add-circle")));
-    ui->importModelButton->setIcon(AppIcons::icon(QStringLiteral("import")));
-    ui->saveButton->setIcon(AppIcons::icon(QStringLiteral("save")));
+    const QIcon play = AppIcons::icon(QStringLiteral("play"));
+    const QIcon stop = AppIcons::icon(QStringLiteral("stop"));
+    const QIcon addNode = AppIcons::icon(QStringLiteral("add-circle"));
+    const QIcon importModel = AppIcons::icon(QStringLiteral("import"));
+    const QIcon save = AppIcons::icon(QStringLiteral("save"));
+
+    ui->startButton->setIcon(play);
+    ui->actionStartServer->setIcon(play);
+    ui->stopButton->setIcon(stop);
+    ui->actionStopServer->setIcon(stop);
+    ui->addNodeButton->setIcon(addNode);
+    ui->actionAddNode->setIcon(addNode);
+    ui->importModelButton->setIcon(importModel);
+    ui->actionImportModel->setIcon(importModel);
+    ui->saveButton->setIcon(save);
+    ui->actionSaveProject->setIcon(save);
+    ui->actionExportModel->setIcon(AppIcons::icon(QStringLiteral("upload")));
     ui->themeButton->setIcon(AppIcons::icon(QStringLiteral("theme")));
     ViewSetup::addCopyAction(ui->endpointEdit);
 }
 
 ///
-/// \brief Builds the System/Light/Dark menu of the theme button.
+/// \brief Routes the toolbar buttons through the menu actions and wires the window-level actions.
+///
+void MainWindow::setupActions()
+{
+    connect(ui->startButton, &QPushButton::clicked, ui->actionStartServer, &QAction::trigger);
+    connect(ui->stopButton, &QPushButton::clicked, ui->actionStopServer, &QAction::trigger);
+    connect(ui->addNodeButton, &QPushButton::clicked, ui->actionAddNode, &QAction::trigger);
+    connect(ui->importModelButton, &QPushButton::clicked, ui->actionImportModel, &QAction::trigger);
+    connect(ui->saveButton, &QPushButton::clicked, ui->actionSaveProject, &QAction::trigger);
+    connect(ui->actionStartServer, &QAction::enabledChanged, ui->startButton, &QWidget::setEnabled);
+    connect(ui->actionStopServer, &QAction::enabledChanged, ui->stopButton, &QWidget::setEnabled);
+
+    connect(ui->actionEventLog, &QAction::toggled, this, &MainWindow::updateEventLogVisibility);
+    connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
+    connect(ui->actionAbout, &QAction::triggered, this, &MainWindow::showAbout);
+    connect(ui->actionAboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
+}
+
+///
+/// \brief Lists the pages at the top of the View menu, with Ctrl+digit shortcuts.
+///
+void MainWindow::setupViewMenu()
+{
+    _pageActions = new QActionGroup(this);
+    QAction *before = ui->menuView->actions().value(0);
+    for (int index = 0; index < ui->tabWidget->count(); ++index) {
+        auto *action = new QAction(ui->tabWidget->tabText(index), _pageActions);
+        action->setCheckable(true);
+        action->setData(index);
+        if (index < kPageShortcutCount)
+            action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key(Qt::Key_1 + index)));
+        ui->menuView->insertAction(before, action);
+    }
+    connect(_pageActions, &QActionGroup::triggered, this, &MainWindow::selectPage);
+}
+
+///
+/// \brief Shows the page a View menu action stands for.
+/// \param action Triggered page action.
+///
+void MainWindow::selectPage(QAction *action)
+{
+    ui->tabWidget->setCurrentIndex(action->data().toInt());
+}
+
+///
+/// \brief Shows the application name, version and purpose.
+///
+void MainWindow::showAbout()
+{
+    QMessageBox::about(this, tr("About %1").arg(QStringLiteral(APP_NAME)),
+                       tr("<h3>%1 %2</h3><p>OPC UA simulation server.</p>")
+                           .arg(QStringLiteral(APP_NAME), QStringLiteral(APP_VERSION)));
+}
+
+///
+/// \brief Shares the System/Light/Dark menu between View > Theme and the theme button.
 ///
 void MainWindow::setupThemeMenu()
 {
     if (!_theme) {
         ui->themeButton->hide();
+        ui->menuTheme->menuAction()->setVisible(false);
         return;
     }
 
     auto *group = new QActionGroup(this);
-    auto *menu = new QMenu(ui->themeButton);
-    for (QAction *action : { ui->actionThemeSystem, ui->actionThemeLight, ui->actionThemeDark }) {
+    for (QAction *action : { ui->actionThemeSystem, ui->actionThemeLight, ui->actionThemeDark })
         group->addAction(action);
-        menu->addAction(action);
-    }
-    ui->themeButton->setMenu(menu);
+    ui->themeButton->setMenu(ui->menuTheme);
     syncThemeActions();
     connect(group, &QActionGroup::triggered, this, &MainWindow::selectTheme);
 }
@@ -176,14 +247,25 @@ void MainWindow::selectTheme(QAction *action)
 }
 
 ///
-/// \brief Hides the event log panel on the log page and updates the status bar note.
+/// \brief Checks the page in the View menu and adapts the event log panel and the status bar note.
 /// \param index Index of the shown tab.
 ///
 void MainWindow::handleTabChange(int index)
 {
-    const QWidget *page = ui->tabWidget->widget(index);
-    ui->eventLog->setVisible(page != ui->logPage);
+    if (QAction *action = _pageActions->actions().value(index))
+        action->setChecked(true);
+    updateEventLogVisibility();
     updateStatusBarNote();
+}
+
+///
+/// \brief Shows the event log panel when it is switched on, except on the log page that already lists the log.
+///
+void MainWindow::updateEventLogVisibility()
+{
+    const bool onLogPage = ui->tabWidget->currentWidget() == ui->logPage;
+    ui->actionEventLog->setEnabled(!onLogPage);
+    ui->eventLog->setVisible(ui->actionEventLog->isChecked() && !onLogPage);
 }
 
 ///
