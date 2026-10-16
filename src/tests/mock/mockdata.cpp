@@ -3,7 +3,7 @@
 
 ///
 /// \file mockdata.cpp
-/// \brief Implements the sample server state shown until the UI is bound to a real server.
+/// \brief Implements the sample server state the UI tests show.
 ///
 
 #include <algorithm>

@@ -3,7 +3,7 @@
 
 ///
 /// \file mockdata.h
-/// \brief Declares the sample server state shown until the UI is bound to a real server.
+/// \brief Declares the sample server state the UI tests show.
 ///
 
 #pragma once

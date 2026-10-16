@@ -15,9 +15,6 @@ add_library(ouasim_core STATIC
     data/typeinfo.h
     data/variableinfo.h
 
-    mock/mockdata.cpp
-    mock/mockdata.h
-
     models/certificatesmodel.cpp
     models/certificatesmodel.h
     models/endpointsmodel.cpp

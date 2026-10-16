@@ -20,11 +20,21 @@ function(ouasim_configure_shared_test_objects)
         "${CMAKE_CURRENT_SOURCE_DIR}/testsettingsisolation.cpp"
     )
     target_link_libraries(ouasim_test_settings_isolation PRIVATE Qt${QT_VERSION_MAJOR}::Core)
+
+    add_library(ouasim_test_mock_data OBJECT
+        "${CMAKE_CURRENT_SOURCE_DIR}/mock/mockdata.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/mock/mockdata.h"
+    )
+    target_link_libraries(ouasim_test_mock_data PRIVATE ouasim_core)
 endfunction()
 
 function(ouasim_register_test test_name source_file)
     add_executable(${test_name} "${CMAKE_CURRENT_SOURCE_DIR}/${source_file}")
-    target_sources(${test_name} PRIVATE $<TARGET_OBJECTS:ouasim_test_settings_isolation>)
+    target_sources(${test_name} PRIVATE
+        $<TARGET_OBJECTS:ouasim_test_settings_isolation>
+        $<TARGET_OBJECTS:ouasim_test_mock_data>
+    )
+    target_include_directories(${test_name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(${test_name} PRIVATE
         Qt${QT_VERSION_MAJOR}::Test
         Qt${QT_VERSION_MAJOR}::Network
