@@ -16,6 +16,7 @@
 #include <QVariant>
 
 #include "data/projectconfig.h"
+#include "simulation/valuesink.h"
 
 class QUaBaseDataVariable;
 class QUaNode;
@@ -24,7 +25,7 @@ class QUaServer;
 ///
 /// \brief Builds project nodes in a QUaServer and gives access to their variables by node id.
 ///
-class AddressSpace : public QObject
+class AddressSpace : public QObject, public ValueSink
 {
     Q_OBJECT
 
@@ -88,7 +89,7 @@ public:
     /// \param value New value, converted to the variable's data type.
     /// \return False for an unknown variable.
     ///
-    bool setValue(const QString &nodeId, const QVariant &value);
+    bool setValue(const QString &nodeId, const QVariant &value) override;
 
 signals:
     ///

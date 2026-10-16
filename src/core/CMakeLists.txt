@@ -67,8 +67,11 @@ add_library(ouasim_core STATIC
 
     simulation/signalgenerator.cpp
     simulation/signalgenerator.h
+    simulation/simulationengine.cpp
+    simulation/simulationengine.h
     simulation/valuecast.cpp
     simulation/valuecast.h
+    simulation/valuesink.h
 )
 
 target_include_directories(ouasim_core PUBLIC

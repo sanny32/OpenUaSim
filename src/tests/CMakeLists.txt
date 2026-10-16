@@ -16,6 +16,7 @@ ouasim_add_test(ouasim_tests_listener_settings test_listenersettings.cpp)
 ouasim_add_test(ouasim_tests_log_mapper        test_logmapper.cpp)
 ouasim_add_test(ouasim_tests_session_tracker   test_sessiontracker.cpp)
 ouasim_add_test(ouasim_tests_project_nodes     test_projectnodes.cpp)
+ouasim_add_test(ouasim_tests_simulation_engine test_simulationengine.cpp)
 
 ouasim_add_server_test(ouasim_tests_sim_server       test_simserver.cpp)
 ouasim_add_server_test(ouasim_tests_address_space    test_addressspace.cpp)
