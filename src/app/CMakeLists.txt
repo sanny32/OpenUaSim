@@ -4,6 +4,7 @@ add_executable(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ouasim_ui)
+ouasim_deploy_quaserver_runtime(${PROJECT_NAME})
 
 if(WIN32)
     set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE ON)

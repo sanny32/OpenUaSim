@@ -27,8 +27,10 @@ function(ouasim_register_test test_name source_file)
     target_sources(${test_name} PRIVATE $<TARGET_OBJECTS:ouasim_test_settings_isolation>)
     target_link_libraries(${test_name} PRIVATE
         Qt${QT_VERSION_MAJOR}::Test
+        Qt${QT_VERSION_MAJOR}::Network
         Qt${QT_VERSION_MAJOR}::Widgets
     )
+    ouasim_deploy_quaserver_runtime(${test_name})
     add_test(NAME ${test_name} COMMAND ${test_name})
     ouasim_configure_test_environment(${test_name})
 endfunction()

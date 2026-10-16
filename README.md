@@ -37,7 +37,9 @@ src/
 
 ## Building
 
-Requirements: CMake 3.22+, a C++17 compiler and Qt 6.9 or newer (Core, Gui, Widgets, Svg).
+Requirements: CMake 3.22+, a C++17 compiler, Qt 6.9 or newer (Core, Gui, Widgets, Svg),
+Git and Python 3. QUaServer and open62541 are fetched and built during configuration;
+encryption (on by default) needs OpenSSL 3; on Windows the one from the Qt installer is found automatically.
 
 Configure:
 
@@ -53,11 +55,11 @@ cmake --build build --parallel
 
 ### Options
 
-| Option                   | Default  | Description                                         |
-|--------------------------|----------|-----------------------------------------------------|
-| `OUASIM_BUILD_TESTS`     | `OFF`    | Build the Qt Test suites.                           |
-| `OUASIM_WITH_QUASERVER`  | `OFF`    | Fetch QUaServer and link it into `ouasim_core`.     |
-| `OUASIM_QUASERVER_TAG`   | `master` | QUaServer git tag or commit to fetch.               |
+| Option                   | Default         | Description                                       |
+|--------------------------|-----------------|---------------------------------------------------|
+| `OUASIM_BUILD_TESTS`     | `OFF`           | Build the Qt Test suites (needs Qt Test, Network). |
+| `OUASIM_WITH_ENCRYPTION` | `ON`            | Build QUaServer with OpenSSL 3 encryption.        |
+| `OUASIM_QUASERVER_TAG`   | pinned commit   | QUaServer git tag or commit to fetch.             |
 
 ## Tests
 
