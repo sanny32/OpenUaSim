@@ -60,15 +60,6 @@ void EventLogWidget::setLogModel(LogModel *model)
 }
 
 ///
-/// \brief Sets the panel title.
-/// \param title Title text.
-///
-void EventLogWidget::setTitle(const QString &title)
-{
-    ui->titleLabel->setText(title);
-}
-
-///
 /// \brief Returns the panel title.
 /// \return Title text.
 ///

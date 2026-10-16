@@ -42,12 +42,6 @@ public:
     void setLogModel(LogModel *model);
 
     ///
-    /// \brief Sets the panel title.
-    /// \param title Title text.
-    ///
-    void setTitle(const QString &title);
-
-    ///
     /// \brief Returns the panel title.
     /// \return Title text.
     ///

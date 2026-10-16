@@ -180,8 +180,7 @@ void TestWidgets::eventLogShowsAndClears()
 
     EventLogWidget widget;
     widget.setLogModel(&model);
-    widget.setTitle(QStringLiteral("Recent Activity"));
-    QCOMPARE(widget.title(), QStringLiteral("Recent Activity"));
+    QCOMPARE(widget.title(), QStringLiteral("Event Log"));
 
     auto *view = widget.findChild<QTableView *>();
     QCOMPARE(view->model(), &model);

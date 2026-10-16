@@ -82,12 +82,11 @@ void TestMainWindow::eventLogFollowsTab()
     auto *tabs = child<QTabWidget>(window, "tabWidget");
     auto *eventLog = child<EventLogWidget>(window, "eventLog");
 
-    tabs->setCurrentIndex(0);
-    QVERIFY(eventLog->isVisible());
-    QCOMPARE(eventLog->title(), QStringLiteral("Recent Activity"));
-
-    tabs->setCurrentIndex(1);
-    QCOMPARE(eventLog->title(), QStringLiteral("Event Log"));
+    for (int index : { 0, 1 }) {
+        tabs->setCurrentIndex(index);
+        QVERIFY(eventLog->isVisible());
+        QCOMPARE(eventLog->title(), QStringLiteral("Event Log"));
+    }
 
     tabs->setCurrentWidget(child<QWidget>(window, "logPage"));
     QVERIFY(!eventLog->isVisible());

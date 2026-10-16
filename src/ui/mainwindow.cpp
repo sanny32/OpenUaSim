@@ -176,14 +176,13 @@ void MainWindow::selectTheme(QAction *action)
 }
 
 ///
-/// \brief Adapts the event log panel and the status bar note to the shown page.
+/// \brief Hides the event log panel on the log page and updates the status bar note.
 /// \param index Index of the shown tab.
 ///
 void MainWindow::handleTabChange(int index)
 {
     const QWidget *page = ui->tabWidget->widget(index);
     ui->eventLog->setVisible(page != ui->logPage);
-    ui->eventLog->setTitle(page == ui->statusPage ? tr("Recent Activity") : tr("Event Log"));
     updateStatusBarNote();
 }
 
