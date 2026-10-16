@@ -51,9 +51,23 @@ public:
     ///
     const EndpointsModel *endpointsModel() const;
 
+signals:
+    ///
+    /// \brief Asks to replace the configured endpoints after an edit, an addition or a removal.
+    /// \param endpoints Complete new endpoint list.
+    ///
+    void endpointsChangeRequested(const QList<EndpointInfo> &endpoints);
+
 private:
     void showEndpoint(const QModelIndex &current);
     void updateCredentialFields();
+    void restrictSecurityChoices();
+    int currentRow() const;
+    EndpointInfo editedEndpoint(int row) const;
+    void applyEndpoint();
+    void revertEndpoint();
+    void addEndpoint();
+    void removeEndpoint();
 
     Ui::EndpointsPage *ui;
     EndpointsModel *_endpointsModel;

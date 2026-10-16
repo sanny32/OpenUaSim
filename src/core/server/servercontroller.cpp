@@ -6,7 +6,10 @@
 /// \brief Implements the facade that serves a project: server, address space and simulation.
 ///
 
+#include <algorithm>
+
 #include "formatting.h"
+#include "listenersettings.h"
 #include "logmapper.h"
 #include "project/projectnodes.h"
 #include "servercontroller.h"
@@ -114,6 +117,38 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
 }
 
 ///
+/// \brief Replaces the endpoints; a running server applies them on the next restart.
+/// \param endpoints New endpoint list.
+/// \param error Receives the reason on failure; may be null.
+/// \return False when enabled endpoints cannot be served together, e.g. on different ports.
+///
+bool ServerController::setEndpoints(const QList<EndpointInfo> &endpoints, QString *error)
+{
+    const bool anyEnabled = std::any_of(endpoints.cbegin(), endpoints.cend(),
+                                        [](const EndpointInfo &endpoint) { return endpoint.enabled; });
+    const ListenerSettings listener = ListenerSettingsBuilder::build(endpoints);
+    if (anyEnabled && !listener.ok()) {
+        if (error)
+            *error = listener.error;
+        return false;
+    }
+    _project.endpoints = endpoints;
+    if (isRunning())
+        setRestartRequired(true);
+    emit endpointsChanged();
+    return true;
+}
+
+///
+/// \brief Tells whether the running server still serves older endpoint settings.
+/// \return True after setEndpoints() on a running server until it restarts or stops.
+///
+bool ServerController::isRestartRequired() const
+{
+    return _restartRequired;
+}
+
+///
 /// \brief Returns the served project.
 /// \return Project with every node id assigned.
 ///
@@ -198,6 +233,7 @@ bool ServerController::start()
     if (!_server.start(_project))
         return false;
     _engine.start();
+    setRestartRequired(false);
     return true;
 }
 
@@ -208,6 +244,7 @@ void ServerController::stop()
 {
     _engine.stop();
     _server.stop();
+    setRestartRequired(false);
 }
 
 ///
@@ -231,6 +268,18 @@ void ServerController::rebuildNodes()
                                    tr("Node skipped: %1").arg(problem)));
     _engine.setVariables(SimulationEngine::variablesOf(_project.nodes));
     emit projectChanged();
+}
+
+///
+/// \brief Records whether a restart is pending and announces changes.
+/// \param required New state.
+///
+void ServerController::setRestartRequired(bool required)
+{
+    if (_restartRequired == required)
+        return;
+    _restartRequired = required;
+    emit restartRequiredChanged(required);
 }
 
 ///

@@ -8,6 +8,7 @@
 
 #include <QActionGroup>
 #include <QApplication>
+#include <QLabel>
 #include <QMessageBox>
 #include <QTimer>
 
@@ -43,10 +44,13 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     , _logModel(new LogModel(this))
     , _theme(theme)
     , _statusTimer(new QTimer(this))
+    , _restartNote(new QLabel(tr("Restart the server to apply the endpoint changes"), this))
 {
     ui->setupUi(this);
     setWindowTitle(QStringLiteral(APP_NAME));
     ui->statusBar->addWidget(_statusWidget, 1);
+    ui->statusBar->addPermanentWidget(_restartNote);
+    _restartNote->hide();
 
     setupIcons();
     setupActions();
@@ -108,6 +112,9 @@ void MainWindow::setController(ServerController *controller)
     connect(ui->objectsPage, &ObjectsPage::currentNodeChanged, this, &MainWindow::updateNodeActions);
     connect(ui->actionAddNode, &QAction::triggered, this, &MainWindow::showAddNodeDialog);
     connect(ui->actionDeleteNode, &QAction::triggered, this, &MainWindow::confirmDeleteNode);
+    connect(ui->endpointsPage, &EndpointsPage::endpointsChangeRequested, this, &MainWindow::applyEndpoints);
+    connect(controller, &ServerController::endpointsChanged, this, &MainWindow::reloadEndpoints);
+    connect(controller, &ServerController::restartRequiredChanged, this, &MainWindow::updateRestartNote);
 
     _statusTimer->setInterval(kStatusRefreshMs);
     connect(_statusTimer, &QTimer::timeout, this, &MainWindow::refreshStatus);
@@ -452,6 +459,37 @@ void MainWindow::applyVariableChange(const VariableInfo &variable)
     QString error;
     if (_controller && !_controller->updateVariable(variable, &error))
         showError(tr("Changes not applied"), error);
+}
+
+///
+/// \brief Stores edited endpoints and reports a refused change.
+/// \param endpoints Complete new endpoint list.
+///
+void MainWindow::applyEndpoints(const QList<EndpointInfo> &endpoints)
+{
+    QString error;
+    if (_controller && !_controller->setEndpoints(endpoints, &error))
+        showError(tr("Endpoints not changed"), error);
+}
+
+///
+/// \brief Shows the controller's endpoints and the endpoint URL they lead to.
+///
+void MainWindow::reloadEndpoints()
+{
+    if (!_controller)
+        return;
+    ui->endpointsPage->setEndpoints(_controller->project().endpoints);
+    refreshStatus();
+}
+
+///
+/// \brief Shows or hides the note that endpoint changes wait for a restart.
+/// \param required Whether a restart is pending.
+///
+void MainWindow::updateRestartNote(bool required)
+{
+    _restartNote->setVisible(required);
 }
 
 ///

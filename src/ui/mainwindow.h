@@ -19,6 +19,8 @@ class LogModel;
 class MainStatusBarWidget;
 class QAction;
 class QActionGroup;
+class QLabel;
+struct EndpointInfo;
 class QTimer;
 class ServerController;
 struct LogEntry;
@@ -92,6 +94,9 @@ private:
     void deletePendingNode();
     void applyVariableChange(const VariableInfo &variable);
     void updateNodeActions();
+    void applyEndpoints(const QList<EndpointInfo> &endpoints);
+    void reloadEndpoints();
+    void updateRestartNote(bool required);
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_statusWidget;
@@ -99,6 +104,7 @@ private:
     AppTheme *_theme;
     ServerController *_controller = nullptr;
     QTimer *_statusTimer;
+    QLabel *_restartNote;
     QString _pendingParentId;
     QString _pendingDeleteId;
     QActionGroup *_pageActions = nullptr;

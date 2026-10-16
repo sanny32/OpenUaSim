@@ -14,7 +14,9 @@
 #include <QScrollArea>
 #include <QSignalSpy>
 #include <QHeaderView>
+#include <QSpinBox>
 #include <QSplitter>
+#include <QStatusBar>
 #include <QTabWidget>
 #include <QTableView>
 #include <QTest>
@@ -24,6 +26,7 @@
 #include "apppalette.h"
 #include "appstyle.h"
 #include "apptheme.h"
+#include "endpointspage.h"
 #include "eventlogwidget.h"
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
@@ -35,6 +38,7 @@
 #include "server/servercontroller.h"
 #include "statusindicator.h"
 #include "testport.h"
+#include "viewsetup.h"
 
 namespace {
 
@@ -73,6 +77,8 @@ private slots:
     void deleteNodeAfterConfirmation();
     void deleteNodeFollowsSelection();
     void refusedVariableChangeShowsMessage();
+    void endpointChangesShowRestartNote();
+    void refusedEndpointChangeShowsMessage();
     void panelsFitTheDefaultWindow();
 };
 
@@ -406,6 +412,55 @@ void TestMainWindow::refusedVariableChangeShowsMessage()
     auto *box = window.findChild<QMessageBox *>();
     QVERIFY(box);
     QCOMPARE(box->text(), QStringLiteral("A sibling is already named 'Running'"));
+    box->close();
+}
+
+void TestMainWindow::endpointChangesShowRestartNote()
+{
+    ProjectConfig project = DefaultProject::create();
+    project.endpoints.first().port = TestPort::freePort();
+    ServerController controller;
+    controller.setProject(project);
+    MainWindow window;
+    window.setController(&controller);
+    window.show();
+    QVERIFY(controller.start());
+
+    auto *endpoints = child<EndpointsPage>(window, "endpointsPage");
+    const quint16 port = TestPort::freePort();
+    child<QSpinBox>(*endpoints, "portSpin")->setValue(port);
+    child<QPushButton>(*endpoints, "applyButton")->click();
+
+    QCOMPARE(controller.project().endpoints.first().port, int(port));
+    const auto notes = window.statusBar()->findChildren<QLabel *>();
+    const auto note = std::find_if(notes.cbegin(), notes.cend(), [](const QLabel *label) {
+        return label->text().startsWith(QStringLiteral("Restart the server"));
+    });
+    QVERIFY(note != notes.cend());
+    QVERIFY((*note)->isVisible());
+
+    child<QAction>(window, "actionRestartServer")->trigger();
+    QVERIFY(!(*note)->isVisible());
+    QCOMPARE(child<QLineEdit>(window, "endpointEdit")->text(), QStringLiteral("opc.tcp://localhost:%1").arg(port));
+}
+
+void TestMainWindow::refusedEndpointChangeShowsMessage()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+
+    auto *endpoints = child<EndpointsPage>(window, "endpointsPage");
+    child<QPushButton>(*endpoints, "addEndpointButton")->click();
+    QCOMPARE(controller.project().endpoints.size(), 2);
+    ViewSetup::selectRow(child<QTableView>(*endpoints, "endpointsView"), 1);
+    child<QSpinBox>(*endpoints, "portSpin")->setValue(4999);
+    child<QPushButton>(*endpoints, "applyButton")->click();
+
+    auto *box = window.findChild<QMessageBox *>();
+    QVERIFY(box);
+    QVERIFY(box->text().contains(QStringLiteral("must share one port")));
     box->close();
 }
 

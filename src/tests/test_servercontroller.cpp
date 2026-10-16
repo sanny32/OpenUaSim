@@ -58,7 +58,67 @@ private slots:
     void updateVariableAppliesLiveSettings();
     void updateVariableRenameRebuilds();
     void updateVariableReportsRefusal();
+    void setEndpointsWhileStopped();
+    void setEndpointsWhileRunningRequiresRestart();
+    void setEndpointsRejectsConflicts();
+    void setEndpointsAcceptsAllDisabled();
 };
+
+void TestServerController::setEndpointsWhileStopped()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QSignalSpy changed(&controller, &ServerController::endpointsChanged);
+    QList<EndpointInfo> endpoints = controller.project().endpoints;
+    endpoints.first().name = QStringLiteral("Renamed");
+    QVERIFY(controller.setEndpoints(endpoints));
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(controller.project().endpoints.first().name, QStringLiteral("Renamed"));
+    QVERIFY(!controller.isRestartRequired());
+}
+
+void TestServerController::setEndpointsWhileRunningRequiresRestart()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QVERIFY(controller.start());
+    QSignalSpy required(&controller, &ServerController::restartRequiredChanged);
+
+    QList<EndpointInfo> endpoints = controller.project().endpoints;
+    endpoints.first().port = TestPort::freePort();
+    QVERIFY(controller.setEndpoints(endpoints));
+    QVERIFY(controller.isRestartRequired());
+    QCOMPARE(required.count(), 1);
+
+    QVERIFY(controller.restart());
+    QVERIFY(!controller.isRestartRequired());
+    QCOMPARE(controller.server().endpointUrl(), endpoints.first().url());
+    QCOMPARE(required.count(), 2);
+}
+
+void TestServerController::setEndpointsRejectsConflicts()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QList<EndpointInfo> endpoints = controller.project().endpoints;
+    endpoints.append(endpoints.first());
+    endpoints.last().port = endpoints.first().port + 1;
+    QString error;
+    QVERIFY(!controller.setEndpoints(endpoints, &error));
+    QVERIFY(error.contains(QStringLiteral("must share one port")));
+    QCOMPARE(controller.project().endpoints.size(), 1);
+}
+
+void TestServerController::setEndpointsAcceptsAllDisabled()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QList<EndpointInfo> endpoints = controller.project().endpoints;
+    endpoints.first().enabled = false;
+    QVERIFY(controller.setEndpoints(endpoints));
+    QVERIFY(controller.setEndpoints({}));
+    QVERIFY(!controller.start());
+}
 
 void TestServerController::addNodeRebuildsAddressSpace()
 {

@@ -14,6 +14,7 @@
 #include <QScrollBar>
 #include <QSignalSpy>
 #include <QSpinBox>
+#include <QStandardItemModel>
 #include <QTableView>
 #include <QTest>
 #include <QTreeView>
@@ -78,6 +79,10 @@ private slots:
     void typesPage();
     void namespacesPage();
     void endpointsPage();
+    void endpointsPageAppliesEdits();
+    void endpointsPageAddsAndRemoves();
+    void endpointsPageRevertsAndKeepsRow();
+    void endpointsPageOffersSecurityOfTheBuild();
     void certificatesPage();
     void certificateDetailsShowEveryLine();
     void certificateDetailsKeepTheirWidth();
@@ -321,6 +326,88 @@ void TestPages::endpointsPage()
 
     child<QCheckBox>(page, "usernamePasswordCheck")->setChecked(true);
     QVERIFY(child<QLineEdit>(page, "usernameEdit")->isEnabled());
+}
+
+void TestPages::endpointsPageAppliesEdits()
+{
+    QList<EndpointInfo> endpoints = _snapshot.endpoints;
+    endpoints[0].password = QStringLiteral("old");
+    EndpointsPage page;
+    page.setEndpoints(endpoints);
+    QSignalSpy requested(&page, &EndpointsPage::endpointsChangeRequested);
+    QVERIFY(child<QLineEdit>(page, "passwordEdit")->text().isEmpty());
+    QCOMPARE(child<QLineEdit>(page, "passwordEdit")->placeholderText(), QStringLiteral("Unchanged"));
+
+    child<QLineEdit>(page, "nameEdit")->setText(QStringLiteral("Edited"));
+    child<QSpinBox>(page, "portSpin")->setValue(4900);
+    child<QCheckBox>(page, "usernamePasswordCheck")->setChecked(true);
+    child<QLineEdit>(page, "usernameEdit")->setText(QStringLiteral("operator"));
+    child<QPushButton>(page, "applyButton")->click();
+
+    QCOMPARE(requested.count(), 1);
+    using Endpoints = QList<EndpointInfo>;
+    const Endpoints applied = requested.first().first().value<Endpoints>();
+    QCOMPARE(applied.size(), endpoints.size());
+    QCOMPARE(applied[0].name, QStringLiteral("Edited"));
+    QCOMPARE(applied[0].port, 4900);
+    QVERIFY(applied[0].usernamePassword);
+    QCOMPARE(applied[0].username, QStringLiteral("operator"));
+    QCOMPARE(applied[0].password, QStringLiteral("old"));
+
+    child<QLineEdit>(page, "passwordEdit")->setText(QStringLiteral("new"));
+    child<QPushButton>(page, "applyButton")->click();
+    QCOMPARE(requested.last().first().value<Endpoints>()[0].password, QStringLiteral("new"));
+}
+
+void TestPages::endpointsPageAddsAndRemoves()
+{
+    EndpointsPage page;
+    page.setEndpoints(_snapshot.endpoints);
+    QSignalSpy requested(&page, &EndpointsPage::endpointsChangeRequested);
+    using Endpoints = QList<EndpointInfo>;
+
+    child<QPushButton>(page, "addEndpointButton")->click();
+    const Endpoints added = requested.last().first().value<Endpoints>();
+    QCOMPARE(added.size(), _snapshot.endpoints.size() + 1);
+    QCOMPARE(added.last().name, QStringLiteral("New endpoint"));
+    QCOMPARE(added.last().port, _snapshot.endpoints.first().port);
+    QCOMPARE(added.last().securityMode, QStringLiteral("None"));
+
+    ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 1);
+    child<QPushButton>(page, "removeEndpointButton")->click();
+    const Endpoints removed = requested.last().first().value<Endpoints>();
+    QCOMPARE(removed.size(), _snapshot.endpoints.size() - 1);
+    QCOMPARE(removed[1].name, _snapshot.endpoints[2].name);
+
+    page.setEndpoints({});
+    QVERIFY(!child<QPushButton>(page, "removeEndpointButton")->isEnabled());
+}
+
+void TestPages::endpointsPageRevertsAndKeepsRow()
+{
+    EndpointsPage page;
+    page.setEndpoints(_snapshot.endpoints);
+    ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 2);
+    child<QLineEdit>(page, "nameEdit")->setText(QStringLiteral("Changed"));
+    child<QPushButton>(page, "revertButton")->click();
+    QCOMPARE(text(page, "nameEdit"), _snapshot.endpoints[2].name);
+
+    page.setEndpoints(_snapshot.endpoints);
+    QCOMPARE(text(page, "nameEdit"), _snapshot.endpoints[2].name);
+}
+
+void TestPages::endpointsPageOffersSecurityOfTheBuild()
+{
+    EndpointsPage page;
+    const auto *policies = qobject_cast<QStandardItemModel *>(child<QComboBox>(page, "securityPolicyCombo")->model());
+    QVERIFY(policies);
+    QVERIFY(policies->item(0)->isEnabled());
+#ifdef OUASIM_HAVE_ENCRYPTION
+    QVERIFY(policies->item(3)->isEnabled());
+#else
+    QVERIFY(!policies->item(3)->isEnabled());
+    QVERIFY(!policies->item(3)->toolTip().isEmpty());
+#endif
 }
 
 void TestPages::certificatesPage()

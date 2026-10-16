@@ -73,6 +73,20 @@ public:
     bool updateVariable(const VariableInfo &variable, QString *error = nullptr);
 
     ///
+    /// \brief Replaces the endpoints; a running server applies them on the next restart.
+    /// \param endpoints New endpoint list.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return False when enabled endpoints cannot be served together, e.g. on different ports.
+    ///
+    bool setEndpoints(const QList<EndpointInfo> &endpoints, QString *error = nullptr);
+
+    ///
+    /// \brief Tells whether the running server still serves older endpoint settings.
+    /// \return True after setEndpoints() on a running server until it restarts or stops.
+    ///
+    bool isRestartRequired() const;
+
+    ///
     /// \brief Returns the served project.
     /// \return Project with every node id assigned.
     ///
@@ -159,6 +173,17 @@ signals:
     void variableChanged(const VariableInfo &variable);
 
     ///
+    /// \brief Announces a new endpoint list.
+    ///
+    void endpointsChanged();
+
+    ///
+    /// \brief Announces whether the server must restart to apply the endpoint settings.
+    /// \param required New state.
+    ///
+    void restartRequiredChanged(bool required);
+
+    ///
     /// \brief Announces variable values changed by the simulation or by clients.
     /// \param values New values keyed by node id.
     ///
@@ -183,6 +208,7 @@ signals:
 
 private:
     void rebuildNodes();
+    void setRestartRequired(bool required);
     void appendLog(const LogEntry &entry);
     void handleClientWrite(const QString &nodeId, const QVariant &value);
 
@@ -191,4 +217,5 @@ private:
     SimulationEngine _engine;
     ProjectConfig _project;
     QList<LogEntry> _log;
+    bool _restartRequired = false;
 };
