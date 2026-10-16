@@ -3,7 +3,8 @@
 
 #include "application.h"
 #include "mainwindow.h"
-#include "mock/mockdata.h"
+#include "project/defaultproject.h"
+#include "server/servercontroller.h"
 
 ///
 /// \brief Application entry point.
@@ -15,8 +16,11 @@ int main(int argc, char *argv[])
 {
     Application app(argc, argv);
 
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+
     MainWindow window(&app.theme());
-    window.setSnapshot(MockData::snapshot());
+    window.setController(&controller);
     window.show();
 
     return app.exec();

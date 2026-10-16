@@ -7,6 +7,7 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSignalSpy>
@@ -25,7 +26,10 @@
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
 #include "mock/mockdata.h"
+#include "project/defaultproject.h"
+#include "server/servercontroller.h"
 #include "statusindicator.h"
+#include "testport.h"
 
 namespace {
 
@@ -58,6 +62,8 @@ private slots:
     void eventLogActionTogglesPanel();
     void toolbarButtonsTriggerMenuActions();
     void serverActionsFollowRunningState();
+    void controllerDrivesWindow();
+    void startFailureShowsMessage();
     void panelsFitTheDefaultWindow();
 };
 
@@ -273,6 +279,51 @@ void TestMainWindow::serverActionsFollowRunningState()
     QVERIFY(!child<QPushButton>(window, "stopButton")->isEnabled());
     QVERIFY(!child<QAction>(window, "actionStopServer")->isEnabled());
     QVERIFY(!child<QAction>(window, "actionRestartServer")->isEnabled());
+}
+
+void TestMainWindow::controllerDrivesWindow()
+{
+    ProjectConfig project = DefaultProject::create();
+    project.endpoints.first().port = TestPort::freePort();
+    ServerController controller;
+    controller.setProject(project);
+    MainWindow window;
+    window.setController(&controller);
+
+    QCOMPARE(child<QLineEdit>(window, "endpointEdit")->text(), project.endpoints.first().url());
+    const auto *variables = child<QTableView>(window, "variablesView");
+    QCOMPARE(variables->model()->rowCount(), 3);
+    const QString initial = variables->model()->index(0, 1).data().toString();
+
+    child<QPushButton>(window, "startButton")->click();
+    QVERIFY(controller.isRunning());
+    QVERIFY(!child<QAction>(window, "actionStartServer")->isEnabled());
+    QVERIFY(child<QAction>(window, "actionStopServer")->isEnabled());
+    QTRY_VERIFY(variables->model()->index(0, 1).data().toString() != initial);
+    QVERIFY(window.logModel()->rowCount() > 0);
+
+    child<QAction>(window, "actionRestartServer")->trigger();
+    QVERIFY(controller.isRunning());
+
+    child<QPushButton>(window, "stopButton")->click();
+    QVERIFY(!controller.isRunning());
+    QVERIFY(child<QAction>(window, "actionStartServer")->isEnabled());
+}
+
+void TestMainWindow::startFailureShowsMessage()
+{
+    ProjectConfig project = DefaultProject::create();
+    project.endpoints.clear();
+    ServerController controller;
+    controller.setProject(project);
+    MainWindow window;
+    window.setController(&controller);
+
+    child<QAction>(window, "actionStartServer")->trigger();
+    auto *box = window.findChild<QMessageBox *>();
+    QVERIFY(box);
+    QCOMPARE(box->text(), QStringLiteral("No endpoint is enabled"));
+    box->close();
 }
 
 void TestMainWindow::panelsFitTheDefaultWindow()

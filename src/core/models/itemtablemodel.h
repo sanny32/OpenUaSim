@@ -68,6 +68,38 @@ public:
         return _items.at(row);
     }
 
+    ///
+    /// \brief Replaces the item of a row and announces the change of every cell of the row.
+    /// \param row Valid row number.
+    /// \param item New item.
+    ///
+    void setItem(int row, const T &item)
+    {
+        _items[row] = item;
+        emit this->dataChanged(this->index(row, 0), this->index(row, this->columnCount() - 1));
+    }
+
+    ///
+    /// \brief Appends rows and, beyond a limit, drops the oldest ones.
+    /// \param items Items to append.
+    /// \param limit Maximum row count; 0 keeps every row.
+    ///
+    void appendItems(const QList<T> &items, int limit = 0)
+    {
+        if (items.isEmpty())
+            return;
+        const int first = static_cast<int>(_items.size());
+        this->beginInsertRows(QModelIndex(), first, first + static_cast<int>(items.size()) - 1);
+        _items.append(items);
+        this->endInsertRows();
+        const int excess = limit > 0 ? static_cast<int>(_items.size()) - limit : 0;
+        if (excess > 0) {
+            this->beginRemoveRows(QModelIndex(), 0, excess - 1);
+            _items.remove(0, excess);
+            this->endRemoveRows();
+        }
+    }
+
 protected:
     ///
     /// \brief Reports whether an index addresses a stored item.

@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <QHash>
+
 #include "data/statuskind.h"
 #include "data/variableinfo.h"
 #include "itemtablemodel.h"
@@ -62,6 +64,12 @@ public:
     /// \return Row number, or -1 when the variable is not listed.
     ///
     int rowOf(const QString &nodeId) const;
+
+    ///
+    /// \brief Updates the values of the listed variables.
+    /// \param values New values keyed by node id; variables not listed are ignored.
+    ///
+    void updateValues(const QHash<QString, QVariant> &values);
 
     ///
     /// \brief Returns the display text of a quality.

@@ -64,6 +64,22 @@ void ObjectsPage::setAddressSpace(const QList<TreeNode> &addressSpace,
 }
 
 ///
+/// \brief Shows new variable values without rebuilding the tree.
+/// \param values New values keyed by node id.
+///
+void ObjectsPage::updateValues(const QHash<QString, QVariant> &values)
+{
+    for (QList<VariableInfo> &variables : _variables) {
+        for (VariableInfo &variable : variables) {
+            const auto value = values.constFind(variable.nodeId);
+            if (value != values.constEnd())
+                variable.value = value.value();
+        }
+    }
+    _variablesModel->updateValues(values);
+}
+
+///
 /// \brief Returns the variables table model.
 /// \return Model of the variables of the shown object.
 ///

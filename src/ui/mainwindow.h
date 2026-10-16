@@ -19,7 +19,11 @@ class LogModel;
 class MainStatusBarWidget;
 class QAction;
 class QActionGroup;
+class QTimer;
+class ServerController;
+struct LogEntry;
 struct ServerSnapshot;
+struct ServerStatus;
 
 ///
 /// \brief Main window: menu bar, server toolbar, the eight pages, the event log and the status bar.
@@ -48,6 +52,12 @@ public:
     void setSnapshot(const ServerSnapshot &snapshot);
 
     ///
+    /// \brief Binds the window to the server it controls and shows its state.
+    /// \param controller Controller serving the project; must outlive the window.
+    ///
+    void setController(ServerController *controller);
+
+    ///
     /// \brief Returns the log shared by the event log panel and the log page.
     /// \return Server log model.
     ///
@@ -68,11 +78,19 @@ private:
     void handleTabChange(int index);
     void updateEventLogVisibility();
     void updateStatusBarNote();
+    void applyStatus(const ServerStatus &status);
+    void refreshStatus();
+    void reloadSnapshot();
+    void appendLog(const LogEntry &entry);
+    void refreshSessions();
+    void showStartFailure(const QString &reason);
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_statusWidget;
     LogModel *_logModel;
     AppTheme *_theme;
+    ServerController *_controller = nullptr;
+    QTimer *_statusTimer;
     QActionGroup *_pageActions = nullptr;
     bool _contentSplitApplied = false;
 };

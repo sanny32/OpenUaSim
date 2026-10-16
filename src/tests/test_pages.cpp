@@ -65,6 +65,7 @@ private slots:
     void objectsPageFollowsVariableSelection();
     void objectsPageShowsObjects();
     void objectsPageClearsForFolders();
+    void objectsPageUpdatesValues();
     void typesPage();
     void namespacesPage();
     void endpointsPage();
@@ -154,6 +155,19 @@ void TestPages::objectsPageClearsForFolders()
     QCOMPARE(child<QLabel>(page, "variablesTitle")->text(), QStringLiteral("Variables"));
     QVERIFY(text(page, "nodeIdEdit").isEmpty());
     QVERIFY(!child<QWidget>(page, "propertiesHost")->isEnabled());
+}
+
+void TestPages::objectsPageUpdatesValues()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+
+    page.updateValues({ { QStringLiteral("ns=2;s=Motor_01.Speed"), 900.0 },
+                        { QStringLiteral("ns=2;s=Pump_01.Flow"), 3.0 } });
+    QCOMPARE(page.variablesModel()->item(0).value.toDouble(), 900.0);
+
+    QVERIFY(ViewSetup::selectById(child<QTreeView>(page, "addressTree"), QStringLiteral("ns=2;s=Pump_01")));
+    QCOMPARE(page.variablesModel()->item(0).value.toDouble(), 3.0);
 }
 
 void TestPages::typesPage()

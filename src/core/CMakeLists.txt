@@ -56,6 +56,8 @@ add_library(ouasim_core STATIC
     server/listenersettings.h
     server/logmapper.cpp
     server/logmapper.h
+    server/servercontroller.cpp
+    server/servercontroller.h
     server/sessiontracker.cpp
     server/sessiontracker.h
     server/simserver.cpp

@@ -50,6 +50,9 @@ class TestTableModels : public QObject
 private slots:
     void initTestCase();
     void itemTableModelStoresItems();
+    void itemTableModelReplacesItem();
+    void itemTableModelAppendsWithLimit();
+    void variablesModelUpdatesValues();
     void tableModelsHaveNoChildren();
     void variablesModel();
     void variablesModelQuality_data();
@@ -88,6 +91,57 @@ void TestTableModels::itemTableModelStoresItems()
     QCOMPARE(model.rowCount(), 0);
     QCOMPARE(reset.count(), 2);
     QVERIFY(!model.index(0, 0).data().isValid());
+}
+
+void TestTableModels::itemTableModelReplacesItem()
+{
+    VariablesModel model;
+    model.setItems({ variable(QStringLiteral("a.Speed"), 1.0), variable(QStringLiteral("a.Load"), 2.0) });
+    QSignalSpy changed(&model, &VariablesModel::dataChanged);
+
+    model.setItem(1, variable(QStringLiteral("a.Flow"), 3.0));
+    QCOMPARE(model.item(1).displayName, QStringLiteral("Flow"));
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(changed.first().at(0).toModelIndex(), model.index(1, 0));
+    QCOMPARE(changed.first().at(1).toModelIndex(), model.index(1, VariablesModel::ColCount - 1));
+}
+
+void TestTableModels::itemTableModelAppendsWithLimit()
+{
+    LogModel model;
+    QAbstractItemModelTester tester(&model);
+    QSignalSpy inserted(&model, &LogModel::rowsInserted);
+    QSignalSpy removed(&model, &LogModel::rowsRemoved);
+
+    LogEntry entry;
+    model.appendItems({});
+    QCOMPARE(inserted.count(), 0);
+
+    for (int i = 0; i < 5; ++i) {
+        entry.message = QString::number(i);
+        model.appendItems({ entry }, 3);
+    }
+    QCOMPARE(model.rowCount(), 3);
+    QCOMPARE(model.item(0).message, QStringLiteral("2"));
+    QCOMPARE(model.item(2).message, QStringLiteral("4"));
+    QCOMPARE(inserted.count(), 5);
+    QCOMPARE(removed.count(), 2);
+
+    model.appendItems({ entry, entry });
+    QCOMPARE(model.rowCount(), 5);
+}
+
+void TestTableModels::variablesModelUpdatesValues()
+{
+    VariablesModel model;
+    model.setItems({ variable(QStringLiteral("a.Speed"), 1.0), variable(QStringLiteral("a.Load"), 2.0) });
+    QSignalSpy changed(&model, &VariablesModel::dataChanged);
+
+    model.updateValues({ { QStringLiteral("a.Load"), 7.5 }, { QStringLiteral("other"), 1.0 } });
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(model.item(0).value.toDouble(), 1.0);
+    QCOMPARE(model.item(1).value.toDouble(), 7.5);
+    QCOMPARE(model.index(1, VariablesModel::ColValue).data().toString(), QStringLiteral("7.5"));
 }
 
 void TestTableModels::tableModelsHaveNoChildren()

@@ -51,6 +51,12 @@ public:
                          const QHash<QString, QList<VariableInfo>> &variables);
 
     ///
+    /// \brief Shows new variable values without rebuilding the tree.
+    /// \param values New values keyed by node id.
+    ///
+    void updateValues(const QHash<QString, QVariant> &values);
+
+    ///
     /// \brief Returns the variables table model.
     /// \return Model of the variables of the shown object.
     ///

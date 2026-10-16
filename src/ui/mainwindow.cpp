@@ -9,6 +9,7 @@
 #include <QActionGroup>
 #include <QApplication>
 #include <QMessageBox>
+#include <QTimer>
 
 #include "appicons.h"
 #include "apptheme.h"
@@ -16,6 +17,7 @@
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
+#include "server/servercontroller.h"
 #include "ui_mainwindow.h"
 #include "viewsetup.h"
 
@@ -23,6 +25,7 @@ namespace {
 
 constexpr double kEventLogShare = 0.28;
 constexpr int kPageShortcutCount = 9;
+constexpr int kStatusRefreshMs = 1000;
 
 }
 
@@ -37,6 +40,7 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     , _statusWidget(new MainStatusBarWidget(this))
     , _logModel(new LogModel(this))
     , _theme(theme)
+    , _statusTimer(new QTimer(this))
 {
     ui->setupUi(this);
     setWindowTitle(QStringLiteral(APP_NAME));
@@ -70,14 +74,7 @@ MainWindow::~MainWindow()
 ///
 void MainWindow::setSnapshot(const ServerSnapshot &snapshot)
 {
-    const ServerStatus &status = snapshot.status;
-    ui->endpointEdit->setText(status.primaryEndpoint);
-    ui->actionStartServer->setEnabled(!status.running);
-    ui->actionStopServer->setEnabled(status.running);
-    ui->actionRestartServer->setEnabled(status.running);
-    _statusWidget->setServerStatus(status);
-
-    ui->statusPage->setStatus(status);
+    applyStatus(snapshot.status);
     ui->objectsPage->setAddressSpace(snapshot.addressSpace, snapshot.variables);
     ui->typesPage->setTypes(snapshot.typeTree, snapshot.types);
     ui->namespacesPage->setNamespaces(snapshot.namespaces);
@@ -85,6 +82,30 @@ void MainWindow::setSnapshot(const ServerSnapshot &snapshot)
     ui->certificatesPage->setCertificates(snapshot.certificates);
     ui->sessionsPage->setSessions(snapshot.sessions);
     _logModel->setItems(snapshot.log);
+}
+
+///
+/// \brief Binds the window to the server it controls and shows its state.
+/// \param controller Controller serving the project; must outlive the window.
+///
+void MainWindow::setController(ServerController *controller)
+{
+    _controller = controller;
+    connect(ui->actionStartServer, &QAction::triggered, controller, &ServerController::start);
+    connect(ui->actionStopServer, &QAction::triggered, controller, &ServerController::stop);
+    connect(ui->actionRestartServer, &QAction::triggered, controller, &ServerController::restart);
+
+    connect(controller, &ServerController::projectChanged, this, &MainWindow::reloadSnapshot);
+    connect(controller, &ServerController::runningChanged, this, &MainWindow::refreshStatus);
+    connect(controller, &ServerController::sessionsChanged, this, &MainWindow::refreshSessions);
+    connect(controller, &ServerController::valuesChanged, ui->objectsPage, &ObjectsPage::updateValues);
+    connect(controller, &ServerController::logAppended, this, &MainWindow::appendLog);
+    connect(controller, &ServerController::startFailed, this, &MainWindow::showStartFailure);
+
+    _statusTimer->setInterval(kStatusRefreshMs);
+    connect(_statusTimer, &QTimer::timeout, this, &MainWindow::refreshStatus);
+    _statusTimer->start();
+    reloadSnapshot();
 }
 
 ///
@@ -270,4 +291,67 @@ void MainWindow::updateStatusBarNote()
 {
     const bool onLogPage = ui->tabWidget->currentWidget() == ui->logPage;
     _statusWidget->setTrailingText(onLogPage ? tr("Log entries: %1").arg(_logModel->rowCount()) : QString());
+}
+
+///
+/// \brief Shows a server summary in the toolbar, the status page and the status bar.
+/// \param status Server summary.
+///
+void MainWindow::applyStatus(const ServerStatus &status)
+{
+    ui->endpointEdit->setText(status.primaryEndpoint);
+    ui->actionStartServer->setEnabled(!status.running);
+    ui->actionStopServer->setEnabled(status.running);
+    ui->actionRestartServer->setEnabled(status.running);
+    _statusWidget->setServerStatus(status);
+    ui->statusPage->setStatus(status);
+}
+
+///
+/// \brief Shows the controller's current server summary, e.g. to advance the uptime.
+///
+void MainWindow::refreshStatus()
+{
+    if (_controller)
+        applyStatus(_controller->status());
+}
+
+///
+/// \brief Shows the controller's whole state on every page.
+///
+void MainWindow::reloadSnapshot()
+{
+    if (_controller)
+        setSnapshot(_controller->snapshot());
+}
+
+///
+/// \brief Appends a server log entry to the log page and the event log.
+/// \param entry New entry.
+///
+void MainWindow::appendLog(const LogEntry &entry)
+{
+    _logModel->appendItems({ entry }, ServerController::kLogLimit);
+}
+
+///
+/// \brief Shows the current sessions and the connected client count.
+///
+void MainWindow::refreshSessions()
+{
+    if (!_controller)
+        return;
+    ui->sessionsPage->setSessions(_controller->sessions());
+    refreshStatus();
+}
+
+///
+/// \brief Tells the user why the server did not start, without blocking the event loop.
+/// \param reason Explanation from the server.
+///
+void MainWindow::showStartFailure(const QString &reason)
+{
+    auto *box = new QMessageBox(QMessageBox::Warning, tr("Server not started"), reason, QMessageBox::Ok, this);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    box->open();
 }

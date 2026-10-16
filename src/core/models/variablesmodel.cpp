@@ -100,6 +100,22 @@ int VariablesModel::rowOf(const QString &nodeId) const
 }
 
 ///
+/// \brief Updates the values of the listed variables.
+/// \param values New values keyed by node id; variables not listed are ignored.
+///
+void VariablesModel::updateValues(const QHash<QString, QVariant> &values)
+{
+    for (int row = 0; row < items().size(); ++row) {
+        const auto value = values.constFind(item(row).nodeId);
+        if (value == values.constEnd())
+            continue;
+        VariableInfo variable = item(row);
+        variable.value = value.value();
+        setItem(row, variable);
+    }
+}
+
+///
 /// \brief Returns the display text of a quality.
 /// \param quality Quality to describe.
 /// \return "Good", "Uncertain" or "Bad".
