@@ -37,6 +37,8 @@ struct EndpointInfo
     bool usernamePassword = false;
     /// \brief User name for username/password tokens.
     QString username;
+    /// \brief Password for username/password tokens.
+    QString password;
     /// \brief Whether clients must present a certificate.
     bool requireClientCertificate = false;
 

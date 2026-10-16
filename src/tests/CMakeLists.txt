@@ -11,6 +11,7 @@ ouasim_add_test(ouasim_tests_mock_data          test_mockdata.cpp)
 ouasim_add_test(ouasim_tests_quaserver_smoke   test_quaserver_smoke.cpp)
 ouasim_add_test(ouasim_tests_signal_generator  test_signalgenerator.cpp)
 ouasim_add_test(ouasim_tests_value_cast        test_valuecast.cpp)
+ouasim_add_test(ouasim_tests_project_file      test_projectfile.cpp)
 
 ouasim_add_ui_test(ouasim_tests_app_theme       test_apptheme.cpp)
 ouasim_add_ui_test(ouasim_tests_widgets         test_widgets.cpp)

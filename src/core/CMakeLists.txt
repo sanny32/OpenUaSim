@@ -6,6 +6,7 @@ add_library(ouasim_core STATIC
     data/endpointinfo.h
     data/logentry.h
     data/namespaceinfo.h
+    data/projectconfig.h
     data/serversnapshot.h
     data/serverstatus.h
     data/sessioninfo.h
@@ -41,6 +42,11 @@ add_library(ouasim_core STATIC
     models/treemodel.h
     models/variablesmodel.cpp
     models/variablesmodel.h
+
+    project/defaultproject.cpp
+    project/defaultproject.h
+    project/projectfile.cpp
+    project/projectfile.h
 
     simulation/signalgenerator.cpp
     simulation/signalgenerator.h
