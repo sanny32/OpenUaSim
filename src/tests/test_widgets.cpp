@@ -6,6 +6,7 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMenuBar>
 #include <QPushButton>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
@@ -88,6 +89,7 @@ private slots:
     void eventLogHeightShowsWholeRows();
     void appStyleMakesPanelScrollAreasTransparent();
     void appStyleCheckBoxes();
+    void appStyleShowsMnemonicsAfterAlt();
     void addCopyActionCopies();
     void configureTable();
     void fitColumnsWhenFilledFitsOnce();
@@ -355,6 +357,27 @@ void TestWidgets::eventLogHeightShowsWholeRows()
         QCOMPARE((fitted - chrome) % rowHeight, 0);
     }
     QCOMPARE(widget.heightForWholeRows(chrome), chrome + rowHeight);
+}
+
+void TestWidgets::appStyleShowsMnemonicsAfterAlt()
+{
+    AppStyle style;
+    style.polish(qApp);
+    QMenuBar bar;
+    bar.addMenu(QStringLiteral("&File"));
+    QCOMPARE(style.styleHint(QStyle::SH_UnderlineShortcut, nullptr, &bar), 0);
+
+    QTest::keyPress(&bar, Qt::Key_Alt, Qt::AltModifier);
+    QCOMPARE(style.styleHint(QStyle::SH_UnderlineShortcut, nullptr, &bar), 1);
+    QTest::keyRelease(&bar, Qt::Key_Alt);
+    QCOMPARE(style.styleHint(QStyle::SH_UnderlineShortcut, nullptr, &bar), 1);
+
+    QTest::mousePress(&bar, Qt::LeftButton);
+    QCOMPARE(style.styleHint(QStyle::SH_UnderlineShortcut, nullptr, &bar), 0);
+
+    style.unpolish(qApp);
+    QTest::keyPress(&bar, Qt::Key_Alt, Qt::AltModifier);
+    QCOMPARE(style.styleHint(QStyle::SH_UnderlineShortcut, nullptr, &bar), 0);
 }
 
 void TestWidgets::appStyleMakesPanelScrollAreasTransparent()

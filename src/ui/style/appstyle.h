@@ -96,7 +96,39 @@ public:
     ///
     void polish(QWidget *widget) override;
 
+    ///
+    /// \brief Starts watching the keyboard so menu mnemonics appear only after Alt, as on Windows.
+    /// \param application Application the style is set on.
+    ///
+    void polish(QApplication *application) override;
+
+    ///
+    /// \brief Stops watching the keyboard.
+    /// \param application Application the style is removed from.
+    ///
+    void unpolish(QApplication *application) override;
+
     using QProxyStyle::polish;
+    using QProxyStyle::unpolish;
+
+    ///
+    /// \brief Underlines mnemonics only while keyboard cues are on; defers everything else to Fusion.
+    /// \param hint Style hint to query.
+    /// \param option Style option of the control.
+    /// \param widget Widget being queried.
+    /// \param returnData Extra data the hint may return.
+    /// \return Hint value.
+    ///
+    int styleHint(StyleHint hint, const QStyleOption *option = nullptr, const QWidget *widget = nullptr,
+                  QStyleHintReturn *returnData = nullptr) const override;
+
+    ///
+    /// \brief Turns keyboard cues on when Alt is pressed and off on a mouse press.
+    /// \param watched Object receiving the event.
+    /// \param event Event being delivered.
+    /// \return False, so the event is always delivered.
+    ///
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
     ///
     /// \brief Returns the radius of panel and tab corners.
@@ -110,4 +142,7 @@ private:
     void drawAccentButton(const QStyleOption *option, QPainter *painter, const QColor &accent) const;
     void drawTabShape(const QStyleOption *option, QPainter *painter) const;
     void drawToolbarButtonLabel(const QStyleOptionButton *button, QPainter *painter) const;
+    void setKeyboardCues(bool on);
+
+    bool _keyboardCues = false;
 };

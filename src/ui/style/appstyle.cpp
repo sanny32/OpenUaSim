@@ -8,7 +8,11 @@
 
 #include <QAbstractItemView>
 #include <QAbstractSpinBox>
+#include <QApplication>
 #include <QComboBox>
+#include <QKeyEvent>
+#include <QMenu>
+#include <QMenuBar>
 #include <QPainter>
 #include <QPainterPath>
 #include <QScrollArea>
@@ -277,6 +281,73 @@ void AppStyle::polish(QWidget *widget)
     scroll->viewport()->setAutoFillBackground(false);
     if (scroll->widget())
         scroll->widget()->setAutoFillBackground(false);
+}
+
+///
+/// \brief Starts watching the keyboard so menu mnemonics appear only after Alt, as on Windows.
+/// \param application Application the style is set on.
+///
+void AppStyle::polish(QApplication *application)
+{
+    QProxyStyle::polish(application);
+    application->installEventFilter(this);
+}
+
+///
+/// \brief Stops watching the keyboard.
+/// \param application Application the style is removed from.
+///
+void AppStyle::unpolish(QApplication *application)
+{
+    application->removeEventFilter(this);
+    QProxyStyle::unpolish(application);
+}
+
+///
+/// \brief Underlines mnemonics only while keyboard cues are on; defers everything else to Fusion.
+/// \param hint Style hint to query.
+/// \param option Style option of the control.
+/// \param widget Widget being queried.
+/// \param returnData Extra data the hint may return.
+/// \return Hint value.
+///
+int AppStyle::styleHint(StyleHint hint, const QStyleOption *option, const QWidget *widget,
+                        QStyleHintReturn *returnData) const
+{
+    if (hint == SH_UnderlineShortcut)
+        return _keyboardCues ? 1 : 0;
+    return QProxyStyle::styleHint(hint, option, widget, returnData);
+}
+
+///
+/// \brief Turns keyboard cues on when Alt is pressed and off on a mouse press.
+/// \param watched Object receiving the event.
+/// \param event Event being delivered.
+/// \return False, so the event is always delivered.
+///
+bool AppStyle::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::KeyPress && static_cast<QKeyEvent *>(event)->key() == Qt::Key_Alt)
+        setKeyboardCues(true);
+    else if (event->type() == QEvent::MouseButtonPress)
+        setKeyboardCues(false);
+    return QProxyStyle::eventFilter(watched, event);
+}
+
+///
+/// \brief Switches mnemonic underlines and repaints the menus that show them.
+/// \param on Whether mnemonics are underlined.
+///
+void AppStyle::setKeyboardCues(bool on)
+{
+    if (_keyboardCues == on)
+        return;
+    _keyboardCues = on;
+    const QWidgetList widgets = QApplication::allWidgets();
+    for (QWidget *widget : widgets) {
+        if (qobject_cast<QMenuBar *>(widget) || qobject_cast<QMenu *>(widget))
+            widget->update();
+    }
 }
 
 ///

@@ -13,6 +13,7 @@
 #include <QGuiApplication>
 #include <QHeaderView>
 #include <QLineEdit>
+#include <QPlainTextEdit>
 #include <QSortFilterProxyModel>
 #include <QSplitter>
 #include <QTableView>
@@ -161,6 +162,19 @@ void fitColumnsWhenFilled(QTableView *view)
 {
     auto *fitter = new ColumnFitter(view);
     fitter->fitOnceFilled();
+}
+
+///
+/// \brief Sets the editor height to show exactly the given number of text lines.
+/// \param edit Editor to resize.
+/// \param lines Visible line count.
+///
+void fitHeightToLines(QPlainTextEdit *edit, int lines)
+{
+    const int documentMargin = qRound(edit->document()->documentMargin());
+    // QPlainTextEdit scrolls unless the viewport fits the first block's margins, the bottom margin and 1px.
+    edit->setFixedHeight(lines * edit->fontMetrics().lineSpacing() + 3 * documentMargin + 1
+                         + 2 * edit->frameWidth());
 }
 
 ///

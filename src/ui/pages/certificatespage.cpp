@@ -7,7 +7,6 @@
 ///
 
 #include <QHeaderView>
-#include <QPlainTextEdit>
 #include <QScrollBar>
 
 #include "appicons.h"
@@ -23,19 +22,6 @@
 namespace {
 
 constexpr int kFilePathLines = 2;
-
-///
-/// \brief Sets the editor height to show exactly the given number of text lines.
-/// \param edit Editor to resize.
-/// \param lines Visible line count.
-///
-void fitHeightToLines(QPlainTextEdit *edit, int lines)
-{
-    const int documentMargin = qRound(edit->document()->documentMargin());
-    // QPlainTextEdit scrolls unless the viewport fits the first block's margins, the bottom margin and 1px.
-    edit->setFixedHeight(lines * edit->fontMetrics().lineSpacing() + 3 * documentMargin + 1
-                         + 2 * edit->frameWidth());
-}
 
 }
 
@@ -56,9 +42,9 @@ CertificatesPage::CertificatesPage(QWidget *parent)
     ui->exportButton->setIcon(AppIcons::icon(QStringLiteral("upload")));
     ui->trustButton->setIcon(AppIcons::icon(QStringLiteral("shield-check")));
     ui->rejectButton->setIcon(AppIcons::icon(QStringLiteral("shield-x")));
-    fitHeightToLines(ui->subjectEdit, ui->subjectEdit->blockCount());
-    fitHeightToLines(ui->issuerEdit, ui->issuerEdit->blockCount());
-    fitHeightToLines(ui->filePathEdit, kFilePathLines);
+    ViewSetup::fitHeightToLines(ui->subjectEdit, ui->subjectEdit->blockCount());
+    ViewSetup::fitHeightToLines(ui->issuerEdit, ui->issuerEdit->blockCount());
+    ViewSetup::fitHeightToLines(ui->filePathEdit, kFilePathLines);
     // The details never scroll sideways, so the splitter must not squeeze them below their width.
     ui->detailsPanelScroll->setMinimumWidth(ui->detailsPanelBody->minimumSizeHint().width()
                                             + ui->detailsPanelScroll->verticalScrollBar()->sizeHint().width());
@@ -150,9 +136,9 @@ void CertificatesPage::showCertificate(const QModelIndex &current)
 
     const CertificateInfo &certificate = _certificatesModel->item(current.row());
     ui->subjectEdit->setPlainText(certificate.subject);
-    fitHeightToLines(ui->subjectEdit, ui->subjectEdit->blockCount());
+    ViewSetup::fitHeightToLines(ui->subjectEdit, ui->subjectEdit->blockCount());
     ui->issuerEdit->setPlainText(certificate.issuer);
-    fitHeightToLines(ui->issuerEdit, ui->issuerEdit->blockCount());
+    ViewSetup::fitHeightToLines(ui->issuerEdit, ui->issuerEdit->blockCount());
     ui->serialNumberEdit->setText(certificate.serialNumber);
     ui->validFromEdit->setText(Formatting::dateTime(certificate.validFrom));
     ui->validToEdit->setText(Formatting::dateTime(certificate.validTo));

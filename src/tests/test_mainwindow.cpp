@@ -2,10 +2,13 @@
 // SPDX-License-Identifier: MIT
 
 #include <QAction>
+#include <QApplication>
+#include <QFontDatabase>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QSignalSpy>
 #include <QHeaderView>
 #include <QSplitter>
@@ -15,6 +18,7 @@
 #include <QToolButton>
 
 #include "apppalette.h"
+#include "appstyle.h"
 #include "apptheme.h"
 #include "eventlogwidget.h"
 #include "logmodel.h"
@@ -54,6 +58,7 @@ private slots:
     void eventLogActionTogglesPanel();
     void toolbarButtonsTriggerMenuActions();
     void serverActionsFollowRunningState();
+    void panelsFitTheDefaultWindow();
 };
 
 void TestMainWindow::hasAllPages()
@@ -68,6 +73,7 @@ void TestMainWindow::hasAllPages()
         QCOMPARE(tabs->tabText(i), expected.at(i));
     QCOMPARE(window.windowTitle(), QStringLiteral("OpenUaSim"));
     QCOMPARE(window.size(), QSize(1331, 771));
+    QCOMPARE(window.minimumSize(), QSize(1000, 600));
 }
 
 void TestMainWindow::showsSnapshot()
@@ -267,6 +273,48 @@ void TestMainWindow::serverActionsFollowRunningState()
     QVERIFY(!child<QPushButton>(window, "stopButton")->isEnabled());
     QVERIFY(!child<QAction>(window, "actionStopServer")->isEnabled());
     QVERIFY(!child<QAction>(window, "actionRestartServer")->isEnabled());
+}
+
+void TestMainWindow::panelsFitTheDefaultWindow()
+{
+    const QFont windowsFont(QStringLiteral("Segoe UI"), 9);
+    if (!QFontDatabase::families().contains(windowsFont.family()))
+        QSKIP("Needs the Segoe UI font the default window size was designed for");
+
+    // Last in the suite: the application style and font change for every widget.
+    const QString previousStyle = QApplication::style()->name();
+    const QFont previousFont = QApplication::font();
+    QApplication::setStyle(new AppStyle);
+    QApplication::setFont(windowsFont);
+
+    QStringList overflowing;
+    {
+        MainWindow window;
+        window.setSnapshot(MockData::snapshot());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto *tabs = child<QTabWidget>(window, "tabWidget");
+        for (int i = 0; i < tabs->count(); ++i) {
+            tabs->setCurrentIndex(i);
+            QApplication::processEvents();
+            const QList<QScrollArea *> bodies = tabs->widget(i)->findChildren<QScrollArea *>();
+            for (const QScrollArea *body : bodies) {
+                if (!body->property(AppStyle::panelBodyProperty).toBool())
+                    continue;
+                const QSize needed = body->widget()->minimumSizeHint();
+                const QSize shown = body->viewport()->size();
+                if (needed.height() > shown.height() || needed.width() > shown.width())
+                    overflowing.append(QStringLiteral("%1/%2: needs %3x%4, shows %5x%6")
+                                           .arg(tabs->tabText(i), body->objectName())
+                                           .arg(needed.width()).arg(needed.height())
+                                           .arg(shown.width()).arg(shown.height()));
+            }
+        }
+    }
+
+    QApplication::setFont(previousFont);
+    QApplication::setStyle(previousStyle);
+    QVERIFY2(overflowing.isEmpty(), qPrintable(overflowing.join(QStringLiteral("; "))));
 }
 
 QTEST_MAIN(TestMainWindow)

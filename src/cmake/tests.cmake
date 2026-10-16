@@ -2,8 +2,14 @@ function(ouasim_configure_test_environment test_name)
     set(environment_modifications
         "PATH=path_list_prepend:${QT_BINARY_DIR}"
         "QT_PLUGIN_PATH=path_list_prepend:${QT_BINARY_DIR}/../plugins")
+    set(environment "QT_QPA_PLATFORM=offscreen")
+    if(WIN32)
+        # The offscreen platform ships no fonts on Windows; without them text has no size.
+        file(TO_CMAKE_PATH "$ENV{WINDIR}/Fonts" font_dir)
+        list(APPEND environment "QT_QPA_FONTDIR=${font_dir}")
+    endif()
     set_tests_properties(${test_name} PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        ENVIRONMENT "${environment}"
         ENVIRONMENT_MODIFICATION "${environment_modifications}"
         LABELS "ouasim")
 endfunction()

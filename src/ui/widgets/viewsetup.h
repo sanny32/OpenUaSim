@@ -14,6 +14,7 @@ class QAbstractButton;
 class QAbstractItemModel;
 class QAbstractItemView;
 class QLineEdit;
+class QPlainTextEdit;
 class QSortFilterProxyModel;
 class QSplitter;
 class QTableView;
@@ -40,6 +41,13 @@ void configureTable(QTableView *view);
 /// \param view Table view whose model is already set.
 ///
 void fitColumnsWhenFilled(QTableView *view);
+
+///
+/// \brief Sets the editor height to show exactly the given number of text lines.
+/// \param edit Editor to resize.
+/// \param lines Visible line count.
+///
+void fitHeightToLines(QPlainTextEdit *edit, int lines);
 
 ///
 /// \brief Sizes the panes of a splitter in proportion to their horizontal stretch factors.

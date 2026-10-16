@@ -16,6 +16,12 @@
 #include "ui_typespage.h"
 #include "viewsetup.h"
 
+namespace {
+
+constexpr int kDescriptionLines = 2;
+
+}
+
 ///
 /// \brief Builds the page.
 /// \param parent Parent widget.
@@ -28,6 +34,7 @@ TypesPage::TypesPage(QWidget *parent)
     , _referencesModel(new ReferencesModel(this))
 {
     ui->setupUi(this);
+    ViewSetup::fitHeightToLines(ui->descriptionEdit, kDescriptionLines);
     ViewSetup::splitByStretch(ui->splitter);
     ViewSetup::bindCopyButton(ui->copyBrowseNameButton, ui->browseNameEdit);
     ViewSetup::bindCopyButton(ui->copyNodeIdButton, ui->nodeIdEdit);
