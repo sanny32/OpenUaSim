@@ -6,11 +6,16 @@
 /// \brief Implements the facade that serves a project: server, address space and simulation.
 ///
 
+#include <QFileInfo>
+
+#include <QUaServer>
+
 #include <algorithm>
 
 #include "formatting.h"
 #include "listenersettings.h"
 #include "logmapper.h"
+#include "project/nodesetwriter.h"
 #include "project/projectnodes.h"
 #include "servercontroller.h"
 #include "snapshotbuilder.h"
@@ -49,7 +54,42 @@ void ServerController::setProject(const ProjectConfig &project)
 {
     _project = project;
     ProjectNodes::assignMissingNodeIds(_project.nodes);
+    loadProjectNodeSets();
     rebuildNodes();
+}
+
+///
+/// \brief Loads a NodeSet2 model into the server and adds the file to the project.
+/// \param fileName NodeSet2 file.
+/// \param error Receives the reason on failure; may be null.
+/// \return False when the file cannot be loaded or was already imported; warnings go to the log.
+///
+bool ServerController::importNodeSet(const QString &fileName, QString *error)
+{
+    const QString path = QFileInfo(fileName).absoluteFilePath();
+    if (_project.nodeSetFiles.contains(path)) {
+        if (error)
+            *error = tr("'%1' is already imported").arg(path);
+        return false;
+    }
+    if (!loadNodeSet(path, error))
+        return false;
+    _project.nodeSetFiles.append(path);
+    rebuildNodes();
+    emit projectEdited();
+    return true;
+}
+
+///
+/// \brief Writes the project nodes as a NodeSet2 file.
+/// \param fileName Target path.
+/// \param error Receives the reason on failure; may be null.
+/// \return True when the file was written.
+///
+bool ServerController::exportNodeSet(const QString &fileName, QString *error) const
+{
+    const QStringList namespaces = _server.uaServer()->namespaces().mid(1);
+    return NodeSetWriter::save(_project.nodes, namespaces, fileName, error);
 }
 
 ///
@@ -273,6 +313,47 @@ void ServerController::rebuildNodes()
                                    tr("Node skipped: %1").arg(problem)));
     _engine.setVariables(SimulationEngine::variablesOf(_project.nodes));
     emit projectChanged();
+}
+
+///
+/// \brief Loads a NodeSet2 file into the server once and logs its outcome.
+/// \param fileName Absolute path.
+/// \param error Receives the reason on failure; may be null.
+/// \return True when the file is loaded, now or before.
+///
+bool ServerController::loadNodeSet(const QString &fileName, QString *error)
+{
+    if (_loadedNodeSets.contains(fileName))
+        return true;
+    const QUaNodeSetResult result = _server.uaServer()->loadNodeSet(fileName);
+    if (!result.isOk()) {
+        appendLog(LogMapper::entry(LogEntry::Level::Error, LogEntry::Category::Server,
+                                   tr("Model '%1' not loaded: %2").arg(fileName, result.errorString)));
+        if (error)
+            *error = result.errorString;
+        return false;
+    }
+    for (const QString &warning : result.warnings)
+        appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
+                                   tr("Model '%1': %2").arg(fileName, warning)));
+    appendLog(LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::Server,
+                               tr("Model '%1' loaded with %2 nodes").arg(fileName).arg(result.addedNodes.size())));
+    _loadedNodeSets.append(fileName);
+    return true;
+}
+
+///
+/// \brief Loads the project's NodeSet2 files; models of earlier projects stay until the application restarts.
+///
+void ServerController::loadProjectNodeSets()
+{
+    for (const QString &fileName : std::as_const(_project.nodeSetFiles))
+        loadNodeSet(fileName, nullptr);
+    for (const QString &loaded : std::as_const(_loadedNodeSets)) {
+        if (!_project.nodeSetFiles.contains(loaded))
+            appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
+                                       tr("Model '%1' stays loaded until OpenUaSim restarts").arg(loaded)));
+    }
 }
 
 ///

@@ -30,6 +30,7 @@ function(ouasim_register_test test_name source_file)
         Qt${QT_VERSION_MAJOR}::Network
         Qt${QT_VERSION_MAJOR}::Widgets
     )
+    target_compile_definitions(${test_name} PRIVATE OUASIM_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
     ouasim_deploy_quaserver_runtime(${test_name})
     add_test(NAME ${test_name} COMMAND ${test_name})
     ouasim_configure_test_environment(${test_name})

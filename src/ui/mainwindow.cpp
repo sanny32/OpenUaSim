@@ -21,6 +21,7 @@
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
+#include "project/nodesetwriter.h"
 #include "project/projectdocument.h"
 #include "project/projectfile.h"
 #include "project/projectnodes.h"
@@ -116,6 +117,8 @@ void MainWindow::setController(ServerController *controller)
     connect(ui->objectsPage, &ObjectsPage::currentNodeChanged, this, &MainWindow::updateNodeActions);
     connect(ui->actionAddNode, &QAction::triggered, this, &MainWindow::showAddNodeDialog);
     connect(ui->actionDeleteNode, &QAction::triggered, this, &MainWindow::confirmDeleteNode);
+    connect(ui->actionImportModel, &QAction::triggered, this, &MainWindow::importModel);
+    connect(ui->actionExportModel, &QAction::triggered, this, &MainWindow::exportModel);
     connect(ui->endpointsPage, &EndpointsPage::endpointsChangeRequested, this, &MainWindow::applyEndpoints);
     connect(controller, &ServerController::endpointsChanged, this, &MainWindow::reloadEndpoints);
     connect(controller, &ServerController::restartRequiredChanged, this, &MainWindow::updateRestartNote);
@@ -194,6 +197,34 @@ bool MainWindow::confirmDiscardChanges()
     if (answer == QMessageBox::Save)
         return saveProject();
     return answer == QMessageBox::Discard;
+}
+
+///
+/// \brief Imports a NodeSet2 model, reporting a file that cannot be loaded.
+/// \param fileName NodeSet2 file.
+/// \return True when the model was loaded.
+///
+bool MainWindow::importModelFrom(const QString &fileName)
+{
+    QString error;
+    if (_controller && _controller->importNodeSet(fileName, &error))
+        return true;
+    showError(tr("Model not imported"), error);
+    return false;
+}
+
+///
+/// \brief Exports the project nodes as NodeSet2, reporting a file that cannot be written.
+/// \param fileName Target path.
+/// \return True when the file was written.
+///
+bool MainWindow::exportModelTo(const QString &fileName)
+{
+    QString error;
+    if (_controller && _controller->exportNodeSet(fileName, &error))
+        return true;
+    showError(tr("Model not exported"), error);
+    return false;
 }
 
 ///
@@ -614,6 +645,32 @@ bool MainWindow::saveProjectAs()
     const QString fileName = QFileDialog::getSaveFileName(this, tr("Save Project As"), _document->fileName(),
                                                           ProjectFile::fileFilter());
     return !fileName.isEmpty() && saveProjectTo(fileName);
+}
+
+///
+/// \brief Picks a NodeSet2 file and imports it.
+///
+void MainWindow::importModel()
+{
+    if (!_controller)
+        return;
+    const QString fileName = QFileDialog::getOpenFileName(this, tr("Import Model"), QString(),
+                                                          NodeSetWriter::fileFilter());
+    if (!fileName.isEmpty())
+        importModelFrom(fileName);
+}
+
+///
+/// \brief Asks for a file name and exports the project nodes there.
+///
+void MainWindow::exportModel()
+{
+    if (!_controller)
+        return;
+    const QString fileName = QFileDialog::getSaveFileName(this, tr("Export Model"), QString(),
+                                                          NodeSetWriter::fileFilter());
+    if (!fileName.isEmpty())
+        exportModelTo(fileName);
 }
 
 ///

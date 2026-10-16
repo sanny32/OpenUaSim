@@ -88,6 +88,20 @@ public:
     bool confirmDiscardChanges();
 
     ///
+    /// \brief Imports a NodeSet2 model, reporting a file that cannot be loaded.
+    /// \param fileName NodeSet2 file.
+    /// \return True when the model was loaded.
+    ///
+    bool importModelFrom(const QString &fileName);
+
+    ///
+    /// \brief Exports the project nodes as NodeSet2, reporting a file that cannot be written.
+    /// \param fileName Target path.
+    /// \return True when the file was written.
+    ///
+    bool exportModelTo(const QString &fileName);
+
+    ///
     /// \brief Returns the log shared by the event log panel and the log page.
     /// \return Server log model.
     ///
@@ -130,6 +144,8 @@ private:
     bool saveProject();
     bool saveProjectAs();
     void updateWindowTitle();
+    void importModel();
+    void exportModel();
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_statusWidget;

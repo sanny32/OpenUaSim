@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <QAction>
+#include <QFile>
 #include <QComboBox>
 #include <QLabel>
 #include <QApplication>
@@ -86,6 +87,7 @@ private slots:
     void savesAndOpensProjectFiles();
     void openFailureShowsMessage();
     void closingAsksAboutUnsavedChanges();
+    void importsAndExportsModels();
     void panelsFitTheDefaultWindow();
 };
 
@@ -547,6 +549,25 @@ void TestMainWindow::closingAsksAboutUnsavedChanges()
         window.findChild<QMessageBox *>()->button(QMessageBox::Discard)->click();
     });
     QVERIFY(window.close());
+}
+
+void TestMainWindow::importsAndExportsModels()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+
+    QTemporaryDir directory;
+    const QString exported = directory.filePath(QStringLiteral("model.xml"));
+    QVERIFY(window.exportModelTo(exported));
+    QVERIFY(QFile::exists(exported));
+
+    QVERIFY(!window.importModelFrom(directory.filePath(QStringLiteral("missing.xml"))));
+    auto *box = window.findChild<QMessageBox *>();
+    QVERIFY(box);
+    QCOMPARE(box->windowTitle(), QStringLiteral("Model not imported"));
+    box->close();
 }
 
 void TestMainWindow::panelsFitTheDefaultWindow()

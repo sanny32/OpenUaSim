@@ -81,6 +81,22 @@ public:
     bool setEndpoints(const QList<EndpointInfo> &endpoints, QString *error = nullptr);
 
     ///
+    /// \brief Loads a NodeSet2 model into the server and adds the file to the project.
+    /// \param fileName NodeSet2 file.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return False when the file cannot be loaded or was already imported; warnings go to the log.
+    ///
+    bool importNodeSet(const QString &fileName, QString *error = nullptr);
+
+    ///
+    /// \brief Writes the project nodes as a NodeSet2 file.
+    /// \param fileName Target path.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return True when the file was written.
+    ///
+    bool exportNodeSet(const QString &fileName, QString *error = nullptr) const;
+
+    ///
     /// \brief Tells whether the running server still serves older endpoint settings.
     /// \return True after setEndpoints() on a running server until it restarts or stops.
     ///
@@ -214,6 +230,8 @@ signals:
 private:
     void rebuildNodes();
     void setRestartRequired(bool required);
+    bool loadNodeSet(const QString &fileName, QString *error);
+    void loadProjectNodeSets();
     void appendLog(const LogEntry &entry);
     void handleClientWrite(const QString &nodeId, const QVariant &value);
 
@@ -223,4 +241,5 @@ private:
     ProjectConfig _project;
     QList<LogEntry> _log;
     bool _restartRequired = false;
+    QStringList _loadedNodeSets;
 };

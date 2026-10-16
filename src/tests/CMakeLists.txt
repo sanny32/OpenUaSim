@@ -23,6 +23,7 @@ ouasim_add_server_test(ouasim_tests_address_space    test_addressspace.cpp)
 ouasim_add_server_test(ouasim_tests_snapshot_builder test_snapshotbuilder.cpp)
 ouasim_add_server_test(ouasim_tests_server_controller test_servercontroller.cpp)
 ouasim_add_test(ouasim_tests_project_document  test_projectdocument.cpp)
+ouasim_add_test(ouasim_tests_nodesets          test_nodesets.cpp)
 
 ouasim_add_ui_test(ouasim_tests_app_theme       test_apptheme.cpp)
 ouasim_add_ui_test(ouasim_tests_widgets         test_widgets.cpp)
