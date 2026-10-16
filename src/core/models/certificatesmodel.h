@@ -39,7 +39,7 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
     ///
-    /// \brief Returns cell text, the certificate icon, and the status indicator.
+    /// \brief Returns cell text, the certificate icon, the status indicator, and the full fingerprint as a tooltip.
     /// \param index Cell to query.
     /// \param role Requested data role.
     /// \return Value for the role, or an invalid variant.

@@ -4,6 +4,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
@@ -227,6 +228,9 @@ void TestPages::certificatesPage()
     page.setCertificates(_snapshot.certificates);
 
     QCOMPARE(page.certificatesModel()->rowCount(), 3);
+    const QHeaderView *columns = child<QTableView>(page, "certificatesView")->horizontalHeader();
+    QCOMPARE(columns->sectionResizeMode(CertificatesModel::ColCommonName), QHeaderView::Interactive);
+    QVERIFY(columns->sectionSize(CertificatesModel::ColCommonName) != columns->defaultSectionSize());
     QCOMPARE(child<QLabel>(page, "certificatesTitle")->text(), QStringLiteral("Trusted Clients"));
     QVERIFY(child<QPlainTextEdit>(page, "subjectEdit")->toPlainText().startsWith(QStringLiteral("CN=OPC UA Client A")));
     QCOMPARE(text(page, "validFromEdit"), QStringLiteral("2024-04-10 10:00:00"));

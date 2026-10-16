@@ -15,6 +15,7 @@
 #include <QTreeView>
 
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSplitter>
 #include <QStyleFactory>
 #include <QTabBar>
@@ -82,12 +83,16 @@ private slots:
     void appStyleAccentButton();
     void appStyleSelectedTab();
     void appStyleEnlargesTabsAndToolbar();
-    void appStyleSpacesFlatToolbarButtons();
+    void appStyleSpacesToolbarButtonLabels();
     void eventLogUsesCompactRows();
+    void eventLogHeightShowsWholeRows();
     void appStyleMakesPanelScrollAreasTransparent();
     void appStyleCheckBoxes();
     void addCopyActionCopies();
     void configureTable();
+    void fitColumnsWhenFilledFitsOnce();
+    void fitColumnsWhenFilledCapsLongValues();
+    void fitColumnsWhenFilledLeavesNoScrollBar();
     void splitByStretchFollowsStretchFactors();
     void applyInitialStateExpandsAndSelects();
     void applyInitialStateFallsBackToFirstRow();
@@ -282,37 +287,42 @@ void TestWidgets::appStyleEnlargesTabsAndToolbar()
     delete fusion;
 }
 
-void TestWidgets::appStyleSpacesFlatToolbarButtons()
+void TestWidgets::appStyleSpacesToolbarButtonLabels()
 {
     AppStyle style;
     QPixmap square(22, 22);
     square.fill(Qt::red);
 
-    QPushButton button(QIcon(square), QStringLiteral("Add Node"));
-    button.setStyle(&style);
-    button.setProperty(AppStyle::toolbarProperty, true);
-    button.setFlat(true);
-    button.setIconSize(square.size());
-    const int textWidth = button.fontMetrics().size(Qt::TextShowMnemonic, button.text()).width();
-    QCOMPARE(button.sizeHint().width(), 2 * 10 + 22 + 10 + textWidth);
-    QVERIFY(button.sizeHint().height() >= 34);
+    for (bool flat : { true, false }) {
+        QPushButton button(QIcon(square), QStringLiteral("Add Node"));
+        button.setStyle(&style);
+        button.setProperty(AppStyle::toolbarProperty, true);
+        button.setFlat(flat);
+        button.setIconSize(square.size());
+        const int textWidth = button.fontMetrics().size(Qt::TextShowMnemonic, button.text()).width();
+        if (flat)
+            QCOMPARE(button.sizeHint().width(), 2 * 10 + 22 + 10 + textWidth);
+        QVERIFY(button.sizeHint().height() >= 34);
 
-    button.resize(button.sizeHint());
-    const QImage image = button.grab().toImage();
-    const int middle = image.height() / 2;
-    QVERIFY(image.pixelColor(9, middle) != QColor(Qt::red));
-    QCOMPARE(image.pixelColor(10, middle), QColor(Qt::red));
-    QCOMPARE(image.pixelColor(31, middle), QColor(Qt::red));
-    for (int x = 32; x < 42; ++x) {
-        for (int y = 0; y < image.height(); ++y)
-            QVERIFY(image.pixelColor(x, y) == image.pixelColor(x, 0));
+        button.resize(button.sizeHint());
+        const QImage image = button.grab().toImage();
+        const int middle = image.height() / 2;
+        int iconLeft = 0;
+        while (iconLeft < image.width() && image.pixelColor(iconLeft, middle) != QColor(Qt::red))
+            ++iconLeft;
+        QCOMPARE(image.pixelColor(iconLeft + 21, middle), QColor(Qt::red));
+        QVERIFY(image.pixelColor(iconLeft + 22, middle) != QColor(Qt::red));
+        if (flat)
+            QCOMPARE(iconLeft, 10);
+        else
+            QVERIFY(qAbs(iconLeft - (image.width() - (iconLeft + 22 + 10 + textWidth))) <= 1);
+
+        // The gap repeats the background left of the icon, so no text intrudes into it.
+        for (int x = iconLeft + 22; x < iconLeft + 32; ++x) {
+            for (int y = 0; y < image.height(); ++y)
+                QVERIFY2(image.pixelColor(x, y) == image.pixelColor(iconLeft - 2, y), flat ? "flat" : "bordered");
+        }
     }
-
-    QPushButton bordered(QIcon(square), QStringLiteral("Add Node"));
-    bordered.setStyle(&style);
-    bordered.setProperty(AppStyle::toolbarProperty, true);
-    bordered.setIconSize(square.size());
-    QVERIFY(bordered.sizeHint().width() != button.sizeHint().width());
 }
 
 void TestWidgets::eventLogUsesCompactRows()
@@ -324,6 +334,27 @@ void TestWidgets::eventLogUsesCompactRows()
     QTableView regular;
     ViewSetup::configureTable(&regular);
     QVERIFY(view->verticalHeader()->defaultSectionSize() < regular.verticalHeader()->defaultSectionSize());
+}
+
+void TestWidgets::eventLogHeightShowsWholeRows()
+{
+    LogModel model;
+    EventLogWidget widget;
+    widget.setLogModel(&model);
+    widget.resize(800, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+    const auto *view = widget.findChild<QTableView *>();
+    const int rowHeight = view->verticalHeader()->defaultSectionSize();
+    const int chrome = widget.height() - view->viewport()->height();
+
+    for (int height : { 200, 200 + rowHeight / 2, 300 }) {
+        const int fitted = widget.heightForWholeRows(height);
+        QVERIFY(fitted <= height);
+        QVERIFY(fitted > height - rowHeight);
+        QCOMPARE((fitted - chrome) % rowHeight, 0);
+    }
+    QCOMPARE(widget.heightForWholeRows(chrome), chrome + rowHeight);
 }
 
 void TestWidgets::appStyleMakesPanelScrollAreasTransparent()
@@ -378,17 +409,69 @@ void TestWidgets::addCopyActionCopies()
 void TestWidgets::configureTable()
 {
     QStandardItemModel model(1, 3);
-    QTableView stretched;
-    stretched.setModel(&model);
-    ViewSetup::configureTable(&stretched);
-    QVERIFY(qobject_cast<ItemDelegate *>(stretched.itemDelegate()));
-    QCOMPARE(stretched.horizontalHeader()->defaultAlignment(), Qt::AlignLeft | Qt::AlignVCenter);
-    QCOMPARE(stretched.horizontalHeader()->sectionResizeMode(1), QHeaderView::Stretch);
+    QTableView view;
+    view.setModel(&model);
+    ViewSetup::configureTable(&view);
+    QVERIFY(qobject_cast<ItemDelegate *>(view.itemDelegate()));
+    const QHeaderView *header = view.horizontalHeader();
+    QCOMPARE(header->defaultAlignment(), Qt::AlignLeft | Qt::AlignVCenter);
+    for (int column = 0; column < model.columnCount(); ++column)
+        QCOMPARE(header->sectionResizeMode(column), QHeaderView::Interactive);
+    QVERIFY(header->stretchLastSection());
+}
 
-    QTableView interactive;
-    interactive.setModel(&model);
-    ViewSetup::configureTable(&interactive, ViewSetup::ColumnSizing::Interactive);
-    QCOMPARE(interactive.horizontalHeader()->sectionResizeMode(1), QHeaderView::Interactive);
+void TestWidgets::fitColumnsWhenFilledFitsOnce()
+{
+    QStandardItemModel model(0, 3);
+    QTableView view;
+    view.setModel(&model);
+    ViewSetup::configureTable(&view);
+    ViewSetup::fitColumnsWhenFilled(&view);
+    QHeaderView *header = view.horizontalHeader();
+    const int emptyWidth = header->sectionSize(1);
+
+    model.appendRow({ new QStandardItem(QStringLiteral("0")),
+                      new QStandardItem(QStringLiteral("http://opcfoundation.org/UA/DI/")),
+                      new QStandardItem(QStringLiteral("1.05")) });
+    QVERIFY(header->sectionSize(0) < header->sectionSize(1));
+    QVERIFY(header->sectionSize(1) != emptyWidth);
+
+    header->resizeSection(0, 150);
+    model.appendRow({ new QStandardItem(QStringLiteral("1")),
+                      new QStandardItem(QStringLiteral("urn:other")),
+                      new QStandardItem(QStringLiteral("1.0.0")) });
+    QCOMPARE(header->sectionSize(0), 150);
+}
+
+void TestWidgets::fitColumnsWhenFilledCapsLongValues()
+{
+    QStandardItemModel model(0, 2);
+    model.appendRow({ new QStandardItem(QString(400, QLatin1Char('x'))), new QStandardItem(QStringLiteral("y")) });
+    QTableView view;
+    view.setModel(&model);
+    ViewSetup::configureTable(&view);
+    ViewSetup::fitColumnsWhenFilled(&view);
+    QVERIFY(view.horizontalHeader()->sectionSize(0) <= 320);
+    QVERIFY(view.horizontalHeader()->sectionSize(0) > 100);
+}
+
+void TestWidgets::fitColumnsWhenFilledLeavesNoScrollBar()
+{
+    QStandardItemModel model(0, 3);
+    model.appendRow({ new QStandardItem(QString(40, QLatin1Char('x'))), new QStandardItem(QString(40, QLatin1Char('y'))),
+                      new QStandardItem(QStringLiteral("3A:5F:7C:9D:12:34:56:78:9A:BC")) });
+    QTableView view;
+    view.setModel(&model);
+    ViewSetup::configureTable(&view);
+    view.verticalHeader()->hide();
+    view.resize(900, 200);
+    view.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&view));
+    ViewSetup::fitColumnsWhenFilled(&view);
+    const int fitted = view.horizontalHeader()->sectionSize(0) + view.horizontalHeader()->sectionSize(1);
+    view.resize(fitted + 80, 200);
+    QTRY_COMPARE(view.horizontalHeader()->length(), view.viewport()->width());
+    QCOMPARE(view.horizontalScrollBar()->maximum(), 0);
 }
 
 void TestWidgets::splitByStretchFollowsStretchFactors()

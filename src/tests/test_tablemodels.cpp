@@ -254,6 +254,8 @@ void TestTableModels::certificatesModel()
     QCOMPARE(model.index(0, CertificatesModel::ColStatus).data().toString(), QStringLiteral("Trusted"));
     QCOMPARE(status(model.index(0, CertificatesModel::ColStatus)), StatusKind::Good);
     QCOMPARE(model.index(0, CertificatesModel::ColFingerprint).data().toString(), QStringLiteral("3A:5F"));
+    QCOMPARE(model.index(0, CertificatesModel::ColFingerprint).data(Qt::ToolTipRole).toString(), QStringLiteral("3A:5F"));
+    QVERIFY(!model.index(0, CertificatesModel::ColCommonName).data(Qt::ToolTipRole).isValid());
     QCOMPARE(model.index(0, CertificatesModel::ColStatus).data(ItemRoles::Id).toString(), QStringLiteral("01 23"));
 }
 

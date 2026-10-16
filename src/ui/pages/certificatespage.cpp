@@ -67,6 +67,7 @@ CertificatesPage::CertificatesPage(QWidget *parent)
     ViewSetup::attachSearch(ui->categoriesList, _categoriesModel, ui->searchEdit);
     ViewSetup::configureTable(ui->certificatesView);
     ui->certificatesView->setModel(_certificatesModel);
+    ViewSetup::fitColumnsWhenFilled(ui->certificatesView);
 
     connect(ui->categoriesList->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &CertificatesPage::showCategory);

@@ -32,6 +32,7 @@ NamespacesPage::NamespacesPage(QWidget *parent)
 
     ViewSetup::configureTable(ui->namespacesView);
     _searchModel = ViewSetup::attachTableSearch(ui->namespacesView, _namespacesModel, ui->searchEdit);
+    ViewSetup::fitColumnsWhenFilled(ui->namespacesView);
 
     connect(ui->namespacesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &NamespacesPage::showNamespace);

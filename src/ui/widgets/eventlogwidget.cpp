@@ -28,7 +28,7 @@ EventLogWidget::EventLogWidget(QWidget *parent)
     , ui(new Ui::EventLogWidget)
 {
     ui->setupUi(this);
-    ViewSetup::configureTable(ui->logView, ViewSetup::ColumnSizing::Interactive);
+    ViewSetup::configureTable(ui->logView);
     // A short strip under the pages: compact rows fit more entries than the delegate's default.
     ui->logView->verticalHeader()->setMinimumSectionSize(kCompactRowHeight);
     ui->logView->verticalHeader()->setDefaultSectionSize(kCompactRowHeight);
@@ -66,6 +66,19 @@ void EventLogWidget::setLogModel(LogModel *model)
 QString EventLogWidget::title() const
 {
     return ui->titleLabel->text();
+}
+
+///
+/// \brief Rounds a panel height down so the log shows whole rows only.
+/// \param height Height the panel could take.
+/// \return Largest height not above \a height that shows whole rows, at least one row.
+///
+int EventLogWidget::heightForWholeRows(int height) const
+{
+    const int chrome = this->height() - ui->logView->viewport()->height();
+    const int rowHeight = ui->logView->verticalHeader()->defaultSectionSize();
+    const int rows = qMax(1, (height - chrome) / rowHeight);
+    return chrome + rows * rowHeight;
 }
 
 ///

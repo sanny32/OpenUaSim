@@ -36,8 +36,10 @@ TypesPage::TypesPage(QWidget *parent)
     ViewSetup::attachSearch(ui->typesTree, _treeModel, ui->searchEdit);
     ViewSetup::configureTable(ui->subtypesView);
     ui->subtypesView->setModel(_subtypesModel);
+    ViewSetup::fitColumnsWhenFilled(ui->subtypesView);
     ViewSetup::configureTable(ui->referencesView);
     ui->referencesView->setModel(_referencesModel);
+    ViewSetup::fitColumnsWhenFilled(ui->referencesView);
 
     connect(ui->typesTree->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &TypesPage::showTreeNode);

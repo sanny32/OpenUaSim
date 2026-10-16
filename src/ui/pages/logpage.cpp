@@ -28,7 +28,7 @@ LogPage::LogPage(QWidget *parent)
     ui->clearLogButton->setIcon(AppIcons::icon(QStringLiteral("trash")));
     ui->exportLogButton->setIcon(AppIcons::icon(QStringLiteral("download")));
 
-    ViewSetup::configureTable(ui->logView, ViewSetup::ColumnSizing::Interactive);
+    ViewSetup::configureTable(ui->logView);
     ui->logView->setModel(_filter);
 
     for (QCheckBox *check : { ui->infoCheck, ui->warningCheck, ui->errorCheck,

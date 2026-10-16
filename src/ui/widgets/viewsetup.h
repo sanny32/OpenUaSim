@@ -28,21 +28,18 @@ namespace ViewSetup {
 void installDelegate(QAbstractItemView *view);
 
 ///
-/// \brief How a table distributes its width between columns.
+/// \brief Installs the item delegate, left-aligns the header, sets the design row height and keeps
+///        every column resizable by the user, with the last one filling the rest of the width.
+/// \param view Table view to configure.
 ///
-enum class ColumnSizing {
-    /// \brief Columns share the width evenly and follow the view size.
-    Stretch,
-    /// \brief Columns keep the widths the caller sets; the last one fills the rest.
-    Interactive
-};
+void configureTable(QTableView *view);
 
 ///
-/// \brief Installs the item delegate, left-aligns the header and sets the design row height.
-/// \param view Table view to configure.
-/// \param sizing How the columns share the view width.
+/// \brief Fits the columns to their contents the first time the view's model has rows, then leaves
+///        the widths to the user.
+/// \param view Table view whose model is already set.
 ///
-void configureTable(QTableView *view, ColumnSizing sizing = ColumnSizing::Stretch);
+void fitColumnsWhenFilled(QTableView *view);
 
 ///
 /// \brief Sizes the panes of a splitter in proportion to their horizontal stretch factors.

@@ -28,6 +28,7 @@ namespace ViewSetup {
 namespace {
 
 constexpr int kTableRowHeight = 34;
+constexpr int kMaxFittedColumnWidth = 320;
 constexpr int kSplitScale = 100;
 
 ///
@@ -47,6 +48,63 @@ QSortFilterProxyModel *createSearchProxy(QAbstractItemView *view, QAbstractItemM
     search->addAction(AppIcons::icon(QStringLiteral("search")), QLineEdit::LeadingPosition);
     QObject::connect(search, &QLineEdit::textChanged, proxy, &QSortFilterProxyModel::setFilterFixedString);
     return proxy;
+}
+
+///
+/// \brief Sizes every column but the stretched last one to its contents, capped so one long value
+///        cannot push the others out of view.
+/// \param view Table view to size.
+///
+void fitColumnsToContents(QTableView *view)
+{
+    QHeaderView *header = view->horizontalHeader();
+    const int last = header->count() - 1;
+    for (int column = 0; column < last; ++column) {
+        if (header->isSectionHidden(column))
+            continue;
+        view->resizeColumnToContents(column);
+        if (header->sectionSize(column) > kMaxFittedColumnWidth)
+            header->resizeSection(column, kMaxFittedColumnWidth);
+    }
+    // The stretched last section never shrinks below its own width, which would overflow into a scroll bar.
+    header->resizeSection(last, header->minimumSectionSize());
+}
+
+///
+/// \brief Fits the columns of a table once, as soon as its model has rows.
+///
+class ColumnFitter : public QObject
+{
+public:
+    explicit ColumnFitter(QTableView *view);
+    void fitOnceFilled();
+
+private:
+    QTableView *_view;
+};
+
+///
+/// \brief Watches the model of a table for its first rows.
+/// \param view Table view to size; it owns the fitter.
+///
+ColumnFitter::ColumnFitter(QTableView *view)
+    : QObject(view)
+    , _view(view)
+{
+    connect(view->model(), &QAbstractItemModel::modelReset, this, &ColumnFitter::fitOnceFilled);
+    connect(view->model(), &QAbstractItemModel::rowsInserted, this, &ColumnFitter::fitOnceFilled);
+}
+
+///
+/// \brief Fits the columns and retires once the model has rows, so later data keeps the user's widths.
+///
+void ColumnFitter::fitOnceFilled()
+{
+    if (_view->model()->rowCount() == 0)
+        return;
+    fitColumnsToContents(_view);
+    disconnect(_view->model(), nullptr, this, nullptr);
+    deleteLater();
 }
 
 ///
@@ -80,21 +138,29 @@ void installDelegate(QAbstractItemView *view)
 }
 
 ///
-/// \brief Installs the item delegate, left-aligns the header and sets the design row height.
+/// \brief Installs the item delegate, left-aligns the header, sets the design row height and keeps
+///        every column resizable by the user, with the last one filling the rest of the width.
 /// \param view Table view to configure.
-/// \param sizing How the columns share the view width.
 ///
-void configureTable(QTableView *view, ColumnSizing sizing)
+void configureTable(QTableView *view)
 {
     installDelegate(view);
     view->verticalHeader()->setDefaultSectionSize(kTableRowHeight);
     QHeaderView *header = view->horizontalHeader();
     header->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    if (sizing == ColumnSizing::Stretch) {
-        header->setSectionResizeMode(QHeaderView::Stretch);
-        // A stretched last section on top of evenly stretched ones overflows into a scroll bar.
-        header->setStretchLastSection(false);
-    }
+    header->setSectionResizeMode(QHeaderView::Interactive);
+    header->setStretchLastSection(true);
+}
+
+///
+/// \brief Fits the columns to their contents the first time the view's model has rows, then leaves
+///        the widths to the user.
+/// \param view Table view whose model is already set.
+///
+void fitColumnsWhenFilled(QTableView *view)
+{
+    auto *fitter = new ColumnFitter(view);
+    fitter->fitOnceFilled();
 }
 
 ///

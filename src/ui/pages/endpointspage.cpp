@@ -33,6 +33,7 @@ EndpointsPage::EndpointsPage(QWidget *parent)
 
     ViewSetup::configureTable(ui->endpointsView);
     _searchModel = ViewSetup::attachTableSearch(ui->endpointsView, _endpointsModel, ui->searchEdit);
+    ViewSetup::fitColumnsWhenFilled(ui->endpointsView);
 
     connect(ui->endpointsView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &EndpointsPage::showEndpoint);

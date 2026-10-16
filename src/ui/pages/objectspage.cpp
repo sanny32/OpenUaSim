@@ -31,6 +31,7 @@ ObjectsPage::ObjectsPage(QWidget *parent)
     ViewSetup::attachSearch(ui->addressTree, _treeModel, ui->searchEdit);
     ViewSetup::configureTable(ui->variablesView);
     ui->variablesView->setModel(_variablesModel);
+    ViewSetup::fitColumnsWhenFilled(ui->variablesView);
 
     connect(ui->addressTree->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &ObjectsPage::showTreeNode);

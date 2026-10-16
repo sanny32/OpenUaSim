@@ -43,7 +43,7 @@ int CertificatesModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief Returns cell text, the certificate icon, and the status indicator.
+/// \brief Returns cell text, the certificate icon, the status indicator, and the full fingerprint as a tooltip.
 /// \param index Cell to query.
 /// \param role Requested data role.
 /// \return Value for the role, or an invalid variant.
@@ -60,6 +60,8 @@ QVariant CertificatesModel::data(const QModelIndex &index, int role) const
         return QStringLiteral("certificate");
     if (role == ItemRoles::Status && index.column() == ColStatus)
         return ItemRoles::statusValue(status(certificate.category));
+    if (role == Qt::ToolTipRole && index.column() == ColFingerprint)
+        return certificate.fingerprint;
     if (role != Qt::DisplayRole)
         return {};
 

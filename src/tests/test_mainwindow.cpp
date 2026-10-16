@@ -7,8 +7,10 @@
 #include <QMenuBar>
 #include <QPushButton>
 #include <QSignalSpy>
+#include <QHeaderView>
 #include <QSplitter>
 #include <QTabWidget>
+#include <QTableView>
 #include <QTest>
 #include <QToolButton>
 
@@ -115,6 +117,9 @@ void TestMainWindow::eventLogGetsItsShareOnFirstShow()
     QCOMPARE(sizes.size(), 2);
     QVERIFY2(sizes.at(1) >= (sizes.at(0) + sizes.at(1)) / 4,
              qPrintable(QStringLiteral("pages %1, log %2").arg(sizes.at(0)).arg(sizes.at(1))));
+
+    const auto *logView = child<EventLogWidget>(window, "eventLog")->findChild<QTableView *>();
+    QCOMPARE(logView->viewport()->height() % logView->verticalHeader()->defaultSectionSize(), 0);
 }
 
 void TestMainWindow::pagesDoNotBlockTheEventLog()

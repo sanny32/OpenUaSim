@@ -47,6 +47,13 @@ public:
     ///
     QString title() const;
 
+    ///
+    /// \brief Rounds a panel height down so the log shows whole rows only.
+    /// \param height Height the panel could take.
+    /// \return Largest height not above \a height that shows whole rows, at least one row.
+    ///
+    int heightForWholeRows(int height) const;
+
 private:
     void clearLog();
     void scrollToBottom();

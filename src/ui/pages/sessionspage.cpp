@@ -43,6 +43,7 @@ SessionsPage::SessionsPage(QWidget *parent)
     _stateModel->setFilterKeyColumn(SessionsModel::ColState);
     ViewSetup::configureTable(ui->sessionsView);
     _searchModel = ViewSetup::attachTableSearch(ui->sessionsView, _stateModel, ui->searchEdit);
+    ViewSetup::fitColumnsWhenFilled(ui->sessionsView);
 
     connect(ui->sessionsView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &SessionsPage::showSession);

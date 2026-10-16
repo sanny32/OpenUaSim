@@ -97,7 +97,7 @@ LogModel *MainWindow::logModel() const
 }
 
 ///
-/// \brief Splits the content between the pages and the event log on the first show.
+/// \brief Splits the content between the pages and the event log on the first show, without a cut-off log row.
 /// \param event Show event.
 ///
 void MainWindow::showEvent(QShowEvent *event)
@@ -110,7 +110,7 @@ void MainWindow::showEvent(QShowEvent *event)
     // Sizes are only known once the window is laid out; the pages' minimum height still wins.
     const QList<int> sizes = ui->contentSplitter->sizes();
     const int total = sizes.value(0) + sizes.value(1);
-    const int log = qRound(total * kEventLogShare);
+    const int log = ui->eventLog->heightForWholeRows(qRound(total * kEventLogShare));
     ui->contentSplitter->setSizes({ total - log, log });
 }
 
