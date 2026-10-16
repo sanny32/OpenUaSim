@@ -58,7 +58,7 @@ void TestMainWindow::hasAllPages()
     for (int i = 0; i < expected.size(); ++i)
         QCOMPARE(tabs->tabText(i), expected.at(i));
     QCOMPARE(window.windowTitle(), QStringLiteral("OpenUaSim"));
-    QCOMPARE(window.size(), QSize(1331, 725));
+    QCOMPARE(window.size(), QSize(1331, 750));
 }
 
 void TestMainWindow::showsSnapshot()
