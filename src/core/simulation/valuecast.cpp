@@ -36,6 +36,34 @@ T saturate(double value)
     return T(rounded);
 }
 
+///
+/// \brief Tells whether a value holds a number or a boolean.
+/// \param value Value to inspect.
+/// \return True for bool, integer and floating-point types.
+///
+bool isNumeric(const QVariant &value)
+{
+    switch (value.typeId()) {
+    case QMetaType::Bool:
+    case QMetaType::Char:
+    case QMetaType::SChar:
+    case QMetaType::UChar:
+    case QMetaType::Short:
+    case QMetaType::UShort:
+    case QMetaType::Int:
+    case QMetaType::UInt:
+    case QMetaType::Long:
+    case QMetaType::ULong:
+    case QMetaType::LongLong:
+    case QMetaType::ULongLong:
+    case QMetaType::Float:
+    case QMetaType::Double:
+        return true;
+    default:
+        return false;
+    }
+}
+
 }
 
 namespace ValueCast {
@@ -112,6 +140,34 @@ QVariant defaultValue(const QString &dataType)
     if (dataType == QLatin1String("String"))
         return QString();
     return fromDouble(0.0, dataType);
+}
+
+///
+/// \brief Returns the Qt type that holds values of a data type.
+/// \param dataType Built-in data type name.
+/// \return Type such as QMetaType::Int for "Int32"; UnknownType for an unsupported type.
+///
+QMetaType::Type metaType(const QString &dataType)
+{
+    const QVariant value = defaultValue(dataType);
+    return value.isValid() ? QMetaType::Type(value.typeId()) : QMetaType::UnknownType;
+}
+
+///
+/// \brief Converts any value to a data type.
+/// \param value Value to convert; numbers and booleans follow fromDouble(), other values the
+///        QVariant conversion.
+/// \param dataType Built-in data type name.
+/// \return Converted value, or defaultValue() when the value does not convert.
+///
+QVariant convert(const QVariant &value, const QString &dataType)
+{
+    if (isNumeric(value))
+        return fromDouble(value.toDouble(), dataType);
+    QVariant converted = value;
+    if (converted.isValid() && converted.convert(QMetaType(metaType(dataType))))
+        return converted;
+    return defaultValue(dataType);
 }
 
 }

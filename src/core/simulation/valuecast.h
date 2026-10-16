@@ -43,4 +43,20 @@ QVariant fromDouble(double value, const QString &dataType);
 ///
 QVariant defaultValue(const QString &dataType);
 
+///
+/// \brief Returns the Qt type that holds values of a data type.
+/// \param dataType Built-in data type name.
+/// \return Type such as QMetaType::Int for "Int32"; UnknownType for an unsupported type.
+///
+QMetaType::Type metaType(const QString &dataType);
+
+///
+/// \brief Converts any value to a data type.
+/// \param value Value to convert; numbers and booleans follow fromDouble(), other values the
+///        QVariant conversion.
+/// \param dataType Built-in data type name.
+/// \return Converted value, or defaultValue() when the value does not convert.
+///
+QVariant convert(const QVariant &value, const QString &dataType);
+
 }

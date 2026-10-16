@@ -21,7 +21,44 @@ private slots:
     void unsupportedTypeIsInvalid();
     void defaultValues();
     void listsSupportedTypes();
+    void convertsAnyValue_data();
+    void convertsAnyValue();
+    void reportsMetaType();
 };
+
+void TestValueCast::convertsAnyValue_data()
+{
+    QTest::addColumn<QVariant>("value");
+    QTest::addColumn<QString>("dataType");
+    QTest::addColumn<QVariant>("expected");
+
+    QTest::newRow("double rounds to int") << QVariant(12.7) << "Int32" << QVariant::fromValue(qint32(13));
+    QTest::newRow("int saturates byte") << QVariant(300) << "Byte" << QVariant::fromValue(quint8(255));
+    QTest::newRow("bool to double") << QVariant(true) << "Double" << QVariant(1.0);
+    QTest::newRow("numeric string to int") << QVariant(QStringLiteral("42")) << "Int16"
+                                           << QVariant::fromValue(qint16(42));
+    QTest::newRow("text to string") << QVariant(QStringLiteral("abc")) << "String" << QVariant(QStringLiteral("abc"));
+    QTest::newRow("invalid text falls back") << QVariant(QStringLiteral("abc")) << "Double" << QVariant(0.0);
+    QTest::newRow("invalid variant falls back") << QVariant() << "Boolean" << QVariant(false);
+}
+
+void TestValueCast::convertsAnyValue()
+{
+    QFETCH(QVariant, value);
+    QFETCH(QString, dataType);
+    QFETCH(QVariant, expected);
+
+    const QVariant actual = ValueCast::convert(value, dataType);
+    QCOMPARE(actual.metaType(), expected.metaType());
+    QCOMPARE(actual, expected);
+}
+
+void TestValueCast::reportsMetaType()
+{
+    QCOMPARE(ValueCast::metaType(QStringLiteral("UInt16")), QMetaType::UShort);
+    QCOMPARE(ValueCast::metaType(QStringLiteral("String")), QMetaType::QString);
+    QCOMPARE(ValueCast::metaType(QStringLiteral("Guid")), QMetaType::UnknownType);
+}
 
 void TestValueCast::convertsToType_data()
 {
