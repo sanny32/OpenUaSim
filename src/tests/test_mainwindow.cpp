@@ -64,6 +64,7 @@ class TestMainWindow : public QObject
 private slots:
     void hasAllPages();
     void showsSnapshot();
+    void statusRefreshKeepsEndpointSelection();
     void eventLogFollowsTab();
     void eventLogGetsItsShareOnFirstShow();
     void pagesDoNotBlockTheEventLog();
@@ -121,6 +122,18 @@ void TestMainWindow::showsSnapshot()
     QVERIFY(!child<QPushButton>(window, "startButton")->isEnabled());
     QVERIFY(child<QPushButton>(window, "stopButton")->isEnabled());
     QCOMPARE(window.logModel()->rowCount(), snapshot.log.size());
+}
+
+void TestMainWindow::statusRefreshKeepsEndpointSelection()
+{
+    const ServerSnapshot snapshot = MockData::snapshot();
+    MainWindow window;
+    window.setSnapshot(snapshot);
+    auto *endpoint = child<QLineEdit>(window, "endpointEdit");
+    endpoint->selectAll();
+
+    window.setSnapshot(snapshot);
+    QCOMPARE(endpoint->selectedText(), snapshot.status.primaryEndpoint);
 }
 
 void TestMainWindow::eventLogFollowsTab()

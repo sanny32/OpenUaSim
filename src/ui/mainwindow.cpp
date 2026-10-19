@@ -468,7 +468,9 @@ void MainWindow::updateStatusBarNote()
 ///
 void MainWindow::applyStatus(const ServerStatus &status)
 {
-    ui->endpointEdit->setText(status.primaryEndpoint);
+    // setText() drops the selection, and the status refreshes every second.
+    if (ui->endpointEdit->text() != status.primaryEndpoint)
+        ui->endpointEdit->setText(status.primaryEndpoint);
     ui->actionStartServer->setEnabled(!status.running);
     ui->actionStopServer->setEnabled(status.running);
     ui->actionRestartServer->setEnabled(status.running);
