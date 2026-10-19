@@ -111,7 +111,6 @@ ProjectConfig create()
     ProjectConfig project;
 
     EndpointInfo endpoint;
-    endpoint.name = QStringLiteral("OPC UA (localhost)");
     endpoint.protocol = QStringLiteral("opc.tcp");
     endpoint.hostname = QStringLiteral("localhost");
     endpoint.securityPolicy = QStringLiteral("None");

@@ -13,7 +13,6 @@ namespace {
 ProjectConfig project(quint16 port)
 {
     EndpointInfo endpoint;
-    endpoint.name = QStringLiteral("Test");
     endpoint.protocol = QStringLiteral("opc.tcp");
     endpoint.hostname = QStringLiteral("localhost");
     endpoint.port = port;

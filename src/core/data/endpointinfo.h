@@ -10,7 +10,7 @@
 
 #include <QString>
 
-/// rief Port of new endpoints; not the IANA 4840 so the simulator can run next to a real server.
+/// \brief Port of new endpoints; not the IANA 4840 so the simulator can run next to a real server.
 constexpr int kDefaultEndpointPort = 48400;
 
 ///
@@ -18,8 +18,6 @@ constexpr int kDefaultEndpointPort = 48400;
 ///
 struct EndpointInfo
 {
-    /// \brief User-facing endpoint name.
-    QString name;
     /// \brief URL scheme, e.g. "opc.tcp".
     QString protocol;
     /// \brief Host name or address.

@@ -108,7 +108,6 @@ void EndpointsPage::showEndpoint(const QModelIndex &current)
         return;
     const EndpointInfo &endpoint = _endpointsModel->item(source.row());
 
-    ui->nameEdit->setText(endpoint.name);
     ui->hostnameEdit->setText(endpoint.hostname);
     ui->portSpin->setValue(endpoint.port);
     {
@@ -190,7 +189,6 @@ int EndpointsPage::currentRow() const
 EndpointInfo EndpointsPage::editedEndpoint(int row) const
 {
     EndpointInfo endpoint = _endpointsModel->item(row);
-    endpoint.name = ui->nameEdit->text().trimmed();
     endpoint.hostname = ui->hostnameEdit->text().trimmed();
     endpoint.port = ui->portSpin->value();
     endpoint.securityPolicy = ui->securityPolicyCombo->currentText();
@@ -233,7 +231,6 @@ void EndpointsPage::addEndpoint()
 {
     QList<EndpointInfo> endpoints = _endpointsModel->items();
     EndpointInfo endpoint;
-    endpoint.name = tr("New endpoint");
     endpoint.protocol = QStringLiteral("opc.tcp");
     endpoint.hostname = endpoints.isEmpty() ? QStringLiteral("localhost") : endpoints.first().hostname;
     endpoint.port = endpoints.isEmpty() ? endpoint.port : endpoints.first().port;

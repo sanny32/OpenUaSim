@@ -152,7 +152,6 @@ QJsonObject nodeToJson(const NodeDefinition &node)
 QJsonObject endpointToJson(const EndpointInfo &endpoint)
 {
     return {
-        { QStringLiteral("name"), endpoint.name },
         { QStringLiteral("protocol"), endpoint.protocol },
         { QStringLiteral("hostname"), endpoint.hostname },
         { QStringLiteral("port"), endpoint.port },
@@ -177,7 +176,6 @@ QJsonObject endpointToJson(const EndpointInfo &endpoint)
 EndpointInfo endpointFromJson(const QJsonObject &json)
 {
     EndpointInfo endpoint;
-    endpoint.name = json.value(QStringLiteral("name")).toString();
     endpoint.protocol = json.value(QStringLiteral("protocol")).toString(QStringLiteral("opc.tcp"));
     endpoint.hostname = json.value(QStringLiteral("hostname")).toString(QStringLiteral("localhost"));
     endpoint.port = json.value(QStringLiteral("port")).toInt(endpoint.port);

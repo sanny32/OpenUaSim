@@ -378,17 +378,17 @@ void TestPages::endpointsPage()
     page.setEndpoints(_snapshot.endpoints);
 
     QCOMPARE(page.endpointsModel()->rowCount(), _snapshot.endpoints.size());
-    QCOMPARE(text(page, "nameEdit"), QStringLiteral("OPC UA (localhost)"));
+    QCOMPARE(text(page, "hostnameEdit"), QStringLiteral("localhost"));
     QCOMPARE(child<QComboBox>(page, "securityModeCombo")->currentText(), QStringLiteral("Sign & Encrypt"));
     QVERIFY(!child<QLineEdit>(page, "usernameEdit")->isEnabled());
 
     ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 3);
-    QCOMPARE(text(page, "nameEdit"), QStringLiteral("Discovery Endpoint"));
+    QCOMPARE(text(page, "hostnameEdit"), QStringLiteral("localhost"));
     QCOMPARE(child<QComboBox>(page, "securityPolicyCombo")->currentText(), QStringLiteral("None"));
 
     child<QLineEdit>(page, "searchEdit")->setText(QStringLiteral("192.168"));
     ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 0);
-    QCOMPARE(text(page, "nameEdit"), QStringLiteral("OPC UA (LAN)"));
+    QCOMPARE(text(page, "hostnameEdit"), QStringLiteral("192.168.1.100"));
 
     child<QCheckBox>(page, "usernamePasswordCheck")->setChecked(true);
     QVERIFY(child<QLineEdit>(page, "usernameEdit")->isEnabled());
@@ -404,7 +404,7 @@ void TestPages::endpointsPageAppliesEdits()
     QVERIFY(child<QLineEdit>(page, "passwordEdit")->text().isEmpty());
     QCOMPARE(child<QLineEdit>(page, "passwordEdit")->placeholderText(), QStringLiteral("Unchanged"));
 
-    child<QLineEdit>(page, "nameEdit")->setText(QStringLiteral("Edited"));
+    child<QLineEdit>(page, "hostnameEdit")->setText(QStringLiteral("edited-host"));
     child<QSpinBox>(page, "portSpin")->setValue(4900);
     child<QCheckBox>(page, "usernamePasswordCheck")->setChecked(true);
     child<QLineEdit>(page, "usernameEdit")->setText(QStringLiteral("operator"));
@@ -414,7 +414,7 @@ void TestPages::endpointsPageAppliesEdits()
     using Endpoints = QList<EndpointInfo>;
     const Endpoints applied = requested.first().first().value<Endpoints>();
     QCOMPARE(applied.size(), endpoints.size());
-    QCOMPARE(applied[0].name, QStringLiteral("Edited"));
+    QCOMPARE(applied[0].hostname, QStringLiteral("edited-host"));
     QCOMPARE(applied[0].port, 4900);
     QVERIFY(applied[0].usernamePassword);
     QCOMPARE(applied[0].username, QStringLiteral("operator"));
@@ -435,7 +435,7 @@ void TestPages::endpointsPageAddsAndRemoves()
     child<QPushButton>(page, "addEndpointButton")->click();
     const Endpoints added = requested.last().first().value<Endpoints>();
     QCOMPARE(added.size(), _snapshot.endpoints.size() + 1);
-    QCOMPARE(added.last().name, QStringLiteral("New endpoint"));
+    QCOMPARE(added.last().hostname, _snapshot.endpoints.first().hostname);
     QCOMPARE(added.last().port, _snapshot.endpoints.first().port);
     QCOMPARE(added.last().securityMode, QStringLiteral("None"));
 
@@ -443,7 +443,7 @@ void TestPages::endpointsPageAddsAndRemoves()
     child<QPushButton>(page, "removeEndpointButton")->click();
     const Endpoints removed = requested.last().first().value<Endpoints>();
     QCOMPARE(removed.size(), _snapshot.endpoints.size() - 1);
-    QCOMPARE(removed[1].name, _snapshot.endpoints[2].name);
+    QCOMPARE(removed[1].hostname, _snapshot.endpoints[2].hostname);
 
     page.setEndpoints({});
     QVERIFY(!child<QPushButton>(page, "removeEndpointButton")->isEnabled());
@@ -454,12 +454,12 @@ void TestPages::endpointsPageRevertsAndKeepsRow()
     EndpointsPage page;
     page.setEndpoints(_snapshot.endpoints);
     ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 2);
-    child<QLineEdit>(page, "nameEdit")->setText(QStringLiteral("Changed"));
+    child<QLineEdit>(page, "hostnameEdit")->setText(QStringLiteral("changed-host"));
     child<QPushButton>(page, "revertButton")->click();
-    QCOMPARE(text(page, "nameEdit"), _snapshot.endpoints[2].name);
+    QCOMPARE(text(page, "hostnameEdit"), _snapshot.endpoints[2].hostname);
 
     page.setEndpoints(_snapshot.endpoints);
-    QCOMPARE(text(page, "nameEdit"), _snapshot.endpoints[2].name);
+    QCOMPARE(text(page, "hostnameEdit"), _snapshot.endpoints[2].hostname);
 }
 
 void TestPages::endpointsPageOffersSecurityOfTheBuild()

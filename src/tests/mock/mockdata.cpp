@@ -306,18 +306,15 @@ QList<NamespaceInfo> namespaces()
 
 ///
 /// \brief Builds an endpoint.
-/// \param name Endpoint name.
 /// \param hostname Host name.
 /// \param path URL path.
 /// \param policy Security policy.
 /// \param mode Security mode.
 /// \return Enabled opc.tcp endpoint on port 4840 accepting anonymous users.
 ///
-EndpointInfo endpoint(const QString &name, const QString &hostname, const QString &path,
-                      const QString &policy, const QString &mode)
+EndpointInfo endpoint(const QString &hostname, const QString &path, const QString &policy, const QString &mode)
 {
     EndpointInfo info;
-    info.name = name;
     info.protocol = QStringLiteral("opc.tcp");
     info.hostname = hostname;
     info.port = 4840;
@@ -335,14 +332,13 @@ EndpointInfo endpoint(const QString &name, const QString &hostname, const QStrin
 QList<EndpointInfo> endpoints()
 {
     return {
-        endpoint(QStringLiteral("OPC UA (localhost)"), QStringLiteral("localhost"), QString(),
-                 QStringLiteral("Basic256Sha256"), QStringLiteral("Sign & Encrypt")),
-        endpoint(QStringLiteral("OPC UA (LAN)"), QStringLiteral("192.168.1.100"), QString(),
-                 QStringLiteral("Basic256Sha256"), QStringLiteral("Sign & Encrypt")),
-        endpoint(QStringLiteral("OPC UA (any address)"), QStringLiteral("0.0.0.0"), QString(),
-                 QStringLiteral("Basic256"), QStringLiteral("Sign")),
-        endpoint(QStringLiteral("Discovery Endpoint"), QStringLiteral("localhost"),
-                 QStringLiteral("/discovery"), QStringLiteral("None"), QStringLiteral("None")),
+        endpoint(QStringLiteral("localhost"), QString(), QStringLiteral("Basic256Sha256"),
+                 QStringLiteral("Sign & Encrypt")),
+        endpoint(QStringLiteral("192.168.1.100"), QString(), QStringLiteral("Basic256Sha256"),
+                 QStringLiteral("Sign & Encrypt")),
+        endpoint(QStringLiteral("0.0.0.0"), QString(), QStringLiteral("Basic256"), QStringLiteral("Sign")),
+        endpoint(QStringLiteral("localhost"), QStringLiteral("/discovery"), QStringLiteral("None"),
+                 QStringLiteral("None")),
     };
 }
 

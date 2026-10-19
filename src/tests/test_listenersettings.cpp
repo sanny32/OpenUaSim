@@ -11,7 +11,6 @@ EndpointInfo endpoint(const QString &name, int port = kDefaultEndpointPort, cons
                       const QString &mode = QStringLiteral("None"))
 {
     EndpointInfo info;
-    info.name = name;
     info.protocol = QStringLiteral("opc.tcp");
     info.hostname = QStringLiteral("host-") + name;
     info.port = port;
@@ -177,7 +176,8 @@ void TestListenerSettings::rejectsUsernameEndpointWithoutUser()
 {
     EndpointInfo secured = endpoint(QStringLiteral("a"));
     secured.usernamePassword = true;
-    QVERIFY(ListenerSettingsBuilder::build({ secured }).error.contains(QStringLiteral("has none set")));
+    QCOMPARE(ListenerSettingsBuilder::build({ secured }).error,
+             QStringLiteral("Endpoint opc.tcp://host-a:48400 (None, None) accepts user names but has none set"));
 }
 
 QTEST_GUILESS_MAIN(TestListenerSettings)

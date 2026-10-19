@@ -37,6 +37,16 @@ ListenerSettings failure(const QString &error)
 }
 
 ///
+/// \brief Names an endpoint in messages; endpoints have no name of their own.
+/// \param endpoint Endpoint to name.
+/// \return Text such as "opc.tcp://localhost:48400 (None, None)".
+///
+QString label(const EndpointInfo &endpoint)
+{
+    return QStringLiteral("%1 (%2, %3)").arg(endpoint.url(), endpoint.securityPolicy, endpoint.securityMode);
+}
+
+///
 /// \brief Appends a name unless the list already holds it.
 /// \param list List to extend.
 /// \param name Name to add.
@@ -110,25 +120,25 @@ ListenerSettings build(const QList<EndpointInfo> &endpoints)
         if (!endpoint.enabled)
             continue;
         if (endpoint.port < 1 || endpoint.port > 65535)
-            return failure(tr("Endpoint '%1' has an invalid port %2").arg(endpoint.name).arg(endpoint.port));
+            return failure(tr("Endpoint %1 has an invalid port %2").arg(label(endpoint)).arg(endpoint.port));
         if (first) {
             settings.hostname = endpoint.hostname;
             settings.port = quint16(endpoint.port);
             first = false;
         } else if (endpoint.port != settings.port) {
             return failure(tr("Enabled endpoints must share one port: '%1' uses %2, others use %3")
-                               .arg(endpoint.name).arg(endpoint.port).arg(settings.port));
+                               .arg(label(endpoint)).arg(endpoint.port).arg(settings.port));
         }
         if (!securityPolicyNames().contains(endpoint.securityPolicy))
-            return failure(tr("Endpoint '%1' has an unknown security policy '%2'")
-                               .arg(endpoint.name, endpoint.securityPolicy));
+            return failure(tr("Endpoint %1 has an unknown security policy '%2'")
+                               .arg(label(endpoint), endpoint.securityPolicy));
         if (!securityModeNames().contains(endpoint.securityMode))
-            return failure(tr("Endpoint '%1' has an unknown security mode '%2'")
-                               .arg(endpoint.name, endpoint.securityMode));
+            return failure(tr("Endpoint %1 has an unknown security mode '%2'")
+                               .arg(label(endpoint), endpoint.securityMode));
         if (!securityPairs(endpoint.securityPolicy, endpoint.securityMode))
-            return failure(tr("Endpoint '%1' pairs security policy '%2' with mode '%3'; policy None needs "
+            return failure(tr("Endpoint %1 pairs security policy '%2' with mode '%3'; policy None needs "
                               "mode None and other policies need Sign or Sign & Encrypt")
-                               .arg(endpoint.name, endpoint.securityPolicy, endpoint.securityMode));
+                               .arg(label(endpoint), endpoint.securityPolicy, endpoint.securityMode));
         appendUnique(settings.securityPolicies, endpoint.securityPolicy);
         appendUnique(settings.securityModes, endpoint.securityMode);
 
@@ -136,7 +146,7 @@ ListenerSettings build(const QList<EndpointInfo> &endpoints)
         settings.trustedClientsOnly = settings.trustedClientsOnly || endpoint.trustedClientsOnly;
         if (endpoint.usernamePassword) {
             if (endpoint.username.isEmpty())
-                return failure(tr("Endpoint '%1' accepts user names but has none set").arg(endpoint.name));
+                return failure(tr("Endpoint %1 accepts user names but has none set").arg(label(endpoint)));
             settings.users.append({ endpoint.username, endpoint.password });
         }
     }

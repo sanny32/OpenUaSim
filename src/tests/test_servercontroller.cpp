@@ -70,10 +70,10 @@ void TestServerController::setEndpointsWhileStopped()
     controller.setProject(project());
     QSignalSpy changed(&controller, &ServerController::endpointsChanged);
     QList<EndpointInfo> endpoints = controller.project().endpoints;
-    endpoints.first().name = QStringLiteral("Renamed");
+    endpoints.first().hostname = QStringLiteral("renamed-host");
     QVERIFY(controller.setEndpoints(endpoints));
     QCOMPARE(changed.count(), 1);
-    QCOMPARE(controller.project().endpoints.first().name, QStringLiteral("Renamed"));
+    QCOMPARE(controller.project().endpoints.first().hostname, QStringLiteral("renamed-host"));
     QVERIFY(!controller.isRestartRequired());
 }
 
