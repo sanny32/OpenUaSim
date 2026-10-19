@@ -166,6 +166,9 @@ void CertificatesPage::showCertificate(const QModelIndex &current)
     ui->issuerEdit->setPlainText(certificate.issuer);
     ViewSetup::fitHeightToLines(ui->issuerEdit, ui->issuerEdit->blockCount());
     ui->serialNumberEdit->setText(certificate.serialNumber);
+    ui->sha1Edit->setText(certificate.fingerprint);
+    ui->sha256Edit->setText(certificate.sha256Fingerprint);
+    ui->certificateTextEdit->setPlainText(certificate.details);
     ui->validFromEdit->setText(Formatting::dateTime(certificate.validFrom));
     ui->validToEdit->setText(Formatting::dateTime(certificate.validTo));
     ui->statusIndicator->setStatus(CertificatesModel::status(certificate.category),
@@ -187,6 +190,9 @@ void CertificatesPage::clearDetails()
     ui->subjectEdit->clear();
     ui->issuerEdit->clear();
     ui->serialNumberEdit->clear();
+    ui->sha1Edit->clear();
+    ui->sha256Edit->clear();
+    ui->certificateTextEdit->clear();
     ui->validFromEdit->clear();
     ui->validToEdit->clear();
     ui->statusIndicator->setStatus(StatusKind::None, QString());

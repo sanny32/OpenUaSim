@@ -16,6 +16,7 @@
 #include <QSpinBox>
 #include <QStandardItemModel>
 #include <QTableView>
+#include <QTabWidget>
 #include <QToolButton>
 #include <QTest>
 #include <QTreeView>
@@ -103,6 +104,7 @@ private slots:
     void certificatesPageClearsDetailsOfEmptyFolder();
     void certificateDetailsShowEveryLine();
     void certificateDetailsKeepTheirWidth();
+    void certificateTechnicalDetails();
     void sessionsPage();
     void sessionsPageFiltersByState();
     void logPageFilters();
@@ -761,6 +763,31 @@ void TestPages::certificateDetailsKeepTheirWidth()
     const auto *scroll = child<QScrollArea>(page, "detailsPanelScroll");
     QVERIFY(scroll->minimumWidth() >= scroll->widget()->minimumSizeHint().width());
     QVERIFY(page.minimumSizeHint().width() >= scroll->minimumWidth());
+}
+
+///
+/// \brief Shows technical certificate fields and clears them when selection becomes empty.
+///
+void TestPages::certificateTechnicalDetails()
+{
+    CertificateInfo certificate = _snapshot.certificates.first();
+    certificate.category = CertificateInfo::Category::Trusted;
+    certificate.serialNumber = QStringLiteral("01");
+    certificate.sha256Fingerprint = QStringLiteral("AA:BB:CC");
+    certificate.details = QStringLiteral("Version: 3\nSignature Algorithm: sha256WithRSAEncryption\nURI:urn:test");
+    CertificatesPage page;
+    page.setCertificates({ certificate });
+    child<QTabWidget>(page, "detailsTabs")->setCurrentWidget(child<QWidget>(page, "technicalTab"));
+    QCOMPARE(text(page, "serialNumberEdit"), QStringLiteral("01"));
+    QCOMPARE(text(page, "sha1Edit"), certificate.fingerprint);
+    QCOMPARE(text(page, "sha256Edit"), certificate.sha256Fingerprint);
+    QCOMPARE(child<QPlainTextEdit>(page, "certificateTextEdit")->toPlainText(), certificate.details);
+    QVERIFY(child<QLineEdit>(page, "sha256Edit")->isReadOnly());
+    QVERIFY(child<QPlainTextEdit>(page, "certificateTextEdit")->isReadOnly());
+    page.setCertificates({});
+    QVERIFY(text(page, "sha1Edit").isEmpty());
+    QVERIFY(text(page, "sha256Edit").isEmpty());
+    QVERIFY(child<QPlainTextEdit>(page, "certificateTextEdit")->toPlainText().isEmpty());
 }
 
 void TestPages::sessionsPage()

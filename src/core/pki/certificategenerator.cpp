@@ -11,6 +11,9 @@
 #include <QList>
 
 #ifdef OUASIM_HAVE_ENCRYPTION
+#include <memory>
+#include <openssl/rand.h>
+#include <openssl/x509.h>
 #include <open62541/plugin/create_certificate.h>
 #include <open62541/plugin/log_stdout.h>
 #endif
@@ -81,6 +84,42 @@ QByteArray takeBytes(UA_ByteString &bytes)
     UA_ByteString_clear(&bytes);
     return copy;
 }
+
+///
+/// \brief Re-signs the generated certificate with a random positive serial number.
+/// \param generated Certificate and private key from open62541.
+/// \return Certificate and key; both empty on failure.
+///
+GeneratedCertificate randomizeSerial(GeneratedCertificate generated)
+{
+    const unsigned char *certificateData = reinterpret_cast<const unsigned char *>(generated.certificate.constData());
+    const unsigned char *keyData = reinterpret_cast<const unsigned char *>(generated.privateKey.constData());
+    const std::unique_ptr<X509, decltype(&X509_free)> certificate(
+        d2i_X509(nullptr, &certificateData, long(generated.certificate.size())), X509_free);
+    const std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> key(
+        d2i_AutoPrivateKey(nullptr, &keyData, long(generated.privateKey.size())), EVP_PKEY_free);
+    unsigned char bytes[20];
+    if (!certificate || !key || RAND_bytes(bytes, sizeof(bytes)) != 1)
+        return {};
+    bytes[0] = (bytes[0] & 0x7f) | 0x01;
+    const std::unique_ptr<BIGNUM, decltype(&BN_free)> number(BN_bin2bn(bytes, sizeof(bytes), nullptr), BN_free);
+    if (!number)
+        return {};
+    const std::unique_ptr<ASN1_INTEGER, decltype(&ASN1_INTEGER_free)> serial(
+        BN_to_ASN1_INTEGER(number.get(), nullptr), ASN1_INTEGER_free);
+    // open62541's OpenSSL generator hardcodes serial 1 and exposes no serial parameter.
+    if (!serial || X509_set_serialNumber(certificate.get(), serial.get()) != 1
+        || X509_sign(certificate.get(), key.get(), EVP_sha256()) <= 0)
+        return {};
+    const int size = i2d_X509(certificate.get(), nullptr);
+    if (size <= 0)
+        return {};
+    generated.certificate.resize(size);
+    unsigned char *output = reinterpret_cast<unsigned char *>(generated.certificate.data());
+    if (i2d_X509(certificate.get(), &output) != size)
+        return {};
+    return generated;
+}
 #endif
 
 }
@@ -141,7 +180,10 @@ GeneratedCertificate generate(const QString &applicationUri, const QStringList &
         setError(error, tr("Cannot create a server certificate: %1").arg(QString::fromLatin1(UA_StatusCode_name(status))));
         return {};
     }
-    return { takeBytes(certificate), takeBytes(key) };
+    GeneratedCertificate generated = randomizeSerial({ takeBytes(certificate), takeBytes(key) });
+    if (generated.certificate.isEmpty())
+        setError(error, tr("Cannot assign a random serial number to the server certificate"));
+    return generated;
 #else
     Q_UNUSED(applicationUri)
     Q_UNUSED(hostnames)

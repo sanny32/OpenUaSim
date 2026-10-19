@@ -105,6 +105,17 @@ void TestCertificateStore::describesCertificate()
     QVERIFY(info.validFrom < info.validTo);
     QCOMPARE(info.validTo.date().year(), 2126);
     QVERIFY(QFileInfo::exists(info.filePath));
+    QFile file(testData(QStringLiteral("server.cert.pem")));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const QSslCertificate certificate(file.readAll());
+    QCOMPARE(info.sha256Fingerprint,
+             QString::fromLatin1(certificate.digest(QCryptographicHash::Sha256).toHex(':').toUpper()));
+    QVERIFY(info.details.contains(QStringLiteral("Signature Algorithm")));
+    QVERIFY(info.details.contains(QStringLiteral("Public-Key")));
+#ifdef OUASIM_HAVE_ENCRYPTION
+    QVERIFY(info.keyUsage.contains(QStringLiteral("Digital Signature")));
+    QVERIFY(info.keyUsage.contains(QStringLiteral("Key Encipherment")));
+#endif
 }
 
 void TestCertificateStore::importRejectsNonCertificates()
@@ -172,6 +183,14 @@ void TestCertificateStore::generatesSelfSignedCertificate()
     QVERIFY(certificate.isSelfSigned());
     QCOMPARE(certificate.subjectAlternativeNames().values(QSsl::DnsEntry).count(QStringLiteral("sim-host")), 1);
     QVERIFY(certificate.expiryDate() > QDateTime::currentDateTimeUtc().addYears(9));
+    const QByteArray serial = QByteArray::fromHex(certificate.serialNumber());
+    QCOMPARE(serial.size(), 20);
+    QVERIFY((static_cast<unsigned char>(serial.front()) & 0x80) == 0);
+    QVERIFY(serial != QByteArray(20, '\0'));
+    const GeneratedCertificate second = CertificateGenerator::generate(QStringLiteral("urn:openuasim:test"), {});
+    const QSslCertificate secondCertificate(second.certificate, QSsl::Der);
+    QVERIFY(!secondCertificate.isNull());
+    QVERIFY(secondCertificate.serialNumber() != certificate.serialNumber());
 }
 
 void TestCertificateStore::generatesWithLongSubjectNames()

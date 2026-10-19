@@ -15,6 +15,11 @@
 #include <QSslCertificateExtension>
 #include <QStandardPaths>
 
+#ifdef OUASIM_HAVE_ENCRYPTION
+#include <memory>
+#include <openssl/x509v3.h>
+#endif
+
 #include "certificatestore.h"
 
 namespace {
@@ -106,6 +111,22 @@ QString distinguishedName(const QSslCertificate &certificate, bool subject)
 ///
 QString keyUsage(const QSslCertificate &certificate)
 {
+#ifdef OUASIM_HAVE_ENCRYPTION
+    const QByteArray der = certificate.toDer();
+    const unsigned char *data = reinterpret_cast<const unsigned char *>(der.constData());
+    const std::unique_ptr<X509, decltype(&X509_free)> parsed(d2i_X509(nullptr, &data, long(der.size())), X509_free);
+    if (!parsed)
+        return {};
+    const int index = X509_get_ext_by_NID(parsed.get(), NID_key_usage, -1);
+    if (index < 0)
+        return {};
+    const std::unique_ptr<BIO, decltype(&BIO_free)> output(BIO_new(BIO_s_mem()), BIO_free);
+    if (!output || X509V3_EXT_print(output.get(), X509_get_ext(parsed.get(), index), 0, 0) != 1)
+        return {};
+    char *text = nullptr;
+    const long size = BIO_get_mem_data(output.get(), &text);
+    return QString::fromUtf8(text, size);
+#else
     const QList<QSslCertificateExtension> extensions = certificate.extensions();
     for (const QSslCertificateExtension &extension : extensions) {
         if (extension.name() != QLatin1String("keyUsage"))
@@ -115,6 +136,7 @@ QString keyUsage(const QSslCertificate &certificate)
                                                         : value.toString();
     }
     return {};
+#endif
 }
 
 ///
@@ -147,6 +169,8 @@ CertificateInfo describe(const QSslCertificate &certificate, CertificateInfo::Ca
     info.validFrom = certificate.effectiveDate().toLocalTime();
     info.validTo = certificate.expiryDate().toLocalTime();
     info.fingerprint = hex(certificate.digest(QCryptographicHash::Sha1), ':');
+    info.sha256Fingerprint = hex(certificate.digest(QCryptographicHash::Sha256), ':');
+    info.details = certificate.toText();
     info.keyUsage = keyUsage(certificate);
     info.filePath = QDir::toNativeSeparators(filePath);
     return info;

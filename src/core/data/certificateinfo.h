@@ -37,6 +37,10 @@ struct CertificateInfo
     QDateTime validTo;
     /// \brief SHA-1 fingerprint as colon-separated hex.
     QString fingerprint;
+    /// \brief SHA-256 fingerprint as colon-separated hex.
+    QString sha256Fingerprint;
+    /// \brief Decoded X.509 fields and extensions.
+    QString details;
     /// \brief Key usage text.
     QString keyUsage;
     /// \brief Location of the certificate file.

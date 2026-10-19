@@ -99,3 +99,7 @@ target_link_libraries(ouasim_core PUBLIC
 target_link_libraries(ouasim_core PRIVATE Qt${QT_VERSION_MAJOR}::Network)
 
 ouasim_link_quaserver(ouasim_core)
+if(OUASIM_WITH_ENCRYPTION)
+    find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
+    target_link_libraries(ouasim_core PRIVATE OpenSSL::Crypto)
+endif()

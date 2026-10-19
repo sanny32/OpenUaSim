@@ -423,6 +423,17 @@
            </property>
            <item>
             <widget class="QWidget" name="detailsHost">
+             <layout class="QVBoxLayout" name="detailsLayout">
+              <property name="leftMargin"><number>0</number></property>
+              <property name="topMargin"><number>0</number></property>
+              <property name="rightMargin"><number>0</number></property>
+              <property name="bottomMargin"><number>0</number></property>
+              <item>
+               <widget class="QTabWidget" name="detailsTabs">
+                <widget class="QWidget" name="generalTab">
+                 <attribute name="title">
+                  <string>General</string>
+                 </attribute>
              <layout class="QGridLayout" name="detailsForm" columnstretch="0,1">
               <property name="topMargin">
                <number>0</number>
@@ -604,6 +615,44 @@
                  </widget>
                 </item>
                </layout>
+              </item>
+             </layout>
+                </widget>
+                <widget class="QWidget" name="technicalTab">
+                 <attribute name="title">
+                  <string>Technical</string>
+                 </attribute>
+                 <layout class="QVBoxLayout" name="technicalLayout">
+                  <item>
+                   <widget class="QLabel" name="sha256Label">
+                    <property name="text"><string>SHA-256 Fingerprint</string></property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="sha256Edit">
+                    <property name="readOnly"><bool>true</bool></property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="sha1Label">
+                    <property name="text"><string>SHA-1 Thumbprint</string></property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="sha1Edit">
+                    <property name="readOnly"><bool>true</bool></property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPlainTextEdit" name="certificateTextEdit">
+                    <property name="readOnly"><bool>true</bool></property>
+                    <property name="tabChangesFocus"><bool>true</bool></property>
+                    <property name="minimumSize"><size><width>0</width><height>160</height></size></property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </widget>
               </item>
              </layout>
             </widget>
