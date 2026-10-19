@@ -42,6 +42,7 @@ private slots:
     void installRejectsMissingKey();
     void storesServerCertificateFromMemory();
     void generatesSelfSignedCertificate();
+    void generatesWithLongSubjectNames();
     void movesBetweenFolders();
     void moveRejectsFilesOutsideStore();
     void removesCertificates();
@@ -171,6 +172,24 @@ void TestCertificateStore::generatesSelfSignedCertificate()
     QVERIFY(certificate.isSelfSigned());
     QCOMPARE(certificate.subjectAlternativeNames().values(QSsl::DnsEntry).count(QStringLiteral("sim-host")), 1);
     QVERIFY(certificate.expiryDate() > QDateTime::currentDateTimeUtc().addYears(9));
+}
+
+void TestCertificateStore::generatesWithLongSubjectNames()
+{
+    if (!CertificateGenerator::isAvailable())
+        QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+    const QString applicationName = QCoreApplication::applicationName();
+    const QString organizationName = QCoreApplication::organizationName();
+    QCoreApplication::setApplicationName(QString(80, QLatin1Char('a')));
+    QCoreApplication::setOrganizationName(QString());
+
+    const GeneratedCertificate generated = CertificateGenerator::generate(QStringLiteral("urn:openuasim:test"), {});
+    QCoreApplication::setApplicationName(applicationName);
+    QCoreApplication::setOrganizationName(organizationName);
+
+    QVERIFY(!generated.privateKey.isEmpty());
+    const QSslCertificate certificate(generated.certificate, QSsl::Der);
+    QCOMPARE(certificate.subjectInfo(QSslCertificate::CommonName).value(0), QString(64, QLatin1Char('a')));
 }
 
 void TestCertificateStore::installRejectsMissingKey()

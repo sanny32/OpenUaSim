@@ -43,6 +43,19 @@ void setError(QString *error, const QString &message)
 #ifdef OUASIM_HAVE_ENCRYPTION
 const UA_UInt16 kKeySizeBits = 2048;
 const UA_UInt16 kValidDays = 3650;
+// ub-common-name and ub-organization-name of RFC 5280; OpenSSL refuses longer subject values.
+const int kMaxSubjectValueLength = 64;
+
+///
+/// \brief Builds a subject entry such as "CN=value", cutting the value to the X.509 length limit.
+/// \param field Attribute name.
+/// \param value Attribute value; must not be empty.
+/// \return UTF-8 subject entry.
+///
+QByteArray subjectEntry(const char *field, const QString &value)
+{
+    return QByteArray(field) + '=' + value.left(kMaxSubjectValueLength).toUtf8();
+}
 
 ///
 /// \brief Points UA strings at UTF-8 buffers that must outlive them.
@@ -98,10 +111,11 @@ GeneratedCertificate generate(const QString &applicationUri, const QStringList &
 {
 #ifdef OUASIM_HAVE_ENCRYPTION
     const QString machine = QHostInfo::localHostName();
-    const QList<QByteArray> subjectTexts = {
-        QStringLiteral("CN=%1@%2").arg(QCoreApplication::applicationName(), machine).toUtf8(),
-        QStringLiteral("O=%1").arg(QCoreApplication::organizationName()).toUtf8(),
+    QList<QByteArray> subjectTexts = {
+        subjectEntry("CN", QStringLiteral("%1@%2").arg(QCoreApplication::applicationName(), machine)),
     };
+    if (!QCoreApplication::organizationName().isEmpty())
+        subjectTexts.append(subjectEntry("O", QCoreApplication::organizationName()));
     QList<QByteArray> altNameTexts = { QStringLiteral("URI:%1").arg(applicationUri).toUtf8() };
     QStringList dnsNames = hostnames;
     dnsNames.append(machine);
