@@ -50,6 +50,8 @@ private slots:
     void preservesEveryDataTypeValue_data();
     void preservesEveryDataTypeValue();
     void preservesQuality();
+    void preservesUsers();
+    void movesFormat1EndpointLoginsToUsers();
     void emptyProjectRoundTrips();
     void missingFieldsUseDefaults();
     void keepsTrustedClientsOnlyKey();
@@ -144,6 +146,43 @@ void TestProjectFile::preservesQuality()
     const ProjectFile::LoadResult result = ProjectFile::fromJson(json);
     QVERIFY2(result.ok(), qPrintable(result.error));
     QCOMPARE(result.project.nodes.first().quality, VariableInfo::Quality::Uncertain);
+}
+
+void TestProjectFile::preservesUsers()
+{
+    ProjectConfig project;
+    project.users = { { QStringLiteral("operator"), QStringLiteral("secret") },
+                      { QStringLiteral("viewer"), QString() } };
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(ProjectFile::toJson(project));
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.project.users.size(), 2);
+    QCOMPARE(result.project.users.at(0).username, QStringLiteral("operator"));
+    QCOMPARE(result.project.users.at(0).password, QStringLiteral("secret"));
+    QCOMPARE(result.project.users.at(1).username, QStringLiteral("viewer"));
+}
+
+void TestProjectFile::movesFormat1EndpointLoginsToUsers()
+{
+    const auto login = [](const QString &name, const QString &password) {
+        return QJsonObject { { QStringLiteral("usernamePassword"), true },
+                             { QStringLiteral("username"), name },
+                             { QStringLiteral("password"), password } };
+    };
+    const QJsonObject root {
+        { QStringLiteral("formatVersion"), 1 },
+        { QStringLiteral("endpoints"), QJsonArray { login(QStringLiteral("operator"), QStringLiteral("a")),
+                                                    login(QStringLiteral("operator"), QStringLiteral("b")),
+                                                    login(QString(), QString()) } },
+    };
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(QJsonDocument(root).toJson());
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.project.users.size(), 1);
+    QCOMPARE(result.project.users.first().username, QStringLiteral("operator"));
+    QCOMPARE(result.project.users.first().password, QStringLiteral("a"));
+    QVERIFY(result.project.endpoints.first().usernamePassword);
+    const QJsonObject saved = QJsonDocument::fromJson(ProjectFile::toJson(result.project)).object();
+    QCOMPARE(saved.value(QStringLiteral("formatVersion")).toInt(), ProjectFile::kFormatVersion);
+    QVERIFY(!saved.value(QStringLiteral("endpoints")).toArray().first().toObject().contains(QStringLiteral("username")));
 }
 
 void TestProjectFile::emptyProjectRoundTrips()

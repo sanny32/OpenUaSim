@@ -59,8 +59,6 @@ EndpointsPage::EndpointsPage(QWidget *parent)
             this, &EndpointsPage::matchModeToPolicy);
     connect(ui->securityModeCombo, &QComboBox::currentTextChanged,
             this, &EndpointsPage::matchPolicyToMode);
-    connect(ui->usernamePasswordCheck, &QCheckBox::toggled,
-            this, &EndpointsPage::updateCredentialFields);
     connect(ui->applyButton, &QPushButton::clicked, this, &EndpointsPage::applyEndpoint);
     connect(ui->revertButton, &QPushButton::clicked, this, &EndpointsPage::revertEndpoint);
     connect(ui->addEndpointButton, &QPushButton::clicked, this, &EndpointsPage::addEndpoint);
@@ -119,22 +117,8 @@ void EndpointsPage::showEndpoint(const QModelIndex &current)
     }
     ui->allowAnonymousCheck->setChecked(endpoint.allowAnonymous);
     ui->usernamePasswordCheck->setChecked(endpoint.usernamePassword);
-    ui->usernameEdit->setText(endpoint.username);
-    ui->passwordEdit->clear();
-    ui->passwordEdit->setPlaceholderText(endpoint.password.isEmpty() ? QString() : tr("Unchanged"));
     ui->trustedClientsOnlyCheck->setChecked(endpoint.trustedClientsOnly);
     ui->enabledCheck->setChecked(endpoint.enabled);
-    updateCredentialFields();
-}
-
-///
-/// \brief Enables the user name and password fields only when that token type is accepted.
-///
-void EndpointsPage::updateCredentialFields()
-{
-    const bool enabled = ui->usernamePasswordCheck->isChecked();
-    ui->usernameEdit->setEnabled(enabled);
-    ui->passwordEdit->setEnabled(enabled);
 }
 
 ///
@@ -184,7 +168,7 @@ int EndpointsPage::currentRow() const
 ///
 /// \brief Reads the properties panel.
 /// \param row Model row of the edited endpoint.
-/// \return Endpoint with the edited fields; an empty password keeps the stored one.
+/// \return Endpoint with the edited fields.
 ///
 EndpointInfo EndpointsPage::editedEndpoint(int row) const
 {
@@ -195,9 +179,6 @@ EndpointInfo EndpointsPage::editedEndpoint(int row) const
     endpoint.securityMode = ui->securityModeCombo->currentText();
     endpoint.allowAnonymous = ui->allowAnonymousCheck->isChecked();
     endpoint.usernamePassword = ui->usernamePasswordCheck->isChecked();
-    endpoint.username = ui->usernameEdit->text().trimmed();
-    if (!ui->passwordEdit->text().isEmpty())
-        endpoint.password = ui->passwordEdit->text();
     endpoint.trustedClientsOnly = ui->trustedClientsOnlyCheck->isChecked();
     endpoint.enabled = ui->enabledCheck->isChecked();
     return endpoint;

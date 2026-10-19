@@ -56,6 +56,7 @@ private slots:
     void stopClosesSessions();
     void acceptsConfiguredUser();
     void rejectsAnonymousWhenDisabled();
+    void refusesUsernameEndpointsWithoutAccounts();
     void sessionDescribesSecurityAndEndpoint();
     void diagnosticsCountSubscriptions();
 
@@ -228,8 +229,8 @@ void TestSimServer::acceptsConfiguredUser()
     EndpointInfo &endpoint = config.endpoints.first();
     endpoint.allowAnonymous = false;
     endpoint.usernamePassword = true;
-    endpoint.username = QStringLiteral("operator");
-    endpoint.password = QStringLiteral("secret");
+    config.users = { { QStringLiteral("operator"), QStringLiteral("secret") },
+                     { QStringLiteral("engineer"), QStringLiteral("other") } };
 
     SimServer server;
     QVERIFY(server.start(config));
@@ -244,6 +245,21 @@ void TestSimServer::acceptsConfiguredUser()
     QTRY_COMPARE(server.clientCount(), 1);
     QCOMPARE(server.sessions().first().user, QStringLiteral("operator"));
     QCOMPARE(server.sessions().first().userIdentity, QStringLiteral("UserName"));
+
+    UaTestClient engineer;
+    QCOMPARE(engineer.connectUsername(server.endpointUrl(), QStringLiteral("engineer"), QStringLiteral("other")),
+             UA_STATUSCODE_GOOD);
+}
+
+void TestSimServer::refusesUsernameEndpointsWithoutAccounts()
+{
+    ProjectConfig config = project(_port);
+    config.endpoints.first().usernamePassword = true;
+    SimServer server;
+    QSignalSpy failed(&server, &SimServer::startFailed);
+    QVERIFY(!server.start(config));
+    QCOMPARE(failed.count(), 1);
+    QVERIFY(failed.first().first().toString().contains(QStringLiteral("no user accounts")));
 }
 
 void TestSimServer::rejectsAnonymousWhenDisabled()
@@ -252,7 +268,7 @@ void TestSimServer::rejectsAnonymousWhenDisabled()
     EndpointInfo &endpoint = config.endpoints.first();
     endpoint.allowAnonymous = false;
     endpoint.usernamePassword = true;
-    endpoint.username = QStringLiteral("operator");
+    config.users = { { QStringLiteral("operator"), QString() } };
 
     SimServer server;
     QVERIFY(server.start(config));

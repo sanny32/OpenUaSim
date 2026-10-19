@@ -321,7 +321,6 @@ EndpointInfo endpoint(const QString &hostname, const QString &path, const QStrin
     info.path = path;
     info.securityPolicy = policy;
     info.securityMode = mode;
-    info.username = QStringLiteral("user");
     return info;
 }
 

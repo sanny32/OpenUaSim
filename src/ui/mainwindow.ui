@@ -337,6 +337,7 @@
     <addaction name="actionDeleteNode"/>
     <addaction name="separator"/>
     <addaction name="actionServerSettings"/>
+    <addaction name="actionUserAccounts"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -530,6 +531,11 @@
   <action name="actionServerSettings">
    <property name="text">
     <string>Server &amp;Settings...</string>
+   </property>
+  </action>
+  <action name="actionUserAccounts">
+   <property name="text">
+    <string>&amp;User Accounts...</string>
    </property>
   </action>
   <action name="actionEventLog">

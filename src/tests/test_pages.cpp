@@ -421,7 +421,7 @@ void TestPages::endpointsPage()
     QCOMPARE(page.endpointsModel()->rowCount(), _snapshot.endpoints.size());
     QCOMPARE(text(page, "hostnameEdit"), QStringLiteral("localhost"));
     QCOMPARE(child<QComboBox>(page, "securityModeCombo")->currentText(), QStringLiteral("Sign & Encrypt"));
-    QVERIFY(!child<QLineEdit>(page, "usernameEdit")->isEnabled());
+    QVERIFY(!page.findChild<QLineEdit *>(QStringLiteral("usernameEdit")));
 
     ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 3);
     QCOMPARE(text(page, "hostnameEdit"), QStringLiteral("localhost"));
@@ -430,25 +430,18 @@ void TestPages::endpointsPage()
     child<QLineEdit>(page, "searchEdit")->setText(QStringLiteral("192.168"));
     ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 0);
     QCOMPARE(text(page, "hostnameEdit"), QStringLiteral("192.168.1.100"));
-
-    child<QCheckBox>(page, "usernamePasswordCheck")->setChecked(true);
-    QVERIFY(child<QLineEdit>(page, "usernameEdit")->isEnabled());
 }
 
 void TestPages::endpointsPageAppliesEdits()
 {
-    QList<EndpointInfo> endpoints = _snapshot.endpoints;
-    endpoints[0].password = QStringLiteral("old");
+    const QList<EndpointInfo> endpoints = _snapshot.endpoints;
     EndpointsPage page;
     page.setEndpoints(endpoints);
     QSignalSpy requested(&page, &EndpointsPage::endpointsChangeRequested);
-    QVERIFY(child<QLineEdit>(page, "passwordEdit")->text().isEmpty());
-    QCOMPARE(child<QLineEdit>(page, "passwordEdit")->placeholderText(), QStringLiteral("Unchanged"));
 
     child<QLineEdit>(page, "hostnameEdit")->setText(QStringLiteral("edited-host"));
     child<QSpinBox>(page, "portSpin")->setValue(4900);
     child<QCheckBox>(page, "usernamePasswordCheck")->setChecked(true);
-    child<QLineEdit>(page, "usernameEdit")->setText(QStringLiteral("operator"));
     child<QPushButton>(page, "applyButton")->click();
 
     QCOMPARE(requested.count(), 1);
@@ -458,12 +451,6 @@ void TestPages::endpointsPageAppliesEdits()
     QCOMPARE(applied[0].hostname, QStringLiteral("edited-host"));
     QCOMPARE(applied[0].port, 4900);
     QVERIFY(applied[0].usernamePassword);
-    QCOMPARE(applied[0].username, QStringLiteral("operator"));
-    QCOMPARE(applied[0].password, QStringLiteral("old"));
-
-    child<QLineEdit>(page, "passwordEdit")->setText(QStringLiteral("new"));
-    child<QPushButton>(page, "applyButton")->click();
-    QCOMPARE(requested.last().first().value<Endpoints>()[0].password, QStringLiteral("new"));
 }
 
 void TestPages::endpointsPageAddsAndRemoves()

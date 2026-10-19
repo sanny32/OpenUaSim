@@ -16,7 +16,7 @@
 namespace ProjectFile {
 
 /// \brief Version written to new files; files of a newer version are refused.
-constexpr int kFormatVersion = 1;
+constexpr int kFormatVersion = 2;
 
 ///
 /// \brief Outcome of reading a project.

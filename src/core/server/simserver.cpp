@@ -170,6 +170,8 @@ bool SimServer::start(const ProjectConfig &project)
     const ListenerSettings listener = ListenerSettingsBuilder::build(project.endpoints);
     if (!listener.ok())
         return fail(listener.error);
+    if (listener.usernameAllowed && project.users.isEmpty())
+        return fail(tr("Endpoints accept user names but the project has no user accounts"));
     if (!configure(project, listener))
         return false;
 
@@ -280,7 +282,7 @@ bool SimServer::configure(const ProjectConfig &project, const ListenerSettings &
     _server->setHostname(listener.hostname);
     _server->setPort(listener.port);
     _server->setAnonymousLoginAllowed(listener.anonymousAllowed);
-    applyUsers(listener);
+    applyUsers(listener.usernameAllowed ? project.users : QList<UserAccount>());
     _endpointUrl = QStringLiteral("opc.tcp://%1:%2").arg(listener.hostname).arg(listener.port);
     return configureSecurity(listener);
 }
@@ -319,16 +321,16 @@ bool SimServer::configureSecurity(const ListenerSettings &listener)
 }
 
 ///
-/// \brief Replaces the server's user accounts with the ones of the username endpoints.
-/// \param listener Merged endpoint settings.
+/// \brief Replaces the server's user accounts.
+/// \param users Accounts to accept; empty when no endpoint takes username tokens.
 ///
-void SimServer::applyUsers(const ListenerSettings &listener)
+void SimServer::applyUsers(const QList<UserAccount> &users)
 {
     const QStringList existing = _server->userNames();
     for (const QString &name : existing)
         _server->removeUser(name);
-    for (const auto &[name, password] : listener.users)
-        _server->addUser(name, password);
+    for (const UserAccount &user : users)
+        _server->addUser(user.username, user.password);
 }
 
 ///

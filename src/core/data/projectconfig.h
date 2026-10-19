@@ -48,6 +48,17 @@ struct NodeDefinition
     QList<NodeDefinition> children;
 };
 
+///
+/// \brief Login that endpoints accepting username/password tokens check clients against.
+///
+struct UserAccount
+{
+    /// \brief User name.
+    QString username;
+    /// \brief Password.
+    QString password;
+};
+
 /// \brief Largest session limit the server takes; QUaServer stores it as a 16-bit count.
 constexpr int kMaxSessionLimit = 65535;
 
@@ -73,6 +84,8 @@ struct ProjectConfig
     ServerSettings server;
     /// \brief Endpoints; enabled ones share one TCP port.
     QList<EndpointInfo> endpoints;
+    /// \brief Logins accepted by the endpoints that take username/password tokens.
+    QList<UserAccount> users;
     /// \brief Nodes added under the Objects folder.
     QList<NodeDefinition> nodes;
     /// \brief NodeSet2 files loaded before the project nodes are built.

@@ -9,7 +9,6 @@
 #pragma once
 
 #include <QList>
-#include <QPair>
 #include <QString>
 #include <QStringList>
 
@@ -28,8 +27,8 @@ struct ListenerSettings
     bool anonymousAllowed = false;
     /// \brief Whether any enabled endpoint accepts only trusted clients; the check then covers every client.
     bool trustedClientsOnly = false;
-    /// \brief User names and passwords of the endpoints accepting username tokens.
-    QList<QPair<QString, QString>> users;
+    /// \brief Whether any enabled endpoint accepts username/password tokens.
+    bool usernameAllowed = false;
     /// \brief Distinct security policy names of the enabled endpoints, e.g. "Basic256Sha256".
     QStringList securityPolicies;
     /// \brief Distinct message security mode names of the enabled endpoints, e.g. "Sign & Encrypt".
@@ -77,8 +76,8 @@ bool usesSecurity(const QList<EndpointInfo> &endpoints);
 /// \brief Merges the enabled endpoints into listener settings.
 /// \param endpoints Configured endpoints.
 /// \return Settings, or an error when no endpoint is enabled, enabled endpoints use different
-///         ports, a port is out of range, a policy or mode is unknown, a policy and mode do not
-///         pair up, or a username endpoint has no user name.
+///         ports, a port is out of range, a policy or mode is unknown, or a policy and mode do not
+///         pair up.
 ///
 ListenerSettings build(const QList<EndpointInfo> &endpoints);
 

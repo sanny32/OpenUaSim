@@ -66,6 +66,7 @@ private slots:
     void setServerSettingsRequiresRestartWhileRunning();
     void setServerSettingsRejectsInvalidValues_data();
     void setServerSettingsRejectsInvalidValues();
+    void setUsersValidatesAndRequiresRestart();
     void setEndpointsWhileStopped();
     void setEndpointsWhileRunningRequiresRestart();
     void setEndpointsRejectsConflicts();
@@ -375,6 +376,29 @@ void TestServerController::setServerSettingsRejectsInvalidValues()
     QCOMPARE(actual, error);
     QCOMPARE(edited.count(), 0);
     QCOMPARE(controller.project().server.applicationName, QStringLiteral("OpenUaSim"));
+}
+
+void TestServerController::setUsersValidatesAndRequiresRestart()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QSignalSpy edited(&controller, &ServerController::projectEdited);
+
+    QString error;
+    QVERIFY(!controller.setUsers({ { QStringLiteral("op"), QString() }, { QStringLiteral("op"), QString() } }, &error));
+    QCOMPARE(error, QStringLiteral("The user name 'op' is used more than once"));
+    QVERIFY(!controller.setUsers({ { QStringLiteral(" "), QString() } }, &error));
+    QCOMPARE(error, QStringLiteral("A user account has no user name"));
+    QCOMPARE(edited.count(), 0);
+
+    QVERIFY(controller.setUsers({ { QStringLiteral("op"), QStringLiteral("pw") } }));
+    QCOMPARE(edited.count(), 1);
+    QCOMPARE(controller.project().users.size(), 1);
+    QVERIFY(!controller.isRestartRequired());
+
+    QVERIFY(controller.start());
+    QVERIFY(controller.setUsers({}));
+    QVERIFY(controller.isRestartRequired());
 }
 
 void TestServerController::setProjectBuildsNodes()

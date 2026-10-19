@@ -20,6 +20,7 @@
 #include <QSplitter>
 #include <QStatusBar>
 #include <QTabWidget>
+#include <QTableWidget>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QTableView>
@@ -46,6 +47,7 @@
 #include "serversettingsdialog.h"
 #include "statusindicator.h"
 #include "testport.h"
+#include "usersdialog.h"
 #include "viewsetup.h"
 
 namespace {
@@ -89,6 +91,7 @@ private slots:
     void duplicatesAndPastesNodes();
     void deletesSelectedNodes();
     void renamesNodeFromDialog();
+    void appliesUsersFromDialog();
     void appliesServerSettingsFromDialog();
     void refusedVariableChangeShowsMessage();
     void endpointChangesShowRestartNote();
@@ -528,6 +531,26 @@ void TestMainWindow::renamesNodeFromDialog()
     QVERIFY(box->text().contains(QStringLiteral("Pump_01")));
     box->close();
     QCOMPARE(ProjectNodes::find(controller.project().nodes, motor)->browseName, QStringLiteral("Drive"));
+}
+
+void TestMainWindow::appliesUsersFromDialog()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+
+    child<QAction>(window, "actionUserAccounts")->trigger();
+    auto *dialog = window.findChild<UsersDialog *>();
+    QVERIFY(dialog);
+    child<QPushButton>(*dialog, "addUserButton")->click();
+    auto *table = child<QTableWidget>(*dialog, "usersTable");
+    table->item(0, 0)->setText(QStringLiteral("operator"));
+    table->item(0, 1)->setText(QStringLiteral("secret"));
+    dialog->accept();
+
+    QCOMPARE(controller.project().users.size(), 1);
+    QCOMPARE(controller.project().users.first().username, QStringLiteral("operator"));
 }
 
 void TestMainWindow::appliesServerSettingsFromDialog()

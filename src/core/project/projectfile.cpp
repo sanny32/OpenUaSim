@@ -195,8 +195,6 @@ QJsonObject endpointToJson(const EndpointInfo &endpoint)
         { QStringLiteral("enabled"), endpoint.enabled },
         { QStringLiteral("allowAnonymous"), endpoint.allowAnonymous },
         { QStringLiteral("usernamePassword"), endpoint.usernamePassword },
-        { QStringLiteral("username"), endpoint.username },
-        { QStringLiteral("password"), endpoint.password },
         // Key of the former "Require Client Certificate" option, kept so existing projects load unchanged.
         { QStringLiteral("requireClientCertificate"), endpoint.trustedClientsOnly },
     };
@@ -219,11 +217,35 @@ EndpointInfo endpointFromJson(const QJsonObject &json)
     endpoint.enabled = json.value(QStringLiteral("enabled")).toBool(endpoint.enabled);
     endpoint.allowAnonymous = json.value(QStringLiteral("allowAnonymous")).toBool(endpoint.allowAnonymous);
     endpoint.usernamePassword = json.value(QStringLiteral("usernamePassword")).toBool(endpoint.usernamePassword);
-    endpoint.username = json.value(QStringLiteral("username")).toString();
-    endpoint.password = json.value(QStringLiteral("password")).toString();
     endpoint.trustedClientsOnly =
         json.value(QStringLiteral("requireClientCertificate")).toBool(endpoint.trustedClientsOnly);
     return endpoint;
+}
+
+///
+/// \brief Parses a user account.
+/// \param json Stored account, or a format 1 endpoint holding its login.
+/// \return Account; the user name is empty when none is stored.
+///
+UserAccount userFromJson(const QJsonObject &json)
+{
+    return { json.value(QStringLiteral("username")).toString(), json.value(QStringLiteral("password")).toString() };
+}
+
+///
+/// \brief Adds a user account unless its name is empty or already listed.
+/// \param users Accounts to extend.
+/// \param user Account to add.
+///
+void addUser(QList<UserAccount> &users, const UserAccount &user)
+{
+    if (user.username.isEmpty())
+        return;
+    for (const UserAccount &existing : std::as_const(users)) {
+        if (existing.username == user.username)
+            return;
+    }
+    users.append(user);
 }
 
 ///
@@ -377,6 +399,11 @@ QByteArray toJson(const ProjectConfig &project)
     for (const EndpointInfo &endpoint : project.endpoints)
         endpoints.append(endpointToJson(endpoint));
 
+    QJsonArray users;
+    for (const UserAccount &user : project.users)
+        users.append(QJsonObject { { QStringLiteral("username"), user.username },
+                                   { QStringLiteral("password"), user.password } });
+
     QJsonArray nodes;
     for (const NodeDefinition &node : project.nodes)
         nodes.append(nodeToJson(node));
@@ -391,6 +418,7 @@ QByteArray toJson(const ProjectConfig &project)
         { QStringLiteral("formatVersion"), kFormatVersion },
         { QStringLiteral("server"), server },
         { QStringLiteral("endpoints"), endpoints },
+        { QStringLiteral("users"), users },
         { QStringLiteral("nodes"), nodes },
         { QStringLiteral("nodeSetFiles"), QJsonArray::fromStringList(project.nodeSetFiles) },
     };
@@ -430,9 +458,16 @@ LoadResult fromJson(const QByteArray &json)
         server.value(QStringLiteral("applicationUri")).toString(project.server.applicationUri);
     project.server.maxSessions = server.value(QStringLiteral("maxSessions")).toInt(project.server.maxSessions);
 
+    const QJsonArray users = root.value(QStringLiteral("users")).toArray();
+    for (const QJsonValue &user : users)
+        addUser(project.users, userFromJson(user.toObject()));
+
     const QJsonArray endpoints = root.value(QStringLiteral("endpoints")).toArray();
-    for (const QJsonValue &endpoint : endpoints)
+    for (const QJsonValue &endpoint : endpoints) {
         project.endpoints.append(endpointFromJson(endpoint.toObject()));
+        // Format 1 kept one login on each endpoint; it joins the project's user accounts.
+        addUser(project.users, userFromJson(endpoint.toObject()));
+    }
 
     NodeReader reader;
     if (!reader.read(root.value(QStringLiteral("nodes")).toArray(), QStringLiteral("nodes"), project.nodes))

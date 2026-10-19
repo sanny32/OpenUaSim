@@ -180,6 +180,8 @@ private:
     void renamePendingNode(const QString &browseName);
     void showServerSettingsDialog();
     void applyServerSettingsFromDialog();
+    void showUsersDialog();
+    void applyUsersFromDialog();
     void applyVariableChange(const VariableInfo &variable);
     void updateNodeActions();
     void applyEndpoints(const QList<EndpointInfo> &endpoints);

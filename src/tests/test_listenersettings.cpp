@@ -28,7 +28,7 @@ class TestListenerSettings : public QObject
 private slots:
     void mergesEnabledEndpoints();
     void skipsDisabledEndpoints();
-    void collectsUsers();
+    void usernameWhenAnyEnabledEndpointAcceptsIt();
     void anonymousWhenAnyEndpointAllowsIt();
     void trustedClientsOnlyWhenAnyEnabledEndpointIs();
     void rejectsNoEnabledEndpoint();
@@ -40,7 +40,6 @@ private slots:
     void securityPairs();
     void rejectsMismatchedPolicyAndMode();
     void usesSecurityOfEnabledEndpoints();
-    void rejectsUsernameEndpointWithoutUser();
 };
 
 void TestListenerSettings::mergesEnabledEndpoints()
@@ -69,16 +68,14 @@ void TestListenerSettings::skipsDisabledEndpoints()
     QCOMPARE(settings.port, quint16(kDefaultEndpointPort));
 }
 
-void TestListenerSettings::collectsUsers()
+void TestListenerSettings::usernameWhenAnyEnabledEndpointAcceptsIt()
 {
     EndpointInfo secured = endpoint(QStringLiteral("a"));
     secured.usernamePassword = true;
-    secured.username = QStringLiteral("operator");
-    secured.password = QStringLiteral("secret");
-    const ListenerSettings settings = ListenerSettingsBuilder::build({ secured });
-    QCOMPARE(settings.users.size(), 1);
-    QCOMPARE(settings.users.first().first, QStringLiteral("operator"));
-    QCOMPARE(settings.users.first().second, QStringLiteral("secret"));
+    QVERIFY(!ListenerSettingsBuilder::build({ endpoint(QStringLiteral("a")) }).usernameAllowed);
+    QVERIFY(ListenerSettingsBuilder::build({ endpoint(QStringLiteral("b")), secured }).usernameAllowed);
+    secured.enabled = false;
+    QVERIFY(!ListenerSettingsBuilder::build({ endpoint(QStringLiteral("b")), secured }).usernameAllowed);
 }
 
 void TestListenerSettings::anonymousWhenAnyEndpointAllowsIt()
@@ -170,14 +167,6 @@ void TestListenerSettings::usesSecurityOfEnabledEndpoints()
     QVERIFY(ListenerSettingsBuilder::usesSecurity({ endpoint(QStringLiteral("a")), secure }));
     secure.enabled = false;
     QVERIFY(!ListenerSettingsBuilder::usesSecurity({ secure }));
-}
-
-void TestListenerSettings::rejectsUsernameEndpointWithoutUser()
-{
-    EndpointInfo secured = endpoint(QStringLiteral("a"));
-    secured.usernamePassword = true;
-    QCOMPARE(ListenerSettingsBuilder::build({ secured }).error,
-             QStringLiteral("Endpoint opc.tcp://host-a:48400 (None, None) accepts user names but has none set"));
 }
 
 QTEST_GUILESS_MAIN(TestListenerSettings)

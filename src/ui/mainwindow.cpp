@@ -31,6 +31,7 @@
 #include "server/servercontroller.h"
 #include "serversettingsdialog.h"
 #include "ui_mainwindow.h"
+#include "usersdialog.h"
 #include "viewsetup.h"
 
 namespace {
@@ -137,6 +138,7 @@ void MainWindow::setController(ServerController *controller)
     connect(ui->actionPasteNode, &QAction::triggered, this, &MainWindow::pasteNode);
     connect(ui->actionDeleteNode, &QAction::triggered, this, &MainWindow::confirmDeleteNode);
     connect(ui->actionServerSettings, &QAction::triggered, this, &MainWindow::showServerSettingsDialog);
+    connect(ui->actionUserAccounts, &QAction::triggered, this, &MainWindow::showUsersDialog);
     connect(ui->certificatesPage, &CertificatesPage::generateRequested,
             this, &MainWindow::confirmGenerateServerCertificate);
     connect(ui->certificatesPage, &CertificatesPage::importRequested, this, &MainWindow::importCertificate);
@@ -783,6 +785,32 @@ void MainWindow::applyServerSettingsFromDialog()
         return;
     }
     refreshStatus();
+}
+
+///
+/// \brief Shows the project's user accounts for editing.
+///
+void MainWindow::showUsersDialog()
+{
+    if (!_controller)
+        return;
+    auto *dialog = new UsersDialog(_controller->project().users, this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &QDialog::accepted, this, &MainWindow::applyUsersFromDialog);
+    dialog->open();
+}
+
+///
+/// \brief Applies the accounts of the accepted User Accounts dialog.
+///
+void MainWindow::applyUsersFromDialog()
+{
+    const auto *dialog = qobject_cast<const UsersDialog *>(sender());
+    if (!dialog || !_controller)
+        return;
+    QString error;
+    if (!_controller->setUsers(dialog->users(), &error))
+        showError(tr("User accounts not applied"), error);
 }
 
 ///

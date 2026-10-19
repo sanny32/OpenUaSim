@@ -20,7 +20,8 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
   with configurable interval, period, amplitude and offset; values are converted
   to the variable's built-in data type.
 - Serve `opc.tcp` endpoints with a choice of security policy and mode, and accept
-  anonymous or username/password logins. Set the application name, URI and
+  anonymous logins or the username/password logins listed in **Server → User
+  Accounts**. Set the application name, URI and
   session limit in **Server → Server Settings**.
 - Manage certificates in the built-in PKI store (own, trusted, rejected,
   issuers): install the server certificate with its key, import, trust, reject,

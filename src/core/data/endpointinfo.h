@@ -34,12 +34,8 @@ struct EndpointInfo
     bool enabled = true;
     /// \brief Whether anonymous user tokens are accepted.
     bool allowAnonymous = true;
-    /// \brief Whether username/password user tokens are accepted.
+    /// \brief Whether username/password user tokens of the project's user accounts are accepted.
     bool usernamePassword = false;
-    /// \brief User name for username/password tokens.
-    QString username;
-    /// \brief Password for username/password tokens.
-    QString password;
     /// \brief Whether only clients with a trusted certificate are accepted; untrusted ones are rejected.
     bool trustedClientsOnly = false;
 

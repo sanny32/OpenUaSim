@@ -110,6 +110,14 @@ public:
     bool setServerSettings(const ServerSettings &settings, QString *error = nullptr);
 
     ///
+    /// \brief Replaces the user accounts; a running server applies them on the next restart.
+    /// \param users Logins accepted by endpoints that take username/password tokens.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return False when an account has no user name or two accounts share one.
+    ///
+    bool setUsers(const QList<UserAccount> &users, QString *error = nullptr);
+
+    ///
     /// \brief Replaces the endpoints; a running server applies them on the next restart.
     /// \param endpoints New endpoint list.
     /// \param error Receives the reason on failure; may be null.

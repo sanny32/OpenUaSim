@@ -18,6 +18,7 @@
 #include "pki/certificategenerator.h"
 #include "project/projectnodes.h"
 #include "project/serversettingsrules.h"
+#include "project/useraccountrules.h"
 #include "servercontroller.h"
 #include "simulation/valuecast.h"
 #include "snapshotbuilder.h"
@@ -310,6 +311,27 @@ bool ServerController::setServerSettings(const ServerSettings &settings, QString
         appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Security,
                                    tr("The server certificate names the former application URI; "
                                       "create a new one on the Certificates page")));
+    if (isRunning())
+        setRestartRequired(true);
+    emit projectEdited();
+    return true;
+}
+
+///
+/// \brief Replaces the user accounts; a running server applies them on the next restart.
+/// \param users Logins accepted by endpoints that take username/password tokens.
+/// \param error Receives the reason on failure; may be null.
+/// \return False when an account has no user name or two accounts share one.
+///
+bool ServerController::setUsers(const QList<UserAccount> &users, QString *error)
+{
+    const QString problem = UserAccountRules::problem(users);
+    if (!problem.isEmpty()) {
+        if (error)
+            *error = problem;
+        return false;
+    }
+    _project.users = users;
     if (isRunning())
         setRestartRequired(true);
     emit projectEdited();

@@ -151,7 +151,7 @@ private:
     void releaseServer();
     bool configure(const ProjectConfig &project, const ListenerSettings &listener);
     bool configureSecurity(const ListenerSettings &listener);
-    void applyUsers(const ListenerSettings &listener);
+    void applyUsers(const QList<UserAccount> &users);
     bool fail(const QString &reason);
     void log(LogEntry::Level level, LogEntry::Category category, const QString &message);
     void handleLog(const QUaLog &log);

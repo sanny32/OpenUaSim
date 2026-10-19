@@ -109,8 +109,8 @@ bool usesSecurity(const QList<EndpointInfo> &endpoints)
 /// \brief Merges the enabled endpoints into listener settings.
 /// \param endpoints Configured endpoints.
 /// \return Settings, or an error when no endpoint is enabled, enabled endpoints use different
-///         ports, a port is out of range, a policy or mode is unknown, a policy and mode do not
-///         pair up, or a username endpoint has no user name.
+///         ports, a port is out of range, a policy or mode is unknown, or a policy and mode do not
+///         pair up.
 ///
 ListenerSettings build(const QList<EndpointInfo> &endpoints)
 {
@@ -144,11 +144,7 @@ ListenerSettings build(const QList<EndpointInfo> &endpoints)
 
         settings.anonymousAllowed = settings.anonymousAllowed || endpoint.allowAnonymous;
         settings.trustedClientsOnly = settings.trustedClientsOnly || endpoint.trustedClientsOnly;
-        if (endpoint.usernamePassword) {
-            if (endpoint.username.isEmpty())
-                return failure(tr("Endpoint %1 accepts user names but has none set").arg(label(endpoint)));
-            settings.users.append({ endpoint.username, endpoint.password });
-        }
+        settings.usernameAllowed = settings.usernameAllowed || endpoint.usernamePassword;
     }
     if (first)
         return failure(tr("No endpoint is enabled"));
