@@ -67,6 +67,17 @@ QList<TreeNode> sampleTree()
     return { motor, views };
 }
 
+///
+/// \brief Reports whether two colours differ by more than faint anti-aliasing coverage.
+/// \return True when any channel differs by more than a few levels.
+///
+bool visiblyDifferent(const QColor &a, const QColor &b)
+{
+    constexpr int tolerance = 8;
+    return qAbs(a.red() - b.red()) > tolerance || qAbs(a.green() - b.green()) > tolerance
+           || qAbs(a.blue() - b.blue()) > tolerance || qAbs(a.alpha() - b.alpha()) > tolerance;
+}
+
 }
 
 class TestWidgets : public QObject
@@ -320,11 +331,11 @@ void TestWidgets::appStyleSpacesToolbarButtonLabels()
         else
             QVERIFY(qAbs(iconLeft - (image.width() - (iconLeft + 22 + 10 + textWidth))) <= 1);
 
-        // The gap repeats the background left of the icon, so no text intrudes into it.
+        // The gap repeats the background left of the icon, so no text intrudes into it; FreeType may leave faint coverage.
         for (int x = iconLeft + 22; x < iconLeft + 32; ++x) {
             for (int y = 0; y < image.height(); ++y) {
                 const QColor background = image.pixelColor(iconLeft - 2, y);
-                if (image.pixelColor(x, y) != background)
+                if (visiblyDifferent(image.pixelColor(x, y), background))
                     QFAIL(qPrintable(QStringLiteral("%1: pixel (%2, %3) is %4, background %5; icon at %6, font %7 %8px")
                                          .arg(flat ? QStringLiteral("flat") : QStringLiteral("bordered"))
                                          .arg(x).arg(y)
