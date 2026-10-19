@@ -54,6 +54,8 @@ private slots:
     void generateReplacesServerCertificate();
     void addsCertificateFromMemory();
     void rejectedClientLandsInRejectedFolder();
+    void trustedClientsOnlyRejectsClientsWithEmptyTrustList();
+    void anyClientConnectsWithoutTrustedClientsOnly();
 
 private:
     QTemporaryDir *_directory = nullptr;
@@ -366,6 +368,7 @@ void TestCertificateStore::rejectedClientLandsInRejectedFolder()
     endpoint.port = TestPort::freePort();
     endpoint.securityPolicy = QStringLiteral("Basic256Sha256");
     endpoint.securityMode = QStringLiteral("Sign & Encrypt");
+    endpoint.trustedClientsOnly = true;
 
     ServerController controller;
     controller.certificateStore().setRoot(_directory->path());
@@ -393,6 +396,70 @@ void TestCertificateStore::rejectedClientLandsInRejectedFolder()
     QCOMPARE(rejected.size(), 1);
     QCOMPARE(rejected.first().commonName, QStringLiteral("Stranger Client"));
     QVERIFY(!controller.isRestartRequired());
+#endif
+}
+
+namespace {
+
+///
+/// \brief Starts a server whose only endpoint is Basic256Sha256 / Sign & Encrypt, then connects as the stranger client.
+/// \param controller Controller to start; its store must already point at the test directory.
+/// \param trustedClientsOnly Whether the endpoint accepts only trusted clients.
+/// \return Connection status.
+///
+UA_StatusCode connectStranger(ServerController &controller, bool trustedClientsOnly)
+{
+    ProjectConfig project = DefaultProject::create();
+    EndpointInfo &endpoint = project.endpoints.first();
+    endpoint.port = TestPort::freePort();
+    endpoint.securityPolicy = QStringLiteral("Basic256Sha256");
+    endpoint.securityMode = QStringLiteral("Sign & Encrypt");
+    endpoint.trustedClientsOnly = trustedClientsOnly;
+    controller.setProject(project);
+    if (!controller.start())
+        return UA_STATUSCODE_BADINTERNALERROR;
+
+    QFile certificate(testData(QStringLiteral("stranger.der")));
+    QFile key(testData(QStringLiteral("stranger.key.der")));
+    if (!certificate.open(QIODevice::ReadOnly) || !key.open(QIODevice::ReadOnly))
+        return UA_STATUSCODE_BADINTERNALERROR;
+    UaTestClient client;
+    const UA_StatusCode encryption =
+        client.setEncryption(certificate.readAll(), key.readAll(), QStringLiteral("urn:openuasim:test:stranger"));
+    return encryption != UA_STATUSCODE_GOOD ? encryption : client.connect(controller.server().endpointUrl());
+}
+
+}
+
+void TestCertificateStore::trustedClientsOnlyRejectsClientsWithEmptyTrustList()
+{
+#ifndef OUASIM_HAVE_ENCRYPTION
+    QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+#else
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    QSignalSpy changed(&controller, &ServerController::certificatesChanged);
+    QVERIFY(connectStranger(controller, true) != UA_STATUSCODE_GOOD);
+
+    QTRY_VERIFY(changed.count() >= 2);
+    QStringList rejected;
+    for (const CertificateInfo &info : controller.certificates()) {
+        if (info.category == Category::Rejected)
+            rejected << info.commonName;
+    }
+    QCOMPARE(rejected, QStringList { QStringLiteral("Stranger Client") });
+#endif
+}
+
+void TestCertificateStore::anyClientConnectsWithoutTrustedClientsOnly()
+{
+#ifndef OUASIM_HAVE_ENCRYPTION
+    QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+#else
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    QVERIFY(controller.importCertificate(testData(QStringLiteral("client.der")), Category::Trusted));
+    QCOMPARE(connectStranger(controller, false), UA_STATUSCODE_GOOD);
 #endif
 }
 

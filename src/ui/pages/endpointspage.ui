@@ -493,14 +493,17 @@
                </widget>
               </item>
               <item row="9" column="0">
-               <widget class="QLabel" name="requireCertificateLabel">
+               <widget class="QLabel" name="trustedClientsOnlyLabel">
                 <property name="text">
-                 <string>Require Client Certificate</string>
+                 <string>Trusted Clients Only</string>
                 </property>
                </widget>
               </item>
               <item row="9" column="1">
-               <widget class="QCheckBox" name="requireCertificateCheck">
+               <widget class="QCheckBox" name="trustedClientsOnlyCheck">
+                <property name="toolTip">
+                 <string>Reject clients whose certificate is not trusted; they are listed under Rejected Certificates. Applies to every endpoint of the server.</string>
+                </property>
                 <property name="text">
                  <string>Enabled</string>
                 </property>

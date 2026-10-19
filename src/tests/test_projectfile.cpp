@@ -51,6 +51,7 @@ private slots:
     void preservesEveryDataTypeValue();
     void emptyProjectRoundTrips();
     void missingFieldsUseDefaults();
+    void keepsTrustedClientsOnlyKey();
     void rejectsMalformedJson();
     void rejectsNonObjectRoot();
     void rejectsMissingVersion();
@@ -160,6 +161,15 @@ void TestProjectFile::missingFieldsUseDefaults()
     QCOMPARE(variable.initialValue, QVariant(0.0));
     QCOMPARE(variable.simulation.function, SimulationFunction::None);
     QCOMPARE(variable.simulation.intervalMs, 1000);
+}
+
+void TestProjectFile::keepsTrustedClientsOnlyKey()
+{
+    ProjectConfig original = DefaultProject::create();
+    original.endpoints.first().trustedClientsOnly = true;
+    const QByteArray json = ProjectFile::toJson(original);
+    QVERIFY(json.contains("requireClientCertificate"));
+    QVERIFY(ProjectFile::fromJson(json).project.endpoints.first().trustedClientsOnly);
 }
 
 void TestProjectFile::rejectsMalformedJson()

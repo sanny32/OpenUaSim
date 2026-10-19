@@ -267,8 +267,10 @@ bool SimServer::configureSecurity(const ListenerSettings &listener)
 #ifdef OUASIM_HAVE_ENCRYPTION
     _server->setCertificate(_pki.certificate);
     _server->setPrivateKey(_pki.privateKey);
-    _server->setTrustedCertificates(_pki.trusted);
+    // An empty trusted list makes open62541 accept any client certificate.
+    _server->setTrustedCertificates(listener.trustedClientsOnly ? _pki.trusted : QList<QByteArray>());
     _server->setIssuerCertificates(_pki.issuers);
+    _server->setRejectUntrustedCertificates(listener.trustedClientsOnly);
     _server->setSecurityPolicies(securityPolicies(listener.securityPolicies));
     _server->setSecurityModes(securityModes(listener.securityModes));
     const bool secureAvailable = !_server->certificate().isEmpty() && !_server->privateKey().isEmpty();

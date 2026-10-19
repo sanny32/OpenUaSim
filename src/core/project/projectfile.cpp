@@ -164,7 +164,8 @@ QJsonObject endpointToJson(const EndpointInfo &endpoint)
         { QStringLiteral("usernamePassword"), endpoint.usernamePassword },
         { QStringLiteral("username"), endpoint.username },
         { QStringLiteral("password"), endpoint.password },
-        { QStringLiteral("requireClientCertificate"), endpoint.requireClientCertificate },
+        // Key of the former "Require Client Certificate" option, kept so existing projects load unchanged.
+        { QStringLiteral("requireClientCertificate"), endpoint.trustedClientsOnly },
     };
 }
 
@@ -188,8 +189,8 @@ EndpointInfo endpointFromJson(const QJsonObject &json)
     endpoint.usernamePassword = json.value(QStringLiteral("usernamePassword")).toBool(endpoint.usernamePassword);
     endpoint.username = json.value(QStringLiteral("username")).toString();
     endpoint.password = json.value(QStringLiteral("password")).toString();
-    endpoint.requireClientCertificate =
-        json.value(QStringLiteral("requireClientCertificate")).toBool(endpoint.requireClientCertificate);
+    endpoint.trustedClientsOnly =
+        json.value(QStringLiteral("requireClientCertificate")).toBool(endpoint.trustedClientsOnly);
     return endpoint;
 }
 

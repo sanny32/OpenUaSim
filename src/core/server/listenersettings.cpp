@@ -133,6 +133,7 @@ ListenerSettings build(const QList<EndpointInfo> &endpoints)
         appendUnique(settings.securityModes, endpoint.securityMode);
 
         settings.anonymousAllowed = settings.anonymousAllowed || endpoint.allowAnonymous;
+        settings.trustedClientsOnly = settings.trustedClientsOnly || endpoint.trustedClientsOnly;
         if (endpoint.usernamePassword) {
             if (endpoint.username.isEmpty())
                 return failure(tr("Endpoint '%1' accepts user names but has none set").arg(endpoint.name));

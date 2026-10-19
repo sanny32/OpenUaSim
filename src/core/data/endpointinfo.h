@@ -42,8 +42,8 @@ struct EndpointInfo
     QString username;
     /// \brief Password for username/password tokens.
     QString password;
-    /// \brief Whether clients must present a certificate.
-    bool requireClientCertificate = false;
+    /// \brief Whether only clients with a trusted certificate are accepted; untrusted ones are rejected.
+    bool trustedClientsOnly = false;
 
     ///
     /// \brief Builds the endpoint URL from its parts.

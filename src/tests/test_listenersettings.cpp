@@ -31,6 +31,7 @@ private slots:
     void skipsDisabledEndpoints();
     void collectsUsers();
     void anonymousWhenAnyEndpointAllowsIt();
+    void trustedClientsOnlyWhenAnyEnabledEndpointIs();
     void rejectsNoEnabledEndpoint();
     void rejectsDifferentPorts();
     void rejectsInvalidPort();
@@ -87,6 +88,16 @@ void TestListenerSettings::anonymousWhenAnyEndpointAllowsIt()
     closed.allowAnonymous = false;
     QVERIFY(!ListenerSettingsBuilder::build({ closed }).anonymousAllowed);
     QVERIFY(ListenerSettingsBuilder::build({ closed, endpoint(QStringLiteral("b")) }).anonymousAllowed);
+}
+
+void TestListenerSettings::trustedClientsOnlyWhenAnyEnabledEndpointIs()
+{
+    EndpointInfo strict = endpoint(QStringLiteral("b"));
+    strict.trustedClientsOnly = true;
+    QVERIFY(!ListenerSettingsBuilder::build({ endpoint(QStringLiteral("a")) }).trustedClientsOnly);
+    QVERIFY(ListenerSettingsBuilder::build({ endpoint(QStringLiteral("a")), strict }).trustedClientsOnly);
+    strict.enabled = false;
+    QVERIFY(!ListenerSettingsBuilder::build({ endpoint(QStringLiteral("a")), strict }).trustedClientsOnly);
 }
 
 void TestListenerSettings::rejectsNoEnabledEndpoint()

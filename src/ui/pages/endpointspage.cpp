@@ -123,7 +123,7 @@ void EndpointsPage::showEndpoint(const QModelIndex &current)
     ui->usernameEdit->setText(endpoint.username);
     ui->passwordEdit->clear();
     ui->passwordEdit->setPlaceholderText(endpoint.password.isEmpty() ? QString() : tr("Unchanged"));
-    ui->requireCertificateCheck->setChecked(endpoint.requireClientCertificate);
+    ui->trustedClientsOnlyCheck->setChecked(endpoint.trustedClientsOnly);
     ui->enabledCheck->setChecked(endpoint.enabled);
     updateCredentialFields();
 }
@@ -200,7 +200,7 @@ EndpointInfo EndpointsPage::editedEndpoint(int row) const
     endpoint.username = ui->usernameEdit->text().trimmed();
     if (!ui->passwordEdit->text().isEmpty())
         endpoint.password = ui->passwordEdit->text();
-    endpoint.requireClientCertificate = ui->requireCertificateCheck->isChecked();
+    endpoint.trustedClientsOnly = ui->trustedClientsOnlyCheck->isChecked();
     endpoint.enabled = ui->enabledCheck->isChecked();
     return endpoint;
 }

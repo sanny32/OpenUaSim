@@ -26,6 +26,8 @@ struct ListenerSettings
     quint16 port = kDefaultEndpointPort;
     /// \brief Whether any enabled endpoint accepts anonymous user tokens.
     bool anonymousAllowed = false;
+    /// \brief Whether any enabled endpoint accepts only trusted clients; the check then covers every client.
+    bool trustedClientsOnly = false;
     /// \brief User names and passwords of the endpoints accepting username tokens.
     QList<QPair<QString, QString>> users;
     /// \brief Distinct security policy names of the enabled endpoints, e.g. "Basic256Sha256".
