@@ -38,7 +38,7 @@ src/
   core/     UI-independent code
     data/        plain structs describing the project and the server state
     models/      Qt item models over that data
-    project/     project file, document, node tree helpers, NodeSet2 export
+    project/     project file, document and node tree helpers
     server/      SimServer, address space, controller, snapshot for the UI
     simulation/  waveforms, data type conversion, simulation engine
     pki/         certificate store

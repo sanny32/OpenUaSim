@@ -23,7 +23,6 @@
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
-#include "project/nodesetwriter.h"
 #include "project/projectdocument.h"
 #include "project/projectfile.h"
 #include "project/projectnodes.h"
@@ -36,6 +35,15 @@ namespace {
 constexpr double kEventLogShare = 0.28;
 constexpr int kPageShortcutCount = 9;
 constexpr int kStatusRefreshMs = 1000;
+
+///
+/// \brief Returns the file name filter of NodeSet2 files for file dialogs.
+/// \return Filter such as "NodeSet2 XML (*.xml)".
+///
+QString nodeSetFilter()
+{
+    return QCoreApplication::translate("MainWindow", "NodeSet2 XML (*.xml)");
+}
 
 }
 
@@ -692,7 +700,7 @@ void MainWindow::importModel()
     if (!_controller)
         return;
     const QString fileName = QFileDialog::getOpenFileName(this, tr("Import Model"), QString(),
-                                                          NodeSetWriter::fileFilter());
+                                                          nodeSetFilter());
     if (!fileName.isEmpty())
         importModelFrom(fileName);
 }
@@ -705,7 +713,7 @@ void MainWindow::exportModel()
     if (!_controller)
         return;
     const QString fileName = QFileDialog::getSaveFileName(this, tr("Export Model"), QString(),
-                                                          NodeSetWriter::fileFilter());
+                                                          nodeSetFilter());
     if (!fileName.isEmpty())
         exportModelTo(fileName);
 }

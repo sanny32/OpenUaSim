@@ -89,12 +89,12 @@ public:
     bool importNodeSet(const QString &fileName, QString *error = nullptr);
 
     ///
-    /// \brief Writes the project nodes as a NodeSet2 file.
+    /// \brief Writes the nodes of the application namespace, i.e. the project nodes, as a NodeSet2 file.
     /// \param fileName Target path.
     /// \param error Receives the reason on failure; may be null.
-    /// \return True when the file was written.
+    /// \return True when the file was written; values that cannot be exported are logged.
     ///
-    bool exportNodeSet(const QString &fileName, QString *error = nullptr) const;
+    bool exportNodeSet(const QString &fileName, QString *error = nullptr);
 
     ///
     /// \brief Tells whether the running server still serves older endpoint or certificate settings.

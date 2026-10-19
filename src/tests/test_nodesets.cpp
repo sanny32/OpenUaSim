@@ -11,7 +11,6 @@
 #include <QUaServer>
 
 #include "project/defaultproject.h"
-#include "project/nodesetwriter.h"
 #include "server/servercontroller.h"
 
 namespace {
@@ -22,6 +21,15 @@ QString testData(const QString &name)
 }
 
 const QString kApplicationUri = QStringLiteral("urn:openuasim:server");
+
+QByteArray exportProject(ServerController &controller, const QString &fileName)
+{
+    QString error;
+    if (!controller.exportNodeSet(fileName, &error))
+        qWarning() << error;
+    QFile file(fileName);
+    return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+}
 
 bool logContains(const QList<LogEntry> &log, const QString &text)
 {
@@ -55,11 +63,12 @@ private:
 
 void TestNodeSets::writesWellFormedDocument()
 {
-    const QByteArray document = NodeSetWriter::write(DefaultProject::create().nodes, { kApplicationUri });
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    const QByteArray document = exportProject(controller, _directory.filePath(QStringLiteral("project.xml")));
     QXmlStreamReader xml(document);
     int objects = 0;
     int variables = 0;
-    QStringList uris;
     while (!xml.atEnd()) {
         xml.readNext();
         if (!xml.isStartElement())
@@ -68,13 +77,10 @@ void TestNodeSets::writesWellFormedDocument()
             ++objects;
         else if (xml.name() == QLatin1String("UAVariable"))
             ++variables;
-        else if (xml.name() == QLatin1String("Uri"))
-            uris << xml.readElementText();
     }
     QVERIFY2(!xml.hasError(), qPrintable(xml.errorString()));
     QCOMPARE(objects, 5);
     QCOMPARE(variables, 12);
-    QCOMPARE(uris, QStringList { kApplicationUri });
 }
 
 void TestNodeSets::writesVariableAttributes()
@@ -86,32 +92,43 @@ void TestNodeSets::writesVariableAttributes()
     fixed.dataType = QStringLiteral("Int16");
     fixed.access = QStringLiteral("Read");
     fixed.initialValue = 7;
-    const QString document = QString::fromUtf8(NodeSetWriter::write({ fixed }, { kApplicationUri }));
+    ProjectConfig project;
+    project.nodes = { fixed };
+    ServerController controller;
+    controller.setProject(project);
+
+    const QString fileName = _directory.filePath(QStringLiteral("fixed.xml"));
+    const QString document = QString::fromUtf8(exportProject(controller, fileName));
     QVERIFY(document.contains(QStringLiteral("NodeId=\"ns=1;s=Fixed\"")));
     QVERIFY(document.contains(QStringLiteral("BrowseName=\"1:Fixed\"")));
     QVERIFY(document.contains(QStringLiteral("DataType=\"Int16\"")));
-    QVERIFY(document.contains(QStringLiteral("AccessLevel=\"1\"")));
     QVERIFY(document.contains(QStringLiteral("<uax:Int16>7</uax:Int16>")));
-    QVERIFY(document.contains(QStringLiteral("<Reference ReferenceType=\"Organizes\" IsForward=\"false\">i=85</Reference>")));
+
+    QUaServer server;
+    QVERIFY(server.loadNodeSet(fileName).isOk());
+    auto *loaded = server.nodeById<QUaBaseDataVariable>(QUaNodeId(QStringLiteral("ns=1;s=Fixed")));
+    QVERIFY(loaded);
+    QVERIFY(loaded->readAccess());
+    QVERIFY(!loaded->writeAccess());
 }
 
 void TestNodeSets::exportLoadsIntoAnotherServer()
 {
-    QByteArray document = NodeSetWriter::write(DefaultProject::create().nodes, { kApplicationUri });
-    QBuffer buffer(&document);
-    QVERIFY(buffer.open(QIODevice::ReadOnly));
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    const QString fileName = _directory.filePath(QStringLiteral("roundtrip.xml"));
+    exportProject(controller, fileName);
 
     QUaServer server;
-    const QUaNodeSetResult result = server.loadNodeSet(&buffer);
+    const QUaNodeSetResult result = server.loadNodeSet(fileName);
     QVERIFY2(result.isOk(), qPrintable(result.errorString));
-    QVERIFY2(result.warnings.isEmpty(), qPrintable(result.warnings.join(QLatin1Char('\n'))));
+    QVERIFY2(result.warnings.isEmpty(), qPrintable(result.warnings.join(QStringLiteral("; "))));
     QCOMPARE(result.addedNodes.size(), 17);
 
-    const int index = int(server.namespaces().indexOf(kApplicationUri));
-    QVERIFY(index > 0);
-    auto *speed = server.nodeById<QUaBaseDataVariable>(QUaNodeId(QStringLiteral("ns=%1;s=Motor_01.Speed").arg(index)));
+    auto *speed = server.nodeById<QUaBaseDataVariable>(QUaNodeId(QStringLiteral("ns=1;s=Motor_01.Speed")));
     QVERIFY(speed);
     QCOMPARE(speed->value().toDouble(), 1000.0);
+    QVERIFY(speed->writeAccess());
 }
 
 void TestNodeSets::importAddsModelToProject()

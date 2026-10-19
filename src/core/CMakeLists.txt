@@ -45,8 +45,6 @@ add_library(ouasim_core STATIC
 
     project/defaultproject.cpp
     project/defaultproject.h
-    project/nodesetwriter.cpp
-    project/nodesetwriter.h
     project/projectdocument.cpp
     project/projectdocument.h
     project/projectfile.cpp

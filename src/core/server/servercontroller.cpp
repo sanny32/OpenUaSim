@@ -15,7 +15,6 @@
 #include "formatting.h"
 #include "listenersettings.h"
 #include "logmapper.h"
-#include "project/nodesetwriter.h"
 #include "project/projectnodes.h"
 #include "servercontroller.h"
 #include "snapshotbuilder.h"
@@ -82,15 +81,21 @@ bool ServerController::importNodeSet(const QString &fileName, QString *error)
 }
 
 ///
-/// \brief Writes the project nodes as a NodeSet2 file.
+/// \brief Writes the nodes of the application namespace, i.e. the project nodes, as a NodeSet2 file.
 /// \param fileName Target path.
 /// \param error Receives the reason on failure; may be null.
-/// \return True when the file was written.
+/// \return True when the file was written; values that cannot be exported are logged.
 ///
-bool ServerController::exportNodeSet(const QString &fileName, QString *error) const
+bool ServerController::exportNodeSet(const QString &fileName, QString *error)
 {
-    const QStringList namespaces = _server.uaServer()->namespaces().mid(1);
-    return NodeSetWriter::save(_project.nodes, namespaces, fileName, error);
+    const QString applicationNamespace = _server.uaServer()->namespaces().value(1);
+    const QUaNodeSetExportResult result = _server.uaServer()->exportNodeSet(fileName, { applicationNamespace });
+    for (const QString &warning : result.warnings)
+        appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
+                                   tr("Model export: %1").arg(warning)));
+    if (!result.isOk() && error)
+        *error = result.errorString;
+    return result.isOk();
 }
 
 ///
