@@ -87,7 +87,7 @@ public:
     ///        simulation; a valid initial value, typed text or a value, replaces the stored one.
     /// \param error Receives the reason on failure; may be null.
     /// \return False when the change was refused, e.g. for text that is no value of the data type. A new
-    ///         name or data type rebuilds the address space; other changes apply to the live variable,
+    ///         name, data type or array length rebuilds the address space; other changes apply to the live variable,
     ///         and a new initial value becomes its current value.
     ///
     bool updateVariable(const VariableInfo &variable, QString *error = nullptr);

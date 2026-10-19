@@ -42,17 +42,17 @@ QUaStatusCode statusCodeOf(VariableInfo::Quality quality)
 }
 
 ///
-/// \brief Sets a variable's value with the Qt type of a data type.
+/// \brief Sets a variable's value with the Qt type of its data type.
 /// \param variable Variable to update.
-/// \param value Value to convert.
-/// \param dataType Built-in data type name.
-/// \param quality Quality reported with the value.
+/// \param value Value to convert; a scalar fills every element of an array.
+/// \param shape Data type, array length and quality of the variable.
 ///
-void setTypedValue(QUaBaseDataVariable *variable, const QVariant &value, const QString &dataType,
-                   VariableInfo::Quality quality)
+void setTypedValue(QUaBaseDataVariable *variable, const QVariant &value, const AddressSpace::VariableShape &shape)
 {
-    variable->setValue(ValueCast::convert(value, dataType), statusCodeOf(quality), QDateTime(), QDateTime(),
-                       ValueCast::metaType(dataType));
+    const QVariant typed = shape.arrayLength > 0
+        ? QVariant(ValueCast::toArray(value, shape.dataType, shape.arrayLength))
+        : ValueCast::convert(value, shape.dataType);
+    variable->setValue(typed, statusCodeOf(shape.quality), QDateTime(), QDateTime(), ValueCast::metaType(shape.dataType));
 }
 
 }
@@ -103,8 +103,7 @@ void AddressSpace::clear()
         delete root.data();
     _roots.clear();
     _variables.clear();
-    _dataTypes.clear();
-    _qualities.clear();
+    _shapes.clear();
     _variableIds.clear();
     _nodeCount = 0;
 }
@@ -178,7 +177,7 @@ VariableInfo::Quality AddressSpace::qualityOf(const QUaBaseVariable &variable)
 ///
 /// \brief Sets the value of a variable from the server side, keeping its data type.
 /// \param nodeId Variable node id.
-/// \param value New value, converted to the variable's data type.
+/// \param value New value, converted to the variable's data type; a scalar fills every element of an array.
 /// \return False for an unknown variable.
 ///
 bool AddressSpace::setValue(const QString &nodeId, const QVariant &value)
@@ -186,7 +185,7 @@ bool AddressSpace::setValue(const QString &nodeId, const QVariant &value)
     QUaBaseDataVariable *variable = _variables.value(nodeId);
     if (!variable)
         return false;
-    setTypedValue(variable, value, _dataTypes.value(nodeId), _qualities.value(nodeId));
+    setTypedValue(variable, value, _shapes.value(nodeId));
     return true;
 }
 
@@ -216,7 +215,7 @@ bool AddressSpace::setQuality(const QString &nodeId, VariableInfo::Quality quali
     QUaBaseDataVariable *variable = _variables.value(nodeId);
     if (!variable)
         return false;
-    _qualities.insert(nodeId, quality);
+    _shapes[nodeId].quality = quality;
     variable->setStatusCode(statusCodeOf(quality));
     return true;
 }
@@ -298,11 +297,15 @@ QUaBaseDataVariable *AddressSpace::addVariable(QUaNode *parent, const NodeDefini
         parent->addBaseDataVariable(QUaQualifiedName(kApplicationNamespace, node.browseName), QUaNodeId(node.nodeId));
     if (!variable)
         return nullptr;
-    setTypedValue(variable, node.initialValue, node.dataType, node.quality);
+    const VariableShape shape { node.dataType, node.arrayLength, node.quality };
+    setTypedValue(variable, node.initialValue, shape);
+    if (shape.arrayLength > 0) {
+        variable->setValueRank(1);
+        variable->setArrayDimensions({ quint32(shape.arrayLength) });
+    }
     applyAccess(variable, node.access);
     _variables.insert(node.nodeId, variable);
-    _dataTypes.insert(node.nodeId, node.dataType);
-    _qualities.insert(node.nodeId, node.quality);
+    _shapes.insert(node.nodeId, shape);
     _variableIds.insert(variable, node.nodeId);
     connect(variable, &QUaBaseVariable::valueChanged, this, &AddressSpace::handleValueChanged);
     return variable;

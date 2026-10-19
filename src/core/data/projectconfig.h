@@ -40,6 +40,8 @@ struct NodeDefinition
     QString access = QStringLiteral("Read/Write");
     /// \brief Value the variable starts with; variables only.
     QVariant initialValue;
+    /// \brief Number of elements of an array variable; 0 for a scalar. Variables only.
+    int arrayLength = 0;
     /// \brief Quality reported with every value, e.g. Bad to test client handling; variables only.
     VariableInfo::Quality quality = VariableInfo::Quality::Good;
     /// \brief Simulation driving the value; variables only.
@@ -58,6 +60,9 @@ struct UserAccount
     /// \brief Password.
     QString password;
 };
+
+/// \brief Largest array a variable may hold, keeping the simulation and the tables responsive.
+constexpr int kMaxArrayLength = 1000;
 
 /// \brief Largest session limit the server takes; QUaServer stores it as a 16-bit count.
 constexpr int kMaxSessionLimit = 65535;

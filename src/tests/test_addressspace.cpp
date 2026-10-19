@@ -62,6 +62,7 @@ private slots:
     void clientReadsAndWrites();
     void readOnlyVariableRejectsClientWrite();
     void appliesConfiguredQuality();
+    void buildsArrayVariables();
     void clientReadsBadQuality();
 };
 
@@ -256,6 +257,33 @@ void TestAddressSpace::appliesConfiguredQuality()
     QVERIFY(space.setValue(level.nodeId, 4.0));
     QCOMPARE(space.quality(level.nodeId), VariableInfo::Quality::Good);
     QVERIFY(!space.setQuality(QStringLiteral("ns=1;s=None"), VariableInfo::Quality::Bad));
+}
+
+void TestAddressSpace::buildsArrayVariables()
+{
+    ProjectConfig project = serverProject(TestPort::freePort());
+    NodeDefinition levels = variable(QStringLiteral("Levels"), QStringLiteral("Int32"));
+    levels.arrayLength = 3;
+    levels.initialValue = 4;
+    project.nodes = { folder(QStringLiteral("Test"), { levels }) };
+
+    SimServer server;
+    AddressSpace space(server.uaServer());
+    QVERIFY(space.build(project.nodes).isEmpty());
+    QCOMPARE(space.value(levels.nodeId).toList(), QVariantList({ 4, 4, 4 }));
+    auto *built = server.uaServer()->nodeById<QUaBaseDataVariable>(QUaNodeId(levels.nodeId));
+    QCOMPARE(built->valueRank(), 1);
+    QCOMPARE(built->arrayDimensions(), QVector<quint32>({ 3 }));
+
+    QVERIFY(space.setValue(levels.nodeId, QVariantList { 1.4, 2.6 }));
+    QCOMPARE(space.value(levels.nodeId).toList(), QVariantList({ 1, 3, 0 }));
+
+    QVERIFY(server.start(project));
+    UaTestClient client;
+    QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
+    QVariant value;
+    QCOMPARE(client.readValue(levels.nodeId, value), UA_STATUSCODE_GOOD);
+    QCOMPARE(value.toList(), QVariantList({ 1, 3, 0 }));
 }
 
 void TestAddressSpace::clientReadsBadQuality()

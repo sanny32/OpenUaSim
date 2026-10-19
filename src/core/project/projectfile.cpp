@@ -170,6 +170,8 @@ QJsonObject nodeToJson(const NodeDefinition &node)
         json.insert(QStringLiteral("dataType"), node.dataType);
         json.insert(QStringLiteral("access"), node.access);
         json.insert(QStringLiteral("initialValue"), valueToJson(node.initialValue));
+        if (node.arrayLength > 0)
+            json.insert(QStringLiteral("arrayLength"), node.arrayLength);
         json.insert(QStringLiteral("quality"), qualityKey(node.quality));
         json.insert(QStringLiteral("simulation"), simulationToJson(node.simulation));
     } else {
@@ -336,6 +338,9 @@ bool NodeReader::readVariable(const QJsonObject &json, const QString &path, Node
         return fail(path, tr("unknown access level '%1'").arg(node.access));
 
     node.initialValue = valueFromJson(json.value(QStringLiteral("initialValue")), node.dataType);
+    node.arrayLength = json.value(QStringLiteral("arrayLength")).toInt(0);
+    if (node.arrayLength < 0 || node.arrayLength > kMaxArrayLength)
+        return fail(path, tr("array length %1 is outside 0..%2").arg(node.arrayLength).arg(kMaxArrayLength));
 
     const QString quality = json.value(QStringLiteral("quality")).toString(qualityKey(node.quality));
     if (!qualityFromKey(quality, node.quality))

@@ -251,6 +251,11 @@ void TestServerController::updateVariableRenameRebuilds()
     QVERIFY(controller.updateVariable(level));
     QCOMPARE(structure.count(), 1);
     QCOMPARE(controller.addressSpace().value(level.nodeId).typeId(), int(QMetaType::Float));
+
+    level.arrayLength = 2;
+    QVERIFY(controller.updateVariable(level));
+    QCOMPARE(structure.count(), 2);
+    QCOMPARE(controller.addressSpace().value(level.nodeId).toList().size(), 2);
 }
 
 void TestServerController::updateVariableReportsRefusal()

@@ -57,6 +57,7 @@ private slots:
     void clampsFastIntervals();
     void tickWritesOnlyItsInterval();
     void tickFollowsElapsedTime();
+    void shiftsArrayElements();
     void convertsToDataType();
     void skipsMissingVariables();
     void updateAndRemoveRebuildTimers();
@@ -130,6 +131,19 @@ void TestSimulationEngine::tickFollowsElapsedTime()
     now = 500;
     engine.tick(100);
     QCOMPARE(sink.values.value(QStringLiteral("ramp")).toDouble(), 100.0);
+}
+
+void TestSimulationEngine::shiftsArrayElements()
+{
+    FakeSink sink;
+    SimulationEngine engine(&sink);
+    engine.setElapsedSource([] { return qint64(0); });
+    SimulatedVariable ramp = simulated(QStringLiteral("ramp"), SimulationFunction::Ramp, 100);
+    ramp.arrayLength = 4;
+    engine.setVariables({ ramp });
+
+    engine.tick(100);
+    QCOMPARE(sink.values.value(QStringLiteral("ramp")).toList(), QVariantList({ 90.0, 95.0, 100.0, 105.0 }));
 }
 
 void TestSimulationEngine::convertsToDataType()

@@ -244,6 +244,40 @@ QVariant convert(const QVariant &value, const QString &dataType)
 }
 
 ///
+/// \brief Tells whether a value holds a sequence of values, such as a QVariantList or a QList<double>.
+/// \param value Value to inspect.
+/// \return True for sequences; false for strings and byte arrays, which Qt can also iterate.
+///
+bool isArray(const QVariant &value)
+{
+    return value.typeId() != QMetaType::QString && value.typeId() != QMetaType::QByteArray
+        && value.canConvert<QVariantList>();
+}
+
+///
+/// \brief Converts a value to a fixed-length array of a data type.
+/// \param value A list, whose elements are converted, or a scalar, which fills every element.
+/// \param dataType Built-in data type name of the elements.
+/// \param length Number of elements.
+/// \return List of exactly length elements; a short list is padded with defaultValue().
+///
+QVariantList toArray(const QVariant &value, const QString &dataType, int length)
+{
+    QVariantList result;
+    result.reserve(qMax(0, length));
+    if (isArray(value)) {
+        const QVariantList elements = value.toList();
+        for (int index = 0; index < length; ++index)
+            result.append(index < elements.size() ? convert(elements.at(index), dataType) : defaultValue(dataType));
+        return result;
+    }
+    const QVariant element = convert(value, dataType);
+    for (int index = 0; index < length; ++index)
+        result.append(element);
+    return result;
+}
+
+///
 /// \brief Parses text a user typed as a value of a data type.
 /// \param text Text to parse; surrounding spaces are ignored except for String.
 /// \param dataType Built-in data type name.

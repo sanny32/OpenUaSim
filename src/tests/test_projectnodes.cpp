@@ -42,6 +42,7 @@ private slots:
     void updateConvertsInitialValue();
     void updateRejectsInvalidChanges_data();
     void updateRejectsInvalidChanges();
+    void updateRejectsArrayLengthOutOfRange();
     void renamesAnyNodeKeepingIds();
     void renameRejectsInvalidNames_data();
     void renameRejectsInvalidNames();
@@ -182,6 +183,21 @@ void TestProjectNodes::updateRejectsInvalidChanges_data()
     QTest::newRow("sibling") << "ns=1;s=Motor_01.Speed" << "Running" << "Double"
                              << "A sibling is already named 'Running'";
     QTest::newRow("type") << "ns=1;s=Motor_01.Speed" << "Speed" << "Guid" << "Unsupported data type 'Guid'";
+}
+
+void TestProjectNodes::updateRejectsArrayLengthOutOfRange()
+{
+    QList<NodeDefinition> nodes = DefaultProject::create().nodes;
+    NodeDefinition edited = *ProjectNodes::find(nodes, QStringLiteral("ns=1;s=Motor_01.Speed"));
+    edited.arrayLength = kMaxArrayLength + 1;
+    QString error;
+    QVERIFY(!ProjectNodes::updateVariable(nodes, edited, &error));
+    QCOMPARE(error, QStringLiteral("The array length must be between 0 and 1000"));
+    QVERIFY(ProjectNodes::insert(nodes, QString(), edited, &error).isEmpty());
+
+    edited.arrayLength = 8;
+    QVERIFY(ProjectNodes::updateVariable(nodes, edited));
+    QCOMPARE(ProjectNodes::find(nodes, edited.nodeId)->arrayLength, 8);
 }
 
 void TestProjectNodes::updateRejectsInvalidChanges()

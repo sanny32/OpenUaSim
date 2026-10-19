@@ -8,6 +8,7 @@
 
 #include <limits>
 
+#include "data/projectconfig.h"
 #include "formatting.h"
 #include "itemroles.h"
 #include "objectspage.h"
@@ -39,6 +40,7 @@ ObjectsPage::ObjectsPage(QWidget *parent)
     fillCombos();
     ViewSetup::splitByStretch(ui->splitter);
     ViewSetup::bindCopyButton(ui->copyNodeIdButton, ui->nodeIdEdit);
+    ui->arrayLengthSpin->setMaximum(kMaxArrayLength);
 
     ViewSetup::installDelegate(ui->addressTree);
     ViewSetup::attachSearch(ui->addressTree, _treeModel, ui->searchEdit);
@@ -242,6 +244,7 @@ void ObjectsPage::showVariable(const QModelIndex &current)
     ui->displayNameEdit->setText(variable.displayName);
     ui->iconCombo->setCurrentIndex(ui->iconCombo->findData(variable.icon));
     ui->dataTypeCombo->setCurrentText(variable.dataType);
+    ui->arrayLengthSpin->setValue(variable.arrayLength);
     ui->accessCombo->setCurrentText(variable.access);
     ui->initialValueEdit->setText(Formatting::value(variable.initialValue));
     ui->qualityCombo->setCurrentIndex(ui->qualityCombo->findData(int(variable.configuredQuality)));
@@ -328,6 +331,7 @@ VariableInfo ObjectsPage::editedVariable() const
     if (ui->iconCombo->currentIndex() >= 0)
         variable.icon = ui->iconCombo->currentData().toString();
     variable.dataType = ui->dataTypeCombo->currentText();
+    variable.arrayLength = ui->arrayLengthSpin->value();
     variable.access = ui->accessCombo->currentText();
     variable.initialValue = ui->initialValueEdit->isModified() ? QVariant(ui->initialValueEdit->text()) : QVariant();
     variable.configuredQuality = VariableInfo::Quality(ui->qualityCombo->currentData().toInt());

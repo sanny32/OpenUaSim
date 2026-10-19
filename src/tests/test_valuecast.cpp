@@ -28,6 +28,8 @@ private slots:
     void parsesText();
     void rejectsInvalidText_data();
     void rejectsInvalidText();
+    void recognisesArrays();
+    void convertsToArrays();
 };
 
 void TestValueCast::convertsAnyValue_data()
@@ -187,6 +189,29 @@ void TestValueCast::rejectsInvalidText()
     QFETCH(QString, dataType);
 
     QVERIFY(!ValueCast::fromText(text, dataType).isValid());
+}
+
+void TestValueCast::recognisesArrays()
+{
+    QVERIFY(ValueCast::isArray(QVariantList { 1, 2 }));
+    QVERIFY(ValueCast::isArray(QVariant::fromValue(QList<double> { 1.5 })));
+    QVERIFY(!ValueCast::isArray(QStringLiteral("abc")));
+    QVERIFY(!ValueCast::isArray(QByteArray("abc")));
+    QVERIFY(!ValueCast::isArray(42));
+}
+
+void TestValueCast::convertsToArrays()
+{
+    const QVariantList filled = ValueCast::toArray(7.6, QStringLiteral("Int16"), 3);
+    QCOMPARE(filled.size(), 3);
+    for (const QVariant &element : filled)
+        QCOMPARE(element, QVariant::fromValue(qint16(8)));
+
+    const QVariantList padded = ValueCast::toArray(QVariant::fromValue(QList<double> { 1.0, 2.0 }),
+                                                   QStringLiteral("Double"), 3);
+    QCOMPARE(padded, QVariantList({ 1.0, 2.0, 0.0 }));
+    QCOMPARE(ValueCast::toArray(QVariantList { 1, 2, 3 }, QStringLiteral("Boolean"), 2), QVariantList({ true, true }));
+    QVERIFY(ValueCast::toArray(1, QStringLiteral("Double"), 0).isEmpty());
 }
 
 QTEST_GUILESS_MAIN(TestValueCast)

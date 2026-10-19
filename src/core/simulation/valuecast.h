@@ -69,4 +69,20 @@ QVariant convert(const QVariant &value, const QString &dataType);
 ///
 QVariant fromText(const QString &text, const QString &dataType);
 
+///
+/// \brief Tells whether a value holds a sequence of values, such as a QVariantList or a QList<double>.
+/// \param value Value to inspect.
+/// \return True for sequences; false for strings and byte arrays, which Qt can also iterate.
+///
+bool isArray(const QVariant &value);
+
+///
+/// \brief Converts a value to a fixed-length array of a data type.
+/// \param value A list, whose elements are converted, or a scalar, which fills every element.
+/// \param dataType Built-in data type name of the elements.
+/// \param length Number of elements.
+/// \return List of exactly length elements; a short list is padded with defaultValue().
+///
+QVariantList toArray(const QVariant &value, const QString &dataType, int length);
+
 }

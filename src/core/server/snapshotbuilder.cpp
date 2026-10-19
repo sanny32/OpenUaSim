@@ -176,6 +176,7 @@ VariableInfo variableInfo(const NodeDefinition &node, const AddressSpace &addres
     info.icon = iconOf(node);
     info.value = built ? addressSpace.value(node.nodeId) : node.initialValue;
     info.dataType = node.dataType;
+    info.arrayLength = node.arrayLength;
     info.access = node.access;
     info.quality = built ? addressSpace.quality(node.nodeId) : VariableInfo::Quality::Bad;
     info.initialValue = node.initialValue;

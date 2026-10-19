@@ -53,6 +53,7 @@ private slots:
     void itemTableModelReplacesItem();
     void itemTableModelAppendsWithLimit();
     void variablesModelUpdatesValues();
+    void variablesModelShowsArrays();
     void tableModelsHaveNoChildren();
     void variablesModel();
     void variablesModelQuality_data();
@@ -142,6 +143,17 @@ void TestTableModels::variablesModelUpdatesValues()
     QCOMPARE(model.item(0).value.toDouble(), 1.0);
     QCOMPARE(model.item(1).value.toDouble(), 7.5);
     QCOMPARE(model.index(1, VariablesModel::ColValue).data().toString(), QStringLiteral("7.5"));
+}
+
+void TestTableModels::variablesModelShowsArrays()
+{
+    VariableInfo levels = variable(QStringLiteral("a.Levels"), QVariantList { 1.5, 2.0 });
+    levels.dataType = QStringLiteral("Double");
+    levels.arrayLength = 2;
+    VariablesModel model;
+    model.setItems({ levels });
+    QCOMPARE(model.index(0, VariablesModel::ColDataType).data().toString(), QStringLiteral("Double[2]"));
+    QCOMPARE(model.index(0, VariablesModel::ColValue).data().toString(), QStringLiteral("[1.5, 2]"));
 }
 
 void TestTableModels::tableModelsHaveNoChildren()

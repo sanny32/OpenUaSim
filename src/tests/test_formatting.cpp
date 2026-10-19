@@ -78,6 +78,10 @@ void TestFormatting::value_data()
     QTest::newRow("true") << QVariant(true) << QStringLiteral("true");
     QTest::newRow("false") << QVariant(false) << QStringLiteral("false");
     QTest::newRow("integer") << QVariant(42) << QStringLiteral("42");
+    QTest::newRow("array") << QVariant(QVariantList { 1.5, true, 3 }) << QStringLiteral("[1.5, true, 3]");
+    QTest::newRow("typed array") << QVariant::fromValue(QList<double> { 1000.0, 2.5 })
+                                 << QStringLiteral("[1,000, 2.5]");
+    QTest::newRow("empty array") << QVariant(QVariantList()) << QStringLiteral("[]");
     QTest::newRow("string") << QVariant(QStringLiteral("text")) << QStringLiteral("text");
     QTest::newRow("invalid") << QVariant() << QString();
 }

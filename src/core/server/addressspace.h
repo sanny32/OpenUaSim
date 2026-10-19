@@ -32,6 +32,19 @@ class AddressSpace : public QObject, public ValueSink
 
 public:
     ///
+    /// \brief How the values of a built variable are typed and reported.
+    ///
+    struct VariableShape
+    {
+        /// \brief Built-in data type name of the value or its elements.
+        QString dataType;
+        /// \brief Number of array elements; 0 for a scalar.
+        int arrayLength = 0;
+        /// \brief Quality reported with every value.
+        VariableInfo::Quality quality = VariableInfo::Quality::Good;
+    };
+
+    ///
     /// \brief Creates an empty address space on a server.
     /// \param server Server that receives the nodes; must outlive this object.
     /// \param parent Owning QObject.
@@ -100,7 +113,7 @@ public:
     ///
     /// \brief Sets the value of a variable from the server side, keeping its data type.
     /// \param nodeId Variable node id.
-    /// \param value New value, converted to the variable's data type.
+    /// \param value New value, converted to the variable's data type; a scalar fills every element of an array.
     /// \return False for an unknown variable.
     ///
     bool setValue(const QString &nodeId, const QVariant &value) override;
@@ -138,8 +151,7 @@ private:
     QUaServer *_server;
     QList<QPointer<QUaNode>> _roots;
     QHash<QString, QPointer<QUaBaseDataVariable>> _variables;
-    QHash<QString, QString> _dataTypes;
-    QHash<QString, VariableInfo::Quality> _qualities;
+    QHash<QString, VariableShape> _shapes;
     QHash<const QObject *, QString> _variableIds;
     int _nodeCount = 0;
 };

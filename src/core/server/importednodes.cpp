@@ -10,6 +10,7 @@
 
 #include "addressspace.h"
 #include "importednodes.h"
+#include "simulation/valuecast.h"
 
 namespace {
 
@@ -40,6 +41,8 @@ VariableInfo variableInfo(const QUaBaseDataVariable &variable)
     info.icon = QStringLiteral("signal");
     info.value = variable.value();
     info.dataType = ImportedNodes::dataTypeName(variable.dataTypeNodeId());
+    if (ValueCast::isArray(info.value))
+        info.arrayLength = int(info.value.toList().size());
     info.access = accessText(variable);
     info.quality = AddressSpace::qualityOf(variable);
     info.configuredQuality = info.quality;

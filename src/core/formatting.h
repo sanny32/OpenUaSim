@@ -39,7 +39,7 @@ QString duration(qint64 seconds);
 /// \brief Formats a variable value for display.
 /// \param value Value to format.
 /// \return Doubles with every significant digit and group separators, booleans as "true"/"false",
-///         anything else through QVariant::toString().
+///         arrays as "[a, b, c]", anything else through QVariant::toString().
 ///
 QString value(const QVariant &value);
 

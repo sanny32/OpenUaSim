@@ -237,6 +237,13 @@ void TestPages::objectsPageAppliesEditedProperties()
     QCOMPARE(variable.simulation.offset, -1.0);
     QVERIFY(!variable.initialValue.isValid());
     QCOMPARE(variable.configuredQuality, VariableInfo::Quality::Good);
+    QCOMPARE(variable.arrayLength, 0);
+
+    auto *arrayLength = child<QSpinBox>(page, "arrayLengthSpin");
+    QCOMPARE(arrayLength->text(), QStringLiteral("Scalar"));
+    arrayLength->setValue(4);
+    child<QPushButton>(page, "applyButton")->click();
+    QCOMPARE(requested.last().first().value<VariableInfo>().arrayLength, 4);
 }
 
 void TestPages::objectsPageEditsValueList()

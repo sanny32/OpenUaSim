@@ -26,7 +26,7 @@ void collect(const QList<NodeDefinition> &nodes, QList<SimulatedVariable> &resul
 {
     for (const NodeDefinition &node : nodes) {
         if (node.kind == NodeDefinition::Kind::Variable && node.simulation.function != SimulationFunction::None)
-            result.append({ node.nodeId, node.dataType, node.simulation });
+            result.append({ node.nodeId, node.dataType, node.simulation, node.arrayLength });
         collect(node.children, result);
     }
 }
@@ -173,12 +173,31 @@ void SimulationEngine::tick(int intervalMs)
     for (const SimulatedVariable &variable : std::as_const(_variables)) {
         if (clampedInterval(variable.settings) != intervalMs)
             continue;
-        const QVariant value = SignalGenerator::sample(variable.settings, variable.dataType, elapsed, _random);
+        const QVariant value = sample(variable, elapsed);
         if (_sink->setValue(variable.nodeId, value))
             values.insert(variable.nodeId, value);
     }
     if (!values.isEmpty())
         emit valuesUpdated(values);
+}
+
+///
+/// \brief Computes the value of a variable at a point in time.
+/// \param variable Variable to simulate.
+/// \param elapsed Time since the simulation started, in milliseconds.
+/// \return Scalar value, or a list whose elements run the function shifted by equal parts of one cycle.
+///
+QVariant SimulationEngine::sample(const SimulatedVariable &variable, qint64 elapsed)
+{
+    if (variable.arrayLength <= 0)
+        return SignalGenerator::sample(variable.settings, variable.dataType, elapsed, _random);
+    const qint64 cycleMs = qMax(variable.settings.periodMs, variable.settings.intervalMs);
+    QVariantList elements;
+    elements.reserve(variable.arrayLength);
+    for (int index = 0; index < variable.arrayLength; ++index)
+        elements.append(SignalGenerator::sample(variable.settings, variable.dataType,
+                                                elapsed + cycleMs * index / variable.arrayLength, _random));
+    return elements;
 }
 
 ///

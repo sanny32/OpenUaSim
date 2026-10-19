@@ -225,7 +225,7 @@ QString ServerController::copyNode(const QString &nodeId, const QString &parentI
 ///        simulation; a valid initial value, typed text or a value, replaces the stored one.
 /// \param error Receives the reason on failure; may be null.
 /// \return False when the change was refused, e.g. for text that is no value of the data type. A new
-///         name or data type rebuilds the address space; other changes apply to the live variable,
+///         name, data type or array length rebuilds the address space; other changes apply to the live variable,
 ///         and a new initial value becomes its current value.
 ///
 bool ServerController::updateVariable(const VariableInfo &variable, QString *error)
@@ -236,12 +236,14 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
             *error = tr("'%1' is not a variable").arg(variable.nodeId);
         return false;
     }
-    const bool structural = existing->browseName != variable.displayName || existing->dataType != variable.dataType;
+    const bool structural = existing->browseName != variable.displayName || existing->dataType != variable.dataType
+        || existing->arrayLength != variable.arrayLength;
 
     NodeDefinition edited = *existing;
     edited.browseName = variable.displayName;
     edited.icon = variable.icon;
     edited.dataType = variable.dataType;
+    edited.arrayLength = variable.arrayLength;
     edited.access = variable.access;
     edited.quality = variable.configuredQuality;
     edited.simulation = variable.simulation;
@@ -268,7 +270,7 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
     _addressSpace.setQuality(edited.nodeId, edited.quality);
     if (valueEdited)
         _addressSpace.setValue(edited.nodeId, edited.initialValue);
-    _engine.updateVariable({ edited.nodeId, edited.dataType, edited.simulation });
+    _engine.updateVariable({ edited.nodeId, edited.dataType, edited.simulation, edited.arrayLength });
     emit variableChanged(SnapshotBuilder::variableInfo(*ProjectNodes::find(_project.nodes, edited.nodeId),
                                                        _addressSpace));
     return true;

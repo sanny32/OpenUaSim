@@ -32,6 +32,8 @@ struct SimulatedVariable
     QString dataType;
     /// \brief Waveform, interval, period, amplitude and offset.
     SimulationSettings settings;
+    /// \brief Number of array elements, each simulated with its own phase; 0 for a scalar.
+    int arrayLength = 0;
 };
 
 ///
@@ -133,6 +135,7 @@ signals:
 private:
     static int clampedInterval(const SimulationSettings &settings);
     qint64 elapsedMs() const;
+    QVariant sample(const SimulatedVariable &variable, qint64 elapsed);
     void rebuildTimers();
     void handleTimeout();
 

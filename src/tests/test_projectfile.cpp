@@ -160,8 +160,11 @@ void TestProjectFile::preservesSimulationValues()
     ProjectConfig project;
     project.nodes.append(node);
 
+    project.nodes.first().arrayLength = 5;
+
     const ProjectFile::LoadResult result = ProjectFile::fromJson(ProjectFile::toJson(project));
     QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.project.nodes.first().arrayLength, 5);
     QCOMPARE(result.project.nodes.first().simulation.function, SimulationFunction::List);
     QCOMPARE(result.project.nodes.first().simulation.values, node.simulation.values);
 }
@@ -291,6 +294,8 @@ void TestProjectFile::rejectsInvalidNode_data()
                                 << "nodes[0]: unknown simulation function 'sawtooth'";
     QTest::newRow("quality") << projectWithNode(variableNode(QStringLiteral("quality"), QStringLiteral("fair")))
                              << "nodes[0]: unknown quality 'fair'";
+    QTest::newRow("array length") << projectWithNode(variableNode(QStringLiteral("arrayLength"), 1001))
+                                  << "nodes[0]: array length 1001 is outside 0..1000";
 
     const QJsonObject folder {
         { QStringLiteral("kind"), QStringLiteral("folder") },

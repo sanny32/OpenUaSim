@@ -54,8 +54,10 @@ struct VariableInfo
     QString icon;
     /// \brief Current value.
     QVariant value;
-    /// \brief Built-in data type name.
+    /// \brief Built-in data type name; of the elements for an array.
     QString dataType;
+    /// \brief Number of elements of an array variable; 0 for a scalar.
+    int arrayLength = 0;
     /// \brief Access level text: "Read", "Write" or "Read/Write".
     QString access;
     /// \brief Quality of the current value.

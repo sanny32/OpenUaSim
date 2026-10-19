@@ -7,8 +7,10 @@
 ///
 
 #include <QLocale>
+#include <QStringList>
 
 #include "formatting.h"
+#include "simulation/valuecast.h"
 
 namespace Formatting {
 
@@ -50,10 +52,17 @@ QString duration(qint64 seconds)
 /// \brief Formats a variable value for display.
 /// \param value Value to format.
 /// \return Doubles with every significant digit and group separators, booleans as "true"/"false",
-///         anything else through QVariant::toString().
+///         arrays as "[a, b, c]", anything else through QVariant::toString().
 ///
 QString value(const QVariant &value)
 {
+    if (ValueCast::isArray(value)) {
+        QStringList elements;
+        const QVariantList list = value.toList();
+        for (const QVariant &element : list)
+            elements.append(Formatting::value(element));
+        return QLatin1Char('[') + elements.join(QStringLiteral(", ")) + QLatin1Char(']');
+    }
     switch (value.typeId()) {
     case QMetaType::Double:
     case QMetaType::Float:
