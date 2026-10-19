@@ -99,14 +99,16 @@ bool selectById(QTreeView *view, const QString &id);
 void selectRow(QTableView *view, int row);
 
 ///
-/// \brief Gives a button the copy icon and makes it copy a line edit's text to the clipboard.
+/// \brief Gives a button the copy icon and makes it copy a line edit's text to the clipboard,
+///        confirmed by a "Copied" tooltip.
 /// \param button Copy button.
 /// \param source Line edit whose text is copied.
 ///
 void bindCopyButton(QAbstractButton *button, QLineEdit *source);
 
 ///
-/// \brief Adds a trailing copy button inside a line edit that copies its text to the clipboard.
+/// \brief Adds a trailing copy button inside a line edit that copies its text to the clipboard,
+///        confirmed by a "Copied" tooltip.
 /// \param edit Line edit to extend.
 ///
 void addCopyAction(QLineEdit *edit);

@@ -13,6 +13,7 @@
 #include <QTableView>
 #include <QTest>
 #include <QToolButton>
+#include <QToolTip>
 #include <QTreeView>
 
 #include <QScrollArea>
@@ -422,11 +423,21 @@ void TestWidgets::appStyleCheckBoxes()
 
 void TestWidgets::addCopyActionCopies()
 {
-    QLineEdit edit(QStringLiteral("opc.tcp://localhost:4840"));
+    QLineEdit edit(QStringLiteral("opc.tcp://localhost:48400"));
+    edit.setReadOnly(true);
     ViewSetup::addCopyAction(&edit);
     QCOMPARE(edit.actions().size(), 1);
-    edit.actions().first()->trigger();
-    QCOMPARE(QGuiApplication::clipboard()->text(), QStringLiteral("opc.tcp://localhost:4840"));
+    auto *button = edit.findChild<QToolButton *>();
+    QVERIFY(button);
+    QCOMPARE(button->cursor().shape(), Qt::PointingHandCursor);
+
+    edit.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&edit));
+    QTest::mouseClick(button, Qt::LeftButton);
+    QCOMPARE(QGuiApplication::clipboard()->text(), QStringLiteral("opc.tcp://localhost:48400"));
+    QTRY_VERIFY(QToolTip::isVisible());
+    QCOMPARE(QToolTip::text(), QStringLiteral("Copied"));
+    QToolTip::hideText();
 }
 
 void TestWidgets::configureTable()
@@ -619,9 +630,15 @@ void TestWidgets::bindCopyButtonCopies()
     QLineEdit source(QStringLiteral("ns=2;s=Motor_01.Speed"));
     ViewSetup::bindCopyButton(&button, &source);
     QVERIFY(!button.icon().isNull());
+    QCOMPARE(button.cursor().shape(), Qt::PointingHandCursor);
 
+    button.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&button));
     button.click();
     QCOMPARE(QGuiApplication::clipboard()->text(), QStringLiteral("ns=2;s=Motor_01.Speed"));
+    QTRY_VERIFY(QToolTip::isVisible());
+    QCOMPARE(QToolTip::text(), QStringLiteral("Copied"));
+    QToolTip::hideText();
 }
 
 QTEST_MAIN(TestWidgets)

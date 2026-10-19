@@ -17,6 +17,8 @@
 #include <QSortFilterProxyModel>
 #include <QSplitter>
 #include <QTableView>
+#include <QToolButton>
+#include <QToolTip>
 #include <QTreeView>
 
 #include "appicons.h"
@@ -31,6 +33,32 @@ namespace {
 constexpr int kTableRowHeight = 34;
 constexpr int kMaxFittedColumnWidth = 320;
 constexpr int kSplitScale = 100;
+
+///
+/// \brief Copies text to the clipboard and confirms it with a "Copied" tooltip under the clicked button.
+/// \param text Text to copy.
+/// \param button Button the tooltip appears under.
+///
+void copyToClipboard(const QString &text, QWidget *button)
+{
+    QGuiApplication::clipboard()->setText(text);
+    QToolTip::showText(button->mapToGlobal(QPoint(0, button->height())),
+                       QCoreApplication::translate("ViewSetup", "Copied"), button);
+}
+
+///
+/// \brief Finds the tool button a line edit shows for one of its actions.
+/// \param action Action added to a line edit.
+/// \return The button, or nullptr when the action has none.
+///
+QToolButton *actionButton(const QAction *action)
+{
+    for (QObject *object : action->associatedObjects()) {
+        if (auto *button = qobject_cast<QToolButton *>(object))
+            return button;
+    }
+    return nullptr;
+}
 
 ///
 /// \brief Puts a case-insensitive text filter between a model and a view, driven by a line edit.
@@ -274,29 +302,33 @@ void selectRow(QTableView *view, int row)
 }
 
 ///
-/// \brief Gives a button the copy icon and makes it copy a line edit's text to the clipboard.
+/// \brief Gives a button the copy icon and makes it copy a line edit's text to the clipboard,
+///        confirmed by a "Copied" tooltip.
 /// \param button Copy button.
 /// \param source Line edit whose text is copied.
 ///
 void bindCopyButton(QAbstractButton *button, QLineEdit *source)
 {
     button->setIcon(AppIcons::icon(QStringLiteral("copy")));
-    QObject::connect(button, &QAbstractButton::clicked, source, [source] {
-        QGuiApplication::clipboard()->setText(source->text());
-    });
+    button->setCursor(Qt::PointingHandCursor);
+    QObject::connect(button, &QAbstractButton::clicked, source,
+                     [button, source] { copyToClipboard(source->text(), button); });
 }
 
 ///
-/// \brief Adds a trailing copy button inside a line edit that copies its text to the clipboard.
+/// \brief Adds a trailing copy button inside a line edit that copies its text to the clipboard,
+///        confirmed by a "Copied" tooltip.
 /// \param edit Line edit to extend.
 ///
 void addCopyAction(QLineEdit *edit)
 {
     QAction *copy = edit->addAction(AppIcons::icon(QStringLiteral("copy")), QLineEdit::TrailingPosition);
     copy->setToolTip(QCoreApplication::translate("ViewSetup", "Copy"));
-    QObject::connect(copy, &QAction::triggered, edit, [edit] {
-        QGuiApplication::clipboard()->setText(edit->text());
-    });
+    QToolButton *button = actionButton(copy);
+    QWidget *anchor = button ? static_cast<QWidget *>(button) : edit;
+    if (button)
+        button->setCursor(Qt::PointingHandCursor);
+    QObject::connect(copy, &QAction::triggered, edit, [edit, anchor] { copyToClipboard(edit->text(), anchor); });
 }
 
 ///
