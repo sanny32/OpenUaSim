@@ -133,6 +133,13 @@ public:
     bool installServerCertificate(const QString &certificateFile, const QString &keyFile, QString *error = nullptr);
 
     ///
+    /// \brief Creates a self-signed server certificate for the project and installs it, replacing an earlier one.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return True when the certificate was created and stored.
+    ///
+    bool generateServerCertificate(QString *error = nullptr);
+
+    ///
     /// \brief Moves a stored certificate, e.g. to trust a rejected client.
     /// \param filePath Stored certificate file.
     /// \param category Target folder.
@@ -279,8 +286,15 @@ signals:
     ///
     void startFailed(const QString &reason);
 
+    ///
+    /// \brief Announces that the server started with less than configured, e.g. without secure endpoints.
+    /// \param reason Explanation for the user.
+    ///
+    void startWarning(const QString &reason);
+
 private:
     void rebuildNodes();
+    void ensureServerCertificate();
     void setRestartRequired(bool required);
     bool loadNodeSet(const QString &fileName, QString *error);
     void loadProjectNodeSets();

@@ -11,6 +11,7 @@
 
 #include "endpointsmodel.h"
 #include "endpointspage.h"
+#include "server/listenersettings.h"
 #include "ui_endpointspage.h"
 #include "viewsetup.h"
 
@@ -54,6 +55,10 @@ EndpointsPage::EndpointsPage(QWidget *parent)
 
     connect(ui->endpointsView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &EndpointsPage::showEndpoint);
+    connect(ui->securityPolicyCombo, &QComboBox::currentTextChanged,
+            this, &EndpointsPage::matchModeToPolicy);
+    connect(ui->securityModeCombo, &QComboBox::currentTextChanged,
+            this, &EndpointsPage::matchPolicyToMode);
     connect(ui->usernamePasswordCheck, &QCheckBox::toggled,
             this, &EndpointsPage::updateCredentialFields);
     connect(ui->applyButton, &QPushButton::clicked, this, &EndpointsPage::applyEndpoint);
@@ -106,8 +111,13 @@ void EndpointsPage::showEndpoint(const QModelIndex &current)
     ui->nameEdit->setText(endpoint.name);
     ui->hostnameEdit->setText(endpoint.hostname);
     ui->portSpin->setValue(endpoint.port);
-    ui->securityPolicyCombo->setCurrentText(endpoint.securityPolicy);
-    ui->securityModeCombo->setCurrentText(endpoint.securityMode);
+    {
+        // Show the stored pair as is, even a mismatched one, instead of letting the combos correct each other.
+        const QSignalBlocker policyBlocker(ui->securityPolicyCombo);
+        const QSignalBlocker modeBlocker(ui->securityModeCombo);
+        ui->securityPolicyCombo->setCurrentText(endpoint.securityPolicy);
+        ui->securityModeCombo->setCurrentText(endpoint.securityMode);
+    }
     ui->allowAnonymousCheck->setChecked(endpoint.allowAnonymous);
     ui->usernamePasswordCheck->setChecked(endpoint.usernamePassword);
     ui->usernameEdit->setText(endpoint.username);
@@ -126,6 +136,28 @@ void EndpointsPage::updateCredentialFields()
     const bool enabled = ui->usernamePasswordCheck->isChecked();
     ui->usernameEdit->setEnabled(enabled);
     ui->passwordEdit->setEnabled(enabled);
+}
+
+///
+/// \brief Switches the security mode to one the newly chosen policy can be served with.
+/// \param policy Chosen security policy name.
+///
+void EndpointsPage::matchModeToPolicy(const QString &policy)
+{
+    if (!ListenerSettingsBuilder::securityPairs(policy, ui->securityModeCombo->currentText()))
+        ui->securityModeCombo->setCurrentText(policy == QLatin1String("None") ? QStringLiteral("None")
+                                                                              : QStringLiteral("Sign & Encrypt"));
+}
+
+///
+/// \brief Switches the security policy to one the newly chosen mode can be served with.
+/// \param mode Chosen message security mode name.
+///
+void EndpointsPage::matchPolicyToMode(const QString &mode)
+{
+    if (!ListenerSettingsBuilder::securityPairs(ui->securityPolicyCombo->currentText(), mode))
+        ui->securityPolicyCombo->setCurrentText(mode == QLatin1String("None") ? QStringLiteral("None")
+                                                                              : QStringLiteral("Basic256Sha256"));
 }
 
 ///

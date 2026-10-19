@@ -5,9 +5,11 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QSignalSpy>
+#include <QSslCertificate>
 #include <QTemporaryDir>
 #include <QTest>
 
+#include "pki/certificategenerator.h"
 #include "pki/certificatestore.h"
 #include "project/defaultproject.h"
 #include "server/servercontroller.h"
@@ -38,6 +40,8 @@ private slots:
     void importRefusesServerFolder();
     void installsServerCertificate();
     void installRejectsMissingKey();
+    void storesServerCertificateFromMemory();
+    void generatesSelfSignedCertificate();
     void movesBetweenFolders();
     void moveRejectsFilesOutsideStore();
     void removesCertificates();
@@ -46,6 +50,8 @@ private slots:
     void materialCollectsFolders();
     void controllerAnnouncesChanges();
     void secureEndpointRunsWithInstalledCertificate();
+    void startCreatesMissingServerCertificate();
+    void generateReplacesServerCertificate();
     void addsCertificateFromMemory();
     void rejectedClientLandsInRejectedFolder();
 
@@ -125,6 +131,44 @@ void TestCertificateStore::installsServerCertificate()
     const PkiMaterial material = _store.material();
     QVERIFY(!material.certificate.isEmpty());
     QVERIFY(material.privateKey.contains("PRIVATE KEY"));
+}
+
+void TestCertificateStore::storesServerCertificateFromMemory()
+{
+    QVERIFY(!_store.hasServerCertificate());
+    QFile certificate(testData(QStringLiteral("stranger.der")));
+    QFile key(testData(QStringLiteral("stranger.key.der")));
+    QVERIFY(certificate.open(QIODevice::ReadOnly) && key.open(QIODevice::ReadOnly));
+    const QByteArray certificateData = certificate.readAll();
+    const QByteArray keyData = key.readAll();
+
+    QString error;
+    QVERIFY(!_store.storeServerCertificate(QByteArray("garbage"), keyData, &error));
+    QVERIFY(!error.isEmpty());
+    QVERIFY(!_store.storeServerCertificate(certificateData, QByteArray(), &error));
+    QVERIFY(!_store.hasServerCertificate());
+
+    QVERIFY(_store.storeServerCertificate(certificateData, keyData));
+    QVERIFY(_store.hasServerCertificate());
+    QCOMPARE(_store.material().privateKey, keyData);
+}
+
+void TestCertificateStore::generatesSelfSignedCertificate()
+{
+    if (!CertificateGenerator::isAvailable()) {
+        QString error;
+        QVERIFY(CertificateGenerator::generate(QStringLiteral("urn:test"), {}, &error).certificate.isEmpty());
+        QVERIFY(!error.isEmpty());
+        QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+    }
+    const GeneratedCertificate generated = CertificateGenerator::generate(
+        QStringLiteral("urn:openuasim:test"), { QStringLiteral("sim-host"), QString(), QStringLiteral("sim-host") });
+    QVERIFY(!generated.privateKey.isEmpty());
+    const QSslCertificate certificate(generated.certificate, QSsl::Der);
+    QVERIFY(!certificate.isNull());
+    QVERIFY(certificate.isSelfSigned());
+    QCOMPARE(certificate.subjectAlternativeNames().values(QSsl::DnsEntry).count(QStringLiteral("sim-host")), 1);
+    QVERIFY(certificate.expiryDate() > QDateTime::currentDateTimeUtc().addYears(9));
 }
 
 void TestCertificateStore::installRejectsMissingKey()
@@ -237,13 +281,66 @@ void TestCertificateStore::secureEndpointRunsWithInstalledCertificate()
 
     ServerController controller;
     controller.certificateStore().setRoot(_directory->path());
-    controller.setProject(project);
-    QVERIFY(!controller.start());
-
     QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
                                                 testData(QStringLiteral("server.key.pem"))));
+    const PkiMaterial installed = controller.certificateStore().material();
+    controller.setProject(project);
     QVERIFY(controller.start());
+    QCOMPARE(controller.certificateStore().material().certificate, installed.certificate);
 #endif
+}
+
+void TestCertificateStore::startCreatesMissingServerCertificate()
+{
+#ifndef OUASIM_HAVE_ENCRYPTION
+    QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+#else
+    ProjectConfig project = DefaultProject::create();
+    EndpointInfo &endpoint = project.endpoints.first();
+    endpoint.port = TestPort::freePort();
+    endpoint.securityPolicy = QStringLiteral("Aes256_Sha256_RsaPss");
+    endpoint.securityMode = QStringLiteral("Sign & Encrypt");
+
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    QVERIFY(controller.importCertificate(testData(QStringLiteral("stranger.der")), Category::Trusted));
+    controller.setProject(project);
+    QSignalSpy changed(&controller, &ServerController::certificatesChanged);
+    QSignalSpy warned(&controller, &ServerController::startWarning);
+    QVERIFY(controller.start());
+    QVERIFY(controller.certificateStore().hasServerCertificate());
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(warned.count(), 0);
+
+    QFile certificate(testData(QStringLiteral("stranger.der")));
+    QFile key(testData(QStringLiteral("stranger.key.der")));
+    QVERIFY(certificate.open(QIODevice::ReadOnly) && key.open(QIODevice::ReadOnly));
+    UaTestClient client;
+    QCOMPARE(client.setEncryption(certificate.readAll(), key.readAll(), QStringLiteral("urn:openuasim:test:stranger")),
+             UA_STATUSCODE_GOOD);
+    QCOMPARE(client.connect(controller.server().endpointUrl()), UA_STATUSCODE_GOOD);
+#endif
+}
+
+void TestCertificateStore::generateReplacesServerCertificate()
+{
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    QSignalSpy changed(&controller, &ServerController::certificatesChanged);
+    QString error;
+    if (!CertificateGenerator::isAvailable()) {
+        QVERIFY(!controller.generateServerCertificate(&error));
+        QVERIFY(!error.isEmpty());
+        QCOMPARE(changed.count(), 0);
+        return;
+    }
+    QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                                testData(QStringLiteral("server.key.pem"))));
+    const QByteArray installed = controller.certificateStore().material().certificate;
+    QVERIFY(controller.generateServerCertificate(&error));
+    QCOMPARE(changed.count(), 2);
+    QVERIFY(controller.certificateStore().material().certificate != installed);
+    QCOMPARE(controller.certificates().size(), 1);
 }
 
 void TestCertificateStore::addsCertificateFromMemory()

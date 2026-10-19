@@ -281,8 +281,9 @@ bool SimServer::configureSecurity(const ListenerSettings &listener)
         return true;
     if (!listener.securityModes.contains(QStringLiteral("None")))
         return fail(missing);
-    log(LogEntry::Level::Warning, LogEntry::Category::Security,
-        tr("%1; only unsecured endpoints are offered").arg(missing));
+    const QString warning = tr("%1; only unsecured endpoints are offered").arg(missing);
+    log(LogEntry::Level::Warning, LogEntry::Category::Security, warning);
+    emit startWarning(warning);
     return true;
 }
 

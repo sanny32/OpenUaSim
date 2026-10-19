@@ -59,6 +59,11 @@ signals:
     void importRequested(CertificateInfo::Category category);
 
     ///
+    /// \brief Asks to create a self-signed server certificate.
+    ///
+    void generateRequested();
+
+    ///
     /// \brief Asks to save a copy of the selected certificate.
     /// \param filePath Stored certificate file.
     ///

@@ -102,6 +102,21 @@ public:
     bool installServerCertificate(const QString &certificateFile, const QString &keyFile, QString *error = nullptr);
 
     ///
+    /// \brief Installs a server certificate and private key held in memory, replacing earlier ones.
+    /// \param certificate PEM or DER certificate.
+    /// \param privateKey PEM or DER private key.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return False when the certificate cannot be parsed, the key is empty or the files cannot be stored.
+    ///
+    bool storeServerCertificate(const QByteArray &certificate, const QByteArray &privateKey, QString *error = nullptr);
+
+    ///
+    /// \brief Tells whether a server certificate and its private key are installed.
+    /// \return True when both files exist.
+    ///
+    bool hasServerCertificate() const;
+
+    ///
     /// \brief Moves a stored certificate to another folder, e.g. to trust a rejected client.
     /// \param filePath Stored certificate file.
     /// \param category Target folder.
@@ -125,6 +140,7 @@ public:
     PkiMaterial material() const;
 
 private:
+    QString serverCertificatePath() const;
     QString keyPath() const;
     bool contains(const QString &filePath) const;
 

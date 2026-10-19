@@ -61,6 +61,8 @@ signals:
 private:
     void showEndpoint(const QModelIndex &current);
     void updateCredentialFields();
+    void matchModeToPolicy(const QString &policy);
+    void matchPolicyToMode(const QString &mode);
     void restrictSecurityChoices();
     int currentRow() const;
     EndpointInfo editedEndpoint(int row) const;

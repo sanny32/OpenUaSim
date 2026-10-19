@@ -40,6 +40,8 @@ add_library(ouasim_core STATIC
     models/variablesmodel.cpp
     models/variablesmodel.h
 
+    pki/certificategenerator.cpp
+    pki/certificategenerator.h
     pki/certificatestore.cpp
     pki/certificatestore.h
 

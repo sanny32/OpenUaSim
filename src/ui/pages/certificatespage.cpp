@@ -17,6 +17,7 @@
 #include "certificatespage.h"
 #include "formatting.h"
 #include "itemroles.h"
+#include "pki/certificategenerator.h"
 #include "treebuilders.h"
 #include "treemodel.h"
 #include "ui_certificatespage.h"
@@ -41,11 +42,17 @@ CertificatesPage::CertificatesPage(QWidget *parent)
     ui->setupUi(this);
     ViewSetup::splitByStretch(ui->splitter);
     ui->openFolderButton->setIcon(AppIcons::icon(QStringLiteral("import")));
+    ui->generateButton->setIcon(AppIcons::icon(QStringLiteral("certificate")));
     ui->importButton->setIcon(AppIcons::icon(QStringLiteral("download")));
     ui->exportButton->setIcon(AppIcons::icon(QStringLiteral("upload")));
     ui->trustButton->setIcon(AppIcons::icon(QStringLiteral("shield-check")));
     ui->rejectButton->setIcon(AppIcons::icon(QStringLiteral("shield-x")));
     ui->deleteButton->setIcon(AppIcons::icon(QStringLiteral("trash")));
+    ui->generateButton->setVisible(false);
+    if (!CertificateGenerator::isAvailable()) {
+        ui->generateButton->setEnabled(false);
+        ui->generateButton->setToolTip(tr("This build has no encryption support"));
+    }
     ViewSetup::fitHeightToLines(ui->subjectEdit, ui->subjectEdit->blockCount());
     ViewSetup::fitHeightToLines(ui->issuerEdit, ui->issuerEdit->blockCount());
     ViewSetup::fitHeightToLines(ui->filePathEdit, kFilePathLines);
@@ -63,6 +70,7 @@ CertificatesPage::CertificatesPage(QWidget *parent)
             this, &CertificatesPage::showCategory);
     connect(ui->certificatesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &CertificatesPage::showCertificate);
+    connect(ui->generateButton, &QPushButton::clicked, this, &CertificatesPage::generateRequested);
     connect(ui->importButton, &QPushButton::clicked, this, &CertificatesPage::requestImport);
     connect(ui->exportButton, &QPushButton::clicked, this, &CertificatesPage::requestExport);
     connect(ui->trustButton, &QPushButton::clicked, this, &CertificatesPage::requestTrust);
@@ -116,6 +124,7 @@ void CertificatesPage::showCategory(const QModelIndex &current)
 {
     bool ok = false;
     const int category = current.siblingAtColumn(0).data(ItemRoles::Id).toInt(&ok);
+    ui->generateButton->setVisible(ok && category == static_cast<int>(CertificateInfo::Category::Application));
 
     QList<CertificateInfo> shown;
     for (const CertificateInfo &certificate : std::as_const(_certificates)) {

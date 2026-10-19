@@ -3,6 +3,7 @@
 
 #include <QLocale>
 #include <QTest>
+#include <QTimeZone>
 
 #include "formatting.h"
 
@@ -14,6 +15,7 @@ private slots:
     void initTestCase();
     void dateTimeDropsMilliseconds();
     void preciseDateTimeKeepsMilliseconds();
+    void dateTimeShowsUtcInLocalTime();
     void duration_data();
     void duration();
     void value_data();
@@ -35,6 +37,14 @@ void TestFormatting::preciseDateTimeKeepsMilliseconds()
 {
     const QDateTime time(QDate(2024, 5, 23), QTime(14, 31, 20, 4));
     QCOMPARE(Formatting::preciseDateTime(time), QStringLiteral("2024-05-23 14:31:20.004"));
+}
+
+void TestFormatting::dateTimeShowsUtcInLocalTime()
+{
+    const QDateTime utc(QDate(2024, 5, 23), QTime(14, 31, 20, 4), QTimeZone::UTC);
+    const QDateTime local = utc.toLocalTime();
+    QCOMPARE(Formatting::dateTime(utc), local.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")));
+    QCOMPARE(Formatting::preciseDateTime(utc), local.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss.zzz")));
 }
 
 void TestFormatting::duration_data()

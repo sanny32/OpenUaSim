@@ -36,6 +36,10 @@ private slots:
     void rejectsInvalidPort();
     void rejectsUnknownPolicy();
     void rejectsUnknownMode();
+    void securityPairs_data();
+    void securityPairs();
+    void rejectsMismatchedPolicyAndMode();
+    void usesSecurityOfEnabledEndpoints();
     void rejectsUsernameEndpointWithoutUser();
 };
 
@@ -118,6 +122,44 @@ void TestListenerSettings::rejectsUnknownMode()
     const ListenerSettings settings = ListenerSettingsBuilder::build(
         { endpoint(QStringLiteral("a"), 4840, QStringLiteral("None"), QStringLiteral("Encrypt")) });
     QVERIFY(settings.error.contains(QStringLiteral("unknown security mode 'Encrypt'")));
+}
+
+void TestListenerSettings::securityPairs_data()
+{
+    QTest::addColumn<QString>("policy");
+    QTest::addColumn<QString>("mode");
+    QTest::addColumn<bool>("pairs");
+    QTest::newRow("none") << "None" << "None" << true;
+    QTest::newRow("sign") << "Basic256Sha256" << "Sign" << true;
+    QTest::newRow("encrypt") << "Aes256_Sha256_RsaPss" << "Sign & Encrypt" << true;
+    QTest::newRow("secure policy, no mode") << "Aes256_Sha256_RsaPss" << "None" << false;
+    QTest::newRow("no policy, secure mode") << "None" << "Sign" << false;
+}
+
+void TestListenerSettings::securityPairs()
+{
+    QFETCH(QString, policy);
+    QFETCH(QString, mode);
+    QFETCH(bool, pairs);
+    QCOMPARE(ListenerSettingsBuilder::securityPairs(policy, mode), pairs);
+}
+
+void TestListenerSettings::rejectsMismatchedPolicyAndMode()
+{
+    const ListenerSettings settings = ListenerSettingsBuilder::build(
+        { endpoint(QStringLiteral("a"), 4840, QStringLiteral("Aes256_Sha256_RsaPss"), QStringLiteral("None")) });
+    QVERIFY(settings.error.contains(
+        QStringLiteral("pairs security policy 'Aes256_Sha256_RsaPss' with mode 'None'")));
+}
+
+void TestListenerSettings::usesSecurityOfEnabledEndpoints()
+{
+    EndpointInfo secure = endpoint(QStringLiteral("s"), 4840, QStringLiteral("Basic256Sha256"), QStringLiteral("Sign"));
+    QVERIFY(!ListenerSettingsBuilder::usesSecurity({}));
+    QVERIFY(!ListenerSettingsBuilder::usesSecurity({ endpoint(QStringLiteral("a")) }));
+    QVERIFY(ListenerSettingsBuilder::usesSecurity({ endpoint(QStringLiteral("a")), secure }));
+    secure.enabled = false;
+    QVERIFY(!ListenerSettingsBuilder::usesSecurity({ secure }));
 }
 
 void TestListenerSettings::rejectsUsernameEndpointWithoutUser()

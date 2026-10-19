@@ -147,6 +147,7 @@ private:
     void appendLog(const LogEntry &entry);
     void refreshSessions();
     void showStartFailure(const QString &reason);
+    void showStartWarning(const QString &reason);
     void showError(const QString &title, const QString &text);
     void showAddNodeDialog();
     void addNodeFromDialog();
@@ -169,6 +170,9 @@ private:
     void moveCertificate(const QString &filePath, CertificateInfo::Category category);
     void confirmDeleteCertificate(const QString &filePath);
     void deletePendingCertificate();
+    void confirmGenerateServerCertificate();
+    void generateAfterConfirmation();
+    void generateServerCertificate();
     void reloadCertificates();
 
     Ui::MainWindow *ui;

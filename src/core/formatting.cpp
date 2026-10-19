@@ -13,23 +13,23 @@
 namespace Formatting {
 
 ///
-/// \brief Formats a timestamp to the second.
+/// \brief Formats a timestamp to the second in local time.
 /// \param time Timestamp to format.
 /// \return Text such as "2024-05-23 14:31:20".
 ///
 QString dateTime(const QDateTime &time)
 {
-    return time.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    return time.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
 }
 
 ///
-/// \brief Formats a timestamp to the millisecond.
+/// \brief Formats a timestamp to the millisecond in local time.
 /// \param time Timestamp to format.
 /// \return Text such as "2024-05-23 14:31:20.004".
 ///
 QString preciseDateTime(const QDateTime &time)
 {
-    return time.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss.zzz"));
+    return time.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss.zzz"));
 }
 
 ///

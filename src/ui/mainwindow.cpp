@@ -122,11 +122,14 @@ void MainWindow::setController(ServerController *controller)
     connect(controller, &ServerController::valuesChanged, ui->objectsPage, &ObjectsPage::updateValues);
     connect(controller, &ServerController::logAppended, this, &MainWindow::appendLog);
     connect(controller, &ServerController::startFailed, this, &MainWindow::showStartFailure);
+    connect(controller, &ServerController::startWarning, this, &MainWindow::showStartWarning);
     connect(controller, &ServerController::variableChanged, ui->objectsPage, &ObjectsPage::updateVariable);
     connect(ui->objectsPage, &ObjectsPage::variableChangeRequested, this, &MainWindow::applyVariableChange);
     connect(ui->objectsPage, &ObjectsPage::currentNodeChanged, this, &MainWindow::updateNodeActions);
     connect(ui->actionAddNode, &QAction::triggered, this, &MainWindow::showAddNodeDialog);
     connect(ui->actionDeleteNode, &QAction::triggered, this, &MainWindow::confirmDeleteNode);
+    connect(ui->certificatesPage, &CertificatesPage::generateRequested,
+            this, &MainWindow::confirmGenerateServerCertificate);
     connect(ui->certificatesPage, &CertificatesPage::importRequested, this, &MainWindow::importCertificate);
     connect(ui->certificatesPage, &CertificatesPage::exportRequested, this, &MainWindow::exportCertificate);
     connect(ui->certificatesPage, &CertificatesPage::moveRequested, this, &MainWindow::moveCertificate);
@@ -526,6 +529,15 @@ void MainWindow::showStartFailure(const QString &reason)
 }
 
 ///
+/// \brief Tells the user that the server started with less than configured, without blocking the event loop.
+/// \param reason Explanation from the server.
+///
+void MainWindow::showStartWarning(const QString &reason)
+{
+    showError(tr("Secure endpoints not offered"), reason);
+}
+
+///
 /// \brief Shows a warning without blocking the event loop.
 /// \param title Window title.
 /// \param text Message.
@@ -793,6 +805,46 @@ void MainWindow::deletePendingCertificate()
     QString error;
     if (!_controller->removeCertificate(_pendingCertificate, &error))
         showError(tr("Certificate not deleted"), error);
+}
+
+///
+/// \brief Creates a server certificate, first asking before it replaces an installed one.
+///
+void MainWindow::confirmGenerateServerCertificate()
+{
+    if (!_controller)
+        return;
+    if (!_controller->certificateStore().hasServerCertificate()) {
+        generateServerCertificate();
+        return;
+    }
+    auto *box = new QMessageBox(QMessageBox::Question, tr("Generate Server Certificate"),
+                                tr("Replace the installed server certificate? Clients that trust it "
+                                   "will have to trust the new one."),
+                                QMessageBox::Yes | QMessageBox::Cancel, this);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    connect(box, &QDialog::finished, this, &MainWindow::generateAfterConfirmation);
+    box->open();
+}
+
+///
+/// \brief Creates the server certificate when the replacement question was answered Yes.
+///
+void MainWindow::generateAfterConfirmation()
+{
+    const auto *box = qobject_cast<const QMessageBox *>(sender());
+    if (box && box->standardButton(box->clickedButton()) == QMessageBox::Yes)
+        generateServerCertificate();
+}
+
+///
+/// \brief Creates and installs a self-signed server certificate, reporting a failure.
+///
+void MainWindow::generateServerCertificate()
+{
+    QString error;
+    if (_controller && !_controller->generateServerCertificate(&error))
+        showError(tr("Server certificate not created"), error);
 }
 
 ///

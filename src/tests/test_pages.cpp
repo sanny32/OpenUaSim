@@ -32,6 +32,7 @@
 #include "namespacesmodel.h"
 #include "namespacespage.h"
 #include "objectspage.h"
+#include "pki/certificategenerator.h"
 #include "sessionsmodel.h"
 #include "sessionspage.h"
 #include "statusindicator.h"
@@ -89,8 +90,11 @@ private slots:
     void endpointsPageAddsAndRemoves();
     void endpointsPageRevertsAndKeepsRow();
     void endpointsPageOffersSecurityOfTheBuild();
+    void endpointsPageKeepsPolicyAndModePaired();
+    void endpointsPageShowsStoredMismatch();
     void certificatesPage();
     void certificatesPageRequestsActions();
+    void certificatesPageGeneratesOnlyInOwnFolder();
     void certificateDetailsShowEveryLine();
     void certificateDetailsKeepTheirWidth();
     void sessionsPage();
@@ -497,6 +501,40 @@ void TestPages::certificatesPageRequestsActions()
     QCOMPARE(child<QLabel>(page, "certificatesTitle")->text(), QStringLiteral("Rejected Certificates"));
 }
 
+void TestPages::endpointsPageKeepsPolicyAndModePaired()
+{
+    EndpointsPage page;
+    page.setEndpoints(_snapshot.endpoints);
+    auto *policy = child<QComboBox>(page, "securityPolicyCombo");
+    auto *mode = child<QComboBox>(page, "securityModeCombo");
+
+    policy->setCurrentText(QStringLiteral("None"));
+    QCOMPARE(mode->currentText(), QStringLiteral("None"));
+
+    policy->setCurrentText(QStringLiteral("Aes256_Sha256_RsaPss"));
+    QCOMPARE(mode->currentText(), QStringLiteral("Sign & Encrypt"));
+
+    mode->setCurrentText(QStringLiteral("Sign"));
+    QCOMPARE(policy->currentText(), QStringLiteral("Aes256_Sha256_RsaPss"));
+
+    mode->setCurrentText(QStringLiteral("None"));
+    QCOMPARE(policy->currentText(), QStringLiteral("None"));
+
+    mode->setCurrentText(QStringLiteral("Sign"));
+    QCOMPARE(policy->currentText(), QStringLiteral("Basic256Sha256"));
+}
+
+void TestPages::endpointsPageShowsStoredMismatch()
+{
+    QList<EndpointInfo> endpoints = _snapshot.endpoints;
+    endpoints[0].securityPolicy = QStringLiteral("Aes256_Sha256_RsaPss");
+    endpoints[0].securityMode = QStringLiteral("None");
+    EndpointsPage page;
+    page.setEndpoints(endpoints);
+    QCOMPARE(child<QComboBox>(page, "securityPolicyCombo")->currentText(), QStringLiteral("Aes256_Sha256_RsaPss"));
+    QCOMPARE(child<QComboBox>(page, "securityModeCombo")->currentText(), QStringLiteral("None"));
+}
+
 void TestPages::certificatesPage()
 {
     CertificatesPage page;
@@ -528,6 +566,24 @@ void TestPages::certificatesPage()
     page.setCertificates({});
     QCOMPARE(page.certificatesModel()->rowCount(), 0);
     QVERIFY(!child<QWidget>(page, "detailsHost")->isEnabled());
+}
+
+void TestPages::certificatesPageGeneratesOnlyInOwnFolder()
+{
+    CertificatesPage page;
+    page.setCertificates(_snapshot.certificates);
+    page.show();
+    auto *generate = child<QPushButton>(page, "generateButton");
+    auto *categories = child<QTreeView>(page, "categoriesList");
+    QSignalSpy requested(&page, &CertificatesPage::generateRequested);
+
+    QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Trusted))));
+    QVERIFY(!generate->isVisible());
+    QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Application))));
+    QVERIFY(generate->isVisible());
+    QCOMPARE(generate->isEnabled(), CertificateGenerator::isAvailable());
+    generate->click();
+    QCOMPARE(requested.count(), CertificateGenerator::isAvailable() ? 1 : 0);
 }
 
 void TestPages::certificateDetailsShowEveryLine()

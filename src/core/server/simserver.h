@@ -128,6 +128,12 @@ signals:
     void startFailed(const QString &reason);
 
     ///
+    /// \brief Announces that start() serves less than configured, e.g. drops secure endpoints.
+    /// \param reason Explanation for the user.
+    ///
+    void startWarning(const QString &reason);
+
+    ///
     /// \brief Announces a client application certificate that failed validation; encryption builds only.
     /// \param certificate Rejected DER certificate.
     /// \param reason Status code name, e.g. BadCertificateUntrusted.

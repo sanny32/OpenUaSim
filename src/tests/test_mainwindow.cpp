@@ -78,6 +78,7 @@ private slots:
     void serverActionsFollowRunningState();
     void controllerDrivesWindow();
     void startFailureShowsMessage();
+    void startWarningShowsMessage();
     void addNodeThroughDialog();
     void deleteNodeAfterConfirmation();
     void deleteNodeFollowsSelection();
@@ -360,6 +361,19 @@ void TestMainWindow::startFailureShowsMessage()
     auto *box = window.findChild<QMessageBox *>();
     QVERIFY(box);
     QCOMPARE(box->text(), QStringLiteral("No endpoint is enabled"));
+    box->close();
+}
+
+void TestMainWindow::startWarningShowsMessage()
+{
+    ServerController controller;
+    MainWindow window;
+    window.setController(&controller);
+
+    emit controller.startWarning(QStringLiteral("Secure endpoints dropped"));
+    auto *box = window.findChild<QMessageBox *>();
+    QVERIFY(box);
+    QCOMPARE(box->text(), QStringLiteral("Secure endpoints dropped"));
     box->close();
 }
 

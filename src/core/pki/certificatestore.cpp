@@ -306,8 +306,8 @@ QString CertificateStore::addCertificate(const QByteArray &certificate, Certific
 bool CertificateStore::installServerCertificate(const QString &certificateFile, const QString &keyFile,
                                                 QString *error)
 {
-    const QSslCertificate certificate = parseCertificate(readFile(certificateFile));
-    if (certificate.isNull()) {
+    const QByteArray certificate = readFile(certificateFile);
+    if (parseCertificate(certificate).isNull()) {
         setError(error, tr("'%1' is not a PEM or DER certificate").arg(certificateFile));
         return false;
     }
@@ -316,9 +316,38 @@ bool CertificateStore::installServerCertificate(const QString &certificateFile, 
         setError(error, tr("'%1' holds no private key").arg(keyFile));
         return false;
     }
-    return writeFile(folder(CertificateInfo::Category::Application) + QLatin1Char('/') + kServerCertificateName,
-                     certificate.toDer(), error)
-           && writeFile(keyPath(), key, error);
+    return storeServerCertificate(certificate, key, error);
+}
+
+///
+/// \brief Installs a server certificate and private key held in memory, replacing earlier ones.
+/// \param certificate PEM or DER certificate.
+/// \param privateKey PEM or DER private key.
+/// \param error Receives the reason on failure; may be null.
+/// \return False when the certificate cannot be parsed, the key is empty or the files cannot be stored.
+///
+bool CertificateStore::storeServerCertificate(const QByteArray &certificate, const QByteArray &privateKey,
+                                              QString *error)
+{
+    const QSslCertificate parsed = parseCertificate(certificate);
+    if (parsed.isNull()) {
+        setError(error, tr("The data is not a PEM or DER certificate"));
+        return false;
+    }
+    if (privateKey.isEmpty()) {
+        setError(error, tr("The server certificate has no private key"));
+        return false;
+    }
+    return writeFile(serverCertificatePath(), parsed.toDer(), error) && writeFile(keyPath(), privateKey, error);
+}
+
+///
+/// \brief Tells whether a server certificate and its private key are installed.
+/// \return True when both files exist.
+///
+bool CertificateStore::hasServerCertificate() const
+{
+    return QFileInfo::exists(serverCertificatePath()) && QFileInfo::exists(keyPath());
 }
 
 ///
@@ -368,14 +397,22 @@ bool CertificateStore::remove(const QString &filePath, QString *error)
 PkiMaterial CertificateStore::material() const
 {
     PkiMaterial material;
-    material.certificate = readFile(folder(CertificateInfo::Category::Application) + QLatin1Char('/')
-                                    + kServerCertificateName);
+    material.certificate = readFile(serverCertificatePath());
     material.privateKey = readFile(keyPath());
     for (const QFileInfo &file : QDir(folder(CertificateInfo::Category::Trusted)).entryInfoList(QDir::Files))
         material.trusted.append(readFile(file.absoluteFilePath()));
     for (const QFileInfo &file : QDir(folder(CertificateInfo::Category::Issuer)).entryInfoList(QDir::Files))
         material.issuers.append(readFile(file.absoluteFilePath()));
     return material;
+}
+
+///
+/// \brief Returns where the server certificate is kept.
+/// \return Path in the own folder.
+///
+QString CertificateStore::serverCertificatePath() const
+{
+    return folder(CertificateInfo::Category::Application) + QLatin1Char('/') + kServerCertificateName;
 }
 
 ///

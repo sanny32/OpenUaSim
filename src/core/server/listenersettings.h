@@ -57,11 +57,26 @@ QStringList securityPolicyNames();
 QStringList securityModeNames();
 
 ///
+/// \brief Tells whether a security policy and a message security mode form an endpoint OPC UA allows.
+/// \param policy Name from securityPolicyNames().
+/// \param mode Name from securityModeNames().
+/// \return True when both are "None" or neither is.
+///
+bool securityPairs(const QString &policy, const QString &mode);
+
+///
+/// \brief Tells whether an enabled endpoint needs a server certificate.
+/// \param endpoints Configured endpoints.
+/// \return True when an enabled endpoint uses a security policy other than "None".
+///
+bool usesSecurity(const QList<EndpointInfo> &endpoints);
+
+///
 /// \brief Merges the enabled endpoints into listener settings.
 /// \param endpoints Configured endpoints.
 /// \return Settings, or an error when no endpoint is enabled, enabled endpoints use different
-///         ports, a port is out of range, a policy or mode is unknown, or a username endpoint
-///         has no user name.
+///         ports, a port is out of range, a policy or mode is unknown, a policy and mode do not
+///         pair up, or a username endpoint has no user name.
 ///
 ListenerSettings build(const QList<EndpointInfo> &endpoints);
 

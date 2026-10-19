@@ -8,6 +8,8 @@
 
 #include <QCoreApplication>
 
+#include <algorithm>
+
 #include "listenersettings.h"
 
 namespace {
@@ -70,11 +72,35 @@ QStringList securityModeNames()
 }
 
 ///
+/// \brief Tells whether a security policy and a message security mode form an endpoint OPC UA allows.
+/// \param policy Name from securityPolicyNames().
+/// \param mode Name from securityModeNames().
+/// \return True when both are "None" or neither is.
+///
+bool securityPairs(const QString &policy, const QString &mode)
+{
+    const QString none = QStringLiteral("None");
+    return (policy == none) == (mode == none);
+}
+
+///
+/// \brief Tells whether an enabled endpoint needs a server certificate.
+/// \param endpoints Configured endpoints.
+/// \return True when an enabled endpoint uses a security policy other than "None".
+///
+bool usesSecurity(const QList<EndpointInfo> &endpoints)
+{
+    return std::any_of(endpoints.cbegin(), endpoints.cend(), [](const EndpointInfo &endpoint) {
+        return endpoint.enabled && endpoint.securityPolicy != QLatin1String("None");
+    });
+}
+
+///
 /// \brief Merges the enabled endpoints into listener settings.
 /// \param endpoints Configured endpoints.
 /// \return Settings, or an error when no endpoint is enabled, enabled endpoints use different
-///         ports, a port is out of range, a policy or mode is unknown, or a username endpoint
-///         has no user name.
+///         ports, a port is out of range, a policy or mode is unknown, a policy and mode do not
+///         pair up, or a username endpoint has no user name.
 ///
 ListenerSettings build(const QList<EndpointInfo> &endpoints)
 {
@@ -99,6 +125,10 @@ ListenerSettings build(const QList<EndpointInfo> &endpoints)
         if (!securityModeNames().contains(endpoint.securityMode))
             return failure(tr("Endpoint '%1' has an unknown security mode '%2'")
                                .arg(endpoint.name, endpoint.securityMode));
+        if (!securityPairs(endpoint.securityPolicy, endpoint.securityMode))
+            return failure(tr("Endpoint '%1' pairs security policy '%2' with mode '%3'; policy None needs "
+                              "mode None and other policies need Sign or Sign & Encrypt")
+                               .arg(endpoint.name, endpoint.securityPolicy, endpoint.securityMode));
         appendUnique(settings.securityPolicies, endpoint.securityPolicy);
         appendUnique(settings.securityModes, endpoint.securityMode);
 

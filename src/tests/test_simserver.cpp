@@ -47,7 +47,9 @@ private slots:
     void restartsAfterStop();
     void reportsInvalidEndpoints();
     void reportsPortInUse();
+    void reportsMismatchedSecurity();
     void refusesSecureOnlyEndpointsWithoutCertificate();
+    void warnsWhenSecureEndpointsAreDropped();
     void tracksAnonymousSession();
     void stopClosesSessions();
     void acceptsConfiguredUser();
@@ -125,6 +127,18 @@ void TestSimServer::reportsPortInUse()
     QVERIFY(failed.first().first().toString().contains(QString::number(_port)));
 }
 
+void TestSimServer::reportsMismatchedSecurity()
+{
+    ProjectConfig config = project(_port);
+    config.endpoints.first().securityPolicy = QStringLiteral("Aes256_Sha256_RsaPss");
+
+    SimServer server;
+    QSignalSpy failed(&server, &SimServer::startFailed);
+    QVERIFY(!server.start(config));
+    QCOMPARE(failed.count(), 1);
+    QVERIFY(failed.first().first().toString().contains(QStringLiteral("with mode 'None'")));
+}
+
 void TestSimServer::refusesSecureOnlyEndpointsWithoutCertificate()
 {
     ProjectConfig config = project(_port);
@@ -136,6 +150,21 @@ void TestSimServer::refusesSecureOnlyEndpointsWithoutCertificate()
     QVERIFY(!server.start(config));
     QCOMPARE(failed.count(), 1);
     QVERIFY(failed.first().first().toString().startsWith(QStringLiteral("Secure endpoints need")));
+}
+
+void TestSimServer::warnsWhenSecureEndpointsAreDropped()
+{
+    ProjectConfig config = project(_port);
+    EndpointInfo secure = config.endpoints.first();
+    secure.securityPolicy = QStringLiteral("Aes256_Sha256_RsaPss");
+    secure.securityMode = QStringLiteral("Sign & Encrypt");
+    config.endpoints.append(secure);
+
+    SimServer server;
+    QSignalSpy warned(&server, &SimServer::startWarning);
+    QVERIFY(server.start(config));
+    QCOMPARE(warned.count(), 1);
+    QVERIFY(warned.first().first().toString().endsWith(QStringLiteral("only unsecured endpoints are offered")));
 }
 
 void TestSimServer::tracksAnonymousSession()

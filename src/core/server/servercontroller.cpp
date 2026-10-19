@@ -15,6 +15,7 @@
 #include "formatting.h"
 #include "listenersettings.h"
 #include "logmapper.h"
+#include "pki/certificategenerator.h"
 #include "project/projectnodes.h"
 #include "servercontroller.h"
 #include "snapshotbuilder.h"
@@ -32,6 +33,7 @@ ServerController::ServerController(QObject *parent)
     connect(&_server, &SimServer::logAppended, this, &ServerController::appendLog);
     connect(&_server, &SimServer::sessionsChanged, this, &ServerController::sessionsChanged);
     connect(&_server, &SimServer::startFailed, this, &ServerController::startFailed);
+    connect(&_server, &SimServer::startWarning, this, &ServerController::startWarning);
     connect(&_engine, &SimulationEngine::valuesUpdated, this, &ServerController::valuesChanged);
     connect(&_addressSpace, &AddressSpace::valueWrittenByClient, this, &ServerController::handleClientWrite);
     connect(&_server, &SimServer::clientCertificateRejected, this, &ServerController::handleCertificateRejected);
@@ -244,6 +246,23 @@ bool ServerController::installServerCertificate(const QString &certificateFile, 
 }
 
 ///
+/// \brief Creates a self-signed server certificate for the project and installs it, replacing an earlier one.
+/// \param error Receives the reason on failure; may be null.
+/// \return True when the certificate was created and stored.
+///
+bool ServerController::generateServerCertificate(QString *error)
+{
+    QStringList hostnames;
+    for (const EndpointInfo &endpoint : std::as_const(_project.endpoints))
+        hostnames.append(endpoint.hostname);
+    const GeneratedCertificate generated =
+        CertificateGenerator::generate(_project.server.applicationUri, hostnames, error);
+    return finishCertificateChange(!generated.certificate.isEmpty()
+                                   && _certificates.storeServerCertificate(generated.certificate,
+                                                                           generated.privateKey, error));
+}
+
+///
 /// \brief Moves a stored certificate, e.g. to trust a rejected client.
 /// \param filePath Stored certificate file.
 /// \param category Target folder.
@@ -349,6 +368,7 @@ AddressSpace &ServerController::addressSpace()
 ///
 bool ServerController::start()
 {
+    ensureServerCertificate();
     _server.setPkiMaterial(_certificates.material());
     if (!_server.start(_project))
         return false;
@@ -429,6 +449,22 @@ void ServerController::loadProjectNodeSets()
             appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
                                        tr("Model '%1' stays loaded until OpenUaSim restarts").arg(loaded)));
     }
+}
+
+///
+/// \brief Creates the server certificate when a secure endpoint is enabled and none is installed.
+///
+void ServerController::ensureServerCertificate()
+{
+    if (!CertificateGenerator::isAvailable() || _certificates.hasServerCertificate()
+        || !ListenerSettingsBuilder::usesSecurity(_project.endpoints))
+        return;
+    QString error;
+    if (generateServerCertificate(&error))
+        appendLog(LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::Security,
+                                   tr("Created a self-signed server certificate for the secure endpoints")));
+    else
+        appendLog(LogMapper::entry(LogEntry::Level::Error, LogEntry::Category::Security, error));
 }
 
 ///
