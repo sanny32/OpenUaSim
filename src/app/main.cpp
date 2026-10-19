@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
     ServerController controller;
     ProjectDocument document(&controller);
     document.openLast();
+    controller.ensureServerCertificate();
 
     MainWindow window(&app.theme());
     window.setController(&controller);

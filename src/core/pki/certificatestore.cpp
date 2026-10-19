@@ -10,9 +10,11 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QHostInfo>
 #include <QRegularExpression>
 #include <QSslCertificate>
 #include <QSslCertificateExtension>
+#include <QSslKey>
 #include <QStandardPaths>
 
 #ifdef OUASIM_HAVE_ENCRYPTION
@@ -23,8 +25,6 @@
 #include "certificatestore.h"
 
 namespace {
-
-const QString kServerCertificateName = QStringLiteral("server.der");
 
 ///
 /// \brief Translates a message of the certificate store.
@@ -105,28 +105,90 @@ QString distinguishedName(const QSslCertificate &certificate, bool subject)
 }
 
 ///
-/// \brief Returns the key usage of a certificate as text.
-/// \param certificate Certificate to describe.
-/// \return Usage names joined by commas; empty when the extension is absent.
+/// \brief Formats the public key algorithm and size.
+/// \param key Certificate public key.
+/// \return Algorithm and size in bits, or empty for an unavailable key.
 ///
-QString keyUsage(const QSslCertificate &certificate)
+QString publicKeyDescription(const QSslKey &key)
 {
-#ifdef OUASIM_HAVE_ENCRYPTION
-    const QByteArray der = certificate.toDer();
-    const unsigned char *data = reinterpret_cast<const unsigned char *>(der.constData());
-    const std::unique_ptr<X509, decltype(&X509_free)> parsed(d2i_X509(nullptr, &data, long(der.size())), X509_free);
-    if (!parsed)
+    if (key.isNull())
         return {};
-    const int index = X509_get_ext_by_NID(parsed.get(), NID_key_usage, -1);
+    QString algorithm;
+    switch (key.algorithm()) {
+    case QSsl::Rsa: algorithm = QStringLiteral("RSA"); break;
+    case QSsl::Dsa: algorithm = QStringLiteral("DSA"); break;
+    case QSsl::Ec: algorithm = QStringLiteral("EC"); break;
+    case QSsl::Dh: algorithm = QStringLiteral("DH"); break;
+    case QSsl::Opaque: return tr("Opaque public key");
+    }
+    return tr("%1 (%2 bits)").arg(algorithm).arg(key.length());
+}
+
+#ifdef OUASIM_HAVE_ENCRYPTION
+///
+/// \brief Decodes a certificate extension into readable text.
+/// \param certificate Parsed certificate.
+/// \param nid OpenSSL extension identifier.
+/// \return Extension text, or empty when absent or undecodable.
+///
+QString extensionText(X509 *certificate, int nid)
+{
+    const int index = X509_get_ext_by_NID(certificate, nid, -1);
     if (index < 0)
         return {};
     const std::unique_ptr<BIO, decltype(&BIO_free)> output(BIO_new(BIO_s_mem()), BIO_free);
-    if (!output || X509V3_EXT_print(output.get(), X509_get_ext(parsed.get(), index), 0, 0) != 1)
+    if (!output || X509V3_EXT_print(output.get(), X509_get_ext(certificate, index), 0, 0) != 1)
         return {};
     char *text = nullptr;
     const long size = BIO_get_mem_data(output.get(), &text);
     return QString::fromUtf8(text, size);
+}
+
+///
+/// \brief Extracts the signature, key parameters and X.509 extensions.
+/// \param certificate Certificate to describe.
+/// \param info Destination for the decoded fields.
+///
+void describeCryptography(const QSslCertificate &certificate, CertificateInfo &info)
+{
+    const QByteArray der = certificate.toDer();
+    const unsigned char *data = reinterpret_cast<const unsigned char *>(der.constData());
+    const std::unique_ptr<X509, decltype(&X509_free)> parsed(d2i_X509(nullptr, &data, long(der.size())), X509_free);
+    if (!parsed)
+        return;
+    const int signature = X509_get_signature_nid(parsed.get());
+    if (signature != NID_undef)
+        info.signatureAlgorithm = QString::fromLatin1(OBJ_nid2ln(signature));
+    int digest = NID_undef;
+    if (X509_get_signature_info(parsed.get(), &digest, nullptr, nullptr, nullptr) == 1 && digest != NID_undef)
+        info.signatureHashAlgorithm = QString::fromLatin1(OBJ_nid2sn(digest));
+
+    X509_ALGOR *algorithm = nullptr;
+    if (X509_PUBKEY_get0_param(nullptr, nullptr, nullptr, &algorithm, X509_get_X509_PUBKEY(parsed.get())) == 1
+        && algorithm && algorithm->parameter) {
+        const int size = i2d_ASN1_TYPE(algorithm->parameter, nullptr);
+        if (size > 0) {
+            QByteArray parameters(size, Qt::Uninitialized);
+            unsigned char *output = reinterpret_cast<unsigned char *>(parameters.data());
+            if (i2d_ASN1_TYPE(algorithm->parameter, &output) == size)
+                info.publicKeyParameters = QString::fromLatin1(parameters.toHex(' ').toUpper());
+        }
+    }
+    info.basicConstraints = extensionText(parsed.get(), NID_basic_constraints);
+    info.keyUsage = extensionText(parsed.get(), NID_key_usage);
+    info.extendedKeyUsage = extensionText(parsed.get(), NID_ext_key_usage);
+    info.subjectKeyIdentifier = extensionText(parsed.get(), NID_subject_key_identifier);
+    info.authorityKeyIdentifier = extensionText(parsed.get(), NID_authority_key_identifier);
+    info.subjectAlternativeNames = extensionText(parsed.get(), NID_subject_alt_name);
+}
 #else
+///
+/// \brief Returns key usage exposed by the Qt TLS backend.
+/// \param certificate Certificate to describe.
+/// \return Usage names, or empty when unavailable.
+///
+QString keyUsage(const QSslCertificate &certificate)
+{
     const QList<QSslCertificateExtension> extensions = certificate.extensions();
     for (const QSslCertificateExtension &extension : extensions) {
         if (extension.name() != QLatin1String("keyUsage"))
@@ -136,8 +198,8 @@ QString keyUsage(const QSslCertificate &certificate)
                                                         : value.toString();
     }
     return {};
-#endif
 }
+#endif
 
 ///
 /// \brief Formats bytes as upper-case hex with a separator.
@@ -163,6 +225,8 @@ CertificateInfo describe(const QSslCertificate &certificate, CertificateInfo::Ca
     CertificateInfo info;
     info.category = category;
     info.commonName = certificate.subjectInfo(QSslCertificate::CommonName).value(0);
+    info.version = QStringLiteral("V%1").arg(QString::fromLatin1(certificate.version()));
+    info.publicKey = publicKeyDescription(certificate.publicKey());
     info.subject = distinguishedName(certificate, true);
     info.issuer = distinguishedName(certificate, false);
     info.serialNumber = QString::fromLatin1(certificate.serialNumber()).replace(QLatin1Char(':'), QLatin1Char(' ')).toUpper();
@@ -171,7 +235,11 @@ CertificateInfo describe(const QSslCertificate &certificate, CertificateInfo::Ca
     info.fingerprint = hex(certificate.digest(QCryptographicHash::Sha1), ':');
     info.sha256Fingerprint = hex(certificate.digest(QCryptographicHash::Sha256), ':');
     info.details = certificate.toText();
+#ifdef OUASIM_HAVE_ENCRYPTION
+    describeCryptography(certificate, info);
+#else
     info.keyUsage = keyUsage(certificate);
+#endif
     info.filePath = QDir::toNativeSeparators(filePath);
     return info;
 }
@@ -348,7 +416,7 @@ bool CertificateStore::installServerCertificate(const QString &certificateFile, 
 /// \param certificate PEM or DER certificate.
 /// \param privateKey PEM or DER private key.
 /// \param error Receives the reason on failure; may be null.
-/// \return False when the certificate cannot be parsed, the key is empty or the files cannot be stored.
+/// \return False when the certificate cannot be parsed, the key is empty or the files cannot be stored or renamed.
 ///
 bool CertificateStore::storeServerCertificate(const QByteArray &certificate, const QByteArray &privateKey,
                                               QString *error)
@@ -362,7 +430,15 @@ bool CertificateStore::storeServerCertificate(const QByteArray &certificate, con
         setError(error, tr("The server certificate has no private key"));
         return false;
     }
-    return writeFile(serverCertificatePath(), parsed.toDer(), error) && writeFile(keyPath(), privateKey, error);
+    const QString previous = serverCertificatePath();
+    if (!writeFile(previous, parsed.toDer(), error) || !writeFile(keyPath(), privateKey, error))
+        return false;
+    const QString target = generatedCertificatePath();
+    if (previous != target && !QFile::rename(previous, target)) {
+        setError(error, tr("Cannot rename '%1' to '%2'").arg(previous, target));
+        return false;
+    }
+    return true;
 }
 
 ///
@@ -431,12 +507,31 @@ PkiMaterial CertificateStore::material() const
 }
 
 ///
-/// \brief Returns where the server certificate is kept.
+/// \brief Builds the server certificate path from the local hostname.
+/// \return Path named OpenUaSim@HOSTNAME.der in the own folder.
+///
+QString CertificateStore::generatedCertificatePath() const
+{
+    return folder(CertificateInfo::Category::Application)
+           + QStringLiteral("/OpenUaSim@%1.der").arg(QHostInfo::localHostName());
+}
+
+///
+/// \brief Locates the installed certificate, including certificates from another host.
 /// \return Path in the own folder.
 ///
 QString CertificateStore::serverCertificatePath() const
 {
-    return folder(CertificateInfo::Category::Application) + QLatin1Char('/') + kServerCertificateName;
+    const QString target = generatedCertificatePath();
+    if (QFileInfo::exists(target))
+        return target;
+    const QFileInfoList files = QDir(folder(CertificateInfo::Category::Application)).entryInfoList(
+        { QStringLiteral("OpenUaSim@*.der") }, QDir::Files, QDir::Name);
+    for (const QFileInfo &file : files) {
+        if (!parseCertificate(readFile(file.absoluteFilePath())).isNull())
+            return file.absoluteFilePath();
+    }
+    return target;
 }
 
 ///

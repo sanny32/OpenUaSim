@@ -543,7 +543,8 @@ AddressSpace &ServerController::addressSpace()
 ///
 bool ServerController::start()
 {
-    ensureServerCertificate();
+    if (ListenerSettingsBuilder::usesSecurity(_project.endpoints))
+        ensureServerCertificate();
     _server.setPkiMaterial(_certificates.material());
     if (!_server.start(_project))
         return false;
@@ -645,17 +646,16 @@ void ServerController::reloadServer()
 }
 
 ///
-/// \brief Creates the server certificate when a secure endpoint is enabled and none is installed.
+/// \brief Creates a missing server certificate when generation is available and logs the result.
 ///
 void ServerController::ensureServerCertificate()
 {
-    if (!CertificateGenerator::isAvailable() || _certificates.hasServerCertificate()
-        || !ListenerSettingsBuilder::usesSecurity(_project.endpoints))
+    if (!CertificateGenerator::isAvailable() || _certificates.hasServerCertificate())
         return;
     QString error;
     if (generateServerCertificate(&error))
         appendLog(LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::Security,
-                                   tr("Created a self-signed server certificate for the secure endpoints")));
+                                   tr("Created a self-signed server certificate")));
     else
         appendLog(LogMapper::entry(LogEntry::Level::Error, LogEntry::Category::Security, error));
 }

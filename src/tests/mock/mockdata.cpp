@@ -361,6 +361,16 @@ CertificateInfo certificate(CertificateInfo::Category category, const QString &c
     CertificateInfo info;
     info.category = category;
     info.commonName = commonName;
+    info.version = QStringLiteral("V3");
+    info.signatureAlgorithm = QStringLiteral("sha256WithRSAEncryption");
+    info.signatureHashAlgorithm = QStringLiteral("SHA256");
+    info.publicKey = QStringLiteral("RSA (2048 bits)");
+    info.publicKeyParameters = QStringLiteral("05 00");
+    info.basicConstraints = QStringLiteral("CA:FALSE");
+    info.extendedKeyUsage = QStringLiteral("TLS Web Server Authentication");
+    info.subjectKeyIdentifier = fingerprint;
+    info.authorityKeyIdentifier = fingerprint;
+    info.subjectAlternativeNames = QStringLiteral("URI:urn:openuasim:server, DNS:localhost");
     info.subject = QStringLiteral("CN=%1,\nO=Example Corp,\nC=US").arg(commonName);
     info.issuer = QStringLiteral("CN=OpenUaSim,\nO=Example Corp,\nC=US");
     info.serialNumber = serial;

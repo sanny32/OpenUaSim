@@ -46,7 +46,7 @@ void setError(QString *error, const QString &message)
 #ifdef OUASIM_HAVE_ENCRYPTION
 const UA_UInt16 kKeySizeBits = 2048;
 const UA_UInt16 kValidDays = 3650;
-// ub-common-name and ub-organization-name of RFC 5280; OpenSSL refuses longer subject values.
+// ub-common-name of RFC 5280; OpenSSL refuses longer subject values.
 const int kMaxSubjectValueLength = 64;
 
 ///
@@ -150,11 +150,9 @@ GeneratedCertificate generate(const QString &applicationUri, const QStringList &
 {
 #ifdef OUASIM_HAVE_ENCRYPTION
     const QString machine = QHostInfo::localHostName();
-    QList<QByteArray> subjectTexts = {
+    const QList<QByteArray> subjectTexts = {
         subjectEntry("CN", QStringLiteral("%1@%2").arg(QCoreApplication::applicationName(), machine)),
     };
-    if (!QCoreApplication::organizationName().isEmpty())
-        subjectTexts.append(subjectEntry("O", QCoreApplication::organizationName()));
     QList<QByteArray> altNameTexts = { QStringLiteral("URI:%1").arg(applicationUri).toUtf8() };
     QStringList dnsNames = hostnames;
     dnsNames.append(machine);

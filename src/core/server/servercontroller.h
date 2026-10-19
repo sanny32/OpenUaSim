@@ -209,6 +209,11 @@ public:
     bool generateServerCertificate(QString *error = nullptr);
 
     ///
+    /// \brief Creates a missing server certificate when generation is available and logs the result.
+    ///
+    void ensureServerCertificate();
+
+    ///
     /// \brief Moves a stored certificate, e.g. to trust a rejected client.
     /// \param filePath Stored certificate file.
     /// \param category Target folder.
@@ -363,7 +368,6 @@ signals:
 
 private:
     void rebuildNodes();
-    void ensureServerCertificate();
     void setRestartRequired(bool required);
     bool loadNodeSet(const QString &fileName, QString *error);
     void loadProjectNodeSets();

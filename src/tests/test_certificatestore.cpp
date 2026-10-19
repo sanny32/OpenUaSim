@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QHostInfo>
 #include <QSignalSpy>
 #include <QSslCertificate>
 #include <QTemporaryDir>
@@ -41,6 +42,8 @@ private slots:
     void installsServerCertificate();
     void installRejectsMissingKey();
     void storesServerCertificateFromMemory();
+    void loadsServerCertificateFromAnotherHost();
+    void serverCertificateWriteFailure();
     void generatesSelfSignedCertificate();
     void generatesWithLongSubjectNames();
     void movesBetweenFolders();
@@ -52,6 +55,10 @@ private slots:
     void controllerAnnouncesChanges();
     void secureEndpointRunsWithInstalledCertificate();
     void startCreatesMissingServerCertificate();
+    void ensuresCertificateBeforeServerStart_data();
+    void ensuresCertificateBeforeServerStart();
+    void ensureKeepsInstalledCertificate();
+    void ensureReportsGenerationFailure();
     void generateReplacesServerCertificate();
     void addsCertificateFromMemory();
     void rejectedClientLandsInRejectedFolder();
@@ -113,6 +120,17 @@ void TestCertificateStore::describesCertificate()
     QVERIFY(info.details.contains(QStringLiteral("Signature Algorithm")));
     QVERIFY(info.details.contains(QStringLiteral("Public-Key")));
 #ifdef OUASIM_HAVE_ENCRYPTION
+    QCOMPARE(info.version, QStringLiteral("V3"));
+    QCOMPARE(info.signatureAlgorithm, QStringLiteral("sha256WithRSAEncryption"));
+    QCOMPARE(info.signatureHashAlgorithm, QStringLiteral("SHA256"));
+    QCOMPARE(info.publicKey, QStringLiteral("RSA (2048 bits)"));
+    QCOMPARE(info.publicKeyParameters, QStringLiteral("05 00"));
+    QCOMPARE(info.basicConstraints, QStringLiteral("CA:FALSE"));
+    QVERIFY(info.extendedKeyUsage.isEmpty());
+    QCOMPARE(info.subjectKeyIdentifier, QStringLiteral("AF:03:8B:C8:0D:EE:EF:7B:F0:63:E4:AF:8E:CF:D6:59:46:33:DC:C3"));
+    QCOMPARE(info.authorityKeyIdentifier, info.subjectKeyIdentifier);
+    QVERIFY(info.subjectAlternativeNames.contains(QStringLiteral("URI:urn:openuasim:server")));
+    QVERIFY(info.subjectAlternativeNames.contains(QStringLiteral("DNS:localhost")));
     QVERIFY(info.keyUsage.contains(QStringLiteral("Digital Signature")));
     QVERIFY(info.keyUsage.contains(QStringLiteral("Key Encipherment")));
 #endif
@@ -141,10 +159,70 @@ void TestCertificateStore::installsServerCertificate()
     const QList<CertificateInfo> certificates = _store.certificates();
     QCOMPARE(certificates.size(), 1);
     QCOMPARE(certificates.first().category, Category::Application);
+    QCOMPARE(QFileInfo(certificates.first().filePath).fileName(),
+             QStringLiteral("OpenUaSim@%1.der").arg(QHostInfo::localHostName()));
 
     const PkiMaterial material = _store.material();
     QVERIFY(!material.certificate.isEmpty());
     QVERIFY(material.privateKey.contains("PRIVATE KEY"));
+    const CertificateStore reopened(_directory->path());
+    QVERIFY(reopened.hasServerCertificate());
+    QCOMPARE(reopened.material().certificate, material.certificate);
+    QCOMPARE(reopened.material().privateKey, material.privateKey);
+}
+
+///
+/// \brief Loads a key pair copied from another host and updates its filename on installation.
+///
+void TestCertificateStore::loadsServerCertificateFromAnotherHost()
+{
+    const QString fileName = QStringLiteral("OpenUaSim@earlier-host.der");
+    const QString own = _store.folder(Category::Application);
+    const QString privateFolder = _store.root() + QStringLiteral("/own/private");
+    QVERIFY(QDir().mkpath(own));
+    QVERIFY(QDir().mkpath(privateFolder));
+    const QString previous = own + QLatin1Char('/') + fileName;
+    QVERIFY(QFile::copy(testData(QStringLiteral("stranger.der")), previous));
+    QVERIFY(QFile::copy(testData(QStringLiteral("stranger.key.der")), privateFolder + QStringLiteral("/server.key")));
+    QFile garbage(own + QStringLiteral("/OpenUaSim@000-invalid.der"));
+    QVERIFY(garbage.open(QIODevice::WriteOnly));
+    QCOMPARE(garbage.write("garbage"), qint64(7));
+    garbage.close();
+    CertificateStore reopened(_store.root());
+    QVERIFY(reopened.hasServerCertificate());
+    QCOMPARE(reopened.certificates().size(), 1);
+    QCOMPARE(QFileInfo(reopened.certificates().first().filePath).fileName(), fileName);
+    const PkiMaterial original = reopened.material();
+    QVERIFY(!original.certificate.isEmpty());
+    QVERIFY(!original.privateKey.isEmpty());
+    QVERIFY(reopened.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                               testData(QStringLiteral("server.key.pem"))));
+    QVERIFY(!QFileInfo::exists(previous));
+    QCOMPARE(reopened.certificates().size(), 1);
+    QCOMPARE(QFileInfo(reopened.certificates().first().filePath).fileName(),
+             QStringLiteral("OpenUaSim@%1.der").arg(QHostInfo::localHostName()));
+    QVERIFY(reopened.material().certificate != original.certificate);
+    const CertificateStore afterRestart(_store.root());
+    QVERIFY(afterRestart.hasServerCertificate());
+    QCOMPARE(afterRestart.material().certificate, reopened.material().certificate);
+    QCOMPARE(afterRestart.material().privateKey, reopened.material().privateKey);
+    QVERIFY(afterRestart.certificates().first().filePath.endsWith(QStringLiteral(".der")));
+}
+
+///
+/// \brief Reports an unwritable certificate destination without creating a private key.
+///
+void TestCertificateStore::serverCertificateWriteFailure()
+{
+    const QString blocked = _store.folder(Category::Application)
+                            + QStringLiteral("/OpenUaSim@%1.der").arg(QHostInfo::localHostName());
+    QVERIFY(QDir().mkpath(blocked));
+    QString error;
+    QVERIFY(!_store.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                             testData(QStringLiteral("server.key.pem")), &error));
+    QVERIFY(!error.isEmpty());
+    QVERIFY(!_store.hasServerCertificate());
+    QVERIFY(_store.material().privateKey.isEmpty());
 }
 
 void TestCertificateStore::storesServerCertificateFromMemory()
@@ -200,7 +278,7 @@ void TestCertificateStore::generatesWithLongSubjectNames()
     const QString applicationName = QCoreApplication::applicationName();
     const QString organizationName = QCoreApplication::organizationName();
     QCoreApplication::setApplicationName(QString(80, QLatin1Char('a')));
-    QCoreApplication::setOrganizationName(QString());
+    QCoreApplication::setOrganizationName(QStringLiteral("Application Publisher"));
 
     const GeneratedCertificate generated = CertificateGenerator::generate(QStringLiteral("urn:openuasim:test"), {});
     QCoreApplication::setApplicationName(applicationName);
@@ -209,6 +287,8 @@ void TestCertificateStore::generatesWithLongSubjectNames()
     QVERIFY(!generated.privateKey.isEmpty());
     const QSslCertificate certificate(generated.certificate, QSsl::Der);
     QCOMPARE(certificate.subjectInfo(QSslCertificate::CommonName).value(0), QString(64, QLatin1Char('a')));
+    QVERIFY(certificate.subjectInfo(QSslCertificate::Organization).isEmpty());
+    QVERIFY(certificate.issuerInfo(QSslCertificate::Organization).isEmpty());
 }
 
 void TestCertificateStore::installRejectsMissingKey()
@@ -381,6 +461,112 @@ void TestCertificateStore::generateReplacesServerCertificate()
     QCOMPARE(changed.count(), 2);
     QVERIFY(controller.certificateStore().material().certificate != installed);
     QCOMPARE(controller.certificates().size(), 1);
+    QCOMPARE(QFileInfo(controller.certificates().first().filePath).fileName(),
+             QStringLiteral("OpenUaSim@%1.der").arg(QHostInfo::localHostName()));
+}
+
+///
+/// \brief Covers startup independently of enabled secure endpoints.
+///
+void TestCertificateStore::ensuresCertificateBeforeServerStart_data()
+{
+    QTest::addColumn<bool>("emptyEndpoints");
+    QTest::newRow("no-endpoints") << true;
+    QTest::newRow("unsecured-endpoint") << false;
+}
+
+///
+/// \brief Creates missing PKI material before the server runs and leaves it unchanged on repeated checks.
+///
+void TestCertificateStore::ensuresCertificateBeforeServerStart()
+{
+    QFETCH(bool, emptyEndpoints);
+    ProjectConfig project = DefaultProject::create();
+    project.server.applicationUri = QStringLiteral("urn:openuasim:startup-test");
+    if (emptyEndpoints)
+        project.endpoints.clear();
+    else {
+        project.endpoints.first().securityPolicy = QStringLiteral("None");
+        project.endpoints.first().securityMode = QStringLiteral("None");
+    }
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    controller.setProject(project);
+    QSignalSpy changed(&controller, &ServerController::certificatesChanged);
+    controller.ensureServerCertificate();
+    QVERIFY(!controller.isRunning());
+    if (!CertificateGenerator::isAvailable()) {
+        QVERIFY(!controller.certificateStore().hasServerCertificate());
+        QCOMPARE(changed.count(), 0);
+        QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+    }
+    QVERIFY(controller.certificateStore().hasServerCertificate());
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(controller.certificates().size(), 1);
+    const CertificateInfo info = controller.certificates().first();
+    QVERIFY(info.details.contains(project.server.applicationUri));
+    QVERIFY(info.subjectAlternativeNames.contains(project.server.applicationUri));
+    QVERIFY(info.extendedKeyUsage.contains(QStringLiteral("TLS Web Server Authentication")));
+    QVERIFY(info.extendedKeyUsage.contains(QStringLiteral("TLS Web Client Authentication")));
+    QVERIFY(!info.subjectKeyIdentifier.isEmpty());
+    QVERIFY(info.authorityKeyIdentifier.isEmpty());
+    QCOMPARE(QFileInfo(info.filePath).fileName(),
+             QStringLiteral("OpenUaSim@%1.der").arg(QHostInfo::localHostName()));
+    QCOMPARE(controller.log().last().category, LogEntry::Category::Security);
+    QCOMPARE(controller.log().last().level, LogEntry::Level::Info);
+    QVERIFY(!controller.isRestartRequired());
+
+    const PkiMaterial material = controller.certificateStore().material();
+    const qsizetype logSize = controller.log().size();
+    controller.ensureServerCertificate();
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(controller.log().size(), logSize);
+    QCOMPARE(controller.certificateStore().material().certificate, material.certificate);
+    QCOMPARE(controller.certificateStore().material().privateKey, material.privateKey);
+}
+
+///
+/// \brief Preserves an installed certificate and key during startup initialization.
+///
+void TestCertificateStore::ensureKeepsInstalledCertificate()
+{
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    controller.setProject(DefaultProject::create());
+    QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                                testData(QStringLiteral("server.key.pem"))));
+    const PkiMaterial material = controller.certificateStore().material();
+    const qsizetype logSize = controller.log().size();
+    QSignalSpy changed(&controller, &ServerController::certificatesChanged);
+    controller.ensureServerCertificate();
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(controller.log().size(), logSize);
+    QCOMPARE(controller.certificateStore().material().certificate, material.certificate);
+    QCOMPARE(controller.certificateStore().material().privateKey, material.privateKey);
+    QVERIFY(!controller.isRunning());
+}
+
+///
+/// \brief Records a certificate write failure without announcing a successful PKI change.
+///
+void TestCertificateStore::ensureReportsGenerationFailure()
+{
+    if (!CertificateGenerator::isAvailable())
+        QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+    QFile blocked(_directory->filePath(QStringLiteral("own")));
+    QVERIFY(blocked.open(QIODevice::WriteOnly));
+    blocked.close();
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    controller.setProject(DefaultProject::create());
+    QSignalSpy changed(&controller, &ServerController::certificatesChanged);
+    controller.ensureServerCertificate();
+    QVERIFY(!controller.certificateStore().hasServerCertificate());
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(controller.log().last().category, LogEntry::Category::Security);
+    QCOMPARE(controller.log().last().level, LogEntry::Level::Error);
+    QVERIFY(!controller.log().last().message.isEmpty());
+    QVERIFY(!controller.isRunning());
 }
 
 void TestCertificateStore::addsCertificateFromMemory()

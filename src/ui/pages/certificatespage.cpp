@@ -10,6 +10,7 @@
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QScrollBar>
+#include <QTableWidget>
 #include <QUrl>
 
 #include "appicons.h"
@@ -25,7 +26,34 @@
 
 namespace {
 
-constexpr int kFilePathLines = 2;
+///
+/// \brief Appends a field with a compact preview and preserves its complete value for selection.
+/// \param view Certificate field list.
+/// \param name Field label.
+/// \param value Complete field value.
+/// \param iconName Icon resource identifying the field.
+///
+void addDetail(QTableWidget *view, const QString &name, const QString &value, const QString &iconName)
+{
+    const int row = view->rowCount();
+    view->insertRow(row);
+    view->setItem(row, 0, new QTableWidgetItem(AppIcons::icon(iconName), name));
+    auto *preview = new QTableWidgetItem(value.simplified());
+    preview->setData(Qt::UserRole, value);
+    view->setItem(row, 1, preview);
+}
+
+///
+/// \brief Lists an extension only when it is present in the certificate.
+/// \param view Certificate field list.
+/// \param name Extension label.
+/// \param value Decoded extension value.
+///
+void addExtension(QTableWidget *view, const QString &name, const QString &value)
+{
+    if (!value.isEmpty())
+        addDetail(view, name, value, QStringLiteral("shield-check"));
+}
 
 }
 
@@ -53,9 +81,12 @@ CertificatesPage::CertificatesPage(QWidget *parent)
         ui->generateButton->setEnabled(false);
         ui->generateButton->setToolTip(tr("This build has no encryption support"));
     }
-    ViewSetup::fitHeightToLines(ui->subjectEdit, ui->subjectEdit->blockCount());
-    ViewSetup::fitHeightToLines(ui->issuerEdit, ui->issuerEdit->blockCount());
-    ViewSetup::fitHeightToLines(ui->filePathEdit, kFilePathLines);
+    ViewSetup::configureTable(ui->detailsView);
+    ui->detailsView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui->detailsView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    ui->detailsSplitter->setStretchFactor(0, 1);
+    ui->detailsSplitter->setStretchFactor(1, 0);
+    ui->detailsSplitter->setSizes({ ui->detailsView->minimumHeight(), ui->valueHost->minimumSizeHint().height() });
     // The details never scroll sideways, so the splitter must not squeeze them below their width.
     ui->detailsPanelScroll->setMinimumWidth(ui->detailsPanelBody->minimumSizeHint().width()
                                             + ui->detailsPanelScroll->verticalScrollBar()->sizeHint().width());
@@ -70,6 +101,7 @@ CertificatesPage::CertificatesPage(QWidget *parent)
             this, &CertificatesPage::showCategory);
     connect(ui->certificatesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &CertificatesPage::showCertificate);
+    connect(ui->detailsView, &QTableWidget::itemSelectionChanged, this, &CertificatesPage::showSelectedValue);
     connect(ui->generateButton, &QPushButton::clicked, this, &CertificatesPage::generateRequested);
     connect(ui->importButton, &QPushButton::clicked, this, &CertificatesPage::requestImport);
     connect(ui->exportButton, &QPushButton::clicked, this, &CertificatesPage::requestExport);
@@ -161,20 +193,30 @@ void CertificatesPage::showCertificate(const QModelIndex &current)
     }
 
     const CertificateInfo &certificate = _certificatesModel->item(current.row());
-    ui->subjectEdit->setPlainText(certificate.subject);
-    ViewSetup::fitHeightToLines(ui->subjectEdit, ui->subjectEdit->blockCount());
-    ui->issuerEdit->setPlainText(certificate.issuer);
-    ViewSetup::fitHeightToLines(ui->issuerEdit, ui->issuerEdit->blockCount());
-    ui->serialNumberEdit->setText(certificate.serialNumber);
-    ui->sha1Edit->setText(certificate.fingerprint);
-    ui->sha256Edit->setText(certificate.sha256Fingerprint);
-    ui->certificateTextEdit->setPlainText(certificate.details);
-    ui->validFromEdit->setText(Formatting::dateTime(certificate.validFrom));
-    ui->validToEdit->setText(Formatting::dateTime(certificate.validTo));
-    ui->statusIndicator->setStatus(CertificatesModel::status(certificate.category),
-                                   CertificatesModel::statusText(certificate.category));
-    ui->keyUsageEdit->setText(certificate.keyUsage);
-    ui->filePathEdit->setPlainText(certificate.filePath);
+    const int selectedField = qMax(0, ui->detailsView->currentRow());
+    clearDetails();
+    addDetail(ui->detailsView, tr("Version"), certificate.version, QStringLiteral("certificate"));
+    addDetail(ui->detailsView, tr("Serial Number"), certificate.serialNumber, QStringLiteral("hash"));
+    addDetail(ui->detailsView, tr("Signature Algorithm"), certificate.signatureAlgorithm, QStringLiteral("certificate"));
+    addDetail(ui->detailsView, tr("Signature Hash Algorithm"), certificate.signatureHashAlgorithm, QStringLiteral("hash"));
+    addDetail(ui->detailsView, tr("Issuer"), certificate.issuer, QStringLiteral("certificate"));
+    addDetail(ui->detailsView, tr("Valid from"), Formatting::dateTime(certificate.validFrom), QStringLiteral("clock"));
+    addDetail(ui->detailsView, tr("Valid to"), Formatting::dateTime(certificate.validTo), QStringLiteral("clock"));
+    addDetail(ui->detailsView, tr("Subject"), certificate.subject, QStringLiteral("user"));
+    addDetail(ui->detailsView, tr("Public Key"), certificate.publicKey, QStringLiteral("certificate"));
+    if (!certificate.publicKeyParameters.isEmpty())
+        addDetail(ui->detailsView, tr("Public Key Parameters"), certificate.publicKeyParameters, QStringLiteral("certificate"));
+    addExtension(ui->detailsView, tr("Basic Constraints"), certificate.basicConstraints);
+    addExtension(ui->detailsView, tr("Key Usage"), certificate.keyUsage);
+    addExtension(ui->detailsView, tr("Extended Key Usage"), certificate.extendedKeyUsage);
+    addExtension(ui->detailsView, tr("Subject Key Identifier"), certificate.subjectKeyIdentifier);
+    addExtension(ui->detailsView, tr("Authority Key Identifier"), certificate.authorityKeyIdentifier);
+    addExtension(ui->detailsView, tr("Subject Alternative Names"), certificate.subjectAlternativeNames);
+    addDetail(ui->detailsView, tr("SHA-256 Fingerprint"), certificate.sha256Fingerprint, QStringLiteral("hash"));
+    addDetail(ui->detailsView, tr("SHA-1 Thumbprint"), certificate.fingerprint, QStringLiteral("hash"));
+    addDetail(ui->detailsView, tr("File Path"), certificate.filePath, QStringLiteral("folder"));
+    addDetail(ui->detailsView, tr("X.509 Details"), certificate.details, QStringLiteral("certificate"));
+    ui->detailsView->selectRow(selectedField);
 
     const bool storeFolder = certificate.category == CertificateInfo::Category::Trusted
                              || certificate.category == CertificateInfo::Category::Rejected;
@@ -187,17 +229,25 @@ void CertificatesPage::showCertificate(const QModelIndex &current)
 ///
 void CertificatesPage::clearDetails()
 {
-    ui->subjectEdit->clear();
-    ui->issuerEdit->clear();
-    ui->serialNumberEdit->clear();
-    ui->sha1Edit->clear();
-    ui->sha256Edit->clear();
-    ui->certificateTextEdit->clear();
-    ui->validFromEdit->clear();
-    ui->validToEdit->clear();
-    ui->statusIndicator->setStatus(StatusKind::None, QString());
-    ui->keyUsageEdit->clear();
-    ui->filePathEdit->clear();
+    ui->detailsView->setRowCount(0);
+    ui->selectedFieldLabel->setText(tr("Selected value"));
+    ui->selectedValueEdit->clear();
+}
+
+///
+/// \brief Shows the full selected field in the wrapping, selectable value pane.
+///
+void CertificatesPage::showSelectedValue()
+{
+    const QList<QTableWidgetItem *> selected = ui->detailsView->selectedItems();
+    if (selected.isEmpty()) {
+        ui->selectedFieldLabel->setText(tr("Selected value"));
+        ui->selectedValueEdit->clear();
+        return;
+    }
+    const int row = selected.first()->row();
+    ui->selectedFieldLabel->setText(ui->detailsView->item(row, 0)->text());
+    ui->selectedValueEdit->setPlainText(ui->detailsView->item(row, 1)->data(Qt::UserRole).toString());
 }
 
 ///

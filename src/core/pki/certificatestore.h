@@ -106,7 +106,7 @@ public:
     /// \param certificate PEM or DER certificate.
     /// \param privateKey PEM or DER private key.
     /// \param error Receives the reason on failure; may be null.
-    /// \return False when the certificate cannot be parsed, the key is empty or the files cannot be stored.
+    /// \return False when the certificate cannot be parsed, the key is empty or the files cannot be stored or renamed.
     ///
     bool storeServerCertificate(const QByteArray &certificate, const QByteArray &privateKey, QString *error = nullptr);
 
@@ -140,6 +140,7 @@ public:
     PkiMaterial material() const;
 
 private:
+    QString generatedCertificatePath() const;
     QString serverCertificatePath() const;
     QString keyPath() const;
     bool contains(const QString &filePath) const;

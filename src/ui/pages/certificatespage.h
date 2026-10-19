@@ -85,6 +85,7 @@ signals:
 private:
     void showCategory(const QModelIndex &current);
     void showCertificate(const QModelIndex &current);
+    void showSelectedValue();
     void clearDetails();
     int currentCategory() const;
     QString currentFilePath() const;
