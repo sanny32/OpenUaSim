@@ -15,6 +15,7 @@
 #include <QScrollArea>
 #include <QSignalSpy>
 #include <QHeaderView>
+#include <QInputDialog>
 #include <QSpinBox>
 #include <QSplitter>
 #include <QStatusBar>
@@ -40,6 +41,7 @@
 #include "project/projectdocument.h"
 #include "project/projectnodes.h"
 #include "server/servercontroller.h"
+#include "serversettingsdialog.h"
 #include "statusindicator.h"
 #include "testport.h"
 #include "viewsetup.h"
@@ -82,6 +84,8 @@ private slots:
     void addNodeThroughDialog();
     void deleteNodeAfterConfirmation();
     void deleteNodeFollowsSelection();
+    void renamesNodeFromDialog();
+    void appliesServerSettingsFromDialog();
     void refusedVariableChangeShowsMessage();
     void endpointChangesShowRestartNote();
     void refusedEndpointChangeShowsMessage();
@@ -105,7 +109,7 @@ void TestMainWindow::hasAllPages()
     for (int i = 0; i < expected.size(); ++i)
         QCOMPARE(tabs->tabText(i), expected.at(i));
     QCOMPARE(window.windowTitle(), QStringLiteral("OpenUaSim"));
-    QCOMPARE(window.size(), QSize(1331, 771));
+    QCOMPARE(window.size(), QSize(1331, 811));
     QCOMPARE(window.minimumSize(), QSize(1000, 600));
 }
 
@@ -433,6 +437,58 @@ void TestMainWindow::deleteNodeFollowsSelection()
     QVERIFY(!child<QAction>(window, "actionDeleteNode")->isEnabled());
     QVERIFY(page->selectNode(QStringLiteral("ns=1;s=Motor_01")));
     QVERIFY(child<QAction>(window, "actionDeleteNode")->isEnabled());
+    QVERIFY(child<QAction>(window, "actionRenameNode")->isEnabled());
+    QVERIFY(page->selectNode(QStringLiteral("i=85")));
+    QVERIFY(!child<QAction>(window, "actionRenameNode")->isEnabled());
+}
+
+void TestMainWindow::renamesNodeFromDialog()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+    auto *page = child<ObjectsPage>(window, "objectsPage");
+    const QString motor = QStringLiteral("ns=1;s=Motor_01");
+    QVERIFY(page->selectNode(motor));
+
+    child<QAction>(window, "actionRenameNode")->trigger();
+    auto *dialog = window.findChild<QInputDialog *>();
+    QVERIFY(dialog);
+    QCOMPARE(dialog->textValue(), QStringLiteral("Motor_01"));
+    dialog->setTextValue(QStringLiteral(" Drive "));
+    dialog->accept();
+    QCOMPARE(ProjectNodes::find(controller.project().nodes, motor)->browseName, QStringLiteral("Drive"));
+    QCOMPARE(page->currentNodeId(), motor);
+
+    QTRY_VERIFY(!window.findChild<QInputDialog *>());
+    child<QAction>(window, "actionRenameNode")->trigger();
+    dialog = window.findChild<QInputDialog *>();
+    dialog->setTextValue(QStringLiteral("Pump_01"));
+    dialog->accept();
+    auto *box = window.findChild<QMessageBox *>();
+    QVERIFY(box);
+    QVERIFY(box->text().contains(QStringLiteral("Pump_01")));
+    box->close();
+    QCOMPARE(ProjectNodes::find(controller.project().nodes, motor)->browseName, QStringLiteral("Drive"));
+}
+
+void TestMainWindow::appliesServerSettingsFromDialog()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+
+    child<QAction>(window, "actionServerSettings")->trigger();
+    auto *dialog = window.findChild<ServerSettingsDialog *>();
+    QVERIFY(dialog);
+    child<QLineEdit>(*dialog, "applicationUriEdit")->setText(QStringLiteral("urn:test:line"));
+    child<QSpinBox>(*dialog, "maxSessionsSpin")->setValue(7);
+    dialog->accept();
+
+    QCOMPARE(controller.project().server.applicationUri, QStringLiteral("urn:test:line"));
+    QCOMPARE(controller.project().server.maxSessions, 7);
 }
 
 void TestMainWindow::refusedVariableChangeShowsMessage()

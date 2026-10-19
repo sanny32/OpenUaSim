@@ -58,6 +58,12 @@ private slots:
     void updateVariableAppliesLiveSettings();
     void updateVariableRenameRebuilds();
     void updateVariableReportsRefusal();
+    void updateVariableAppliesInitialValueAndQuality();
+    void updateVariableRejectsInvalidInitialValue();
+    void renameNodeRebuilds();
+    void setServerSettingsRequiresRestartWhileRunning();
+    void setServerSettingsRejectsInvalidValues_data();
+    void setServerSettingsRejectsInvalidValues();
     void setEndpointsWhileStopped();
     void setEndpointsWhileRunningRequiresRestart();
     void setEndpointsRejectsConflicts();
@@ -213,6 +219,120 @@ void TestServerController::updateVariableReportsRefusal()
     QString error;
     QVERIFY(!controller.updateVariable(unknown, &error));
     QCOMPARE(error, QStringLiteral("'ns=1;s=None' is not a variable"));
+}
+
+void TestServerController::updateVariableAppliesInitialValueAndQuality()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QSignalSpy structure(&controller, &ServerController::projectChanged);
+    const QString nodeId = QStringLiteral("ns=1;s=Tank_01.Level");
+
+    VariableInfo level = SnapshotBuilder::variableInfo(*ProjectNodes::find(controller.project().nodes, nodeId),
+                                                       controller.addressSpace());
+    level.simulation.function = SimulationFunction::None;
+    level.initialValue = QStringLiteral("75.5");
+    level.configuredQuality = VariableInfo::Quality::Uncertain;
+    QVERIFY(controller.updateVariable(level));
+
+    QCOMPARE(structure.count(), 0);
+    const NodeDefinition *stored = ProjectNodes::find(controller.project().nodes, nodeId);
+    QCOMPARE(stored->initialValue, QVariant(75.5));
+    QCOMPARE(stored->quality, VariableInfo::Quality::Uncertain);
+    QCOMPARE(controller.addressSpace().value(nodeId), QVariant(75.5));
+    QCOMPARE(controller.addressSpace().quality(nodeId), VariableInfo::Quality::Uncertain);
+
+    level.initialValue = QVariant();
+    level.configuredQuality = VariableInfo::Quality::Good;
+    QVERIFY(controller.updateVariable(level));
+    QCOMPARE(ProjectNodes::find(controller.project().nodes, nodeId)->initialValue, QVariant(75.5));
+    QCOMPARE(controller.addressSpace().quality(nodeId), VariableInfo::Quality::Good);
+}
+
+void TestServerController::updateVariableRejectsInvalidInitialValue()
+{
+    ServerController controller;
+    controller.setProject(project());
+    const QString nodeId = QStringLiteral("ns=1;s=Tank_01.Level");
+    VariableInfo level = SnapshotBuilder::variableInfo(*ProjectNodes::find(controller.project().nodes, nodeId),
+                                                       controller.addressSpace());
+    level.dataType = QStringLiteral("Int16");
+    level.initialValue = QStringLiteral("40000");
+    QString error;
+    QVERIFY(!controller.updateVariable(level, &error));
+    QCOMPARE(error, QStringLiteral("'40000' is not a Int16 value"));
+    QCOMPARE(ProjectNodes::find(controller.project().nodes, nodeId)->dataType, QStringLiteral("Double"));
+}
+
+void TestServerController::renameNodeRebuilds()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QSignalSpy structure(&controller, &ServerController::projectChanged);
+    QSignalSpy edited(&controller, &ServerController::projectEdited);
+
+    QVERIFY(controller.renameNode(QStringLiteral("ns=1;s=Motor_01"), QStringLiteral("Drive")));
+    QCOMPARE(structure.count(), 1);
+    QCOMPARE(edited.count(), 1);
+    QCOMPARE(ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Motor_01"))->browseName,
+             QStringLiteral("Drive"));
+    QVERIFY(controller.addressSpace().hasVariable(QStringLiteral("ns=1;s=Motor_01.Speed")));
+
+    QString error;
+    QVERIFY(!controller.renameNode(QStringLiteral("ns=1;s=Motor_01"), QStringLiteral("Pump_01"), &error));
+    QCOMPARE(error, QStringLiteral("A sibling is already named 'Pump_01'"));
+    QCOMPARE(structure.count(), 1);
+}
+
+void TestServerController::setServerSettingsRequiresRestartWhileRunning()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QSignalSpy edited(&controller, &ServerController::projectEdited);
+
+    ServerSettings settings = controller.project().server;
+    settings.applicationName = QStringLiteral("Line Simulator");
+    settings.maxSessions = 5;
+    QVERIFY(controller.setServerSettings(settings));
+    QCOMPARE(edited.count(), 1);
+    QCOMPARE(controller.project().server.applicationName, QStringLiteral("Line Simulator"));
+    QVERIFY(!controller.isRestartRequired());
+
+    QVERIFY(controller.start());
+    settings.applicationUri = QStringLiteral("urn:test:line");
+    QVERIFY(controller.setServerSettings(settings));
+    QVERIFY(controller.isRestartRequired());
+    QCOMPARE(controller.status().applicationUri, QStringLiteral("urn:test:line"));
+}
+
+void TestServerController::setServerSettingsRejectsInvalidValues_data()
+{
+    QTest::addColumn<QString>("name");
+    QTest::addColumn<QString>("uri");
+    QTest::addColumn<int>("maxSessions");
+    QTest::addColumn<QString>("error");
+
+    QTest::newRow("name") << " " << "urn:x" << 1 << "The application name is empty";
+    QTest::newRow("uri") << "Sim" << "" << 1 << "The application URI is empty";
+    QTest::newRow("zero sessions") << "Sim" << "urn:x" << 0 << "The session limit must be between 1 and 65535";
+    QTest::newRow("too many") << "Sim" << "urn:x" << 65536 << "The session limit must be between 1 and 65535";
+}
+
+void TestServerController::setServerSettingsRejectsInvalidValues()
+{
+    QFETCH(QString, name);
+    QFETCH(QString, uri);
+    QFETCH(int, maxSessions);
+    QFETCH(QString, error);
+
+    ServerController controller;
+    controller.setProject(project());
+    QSignalSpy edited(&controller, &ServerController::projectEdited);
+    QString actual;
+    QVERIFY(!controller.setServerSettings({ name, uri, maxSessions }, &actual));
+    QCOMPARE(actual, error);
+    QCOMPARE(edited.count(), 0);
+    QCOMPARE(controller.project().server.applicationName, QStringLiteral("OpenUaSim"));
 }
 
 void TestServerController::setProjectBuildsNodes()

@@ -61,6 +61,8 @@ private slots:
     void clearRemovesNodesFromServer();
     void clientReadsAndWrites();
     void readOnlyVariableRejectsClientWrite();
+    void appliesConfiguredQuality();
+    void clientReadsBadQuality();
 };
 
 void TestAddressSpace::buildsDefaultProject()
@@ -234,6 +236,44 @@ void TestAddressSpace::readOnlyVariableRejectsClientWrite()
     QVariant value;
     QCOMPARE(client.readValue(fixed.nodeId, value), UA_STATUSCODE_GOOD);
     QCOMPARE(value.toDouble(), 0.0);
+}
+
+void TestAddressSpace::appliesConfiguredQuality()
+{
+    QUaServer server;
+    AddressSpace space(&server);
+    NodeDefinition level = variable(QStringLiteral("Level"), QStringLiteral("Double"));
+    level.quality = VariableInfo::Quality::Uncertain;
+    QVERIFY(space.build({ folder(QStringLiteral("Test"), { level }) }).isEmpty());
+    QCOMPARE(space.quality(level.nodeId), VariableInfo::Quality::Uncertain);
+
+    QVERIFY(space.setQuality(level.nodeId, VariableInfo::Quality::Bad));
+    QCOMPARE(space.quality(level.nodeId), VariableInfo::Quality::Bad);
+    QVERIFY(space.setValue(level.nodeId, 3.0));
+    QCOMPARE(space.quality(level.nodeId), VariableInfo::Quality::Bad);
+
+    QVERIFY(space.setQuality(level.nodeId, VariableInfo::Quality::Good));
+    QVERIFY(space.setValue(level.nodeId, 4.0));
+    QCOMPARE(space.quality(level.nodeId), VariableInfo::Quality::Good);
+    QVERIFY(!space.setQuality(QStringLiteral("ns=1;s=None"), VariableInfo::Quality::Bad));
+}
+
+void TestAddressSpace::clientReadsBadQuality()
+{
+    ProjectConfig project = serverProject(TestPort::freePort());
+    NodeDefinition broken = variable(QStringLiteral("Broken"), QStringLiteral("Double"));
+    broken.quality = VariableInfo::Quality::Bad;
+    project.nodes = { folder(QStringLiteral("Test"), { broken }) };
+
+    SimServer server;
+    AddressSpace space(server.uaServer());
+    QVERIFY(space.build(project.nodes).isEmpty());
+    QVERIFY(server.start(project));
+
+    UaTestClient client;
+    QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
+    QVariant value;
+    QCOMPARE(client.readValue(broken.nodeId, value), UA_STATUSCODE_BAD);
 }
 
 QTEST_GUILESS_MAIN(TestAddressSpace)

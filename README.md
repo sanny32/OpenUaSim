@@ -12,13 +12,15 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
   menu; the status page and status bar show the endpoint, uptime, node count and
   connected clients.
 - Build the address space under the Objects folder from folders, objects and
-  variables; edit a variable's name, data type, access level and simulation.
-  Clients read and write the variables.
+  variables; rename any node and edit a variable's data type, access level,
+  initial value, quality and simulation. Forcing a Bad or Uncertain quality
+  tests how clients handle it. Clients read and write the variables.
 - Drive variables with sine, square, triangle, ramp, random and step waveforms
   with configurable interval, period, amplitude and offset; values are converted
   to the variable's built-in data type.
 - Serve `opc.tcp` endpoints with a choice of security policy and mode, and accept
-  anonymous or username/password logins.
+  anonymous or username/password logins. Set the application name, URI and
+  session limit in **Server → Server Settings**.
 - Manage certificates in the built-in PKI store (own, trusted, rejected,
   issuers): install the server certificate with its key, import, trust, reject,
   export and delete certificates. Client certificates the server rejects land in

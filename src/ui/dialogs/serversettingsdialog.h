@@ -1,0 +1,49 @@
+// SPDX-FileCopyrightText: 2026 OpenUaSim contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file serversettingsdialog.h
+/// \brief Declares the dialog that edits the server description.
+///
+
+#pragma once
+
+#include <QDialog>
+
+#include "data/projectconfig.h"
+
+namespace Ui {
+class ServerSettingsDialog;
+}
+
+///
+/// \brief Edits the application name, application URI and session limit of the server.
+///
+class ServerSettingsDialog : public QDialog
+{
+    Q_OBJECT
+
+public:
+    ///
+    /// \brief Builds the dialog showing the current settings.
+    /// \param settings Settings to edit.
+    /// \param parent Parent widget.
+    ///
+    explicit ServerSettingsDialog(const ServerSettings &settings, QWidget *parent = nullptr);
+
+    ///
+    /// \brief Destroys the dialog.
+    ///
+    ~ServerSettingsDialog() override;
+
+    ///
+    /// \brief Returns the edited settings.
+    /// \return Settings with the name and URI trimmed.
+    ///
+    ServerSettings settings() const;
+
+private:
+    void validate();
+
+    Ui::ServerSettingsDialog *ui;
+};

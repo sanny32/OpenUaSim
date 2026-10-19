@@ -49,6 +49,7 @@ private slots:
     void preservesVariableFields();
     void preservesEveryDataTypeValue_data();
     void preservesEveryDataTypeValue();
+    void preservesQuality();
     void emptyProjectRoundTrips();
     void missingFieldsUseDefaults();
     void keepsTrustedClientsOnlyKey();
@@ -129,6 +130,22 @@ void TestProjectFile::preservesEveryDataTypeValue()
     QCOMPARE(loaded, value);
 }
 
+void TestProjectFile::preservesQuality()
+{
+    NodeDefinition node;
+    node.kind = NodeDefinition::Kind::Variable;
+    node.browseName = QStringLiteral("Value");
+    node.quality = VariableInfo::Quality::Uncertain;
+    ProjectConfig project;
+    project.nodes.append(node);
+
+    const QByteArray json = ProjectFile::toJson(project);
+    QVERIFY(json.contains("\"uncertain\""));
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(json);
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.project.nodes.first().quality, VariableInfo::Quality::Uncertain);
+}
+
 void TestProjectFile::emptyProjectRoundTrips()
 {
     const ProjectFile::LoadResult result = ProjectFile::fromJson(ProjectFile::toJson(ProjectConfig()));
@@ -159,6 +176,7 @@ void TestProjectFile::missingFieldsUseDefaults()
     QCOMPARE(variable.dataType, QStringLiteral("Double"));
     QCOMPARE(variable.access, QStringLiteral("Read/Write"));
     QCOMPARE(variable.initialValue, QVariant(0.0));
+    QCOMPARE(variable.quality, VariableInfo::Quality::Good);
     QCOMPARE(variable.simulation.function, SimulationFunction::None);
     QCOMPARE(variable.simulation.intervalMs, 1000);
 }
@@ -214,6 +232,8 @@ void TestProjectFile::rejectsInvalidNode_data()
     const QJsonObject sawtooth { { QStringLiteral("function"), QStringLiteral("sawtooth") } };
     QTest::newRow("simulation") << projectWithNode(variableNode(QStringLiteral("simulation"), sawtooth))
                                 << "nodes[0]: unknown simulation function 'sawtooth'";
+    QTest::newRow("quality") << projectWithNode(variableNode(QStringLiteral("quality"), QStringLiteral("fair")))
+                             << "nodes[0]: unknown quality 'fair'";
 
     const QJsonObject folder {
         { QStringLiteral("kind"), QStringLiteral("folder") },

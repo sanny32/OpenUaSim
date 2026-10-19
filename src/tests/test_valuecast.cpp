@@ -24,6 +24,10 @@ private slots:
     void convertsAnyValue_data();
     void convertsAnyValue();
     void reportsMetaType();
+    void parsesText_data();
+    void parsesText();
+    void rejectsInvalidText_data();
+    void rejectsInvalidText();
 };
 
 void TestValueCast::convertsAnyValue_data()
@@ -128,6 +132,61 @@ void TestValueCast::listsSupportedTypes()
         QVERIFY(ValueCast::isSupported(type));
         QVERIFY2(ValueCast::fromDouble(1.0, type).isValid(), qPrintable(type));
     }
+}
+
+void TestValueCast::parsesText_data()
+{
+    QTest::addColumn<QString>("text");
+    QTest::addColumn<QString>("dataType");
+    QTest::addColumn<QVariant>("expected");
+
+    QTest::newRow("Boolean true") << "TRUE" << "Boolean" << QVariant(true);
+    QTest::newRow("Boolean 0") << " 0 " << "Boolean" << QVariant(false);
+    QTest::newRow("SByte min") << "-128" << "SByte" << QVariant::fromValue(qint8(-128));
+    QTest::newRow("Byte max") << "255" << "Byte" << QVariant::fromValue(quint8(255));
+    QTest::newRow("Int32") << "-42" << "Int32" << QVariant::fromValue(qint32(-42));
+    QTest::newRow("UInt64 max") << "18446744073709551615" << "UInt64"
+                                << QVariant::fromValue(std::numeric_limits<quint64>::max());
+    QTest::newRow("Float") << "2.5" << "Float" << QVariant::fromValue(2.5f);
+    QTest::newRow("Double") << "1e3" << "Double" << QVariant(1000.0);
+    QTest::newRow("String keeps spaces") << " a b " << "String" << QVariant(QStringLiteral(" a b "));
+    QTest::newRow("DateTime") << "2026-01-02T03:04:05.006Z" << "DateTime"
+                              << QVariant(QDateTime(QDate(2026, 1, 2), QTime(3, 4, 5, 6), QTimeZone::UTC));
+}
+
+void TestValueCast::parsesText()
+{
+    QFETCH(QString, text);
+    QFETCH(QString, dataType);
+    QFETCH(QVariant, expected);
+
+    const QVariant parsed = ValueCast::fromText(text, dataType);
+    QCOMPARE(parsed.metaType(), expected.metaType());
+    QCOMPARE(parsed, expected);
+}
+
+void TestValueCast::rejectsInvalidText_data()
+{
+    QTest::addColumn<QString>("text");
+    QTest::addColumn<QString>("dataType");
+
+    QTest::newRow("Boolean word") << "yes" << "Boolean";
+    QTest::newRow("SByte overflow") << "128" << "SByte";
+    QTest::newRow("Byte negative") << "-1" << "Byte";
+    QTest::newRow("Int32 fraction") << "1.5" << "Int32";
+    QTest::newRow("Int16 empty") << "" << "Int16";
+    QTest::newRow("Float overflow") << "1e39" << "Float";
+    QTest::newRow("Double word") << "abc" << "Double";
+    QTest::newRow("DateTime word") << "yesterday" << "DateTime";
+    QTest::newRow("unsupported") << "1" << "Guid";
+}
+
+void TestValueCast::rejectsInvalidText()
+{
+    QFETCH(QString, text);
+    QFETCH(QString, dataType);
+
+    QVERIFY(!ValueCast::fromText(text, dataType).isValid());
 }
 
 QTEST_GUILESS_MAIN(TestValueCast)

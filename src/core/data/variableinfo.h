@@ -57,6 +57,10 @@ struct VariableInfo
     QString access;
     /// \brief Quality of the current value.
     Quality quality = Quality::Good;
+    /// \brief Value the variable starts with; text typed by the user until it is parsed.
+    QVariant initialValue;
+    /// \brief Quality the server reports with every value of the variable.
+    Quality configuredQuality = Quality::Good;
     /// \brief Simulation that drives the value.
     SimulationSettings simulation;
 };

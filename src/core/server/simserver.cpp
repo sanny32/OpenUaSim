@@ -247,7 +247,7 @@ bool SimServer::configure(const ProjectConfig &project, const ListenerSettings &
     _server->setApplicationUri(project.server.applicationUri);
     _server->setProductName(QStringLiteral(APP_NAME));
     _server->setSoftwareVersion(QStringLiteral(APP_VERSION));
-    _server->setMaxSessions(quint16(qBound(1, project.server.maxSessions, 65535)));
+    _server->setMaxSessions(quint16(qBound(1, project.server.maxSessions, kMaxSessionLimit)));
     _server->setHostname(listener.hostname);
     _server->setPort(listener.port);
     _server->setAnonymousLoginAllowed(listener.anonymousAllowed);

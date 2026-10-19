@@ -78,12 +78,22 @@ bool remove(QList<NodeDefinition> &nodes, const QString &nodeId);
 ///
 /// \brief Replaces the editable fields of a variable.
 /// \param nodes Node tree holding the variable.
-/// \param variable Variable with its node id and the new browse name, icon, data type, access and
-///        simulation; the initial value is converted when the data type changes.
+/// \param variable Variable with its node id and the new browse name, icon, data type, access,
+///        initial value, quality and simulation; the initial value is converted to the data type.
 /// \param error Receives the reason on failure; may be null.
 /// \return False when the node is unknown or not a variable, the browse name is empty or used
 ///         by a sibling, or the data type is unsupported.
 ///
 bool updateVariable(QList<NodeDefinition> &nodes, const NodeDefinition &variable, QString *error = nullptr);
+
+///
+/// \brief Gives a folder, object or variable a new browse name; its node id is kept.
+/// \param nodes Node tree holding the node.
+/// \param nodeId Node to rename.
+/// \param browseName New name.
+/// \param error Receives the reason on failure; may be null.
+/// \return False when the node is unknown or the name is empty or used by a sibling.
+///
+bool rename(QList<NodeDefinition> &nodes, const QString &nodeId, const QString &browseName, QString *error = nullptr);
 
 }

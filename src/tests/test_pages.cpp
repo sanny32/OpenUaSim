@@ -24,6 +24,7 @@
 #include "certificatespage.h"
 #include "endpointsmodel.h"
 #include "endpointspage.h"
+#include "formatting.h"
 #include "itemroles.h"
 #include "logfilterproxymodel.h"
 #include "logmodel.h"
@@ -77,6 +78,7 @@ private slots:
     void objectsPageUpdatesValues();
     void objectsPageAppliesEditedProperties();
     void objectsPageRevertsEdits();
+    void objectsPageEditsInitialValueAndQuality();
     void objectsPageKeepsSelectionOnReload();
     void objectsPageUpdatesOneVariable();
     void objectsPageUpdatesVariableIcon();
@@ -230,6 +232,41 @@ void TestPages::objectsPageAppliesEditedProperties()
     QCOMPARE(variable.simulation.periodMs, 4000);
     QCOMPARE(variable.simulation.amplitude, 5.0);
     QCOMPARE(variable.simulation.offset, -1.0);
+    QVERIFY(!variable.initialValue.isValid());
+    QCOMPARE(variable.configuredQuality, VariableInfo::Quality::Good);
+}
+
+void TestPages::objectsPageEditsInitialValueAndQuality()
+{
+    QHash<QString, QList<VariableInfo>> variables = _snapshot.variables;
+    for (QList<VariableInfo> &list : variables) {
+        for (VariableInfo &variable : list) {
+            variable.initialValue = 1000.0;
+            variable.configuredQuality = VariableInfo::Quality::Uncertain;
+        }
+    }
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, variables);
+    QSignalSpy requested(&page, &ObjectsPage::variableChangeRequested);
+
+    auto *initialValue = child<QLineEdit>(page, "initialValueEdit");
+    auto *quality = child<QComboBox>(page, "qualityCombo");
+    QCOMPARE(initialValue->text(), Formatting::value(1000.0));
+    QCOMPARE(quality->currentText(), QStringLiteral("Uncertain"));
+
+    initialValue->selectAll();
+    QTest::keyClicks(initialValue, QStringLiteral("1500"));
+    quality->setCurrentText(QStringLiteral("Bad"));
+    child<QPushButton>(page, "applyButton")->click();
+
+    QCOMPARE(requested.count(), 1);
+    const VariableInfo variable = requested.first().first().value<VariableInfo>();
+    QCOMPARE(variable.initialValue, QVariant(QStringLiteral("1500")));
+    QCOMPARE(variable.configuredQuality, VariableInfo::Quality::Bad);
+
+    child<QPushButton>(page, "revertButton")->click();
+    QCOMPARE(initialValue->text(), Formatting::value(1000.0));
+    QCOMPARE(quality->currentText(), QStringLiteral("Uncertain"));
 }
 
 void TestPages::objectsPageRevertsEdits()

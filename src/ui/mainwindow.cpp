@@ -12,6 +12,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QInputDialog>
 #include <QLabel>
 #include <QMessageBox>
 #include <QTimer>
@@ -28,6 +29,7 @@
 #include "project/projectfile.h"
 #include "project/projectnodes.h"
 #include "server/servercontroller.h"
+#include "serversettingsdialog.h"
 #include "ui_mainwindow.h"
 #include "viewsetup.h"
 
@@ -129,7 +131,9 @@ void MainWindow::setController(ServerController *controller)
     connect(ui->objectsPage, &ObjectsPage::variableChangeRequested, this, &MainWindow::applyVariableChange);
     connect(ui->objectsPage, &ObjectsPage::currentNodeChanged, this, &MainWindow::updateNodeActions);
     connect(ui->actionAddNode, &QAction::triggered, this, &MainWindow::showAddNodeDialog);
+    connect(ui->actionRenameNode, &QAction::triggered, this, &MainWindow::showRenameDialog);
     connect(ui->actionDeleteNode, &QAction::triggered, this, &MainWindow::confirmDeleteNode);
+    connect(ui->actionServerSettings, &QAction::triggered, this, &MainWindow::showServerSettingsDialog);
     connect(ui->certificatesPage, &CertificatesPage::generateRequested,
             this, &MainWindow::confirmGenerateServerCertificate);
     connect(ui->certificatesPage, &CertificatesPage::importRequested, this, &MainWindow::importCertificate);
@@ -378,7 +382,8 @@ void MainWindow::setupActions()
     connect(ui->actionStartServer, &QAction::enabledChanged, ui->startButton, &QWidget::setEnabled);
     connect(ui->actionStopServer, &QAction::enabledChanged, ui->stopButton, &QWidget::setEnabled);
 
-    ui->objectsPage->setTreeActions({ ui->actionAddNode, ui->actionDeleteNode });
+    ui->objectsPage->setTreeActions({ ui->actionAddNode, ui->actionRenameNode, ui->actionDeleteNode });
+    ui->actionRenameNode->setEnabled(false);
     ui->actionDeleteNode->setEnabled(false);
     connect(ui->actionEventLog, &QAction::toggled, this, &MainWindow::updateEventLogVisibility);
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
@@ -638,6 +643,71 @@ void MainWindow::confirmDeleteNode()
     box->setAttribute(Qt::WA_DeleteOnClose);
     connect(box, &QDialog::finished, this, &MainWindow::deletePendingNode);
     box->open();
+}
+
+///
+/// \brief Asks for a new browse name of the selected project node.
+///
+void MainWindow::showRenameDialog()
+{
+    if (!_controller)
+        return;
+    const NodeDefinition *node = ProjectNodes::find(_controller->project().nodes, ui->objectsPage->currentNodeId());
+    if (!node)
+        return;
+    _pendingRenameId = node->nodeId;
+    auto *dialog = new QInputDialog(this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setWindowTitle(tr("Rename Node"));
+    dialog->setLabelText(tr("New name of '%1':").arg(node->browseName));
+    dialog->setTextValue(node->browseName);
+    connect(dialog, &QInputDialog::textValueSelected, this, &MainWindow::renamePendingNode);
+    dialog->open();
+}
+
+///
+/// \brief Gives the node of the accepted Rename Node dialog its new name and keeps it selected.
+/// \param browseName Entered name; surrounding spaces are dropped.
+///
+void MainWindow::renamePendingNode(const QString &browseName)
+{
+    if (!_controller)
+        return;
+    QString error;
+    if (!_controller->renameNode(_pendingRenameId, browseName.trimmed(), &error)) {
+        showError(tr("Node not renamed"), error);
+        return;
+    }
+    ui->objectsPage->selectNode(_pendingRenameId);
+}
+
+///
+/// \brief Shows the server description for editing.
+///
+void MainWindow::showServerSettingsDialog()
+{
+    if (!_controller)
+        return;
+    auto *dialog = new ServerSettingsDialog(_controller->project().server, this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &QDialog::accepted, this, &MainWindow::applyServerSettingsFromDialog);
+    dialog->open();
+}
+
+///
+/// \brief Applies the settings of the accepted Server Settings dialog.
+///
+void MainWindow::applyServerSettingsFromDialog()
+{
+    const auto *dialog = qobject_cast<const ServerSettingsDialog *>(sender());
+    if (!dialog || !_controller)
+        return;
+    QString error;
+    if (!_controller->setServerSettings(dialog->settings(), &error)) {
+        showError(tr("Server settings not applied"), error);
+        return;
+    }
+    refreshStatus();
 }
 
 ///
@@ -930,6 +1000,8 @@ void MainWindow::updateWindowTitle()
 ///
 void MainWindow::updateNodeActions()
 {
-    ui->actionDeleteNode->setEnabled(
-        _controller && ProjectNodes::find(_controller->project().nodes, ui->objectsPage->currentNodeId()));
+    const bool hasNode =
+        _controller && ProjectNodes::find(_controller->project().nodes, ui->objectsPage->currentNodeId());
+    ui->actionRenameNode->setEnabled(hasNode);
+    ui->actionDeleteNode->setEnabled(hasNode);
 }

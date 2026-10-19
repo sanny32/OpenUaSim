@@ -17,7 +17,9 @@
 #include "logmapper.h"
 #include "pki/certificategenerator.h"
 #include "project/projectnodes.h"
+#include "project/serversettingsrules.h"
 #include "servercontroller.h"
+#include "simulation/valuecast.h"
 #include "snapshotbuilder.h"
 
 ///
@@ -149,10 +151,12 @@ bool ServerController::removeNode(const QString &nodeId)
 
 ///
 /// \brief Applies edited variable properties.
-/// \param variable Node id with the new display name, icon, data type, access and simulation.
+/// \param variable Node id with the new display name, icon, data type, access, configured quality and
+///        simulation; a valid initial value, typed text or a value, replaces the stored one.
 /// \param error Receives the reason on failure; may be null.
-/// \return False when the change was refused. A new name or data type rebuilds the address
-///         space; access and simulation changes apply to the live variable.
+/// \return False when the change was refused, e.g. for text that is no value of the data type. A new
+///         name or data type rebuilds the address space; other changes apply to the live variable,
+///         and a new initial value becomes its current value.
 ///
 bool ServerController::updateVariable(const VariableInfo &variable, QString *error)
 {
@@ -169,7 +173,19 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
     edited.icon = variable.icon;
     edited.dataType = variable.dataType;
     edited.access = variable.access;
+    edited.quality = variable.configuredQuality;
     edited.simulation = variable.simulation;
+    const bool valueEdited = variable.initialValue.isValid();
+    if (valueEdited) {
+        edited.initialValue = variable.initialValue.typeId() == QMetaType::QString
+            ? ValueCast::fromText(variable.initialValue.toString(), variable.dataType)
+            : variable.initialValue;
+        if (!edited.initialValue.isValid()) {
+            if (error)
+                *error = tr("'%1' is not a %2 value").arg(variable.initialValue.toString(), variable.dataType);
+            return false;
+        }
+    }
     if (!ProjectNodes::updateVariable(_project.nodes, edited, error))
         return false;
 
@@ -179,9 +195,55 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
         return true;
     }
     _addressSpace.setAccess(edited.nodeId, edited.access);
+    _addressSpace.setQuality(edited.nodeId, edited.quality);
+    if (valueEdited)
+        _addressSpace.setValue(edited.nodeId, edited.initialValue);
     _engine.updateVariable({ edited.nodeId, edited.dataType, edited.simulation });
     emit variableChanged(SnapshotBuilder::variableInfo(*ProjectNodes::find(_project.nodes, edited.nodeId),
                                                        _addressSpace));
+    return true;
+}
+
+///
+/// \brief Gives a folder, object or variable a new browse name and rebuilds the address space.
+/// \param nodeId Node to rename; its node id is kept.
+/// \param browseName New name.
+/// \param error Receives the reason on failure; may be null.
+/// \return False when the node is unknown or the name is empty or used by a sibling.
+///
+bool ServerController::renameNode(const QString &nodeId, const QString &browseName, QString *error)
+{
+    if (!ProjectNodes::rename(_project.nodes, nodeId, browseName, error))
+        return false;
+    emit projectEdited();
+    rebuildNodes();
+    return true;
+}
+
+///
+/// \brief Replaces the server description; a running server applies it on the next restart.
+/// \param settings New application name, application URI and session limit.
+/// \param error Receives the reason on failure; may be null.
+/// \return False when the name or URI is empty or the session limit is outside 1..65535.
+///
+bool ServerController::setServerSettings(const ServerSettings &settings, QString *error)
+{
+    const QString problem = ServerSettingsRules::problem(settings);
+    if (!problem.isEmpty()) {
+        if (error)
+            *error = problem;
+        return false;
+    }
+
+    const bool uriChanged = settings.applicationUri != _project.server.applicationUri;
+    _project.server = settings;
+    if (uriChanged && _certificates.hasServerCertificate())
+        appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Security,
+                                   tr("The server certificate names the former application URI; "
+                                      "create a new one on the Certificates page")));
+    if (isRunning())
+        setRestartRequired(true);
+    emit projectEdited();
     return true;
 }
 
@@ -210,7 +272,7 @@ bool ServerController::setEndpoints(const QList<EndpointInfo> &endpoints, QStrin
 }
 
 ///
-/// \brief Tells whether the running server still serves older endpoint or certificate settings.
+/// \brief Tells whether the running server still serves older server, endpoint or certificate settings.
 /// \return True after such a change on a running server until it restarts or stops.
 ///
 bool ServerController::isRestartRequired() const

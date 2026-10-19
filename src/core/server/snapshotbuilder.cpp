@@ -177,6 +177,8 @@ VariableInfo variableInfo(const NodeDefinition &node, const AddressSpace &addres
     info.dataType = node.dataType;
     info.access = node.access;
     info.quality = built ? addressSpace.quality(node.nodeId) : VariableInfo::Quality::Bad;
+    info.initialValue = node.initialValue;
+    info.configuredQuality = node.quality;
     info.simulation = node.simulation;
     return info;
 }

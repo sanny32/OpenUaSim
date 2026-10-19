@@ -65,12 +65,31 @@ public:
 
     ///
     /// \brief Applies edited variable properties.
-    /// \param variable Node id with the new display name, icon, data type, access and simulation.
+    /// \param variable Node id with the new display name, icon, data type, access, configured quality and
+    ///        simulation; a valid initial value, typed text or a value, replaces the stored one.
     /// \param error Receives the reason on failure; may be null.
-    /// \return False when the change was refused. A new name or data type rebuilds the address
-    ///         space; access and simulation changes apply to the live variable.
+    /// \return False when the change was refused, e.g. for text that is no value of the data type. A new
+    ///         name or data type rebuilds the address space; other changes apply to the live variable,
+    ///         and a new initial value becomes its current value.
     ///
     bool updateVariable(const VariableInfo &variable, QString *error = nullptr);
+
+    ///
+    /// \brief Gives a folder, object or variable a new browse name and rebuilds the address space.
+    /// \param nodeId Node to rename; its node id is kept.
+    /// \param browseName New name.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return False when the node is unknown or the name is empty or used by a sibling.
+    ///
+    bool renameNode(const QString &nodeId, const QString &browseName, QString *error = nullptr);
+
+    ///
+    /// \brief Replaces the server description; a running server applies it on the next restart.
+    /// \param settings New application name, application URI and session limit.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return False when the name or URI is empty or the session limit is outside 1..65535.
+    ///
+    bool setServerSettings(const ServerSettings &settings, QString *error = nullptr);
 
     ///
     /// \brief Replaces the endpoints; a running server applies them on the next restart.
@@ -106,7 +125,7 @@ public:
     bool exportNamespace(const QString &fileName, const QString &namespaceUri, QString *error = nullptr);
 
     ///
-    /// \brief Tells whether the running server still serves older endpoint or certificate settings.
+    /// \brief Tells whether the running server still serves older server, endpoint or certificate settings.
     /// \return True after such a change on a running server until it restarts or stops.
     ///
     bool isRestartRequired() const;

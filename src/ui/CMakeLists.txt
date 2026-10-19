@@ -2,6 +2,7 @@ set(UI_FILES
     mainwindow.ui
 
     dialogs/addnodedialog.ui
+    dialogs/serversettingsdialog.ui
 
     pages/certificatespage.ui
     pages/endpointspage.ui
@@ -28,6 +29,8 @@ add_library(ouasim_ui STATIC
 
     dialogs/addnodedialog.cpp
     dialogs/addnodedialog.h
+    dialogs/serversettingsdialog.cpp
+    dialogs/serversettingsdialog.h
 
     mainwindow.cpp
     mainwindow.h

@@ -40,11 +40,16 @@ struct NodeDefinition
     QString access = QStringLiteral("Read/Write");
     /// \brief Value the variable starts with; variables only.
     QVariant initialValue;
+    /// \brief Quality reported with every value, e.g. Bad to test client handling; variables only.
+    VariableInfo::Quality quality = VariableInfo::Quality::Good;
     /// \brief Simulation driving the value; variables only.
     SimulationSettings simulation;
     /// \brief Child nodes; folders and objects only.
     QList<NodeDefinition> children;
 };
+
+/// \brief Largest session limit the server takes; QUaServer stores it as a 16-bit count.
+constexpr int kMaxSessionLimit = 65535;
 
 ///
 /// \brief Server description shared by every endpoint.

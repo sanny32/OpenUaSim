@@ -102,6 +102,27 @@ bool nameTaken(const QList<NodeDefinition> &siblings, const QString &browseName,
 }
 
 ///
+/// \brief Checks a new browse name of an existing node.
+/// \param nodes Node tree holding the node.
+/// \param nodeId Node to rename.
+/// \param browseName Proposed name.
+/// \param error Receives the reason on failure; may be null.
+/// \return False when the name is empty or used by a sibling.
+///
+bool checkRename(QList<NodeDefinition> &nodes, const QString &nodeId, const QString &browseName, QString *error)
+{
+    if (browseName.trimmed().isEmpty()) {
+        setError(error, tr("The browse name is empty"));
+        return false;
+    }
+    if (nameTaken(*siblingsOf(nodes, nodeId), browseName, nodeId)) {
+        setError(error, tr("A sibling is already named '%1'").arg(browseName));
+        return false;
+    }
+    return true;
+}
+
+///
 /// \brief Collects the node ids already present in a tree.
 /// \param nodes Node tree.
 /// \param ids Receives the non-empty ids.
@@ -273,8 +294,8 @@ bool remove(QList<NodeDefinition> &nodes, const QString &nodeId)
 ///
 /// \brief Replaces the editable fields of a variable.
 /// \param nodes Node tree holding the variable.
-/// \param variable Variable with its node id and the new browse name, icon, data type, access and
-///        simulation; the initial value is converted when the data type changes.
+/// \param variable Variable with its node id and the new browse name, icon, data type, access,
+///        initial value, quality and simulation; the initial value is converted to the data type.
 /// \param error Receives the reason on failure; may be null.
 /// \return False when the node is unknown or not a variable, the browse name is empty or used
 ///         by a sibling, or the data type is unsupported.
@@ -286,26 +307,41 @@ bool updateVariable(QList<NodeDefinition> &nodes, const NodeDefinition &variable
         setError(error, tr("'%1' is not a variable").arg(variable.nodeId));
         return false;
     }
-    if (variable.browseName.trimmed().isEmpty()) {
-        setError(error, tr("The browse name is empty"));
+    if (!checkRename(nodes, variable.nodeId, variable.browseName, error))
         return false;
-    }
-    if (nameTaken(*siblingsOf(nodes, variable.nodeId), variable.browseName, variable.nodeId)) {
-        setError(error, tr("A sibling is already named '%1'").arg(variable.browseName));
-        return false;
-    }
     if (!ValueCast::isSupported(variable.dataType)) {
         setError(error, tr("Unsupported data type '%1'").arg(variable.dataType));
         return false;
     }
 
-    if (existing->dataType != variable.dataType)
-        existing->initialValue = ValueCast::convert(existing->initialValue, variable.dataType);
+    existing->initialValue = ValueCast::convert(variable.initialValue, variable.dataType);
     existing->browseName = variable.browseName;
     existing->icon = variable.icon;
     existing->dataType = variable.dataType;
     existing->access = variable.access;
+    existing->quality = variable.quality;
     existing->simulation = variable.simulation;
+    return true;
+}
+
+///
+/// \brief Gives a folder, object or variable a new browse name; its node id is kept.
+/// \param nodes Node tree holding the node.
+/// \param nodeId Node to rename.
+/// \param browseName New name.
+/// \param error Receives the reason on failure; may be null.
+/// \return False when the node is unknown or the name is empty or used by a sibling.
+///
+bool rename(QList<NodeDefinition> &nodes, const QString &nodeId, const QString &browseName, QString *error)
+{
+    NodeDefinition *existing = findMutable(nodes, nodeId);
+    if (!existing) {
+        setError(error, tr("There is no node '%1'").arg(nodeId));
+        return false;
+    }
+    if (!checkRename(nodes, nodeId, browseName, error))
+        return false;
+    existing->browseName = browseName;
     return true;
 }
 

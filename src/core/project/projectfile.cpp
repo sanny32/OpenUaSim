@@ -68,6 +68,39 @@ bool kindFromKey(const QString &key, NodeDefinition::Kind &kind)
 }
 
 ///
+/// \brief Returns the stored key of a value quality.
+/// \param quality Quality to name.
+/// \return "good", "uncertain" or "bad".
+///
+QString qualityKey(VariableInfo::Quality quality)
+{
+    switch (quality) {
+    case VariableInfo::Quality::Good:      return QStringLiteral("good");
+    case VariableInfo::Quality::Uncertain: return QStringLiteral("uncertain");
+    case VariableInfo::Quality::Bad:       return QStringLiteral("bad");
+    }
+    return {};
+}
+
+///
+/// \brief Parses a stored value quality.
+/// \param key Stored key.
+/// \param quality Receives the quality when the key is known.
+/// \return False for an unknown key.
+///
+bool qualityFromKey(const QString &key, VariableInfo::Quality &quality)
+{
+    for (VariableInfo::Quality candidate : { VariableInfo::Quality::Good, VariableInfo::Quality::Uncertain,
+                                             VariableInfo::Quality::Bad }) {
+        if (qualityKey(candidate) == key) {
+            quality = candidate;
+            return true;
+        }
+    }
+    return false;
+}
+
+///
 /// \brief Converts a variable value to JSON.
 /// \param value Value of a supported data type.
 /// \return Boolean, string or number; DateTime values as ISO 8601 text.
@@ -134,6 +167,7 @@ QJsonObject nodeToJson(const NodeDefinition &node)
         json.insert(QStringLiteral("dataType"), node.dataType);
         json.insert(QStringLiteral("access"), node.access);
         json.insert(QStringLiteral("initialValue"), valueToJson(node.initialValue));
+        json.insert(QStringLiteral("quality"), qualityKey(node.quality));
         json.insert(QStringLiteral("simulation"), simulationToJson(node.simulation));
     } else {
         QJsonArray children;
@@ -277,6 +311,10 @@ bool NodeReader::readVariable(const QJsonObject &json, const QString &path, Node
         return fail(path, tr("unknown access level '%1'").arg(node.access));
 
     node.initialValue = valueFromJson(json.value(QStringLiteral("initialValue")), node.dataType);
+
+    const QString quality = json.value(QStringLiteral("quality")).toString(qualityKey(node.quality));
+    if (!qualityFromKey(quality, node.quality))
+        return fail(path, tr("unknown quality '%1'").arg(quality));
 
     const QJsonObject simulation = json.value(QStringLiteral("simulation")).toObject();
     const QString function = simulation.value(QStringLiteral("function")).toString(QStringLiteral("none"));

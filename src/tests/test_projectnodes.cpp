@@ -42,6 +42,9 @@ private slots:
     void updateConvertsInitialValue();
     void updateRejectsInvalidChanges_data();
     void updateRejectsInvalidChanges();
+    void renamesAnyNodeKeepingIds();
+    void renameRejectsInvalidNames_data();
+    void renameRejectsInvalidNames();
 };
 
 void TestProjectNodes::findsNodes()
@@ -139,11 +142,16 @@ void TestProjectNodes::updatesVariable()
     edited.simulation.function = SimulationFunction::Step;
     edited.children = { node(NodeDefinition::Kind::Variable, QStringLiteral("Ignored")) };
 
+    edited.initialValue = 1500.0;
+    edited.quality = VariableInfo::Quality::Bad;
+
     QVERIFY(ProjectNodes::updateVariable(nodes, edited));
     const NodeDefinition *stored = ProjectNodes::find(nodes, edited.nodeId);
     QCOMPARE(stored->browseName, QStringLiteral("Rpm"));
     QCOMPARE(stored->icon, QStringLiteral("zap"));
     QCOMPARE(stored->access, QStringLiteral("Read"));
+    QCOMPARE(stored->initialValue, QVariant(1500.0));
+    QCOMPARE(stored->quality, VariableInfo::Quality::Bad);
     QCOMPARE(stored->simulation.function, SimulationFunction::Step);
     QVERIFY(stored->children.isEmpty());
 }
@@ -188,6 +196,41 @@ void TestProjectNodes::updateRejectsInvalidChanges()
     QVERIFY(!ProjectNodes::updateVariable(nodes, edited, &actual));
     QCOMPARE(actual, error);
     QCOMPARE(ProjectNodes::find(nodes, QStringLiteral("ns=1;s=Motor_01.Speed"))->browseName, QStringLiteral("Speed"));
+}
+
+void TestProjectNodes::renamesAnyNodeKeepingIds()
+{
+    QList<NodeDefinition> nodes = DefaultProject::create().nodes;
+    QVERIFY(ProjectNodes::rename(nodes, QStringLiteral("ns=1;s=Motor_01"), QStringLiteral("Drive")));
+    QVERIFY(ProjectNodes::rename(nodes, QStringLiteral("ns=1;s=FactoryLine_01"), QStringLiteral("Line")));
+    QCOMPARE(ProjectNodes::find(nodes, QStringLiteral("ns=1;s=Motor_01"))->browseName, QStringLiteral("Drive"));
+    QCOMPARE(ProjectNodes::find(nodes, QStringLiteral("ns=1;s=FactoryLine_01"))->browseName, QStringLiteral("Line"));
+    QVERIFY(ProjectNodes::find(nodes, QStringLiteral("ns=1;s=Motor_01.Speed")));
+    QCOMPARE(ProjectNodes::count(nodes), 17);
+}
+
+void TestProjectNodes::renameRejectsInvalidNames_data()
+{
+    QTest::addColumn<QString>("nodeId");
+    QTest::addColumn<QString>("name");
+    QTest::addColumn<QString>("error");
+
+    QTest::newRow("unknown") << "ns=1;s=None" << "X" << "There is no node 'ns=1;s=None'";
+    QTest::newRow("empty") << "ns=1;s=Motor_01" << " " << "The browse name is empty";
+    QTest::newRow("sibling") << "ns=1;s=Motor_01" << "Pump_01" << "A sibling is already named 'Pump_01'";
+}
+
+void TestProjectNodes::renameRejectsInvalidNames()
+{
+    QFETCH(QString, nodeId);
+    QFETCH(QString, name);
+    QFETCH(QString, error);
+
+    QList<NodeDefinition> nodes = DefaultProject::create().nodes;
+    QString actual;
+    QVERIFY(!ProjectNodes::rename(nodes, nodeId, name, &actual));
+    QCOMPARE(actual, error);
+    QCOMPARE(ProjectNodes::find(nodes, QStringLiteral("ns=1;s=Motor_01"))->browseName, QStringLiteral("Motor_01"));
 }
 
 void TestProjectNodes::assignsIdsFromBrowsePath()

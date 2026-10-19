@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1331</width>
-    <height>771</height>
+    <height>811</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -330,7 +330,10 @@
     <addaction name="actionRestartServer"/>
     <addaction name="separator"/>
     <addaction name="actionAddNode"/>
+    <addaction name="actionRenameNode"/>
     <addaction name="actionDeleteNode"/>
+    <addaction name="separator"/>
+    <addaction name="actionServerSettings"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -472,12 +475,25 @@
     <string>Ctrl+Shift+N</string>
    </property>
   </action>
+  <action name="actionRenameNode">
+   <property name="text">
+    <string>Re&amp;name Node...</string>
+   </property>
+   <property name="shortcut">
+    <string>F2</string>
+   </property>
+  </action>
   <action name="actionDeleteNode">
    <property name="text">
     <string>&amp;Delete Node</string>
    </property>
    <property name="shortcut">
     <string>Del</string>
+   </property>
+  </action>
+  <action name="actionServerSettings">
+   <property name="text">
+    <string>Server &amp;Settings...</string>
    </property>
   </action>
   <action name="actionEventLog">

@@ -99,6 +99,14 @@ public:
     ///
     bool setAccess(const QString &nodeId, const QString &access);
 
+    ///
+    /// \brief Changes the quality reported with the current and every later value of a variable.
+    /// \param nodeId Variable node id.
+    /// \param quality Good, Uncertain or Bad.
+    /// \return False for an unknown variable.
+    ///
+    bool setQuality(const QString &nodeId, VariableInfo::Quality quality);
+
 signals:
     ///
     /// \brief Announces a value written by an OPC UA client.
@@ -117,6 +125,7 @@ private:
     QList<QPointer<QUaNode>> _roots;
     QHash<QString, QPointer<QUaBaseDataVariable>> _variables;
     QHash<QString, QString> _dataTypes;
+    QHash<QString, VariableInfo::Quality> _qualities;
     QHash<const QObject *, QString> _variableIds;
     int _nodeCount = 0;
 };

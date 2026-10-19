@@ -27,14 +27,31 @@ void applyAccess(QUaBaseDataVariable *variable, const QString &access)
 }
 
 ///
+/// \brief Returns the status code a quality is reported with.
+/// \param quality Good, Uncertain or Bad.
+/// \return Generic status code of that severity.
+///
+QUaStatusCode statusCodeOf(VariableInfo::Quality quality)
+{
+    switch (quality) {
+    case VariableInfo::Quality::Good:      return QUaStatusCode(UA_STATUSCODE_GOOD);
+    case VariableInfo::Quality::Uncertain: return QUaStatusCode(UA_STATUSCODE_UNCERTAIN);
+    case VariableInfo::Quality::Bad:       return QUaStatusCode(UA_STATUSCODE_BAD);
+    }
+    return QUaStatusCode(UA_STATUSCODE_BAD);
+}
+
+///
 /// \brief Sets a variable's value with the Qt type of a data type.
 /// \param variable Variable to update.
 /// \param value Value to convert.
 /// \param dataType Built-in data type name.
+/// \param quality Quality reported with the value.
 ///
-void setTypedValue(QUaBaseDataVariable *variable, const QVariant &value, const QString &dataType)
+void setTypedValue(QUaBaseDataVariable *variable, const QVariant &value, const QString &dataType,
+                   VariableInfo::Quality quality)
 {
-    variable->setValue(ValueCast::convert(value, dataType), QUaStatus::Good, QDateTime(), QDateTime(),
+    variable->setValue(ValueCast::convert(value, dataType), statusCodeOf(quality), QDateTime(), QDateTime(),
                        ValueCast::metaType(dataType));
 }
 
@@ -87,6 +104,7 @@ void AddressSpace::clear()
     _roots.clear();
     _variables.clear();
     _dataTypes.clear();
+    _qualities.clear();
     _variableIds.clear();
     _nodeCount = 0;
 }
@@ -150,7 +168,7 @@ bool AddressSpace::setValue(const QString &nodeId, const QVariant &value)
     QUaBaseDataVariable *variable = _variables.value(nodeId);
     if (!variable)
         return false;
-    setTypedValue(variable, value, _dataTypes.value(nodeId));
+    setTypedValue(variable, value, _dataTypes.value(nodeId), _qualities.value(nodeId));
     return true;
 }
 
@@ -166,6 +184,22 @@ bool AddressSpace::setAccess(const QString &nodeId, const QString &access)
     if (!variable)
         return false;
     applyAccess(variable, access);
+    return true;
+}
+
+///
+/// \brief Changes the quality reported with the current and every later value of a variable.
+/// \param nodeId Variable node id.
+/// \param quality Good, Uncertain or Bad.
+/// \return False for an unknown variable.
+///
+bool AddressSpace::setQuality(const QString &nodeId, VariableInfo::Quality quality)
+{
+    QUaBaseDataVariable *variable = _variables.value(nodeId);
+    if (!variable)
+        return false;
+    _qualities.insert(nodeId, quality);
+    variable->setStatusCode(statusCodeOf(quality));
     return true;
 }
 
@@ -246,10 +280,11 @@ QUaBaseDataVariable *AddressSpace::addVariable(QUaNode *parent, const NodeDefini
         parent->addBaseDataVariable(QUaQualifiedName(kApplicationNamespace, node.browseName), QUaNodeId(node.nodeId));
     if (!variable)
         return nullptr;
-    setTypedValue(variable, node.initialValue, node.dataType);
+    setTypedValue(variable, node.initialValue, node.dataType, node.quality);
     applyAccess(variable, node.access);
     _variables.insert(node.nodeId, variable);
     _dataTypes.insert(node.nodeId, node.dataType);
+    _qualities.insert(node.nodeId, node.quality);
     _variableIds.insert(variable, node.nodeId);
     connect(variable, &QUaBaseVariable::valueChanged, this, &AddressSpace::handleValueChanged);
     return variable;

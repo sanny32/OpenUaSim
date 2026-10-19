@@ -169,6 +169,10 @@ private:
     void addNodeFromDialog();
     void confirmDeleteNode();
     void deletePendingNode();
+    void showRenameDialog();
+    void renamePendingNode(const QString &browseName);
+    void showServerSettingsDialog();
+    void applyServerSettingsFromDialog();
     void applyVariableChange(const VariableInfo &variable);
     void updateNodeActions();
     void applyEndpoints(const QList<EndpointInfo> &endpoints);
@@ -203,6 +207,7 @@ private:
     QLabel *_restartNote;
     QString _pendingParentId;
     QString _pendingDeleteId;
+    QString _pendingRenameId;
     QString _pendingCertificate;
     QActionGroup *_pageActions = nullptr;
     bool _contentSplitApplied = false;

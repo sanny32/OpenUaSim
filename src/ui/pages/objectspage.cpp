@@ -8,6 +8,7 @@
 
 #include <limits>
 
+#include "formatting.h"
 #include "itemroles.h"
 #include "objectspage.h"
 #include "simulation/signalgenerator.h"
@@ -222,6 +223,8 @@ void ObjectsPage::showVariable(const QModelIndex &current)
     ui->iconCombo->setCurrentIndex(ui->iconCombo->findData(variable.icon));
     ui->dataTypeCombo->setCurrentText(variable.dataType);
     ui->accessCombo->setCurrentText(variable.access);
+    ui->initialValueEdit->setText(Formatting::value(variable.initialValue));
+    ui->qualityCombo->setCurrentIndex(ui->qualityCombo->findData(int(variable.configuredQuality)));
     ui->simulationCombo->setCurrentIndex(
         ui->simulationCombo->findData(int(variable.simulation.function)));
     ui->intervalSpin->setValue(variable.simulation.intervalMs);
@@ -242,6 +245,8 @@ void ObjectsPage::fillCombos()
     ui->dataTypeCombo->addItems(ValueCast::dataTypes());
     for (SimulationFunction function : SignalGenerator::functions())
         ui->simulationCombo->addItem(SignalGenerator::displayName(function), int(function));
+    for (auto quality : { VariableInfo::Quality::Good, VariableInfo::Quality::Uncertain, VariableInfo::Quality::Bad })
+        ui->qualityCombo->addItem(VariablesModel::qualityText(quality), int(quality));
 }
 
 ///
@@ -251,6 +256,7 @@ void ObjectsPage::clearProperties()
 {
     ui->nodeIdEdit->clear();
     ui->displayNameEdit->clear();
+    ui->initialValueEdit->clear();
     ui->propertiesHost->setEnabled(false);
 }
 
@@ -275,7 +281,8 @@ void ObjectsPage::revertProperties()
 ///
 /// \brief Reads the properties panel.
 /// \return Shown variable with the edited fields; an interval in seconds is converted to milliseconds,
-///         and an icon the picker does not offer is kept unless another one is chosen.
+///         an icon the picker does not offer is kept unless another one is chosen, and the initial
+///         value is the typed text when it was edited and invalid otherwise.
 ///
 VariableInfo ObjectsPage::editedVariable() const
 {
@@ -285,6 +292,8 @@ VariableInfo ObjectsPage::editedVariable() const
         variable.icon = ui->iconCombo->currentData().toString();
     variable.dataType = ui->dataTypeCombo->currentText();
     variable.access = ui->accessCombo->currentText();
+    variable.initialValue = ui->initialValueEdit->isModified() ? QVariant(ui->initialValueEdit->text()) : QVariant();
+    variable.configuredQuality = VariableInfo::Quality(ui->qualityCombo->currentData().toInt());
     variable.simulation.function = SimulationFunction(ui->simulationCombo->currentData().toInt());
     const int unit = ui->intervalUnitCombo->currentIndex() == kSecondsUnit ? kMillisecondsPerSecond : 1;
     variable.simulation.intervalMs = int(qMin<qint64>(qint64(ui->intervalSpin->value()) * unit,

@@ -7,11 +7,13 @@
 ///
 
 #include <QDateTime>
+#include <QLocale>
 #include <QTimeZone>
 #include <QtMath>
 
 #include <cmath>
 #include <limits>
+#include <type_traits>
 
 #include "valuecast.h"
 
@@ -34,6 +36,77 @@ T saturate(double value)
     if (rounded >= double(std::numeric_limits<T>::max()))
         return std::numeric_limits<T>::max();
     return T(rounded);
+}
+
+///
+/// \brief Parses a number written in the C or the system locale.
+/// \param text Text to parse.
+/// \param number Receives the number; qlonglong, qulonglong or double.
+/// \return False when neither locale reads the whole text as a number.
+///
+template<typename T>
+bool parseNumber(const QString &text, T &number)
+{
+    for (const QLocale &locale : { QLocale::c(), QLocale() }) {
+        bool ok = false;
+        if constexpr (std::is_same_v<T, double>)
+            number = locale.toDouble(text, &ok);
+        else if constexpr (std::is_signed_v<T>)
+            number = locale.toLongLong(text, &ok);
+        else
+            number = locale.toULongLong(text, &ok);
+        if (ok)
+            return true;
+    }
+    return false;
+}
+
+///
+/// \brief Parses an integer of a fixed-size type.
+/// \param text Text to parse.
+/// \return Value of type T, or invalid when the text is no integer or out of range.
+///
+template<typename T>
+QVariant integerFromText(const QString &text)
+{
+    using Wide = std::conditional_t<std::is_signed_v<T>, qlonglong, qulonglong>;
+    Wide number = 0;
+    if (!parseNumber(text, number) || number < Wide(std::numeric_limits<T>::min())
+        || number > Wide(std::numeric_limits<T>::max()))
+        return {};
+    return QVariant::fromValue(T(number));
+}
+
+///
+/// \brief Parses a Boolean written as true/false or 1/0.
+/// \param text Text to parse; case is ignored.
+/// \return Boolean value, or invalid for other text.
+///
+QVariant booleanFromText(const QString &text)
+{
+    if (text.compare(QLatin1String("true"), Qt::CaseInsensitive) == 0 || text == QLatin1String("1"))
+        return true;
+    if (text.compare(QLatin1String("false"), Qt::CaseInsensitive) == 0 || text == QLatin1String("0"))
+        return false;
+    return {};
+}
+
+///
+/// \brief Parses a floating-point number.
+/// \param text Text to parse.
+/// \param single Whether the value must fit a Float.
+/// \return Float or Double value, or invalid when the text is no number or too large for a Float.
+///
+QVariant realFromText(const QString &text, bool single)
+{
+    double number = 0.0;
+    if (!parseNumber(text, number))
+        return {};
+    if (!single)
+        return number;
+    if (std::isfinite(number) && std::abs(number) > double(std::numeric_limits<float>::max()))
+        return {};
+    return QVariant::fromValue(float(number));
 }
 
 ///
@@ -168,6 +241,48 @@ QVariant convert(const QVariant &value, const QString &dataType)
     if (converted.isValid() && converted.convert(QMetaType(metaType(dataType))))
         return converted;
     return defaultValue(dataType);
+}
+
+///
+/// \brief Parses text a user typed as a value of a data type.
+/// \param text Text to parse; surrounding spaces are ignored except for String.
+/// \param dataType Built-in data type name.
+/// \return Value of the matching Qt type, or invalid when the text is not a value of the type:
+///         Boolean takes true/false or 1/0, numbers the C or the system locale and must fit the
+///         type, DateTime takes ISO 8601.
+///
+QVariant fromText(const QString &text, const QString &dataType)
+{
+    if (dataType == QLatin1String("String"))
+        return text;
+    const QString trimmed = text.trimmed();
+    if (dataType == QLatin1String("Boolean"))
+        return booleanFromText(trimmed);
+    if (dataType == QLatin1String("SByte"))
+        return integerFromText<qint8>(trimmed);
+    if (dataType == QLatin1String("Byte"))
+        return integerFromText<quint8>(trimmed);
+    if (dataType == QLatin1String("Int16"))
+        return integerFromText<qint16>(trimmed);
+    if (dataType == QLatin1String("UInt16"))
+        return integerFromText<quint16>(trimmed);
+    if (dataType == QLatin1String("Int32"))
+        return integerFromText<qint32>(trimmed);
+    if (dataType == QLatin1String("UInt32"))
+        return integerFromText<quint32>(trimmed);
+    if (dataType == QLatin1String("Int64"))
+        return integerFromText<qint64>(trimmed);
+    if (dataType == QLatin1String("UInt64"))
+        return integerFromText<quint64>(trimmed);
+    if (dataType == QLatin1String("Float"))
+        return realFromText(trimmed, true);
+    if (dataType == QLatin1String("Double"))
+        return realFromText(trimmed, false);
+    if (dataType == QLatin1String("DateTime")) {
+        const QDateTime time = QDateTime::fromString(trimmed, Qt::ISODateWithMs);
+        return time.isValid() ? QVariant(time) : QVariant();
+    }
+    return {};
 }
 
 }

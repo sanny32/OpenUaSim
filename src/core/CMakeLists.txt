@@ -55,6 +55,8 @@ add_library(ouasim_core STATIC
     project/projectfile.h
     project/projectnodes.cpp
     project/projectnodes.h
+    project/serversettingsrules.cpp
+    project/serversettingsrules.h
 
     server/addressspace.cpp
     server/addressspace.h

@@ -59,4 +59,14 @@ QMetaType::Type metaType(const QString &dataType);
 ///
 QVariant convert(const QVariant &value, const QString &dataType);
 
+///
+/// \brief Parses text a user typed as a value of a data type.
+/// \param text Text to parse; surrounding spaces are ignored except for String.
+/// \param dataType Built-in data type name.
+/// \return Value of the matching Qt type, or invalid when the text is not a value of the type:
+///         Boolean takes true/false or 1/0, numbers the C or the system locale and must fit the
+///         type, DateTime takes ISO 8601.
+///
+QVariant fromText(const QString &text, const QString &dataType);
+
 }
