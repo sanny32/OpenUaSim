@@ -255,7 +255,7 @@
        </property>
        <widget class="StatusPage" name="statusPage">
         <attribute name="title">
-         <string>Status</string>
+         <string>Overview</string>
         </attribute>
        </widget>
        <widget class="ObjectsPage" name="objectsPage">

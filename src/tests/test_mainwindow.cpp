@@ -110,7 +110,7 @@ void TestMainWindow::hasAllPages()
 {
     MainWindow window;
     const auto *tabs = child<QTabWidget>(window, "tabWidget");
-    const QStringList expected = { QStringLiteral("Status"), QStringLiteral("Objects"), QStringLiteral("Types"),
+    const QStringList expected = { QStringLiteral("Overview"), QStringLiteral("Objects"), QStringLiteral("Types"),
                                    QStringLiteral("Namespaces"), QStringLiteral("Endpoints"),
                                    QStringLiteral("Certificates"), QStringLiteral("Sessions"), QStringLiteral("Log") };
     QCOMPARE(tabs->count(), expected.size());
