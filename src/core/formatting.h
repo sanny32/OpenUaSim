@@ -38,13 +38,13 @@ QString duration(qint64 seconds);
 ///
 /// \brief Formats a variable value for display.
 /// \param value Value to format.
-/// \return Doubles with one decimal and group separators, booleans as "true"/"false",
+/// \return Doubles with every significant digit and group separators, booleans as "true"/"false",
 ///         anything else through QVariant::toString().
 ///
 QString value(const QVariant &value);
 
 ///
-/// \brief Formats a floating-point number with one decimal and group separators.
+/// \brief Formats a floating-point number with the shortest digits that read back to it, like OPC UA clients show.
 /// \param number Number to format.
 /// \return Locale-formatted text.
 ///

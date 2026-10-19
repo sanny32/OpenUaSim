@@ -60,7 +60,10 @@ void TestFormatting::value_data()
     QTest::addColumn<QVariant>("value");
     QTest::addColumn<QString>("expected");
 
-    QTest::newRow("double with group separator") << QVariant(1487.62) << QStringLiteral("1,487.6");
+    QTest::newRow("double with group separator") << QVariant(1487.62) << QStringLiteral("1,487.62");
+    QTest::newRow("double keeps every digit") << QVariant(1405.7971878156036)
+                                              << QStringLiteral("1,405.7971878156036");
+    QTest::newRow("whole double") << QVariant(32.0) << QStringLiteral("32");
     QTest::newRow("float") << QVariant(2.5f) << QStringLiteral("2.5");
     QTest::newRow("true") << QVariant(true) << QStringLiteral("true");
     QTest::newRow("false") << QVariant(false) << QStringLiteral("false");
