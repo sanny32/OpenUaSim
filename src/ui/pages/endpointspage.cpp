@@ -102,6 +102,7 @@ void EndpointsPage::showEndpoint(const QModelIndex &current)
 {
     const QModelIndex source = _searchModel->mapToSource(current);
     ui->propertiesHost->setEnabled(source.isValid());
+    ui->propertiesActions->setEnabled(source.isValid());
     if (!source.isValid())
         return;
     const EndpointInfo &endpoint = _endpointsModel->item(source.row());

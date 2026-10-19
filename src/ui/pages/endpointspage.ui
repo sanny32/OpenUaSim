@@ -322,7 +322,7 @@
             <number>10</number>
            </property>
            <property name="bottomMargin">
-            <number>10</number>
+            <number>0</number>
            </property>
            <item>
             <widget class="QWidget" name="propertiesHost">
@@ -490,34 +490,6 @@
                 </property>
                </widget>
               </item>
-              <item row="8" column="0" colspan="2">
-           <layout class="QHBoxLayout" name="propertiesButtonsLayout">
-            <property name="spacing">
-             <number>8</number>
-            </property>
-            <item>
-             <spacer name="propertiesButtonsSpacer">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <widget class="QPushButton" name="revertButton">
-              <property name="text">
-               <string>Revert</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="applyButton">
-              <property name="text">
-               <string>Apply</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
              </layout>
             </widget>
            </item>
@@ -530,6 +502,48 @@
            </item>
           </layout>
          </widget>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="propertiesActions">
+         <layout class="QHBoxLayout" name="propertiesButtonsLayout">
+          <property name="leftMargin">
+           <number>10</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>10</number>
+          </property>
+          <property name="bottomMargin">
+           <number>10</number>
+          </property>
+          <property name="spacing">
+           <number>8</number>
+          </property>
+          <item>
+           <spacer name="propertiesButtonsSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="revertButton">
+            <property name="text">
+             <string>Revert</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="applyButton">
+            <property name="text">
+             <string>Apply</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
       </layout>

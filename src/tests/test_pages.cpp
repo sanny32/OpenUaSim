@@ -70,6 +70,8 @@ class TestPages : public QObject
 
 private slots:
     void initTestCase();
+    void propertiesActionsStayAtBottom_data();
+    void propertiesActionsStayAtBottom();
     void statusPage();
     void objectsPageStartsOnCurrentVariable();
     void objectsPageFollowsVariableSelection();
@@ -119,6 +121,63 @@ void TestPages::initTestCase()
 {
     QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
     _snapshot = MockData::snapshot();
+}
+
+///
+/// \brief Covers both property panels with and without vertical overflow.
+///
+void TestPages::propertiesActionsStayAtBottom_data()
+{
+    QTest::addColumn<bool>("objects");
+    QTest::addColumn<int>("height");
+    QTest::newRow("objects-short") << true << 360;
+    QTest::newRow("objects-tall") << true << 800;
+    QTest::newRow("endpoints-short") << false << 360;
+    QTest::newRow("endpoints-tall") << false << 800;
+}
+
+///
+/// \brief Keeps property actions visible at the panel bottom during scrolling and resizing.
+///
+void TestPages::propertiesActionsStayAtBottom()
+{
+    QFETCH(bool, objects);
+    QFETCH(int, height);
+    ObjectsPage objectsPage;
+    EndpointsPage endpointsPage;
+    QWidget &page = objects ? static_cast<QWidget &>(objectsPage)
+                            : static_cast<QWidget &>(endpointsPage);
+    if (objects)
+        objectsPage.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    else
+        endpointsPage.setEndpoints(_snapshot.endpoints);
+    page.resize(1200, height);
+    page.show();
+    QCoreApplication::processEvents();
+
+    auto *panel = child<QWidget>(page, "propertiesPanel");
+    auto *scroll = child<QScrollArea>(page, "propertiesPanelScroll");
+    auto *apply = child<QPushButton>(page, "applyButton");
+    auto *revert = child<QPushButton>(page, "revertButton");
+    QVERIFY(apply->isEnabled());
+    QVERIFY(revert->isEnabled());
+    QVERIFY(!scroll->isAncestorOf(apply));
+    QVERIFY(!scroll->isAncestorOf(revert));
+    const QPoint position = apply->mapTo(panel, QPoint());
+    const int bottomGap = panel->height() - position.y() - apply->height();
+    QVERIFY(bottomGap >= 0 && bottomGap <= 12);
+    QCOMPARE(revert->mapTo(panel, QPoint()).y(), position.y());
+
+    scroll->verticalScrollBar()->setValue(scroll->verticalScrollBar()->maximum());
+    QCoreApplication::processEvents();
+    QCOMPARE(apply->mapTo(panel, QPoint()), position);
+    page.resize(1200, height + 150);
+    QCoreApplication::processEvents();
+    QCOMPARE(panel->height() - apply->mapTo(panel, QPoint()).y() - apply->height(), bottomGap);
+
+    child<QTableView>(page, objects ? "variablesView" : "endpointsView")->setCurrentIndex({});
+    QVERIFY(!apply->isEnabled());
+    QVERIFY(!revert->isEnabled());
 }
 
 void TestPages::statusPage()
@@ -864,6 +923,8 @@ void TestPages::objectsPageShowsImportedVariablesReadOnly()
     page.setAddressSpace(_snapshot.addressSpace, variables);
     QVERIFY(!child<QWidget>(page, "propertiesHost")->isEnabled());
     QCOMPARE(child<QLineEdit>(page, "displayNameEdit")->text(), QStringLiteral("Speed"));
+    QVERIFY(!child<QPushButton>(page, "applyButton")->isEnabled());
+    QVERIFY(!child<QPushButton>(page, "revertButton")->isEnabled());
 }
 
 QTEST_MAIN(TestPages)

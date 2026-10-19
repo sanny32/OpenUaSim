@@ -243,6 +243,7 @@ void ObjectsPage::showVariable(const QModelIndex &current)
     }
     const VariableInfo &variable = _variablesModel->item(current.row());
     ui->propertiesHost->setEnabled(!variable.readOnly);
+    ui->propertiesActions->setEnabled(!variable.readOnly);
     ui->nodeIdEdit->setText(variable.nodeId);
     ui->displayNameEdit->setText(variable.displayName);
     ui->iconCombo->setCurrentIndex(ui->iconCombo->findData(variable.icon));
@@ -301,6 +302,7 @@ void ObjectsPage::clearProperties()
     ui->displayNameEdit->clear();
     ui->initialValueEdit->clear();
     ui->propertiesHost->setEnabled(false);
+    ui->propertiesActions->setEnabled(false);
 }
 
 ///
