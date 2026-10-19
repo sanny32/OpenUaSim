@@ -1,38 +1,99 @@
 # OpenUaSim
 
-OpenUaSim is an OPC UA simulation server with a desktop UI built on Qt 6.
-The server side is based on [QUaServer](https://github.com/sanny32/QUaServer).
+[![Build and Test](https://github.com/sanny32/OpenUaSim/actions/workflows/build-test.yml/badge.svg)](https://github.com/sanny32/OpenUaSim/actions/workflows/build-test.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+OpenUaSim is an open source OPC UA simulation server with a desktop UI, built on
+Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 
 ## Features
 
-- **Server** — start, stop and restart an OPC UA server (QUaServer / open62541) from the toolbar or
-  the Server menu; the status page and status bar show the endpoint, uptime, nodes and clients.
-- **Objects** — folders, objects and variables under the Objects folder: add and delete nodes, edit a
-  variable's name, data type, access level and simulation; clients read and write the variables.
-- **Simulation** — sine, square, triangle, ramp, random and step waveforms with interval, period,
-  amplitude and offset, converted to the variable's built-in data type.
-- **Endpoints** — opc.tcp endpoints with security policy and mode, anonymous and username/password
-  logins. All enabled endpoints share one TCP port; changes on a running server apply on restart.
-- **Certificates** — PKI store (own, trusted, rejected, issuers) below the application data
-  directory: install the server certificate with its key, import, trust, reject, export and delete
-  certificates. Secure endpoints need an installed server certificate; client certificates the server
-  rejects are put into the rejected folder for review.
-- **Projects** — New, Open, Save and Save As of `.ouasim` JSON projects; the last project reopens on
-  startup and unsaved changes are confirmed before they are dropped.
-- **Models** — import NodeSet2 companion models and export the project nodes as NodeSet2.
-- **Types, Namespaces, Sessions, Log** — standard types in use, the namespace array, active and
-  closed sessions, and the server log filtered by level and category.
-- Light and dark themes: follows the system, or is set from the theme button in the toolbar.
+- Start, stop and restart the OPC UA server from the toolbar or the **Server**
+  menu; the status page and status bar show the endpoint, uptime, node count and
+  connected clients.
+- Build the address space under the Objects folder from folders, objects and
+  variables; edit a variable's name, data type, access level and simulation.
+  Clients read and write the variables.
+- Drive variables with sine, square, triangle, ramp, random and step waveforms
+  with configurable interval, period, amplitude and offset; values are converted
+  to the variable's built-in data type.
+- Serve `opc.tcp` endpoints with a choice of security policy and mode, and accept
+  anonymous or username/password logins.
+- Manage certificates in the built-in PKI store (own, trusted, rejected,
+  issuers): install the server certificate with its key, import, trust, reject,
+  export and delete certificates. Client certificates the server rejects land in
+  the rejected folder for review.
+- Keep the simulation in `.ouasim` JSON projects — New, Open, Save and Save As;
+  the last project reopens on startup and unsaved changes are confirmed before
+  they are dropped.
+- Import NodeSet2 companion models and export the project nodes as NodeSet2.
+- Inspect the standard types in use, the namespace array, active and closed
+  sessions, and the server log filtered by level and category.
+- Switch between light and dark application themes, or follow the system.
 
 ### Limitations
 
-- QUaServer serves one listener, so endpoints cannot use different ports.
-- Imported NodeSet2 models stay loaded until the application restarts; their nodes are served but
-  not listed on the Objects page.
+- QUaServer serves a single listener, so all enabled endpoints share one TCP
+  port; endpoint changes on a running server apply on restart.
+- Secure endpoints need an installed server certificate.
+- Imported NodeSet2 models stay loaded until the application restarts; their
+  nodes are served but not listed on the Objects page.
 
-## Project layout
+## Quick start
 
+On first launch OpenUaSim opens a sample project: a `FactoryLine_01` folder with
+a motor, a conveyor, a pump and a tank, each holding simulated variables, and an
+anonymous unsecured endpoint.
+
+1. Choose **Server → Start Server**.
+2. Connect any OPC UA client — for example
+   [OpenUaExplorer](https://github.com/sanny32/OpenUaExplorer) — to
+   `opc.tcp://localhost:48400` with security `None` and anonymous login.
+3. Browse `Objects/FactoryLine_01` and subscribe to a variable to watch it change.
+
+## Building
+
+Requirements:
+
+- **CMake** 3.22 or newer and a **C++17** compiler.
+- **Qt** 6.9 or newer (Core, Gui, Network, Widgets, Svg; Test for the test suite).
+- **Git** and **Python 3** — QUaServer and open62541 are fetched and built
+  during configuration.
+- **OpenSSL 3** for encryption (on by default). On Windows the OpenSSL from the Qt
+  installer is found automatically.
+
+The build is continuously tested on:
+
+- **Ubuntu Linux** (latest GitHub runner)
+- **Windows** (latest GitHub runner, MSVC)
+- **macOS** (latest GitHub runner, Apple silicon)
+
+Configure and build with CMake, pointing `CMAKE_PREFIX_PATH` at your Qt kit:
+
+```sh
+cmake -S src -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.9/<kit>
+cmake --build build --parallel
 ```
+
+Options:
+
+| Option                   | Default  | Description                                 |
+|--------------------------|----------|---------------------------------------------|
+| `OUASIM_BUILD_TESTS`     | `OFF`    | Build the Qt Test suites (needs Qt Test).   |
+| `OUASIM_WITH_ENCRYPTION` | `ON`     | Build QUaServer with OpenSSL 3 encryption.  |
+| `OUASIM_QUASERVER_TAG`   | `master` | QUaServer git tag or commit to fetch.       |
+
+### Tests
+
+```sh
+cmake -S src -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.9/<kit> -DOUASIM_BUILD_TESTS=ON
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
+
+### Project layout
+
+```text
 src/
   app/      executable, entry point and icon resources
   core/     UI-independent code
@@ -51,40 +112,18 @@ src/
   tests/    Qt Test suites run by CTest, sample data and test certificates
 ```
 
-## Building
+## Feedback
 
-Requirements: CMake 3.22+, a C++17 compiler, Qt 6.9 or newer (Core, Gui, Network, Widgets, Svg),
-Git and Python 3. QUaServer and open62541 are fetched and built during configuration;
-encryption (on by default) needs OpenSSL 3; on Windows the one from the Qt installer is found automatically.
+Found a bug or missing a feature? Open an issue in the
+[issue tracker](https://github.com/sanny32/OpenUaSim/issues).
+Pull requests are welcome.
 
-Configure:
+## MIT License
 
-```sh
-cmake -S src -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/<kit>
-```
+Copyright (c) 2026 Alexandr Ananev
 
-Build:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-```sh
-cmake --build build --parallel
-```
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-### Options
-
-| Option                   | Default         | Description                                       |
-|--------------------------|-----------------|---------------------------------------------------|
-| `OUASIM_BUILD_TESTS`     | `OFF`           | Build the Qt Test suites (needs Qt Test).          |
-| `OUASIM_WITH_ENCRYPTION` | `ON`            | Build QUaServer with OpenSSL 3 encryption.        |
-| `OUASIM_QUASERVER_TAG`   | `master`        | QUaServer git tag or commit to fetch.             |
-
-## Tests
-
-```sh
-cmake -S src -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/<kit> -DOUASIM_BUILD_TESTS=ON
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-```
-
-## License
-
-MIT, see [LICENSE](LICENSE).
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
