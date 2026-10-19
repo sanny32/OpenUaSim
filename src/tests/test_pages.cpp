@@ -94,7 +94,8 @@ private slots:
     void endpointsPageShowsStoredMismatch();
     void certificatesPage();
     void certificatesPageRequestsActions();
-    void certificatesPageGeneratesOnlyInOwnFolder();
+    void certificatesPageOwnFolderActions();
+    void certificatesPageClearsDetailsOfEmptyFolder();
     void certificateDetailsShowEveryLine();
     void certificateDetailsKeepTheirWidth();
     void sessionsPage();
@@ -568,7 +569,27 @@ void TestPages::certificatesPage()
     QVERIFY(!child<QWidget>(page, "detailsHost")->isEnabled());
 }
 
-void TestPages::certificatesPageGeneratesOnlyInOwnFolder()
+void TestPages::certificatesPageClearsDetailsOfEmptyFolder()
+{
+    QList<CertificateInfo> ownOnly;
+    for (const CertificateInfo &certificate : std::as_const(_snapshot.certificates)) {
+        if (certificate.category == CertificateInfo::Category::Application)
+            ownOnly.append(certificate);
+    }
+    QVERIFY(!ownOnly.isEmpty());
+    CertificatesPage page;
+    page.setCertificates(ownOnly);
+    auto *categories = child<QTreeView>(page, "categoriesList");
+
+    QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Application))));
+    QVERIFY(!child<QPlainTextEdit>(page, "subjectEdit")->toPlainText().isEmpty());
+    QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Trusted))));
+    QVERIFY(child<QPlainTextEdit>(page, "subjectEdit")->toPlainText().isEmpty());
+    QVERIFY(child<QPlainTextEdit>(page, "filePathEdit")->toPlainText().isEmpty());
+    QVERIFY(text(page, "serialNumberEdit").isEmpty());
+}
+
+void TestPages::certificatesPageOwnFolderActions()
 {
     CertificatesPage page;
     page.setCertificates(_snapshot.certificates);
@@ -579,8 +600,12 @@ void TestPages::certificatesPageGeneratesOnlyInOwnFolder()
 
     QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Trusted))));
     QVERIFY(!generate->isVisible());
+    QVERIFY(child<QPushButton>(page, "trustButton")->isVisible());
+    QVERIFY(child<QPushButton>(page, "rejectButton")->isVisible());
     QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Application))));
     QVERIFY(generate->isVisible());
+    QVERIFY(!child<QPushButton>(page, "trustButton")->isVisible());
+    QVERIFY(!child<QPushButton>(page, "rejectButton")->isVisible());
     QCOMPARE(generate->isEnabled(), CertificateGenerator::isAvailable());
     generate->click();
     QCOMPARE(requested.count(), CertificateGenerator::isAvailable() ? 1 : 0);

@@ -124,7 +124,10 @@ void CertificatesPage::showCategory(const QModelIndex &current)
 {
     bool ok = false;
     const int category = current.siblingAtColumn(0).data(ItemRoles::Id).toInt(&ok);
-    ui->generateButton->setVisible(ok && category == static_cast<int>(CertificateInfo::Category::Application));
+    const bool ownFolder = ok && category == static_cast<int>(CertificateInfo::Category::Application);
+    ui->generateButton->setVisible(ownFolder);
+    ui->trustButton->setVisible(!ownFolder);
+    ui->rejectButton->setVisible(!ownFolder);
 
     QList<CertificateInfo> shown;
     for (const CertificateInfo &certificate : std::as_const(_certificates)) {
@@ -153,6 +156,7 @@ void CertificatesPage::showCertificate(const QModelIndex &current)
     if (!valid) {
         ui->trustButton->setEnabled(false);
         ui->rejectButton->setEnabled(false);
+        clearDetails();
         return;
     }
 
@@ -173,6 +177,21 @@ void CertificatesPage::showCertificate(const QModelIndex &current)
                              || certificate.category == CertificateInfo::Category::Rejected;
     ui->trustButton->setEnabled(storeFolder && certificate.category != CertificateInfo::Category::Trusted);
     ui->rejectButton->setEnabled(storeFolder && certificate.category != CertificateInfo::Category::Rejected);
+}
+
+///
+/// \brief Empties the details panel so it does not keep showing a certificate of another folder.
+///
+void CertificatesPage::clearDetails()
+{
+    ui->subjectEdit->clear();
+    ui->issuerEdit->clear();
+    ui->serialNumberEdit->clear();
+    ui->validFromEdit->clear();
+    ui->validToEdit->clear();
+    ui->statusIndicator->setStatus(StatusKind::None, QString());
+    ui->keyUsageEdit->clear();
+    ui->filePathEdit->clear();
 }
 
 ///
