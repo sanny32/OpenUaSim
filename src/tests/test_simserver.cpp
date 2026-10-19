@@ -117,10 +117,8 @@ void TestSimServer::reportsPortInUse()
 
     SimServer server;
     QSignalSpy failed(&server, &SimServer::startFailed);
-    if (server.start(project(_port))) {
-        // Windows lets a second socket bind the same port unless one of them asks for exclusive use.
-        QSKIP("The platform allowed a second listener on the same port");
-    }
+    QVERIFY(!server.start(project(_port)));
+    QVERIFY(!server.isRunning());
     QCOMPARE(failed.count(), 1);
     QVERIFY(failed.first().first().toString().contains(QString::number(_port)));
 }

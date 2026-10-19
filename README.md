@@ -75,7 +75,7 @@ cmake --build build --parallel
 |--------------------------|-----------------|---------------------------------------------------|
 | `OUASIM_BUILD_TESTS`     | `OFF`           | Build the Qt Test suites (needs Qt Test).          |
 | `OUASIM_WITH_ENCRYPTION` | `ON`            | Build QUaServer with OpenSSL 3 encryption.        |
-| `OUASIM_QUASERVER_TAG`   | pinned commit   | QUaServer git tag or commit to fetch.             |
+| `OUASIM_QUASERVER_TAG`   | `master`        | QUaServer git tag or commit to fetch.             |
 
 ## Tests
 
