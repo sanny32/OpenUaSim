@@ -30,7 +30,30 @@ private slots:
     void closeAllMovesEverySessionToHistory();
     void historyIsBounded();
     void clearForgetsEverything();
+    void updatesActiveSession();
+    void updateIgnoresUnknownAndClosedSessions();
 };
+
+void TestSessionTracker::updatesActiveSession()
+{
+    SessionTracker tracker;
+    tracker.open(session(QStringLiteral("1")));
+    QVERIFY(tracker.update(QStringLiteral("1"), 2, kClosedAt));
+    QCOMPARE(tracker.sessions().first().subscriptions, 2);
+    QCOMPARE(tracker.sessions().first().lastActivity, kClosedAt);
+    QVERIFY(!tracker.update(QStringLiteral("1"), 2, kClosedAt));
+    QVERIFY(tracker.update(QStringLiteral("1"), 3, kClosedAt));
+}
+
+void TestSessionTracker::updateIgnoresUnknownAndClosedSessions()
+{
+    SessionTracker tracker;
+    tracker.open(session(QStringLiteral("1")));
+    tracker.close(QStringLiteral("1"), kClosedAt);
+    QVERIFY(!tracker.update(QStringLiteral("1"), 5, kClosedAt.addSecs(1)));
+    QVERIFY(!tracker.update(QStringLiteral("9"), 5, kClosedAt));
+    QCOMPARE(tracker.sessions().first().subscriptions, 0);
+}
 
 void TestSessionTracker::opensActiveSessions()
 {

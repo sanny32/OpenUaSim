@@ -52,6 +52,8 @@ private slots:
     void stopClosesSessions();
     void acceptsConfiguredUser();
     void rejectsAnonymousWhenDisabled();
+    void sessionDescribesSecurityAndEndpoint();
+    void diagnosticsCountSubscriptions();
 
 private:
     quint16 _port = 0;
@@ -207,6 +209,41 @@ void TestSimServer::rejectsAnonymousWhenDisabled()
     QVERIFY(server.start(config));
     UaTestClient client;
     QVERIFY(client.connect(server.endpointUrl()) != UA_STATUSCODE_GOOD);
+}
+
+void TestSimServer::sessionDescribesSecurityAndEndpoint()
+{
+    SimServer server;
+    QVERIFY(server.start(project(_port)));
+    UaTestClient client;
+    QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
+    QTRY_COMPARE(server.clientCount(), 1);
+
+    const SessionInfo session = server.sessions().first();
+    QCOMPARE(session.securityMode, QStringLiteral("None"));
+    QCOMPARE(session.userIdentity, QStringLiteral("Anonymous"));
+    QVERIFY(session.endpointUrl.startsWith(QStringLiteral("opc.tcp://")));
+}
+
+void TestSimServer::diagnosticsCountSubscriptions()
+{
+    SimServer server;
+    QVERIFY(server.start(project(_port)));
+    QSignalSpy sessions(&server, &SimServer::sessionsChanged);
+    UaTestClient client;
+    QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
+    QTRY_COMPARE(server.clientCount(), 1);
+    QCOMPARE(server.sessions().first().subscriptions, 0);
+
+    QCOMPARE(client.monitorValue(QStringLiteral("i=2258")), UA_STATUSCODE_GOOD);
+    sessions.clear();
+    server.refreshSessionDiagnostics();
+    QCOMPARE(server.sessions().first().subscriptions, 1);
+    QVERIFY(server.sessions().first().lastActivity.isValid());
+    QCOMPARE(sessions.count(), 1);
+
+    server.refreshSessionDiagnostics();
+    QCOMPARE(sessions.count(), 1);
 }
 
 QTEST_GUILESS_MAIN(TestSimServer)

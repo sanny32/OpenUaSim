@@ -73,6 +73,13 @@ public:
     ///
     UA_StatusCode writeValue(const QString &nodeId, const QVariant &value);
 
+    ///
+    /// \brief Creates a subscription with a data change monitored item on the Value of a node.
+    /// \param nodeId Node id in XML notation.
+    /// \return Status of the monitored item creation.
+    ///
+    UA_StatusCode monitorValue(const QString &nodeId);
+
 private:
     void runInWorker(const std::function<void()> &job);
 

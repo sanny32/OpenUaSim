@@ -17,6 +17,7 @@
 
 #include <open62541/client_config_default.h>
 #include <open62541/client_highlevel.h>
+#include <open62541/client_subscriptions.h>
 #include <open62541/plugin/log_stdout.h>
 
 #include "uatestclient.h"
@@ -122,6 +123,30 @@ UA_StatusCode UaTestClient::writeValue(const QString &nodeId, const QVariant &va
     runInWorker([&] { status = UA_Client_writeValueAttribute(_client, id, &uaValue); });
     UA_Variant_clear(&uaValue);
     UA_NodeId_clear(&id);
+    return status;
+}
+
+///
+/// \brief Creates a subscription with a data change monitored item on the Value of a node.
+/// \param nodeId Node id in XML notation.
+/// \return Status of the monitored item creation.
+///
+UA_StatusCode UaTestClient::monitorValue(const QString &nodeId)
+{
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
+    runInWorker([&] {
+        const UA_CreateSubscriptionResponse subscription = UA_Client_Subscriptions_create(
+            _client, UA_CreateSubscriptionRequest_default(), nullptr, nullptr, nullptr);
+        status = subscription.responseHeader.serviceResult;
+        if (status != UA_STATUSCODE_GOOD)
+            return;
+        UA_NodeId id = QUaNodeId(nodeId).toUaNodeId();
+        const UA_MonitoredItemCreateResult item = UA_Client_MonitoredItems_createDataChange(
+            _client, subscription.subscriptionId, UA_TIMESTAMPSTORETURN_NEITHER,
+            UA_MonitoredItemCreateRequest_default(id), nullptr, nullptr, nullptr);
+        status = item.statusCode;
+        UA_NodeId_clear(&id);
+    });
     return status;
 }
 

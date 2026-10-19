@@ -6,6 +6,8 @@
 /// \brief Implements the OPC UA server the simulator runs.
 ///
 
+#include <QTimer>
+
 #include <QUaServer>
 
 #include "listenersettings.h"
@@ -14,26 +16,42 @@
 
 namespace {
 
+constexpr int kDiagnosticsRefreshMs = 2000;
+
+///
+/// \brief Returns the display name of a message security mode.
+/// \param mode QUaServer mode.
+/// \return "None", "Sign" or "Sign & Encrypt", the names endpoints use.
+///
+QString securityModeName(QUaMessageSecurityMode mode)
+{
+    switch (mode) {
+    case QUaMessageSecurityMode::Sign:           return QStringLiteral("Sign");
+    case QUaMessageSecurityMode::SignAndEncrypt: return QStringLiteral("Sign & Encrypt");
+    default:                                     return QStringLiteral("None");
+    }
+}
+
 ///
 /// \brief Describes a QUaServer session for the sessions page.
 /// \param session Session reported by QUaServer.
-/// \param endpointUrl URL the server listens on.
-/// \param authenticated Whether the session logged in with a configured user name.
+/// \param endpointUrl URL the server listens on, used when the session does not report the one it asked for.
 /// \return Active session description.
 ///
-SessionInfo sessionInfo(const QUaSession *session, const QString &endpointUrl, bool authenticated)
+SessionInfo sessionInfo(const QUaSession *session, const QString &endpointUrl)
 {
     SessionInfo info;
     info.sessionId = session->sessionId();
     info.name = session->applicationName();
     info.client = session->productUri().isEmpty() ? session->applicationName() : session->productUri();
-    info.user = authenticated ? session->userName() : QObject::tr("Anonymous");
+    info.user = session->isAnonymous() ? QObject::tr("Anonymous") : session->userName();
     info.active = true;
-    info.created = session->timestamp().isValid() ? session->timestamp() : QDateTime::currentDateTime();
+    info.created = session->timestamp().isValid() ? session->timestamp().toLocalTime() : QDateTime::currentDateTime();
     info.lastActivity = info.created;
     info.applicationUri = session->applicationUri();
-    info.endpointUrl = endpointUrl;
-    info.userIdentity = authenticated ? QStringLiteral("UserName") : QStringLiteral("Anonymous");
+    info.endpointUrl = session->endpointUrl().isEmpty() ? endpointUrl : session->endpointUrl();
+    info.securityMode = securityModeName(session->securityMode());
+    info.userIdentity = session->isAnonymous() ? QStringLiteral("Anonymous") : QStringLiteral("UserName");
     return info;
 }
 
@@ -88,10 +106,13 @@ QUaMessageSecurityModes securityModes(const QStringList &names)
 SimServer::SimServer(QObject *parent)
     : QObject(parent)
     , _server(new QUaServer(this))
+    , _diagnosticsTimer(new QTimer(this))
 {
+    _diagnosticsTimer->setInterval(kDiagnosticsRefreshMs);
     connect(_server, &QUaServer::logMessage, this, &SimServer::handleLog);
     connect(_server, &QUaServer::clientConnected, this, &SimServer::handleClientConnected);
     connect(_server, &QUaServer::clientDisconnected, this, &SimServer::handleClientDisconnected);
+    connect(_diagnosticsTimer, &QTimer::timeout, this, &SimServer::refreshSessionDiagnostics);
 }
 
 ///
@@ -128,6 +149,7 @@ bool SimServer::start(const ProjectConfig &project)
     _startTime = QDateTime::currentDateTime();
     log(LogEntry::Level::Info, LogEntry::Category::Server, tr("Server started on %1").arg(_endpointUrl));
     emit sessionsChanged();
+    _diagnosticsTimer->start();
     emit runningChanged(true);
     return true;
 }
@@ -148,6 +170,7 @@ void SimServer::stop()
 {
     if (!_server->isRunning())
         return;
+    _diagnosticsTimer->stop();
     _server->stop();
     _sessions.closeAll(QDateTime::currentDateTime());
     log(LogEntry::Level::Info, LogEntry::Category::Server, tr("Server stopped"));
@@ -312,7 +335,7 @@ void SimServer::handleLog(const QUaLog &log)
 ///
 void SimServer::handleClientConnected(const QUaSession *session)
 {
-    const SessionInfo info = sessionInfo(session, _endpointUrl, _server->userNames().contains(session->userName()));
+    const SessionInfo info = sessionInfo(session, _endpointUrl);
     _sessions.open(info);
     log(LogEntry::Level::Info, LogEntry::Category::Session,
         tr("Session '%1' opened by %2").arg(info.name, info.user));
@@ -330,4 +353,22 @@ void SimServer::handleClientDisconnected(const QUaSession *session)
     log(LogEntry::Level::Info, LogEntry::Category::Session,
         tr("Session '%1' closed").arg(session->applicationName()));
     emit sessionsChanged();
+}
+
+///
+/// \brief Copies the subscription count and last activity of the open sessions from the server diagnostics.
+///        Runs every two seconds while the server runs.
+///
+void SimServer::refreshSessionDiagnostics()
+{
+    bool changed = false;
+    const QList<const QUaSession *> sessions = _server->sessions();
+    for (const QUaSession *session : sessions) {
+        const QUaSessionDiagnostics diagnostics = _server->sessionDiagnostics(session);
+        if (diagnostics.isValid)
+            changed |= _sessions.update(session->sessionId(), int(diagnostics.subscriptionsCount),
+                                        diagnostics.lastContactTime.toLocalTime());
+    }
+    if (changed)
+        emit sessionsChanged();
 }

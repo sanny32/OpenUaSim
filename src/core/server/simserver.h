@@ -17,6 +17,7 @@
 #include "pki/certificatestore.h"
 #include "sessiontracker.h"
 
+class QTimer;
 class QUaServer;
 class QUaSession;
 struct ListenerSettings;
@@ -95,6 +96,12 @@ public:
     ///
     QUaServer *uaServer() const;
 
+    ///
+    /// \brief Copies the subscription count and last activity of the open sessions from the server diagnostics.
+    ///        Runs every two seconds while the server runs.
+    ///
+    void refreshSessionDiagnostics();
+
 signals:
     ///
     /// \brief Announces that the server started or stopped.
@@ -130,6 +137,7 @@ private:
     void handleClientDisconnected(const QUaSession *session);
 
     QUaServer *_server;
+    QTimer *_diagnosticsTimer;
     SessionTracker _sessions;
     QDateTime _startTime;
     QString _endpointUrl;

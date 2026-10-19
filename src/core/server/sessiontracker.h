@@ -36,6 +36,15 @@ public:
     bool close(const QString &sessionId, const QDateTime &time);
 
     ///
+    /// \brief Updates the live counters of an active session.
+    /// \param sessionId Identifier of the session.
+    /// \param subscriptions Number of subscriptions it holds.
+    /// \param lastActivity Time of its last request.
+    /// \return True when the session is active and a value changed.
+    ///
+    bool update(const QString &sessionId, int subscriptions, const QDateTime &lastActivity);
+
+    ///
     /// \brief Marks every active session closed, e.g. when the server stops.
     /// \param time Time the sessions closed.
     ///
