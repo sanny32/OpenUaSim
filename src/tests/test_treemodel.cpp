@@ -46,6 +46,7 @@ private slots:
     void iconRoleIsInvalidWithoutIcon();
     void addsTrailingColumnOnlyWhenUsed();
     void findsNodesById();
+    void setIconChangesOneNode();
     void setNodesResetsModel();
 };
 
@@ -138,6 +139,22 @@ void TestTreeModel::findsNodesById()
     QVERIFY(model.findById(QStringLiteral("i=87")).isValid());
     QVERIFY(!model.findById(QStringLiteral("missing")).isValid());
     QVERIFY(!model.findById(QString()).isValid());
+}
+
+void TestTreeModel::setIconChangesOneNode()
+{
+    TreeModel model;
+    model.setNodes(sampleTree());
+    QSignalSpy changed(&model, &TreeModel::dataChanged);
+
+    QVERIFY(model.setIcon(QStringLiteral("motor.running"), QStringLiteral("zap")));
+    const QModelIndex running = model.findById(QStringLiteral("motor.running"));
+    QCOMPARE(running.data(ItemRoles::IconName).toString(), QStringLiteral("zap"));
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(changed.first().at(0).toModelIndex(), running);
+
+    QVERIFY(!model.setIcon(QStringLiteral("missing"), QStringLiteral("zap")));
+    QCOMPARE(changed.count(), 1);
 }
 
 void TestTreeModel::setNodesResetsModel()

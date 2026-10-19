@@ -84,6 +84,8 @@ void TestAddNodeDialog::describesVariable()
     child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral(" Outlet "));
     child<QComboBox>(dialog, "dataTypeCombo")->setCurrentText(QStringLiteral("UInt16"));
     child<QComboBox>(dialog, "accessCombo")->setCurrentText(QStringLiteral("Read"));
+    auto *icons = child<QComboBox>(dialog, "iconCombo");
+    icons->setCurrentIndex(icons->findData(QStringLiteral("thermometer")));
 
     const NodeDefinition node = dialog.node();
     QCOMPARE(node.kind, NodeDefinition::Kind::Variable);
@@ -91,6 +93,7 @@ void TestAddNodeDialog::describesVariable()
     QVERIFY(node.nodeId.isEmpty());
     QCOMPARE(node.dataType, QStringLiteral("UInt16"));
     QCOMPARE(node.access, QStringLiteral("Read"));
+    QCOMPARE(node.icon, QStringLiteral("thermometer"));
     QCOMPARE(node.initialValue.typeId(), int(QMetaType::UShort));
     QCOMPARE(node.simulation.function, SimulationFunction::None);
 }
@@ -99,12 +102,15 @@ void TestAddNodeDialog::describesFolderWithoutVariableFields()
 {
     AddNodeDialog dialog(QStringLiteral("Objects"), {}, {});
     QVERIFY(!child<QComboBox>(dialog, "dataTypeCombo")->isEnabled());
+    QVERIFY(!child<QComboBox>(dialog, "iconCombo")->isEnabled());
     child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(1);
     child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("Mixer"));
     QCOMPARE(dialog.node().kind, NodeDefinition::Kind::Object);
     QVERIFY(!dialog.node().initialValue.isValid());
+    QVERIFY(dialog.node().icon.isEmpty());
     child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(2);
     QVERIFY(child<QComboBox>(dialog, "dataTypeCombo")->isEnabled());
+    QVERIFY(child<QComboBox>(dialog, "iconCombo")->isEnabled());
 }
 
 QTEST_MAIN(TestAddNodeDialog)

@@ -97,7 +97,7 @@ public:
 signals:
     ///
     /// \brief Asks to apply edited properties of the shown variable.
-    /// \param variable Variable with the edited display name, data type, access and simulation.
+    /// \param variable Variable with the edited display name, icon, data type, access and simulation.
     ///
     void variableChangeRequested(const VariableInfo &variable);
 

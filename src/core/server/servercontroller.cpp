@@ -131,7 +131,7 @@ bool ServerController::removeNode(const QString &nodeId)
 
 ///
 /// \brief Applies edited variable properties.
-/// \param variable Node id with the new display name, data type, access and simulation.
+/// \param variable Node id with the new display name, icon, data type, access and simulation.
 /// \param error Receives the reason on failure; may be null.
 /// \return False when the change was refused. A new name or data type rebuilds the address
 ///         space; access and simulation changes apply to the live variable.
@@ -148,6 +148,7 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
 
     NodeDefinition edited = *existing;
     edited.browseName = variable.displayName;
+    edited.icon = variable.icon;
     edited.dataType = variable.dataType;
     edited.access = variable.access;
     edited.simulation = variable.simulation;

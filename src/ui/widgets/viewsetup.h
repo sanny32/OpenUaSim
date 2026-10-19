@@ -13,6 +13,7 @@
 class QAbstractButton;
 class QAbstractItemModel;
 class QAbstractItemView;
+class QComboBox;
 class QLineEdit;
 class QPlainTextEdit;
 class QSortFilterProxyModel;
@@ -41,6 +42,20 @@ void configureTable(QTableView *view);
 /// \param view Table view whose model is already set.
 ///
 void fitColumnsWhenFilled(QTableView *view);
+
+///
+/// \brief Widens a column whenever its contents stop fitting and never narrows it, so changing
+///        values are not elided and do not make the column width jitter.
+/// \param view Table view whose model is already set.
+/// \param column Column to keep wide enough; growth stops at the same cap as fitColumnsWhenFilled().
+///
+void growColumnWithContents(QTableView *view, int column);
+
+///
+/// \brief Fills a combo box with the icons a variable can be given; item data holds the icon name.
+/// \param combo Combo box to fill.
+///
+void fillVariableIconCombo(QComboBox *combo);
 
 ///
 /// \brief Sets the editor height to show exactly the given number of text lines.

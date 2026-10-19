@@ -3,6 +3,7 @@
 
 #include <QCheckBox>
 #include <QClipboard>
+#include <QComboBox>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
@@ -22,6 +23,7 @@
 #include <QStyleFactory>
 #include <QTabBar>
 
+#include "appicons.h"
 #include "apppalette.h"
 #include "appstyle.h"
 #include "data/serverstatus.h"
@@ -96,6 +98,9 @@ private slots:
     void fitColumnsWhenFilledFitsOnce();
     void fitColumnsWhenFilledCapsLongValues();
     void fitColumnsWhenFilledLeavesNoScrollBar();
+    void growColumnWithContentsNeverShrinks();
+    void growColumnWithContentsKeepsWiderUserWidth();
+    void fillVariableIconComboListsResolvableIcons();
     void splitByStretchFollowsStretchFactors();
     void applyInitialStateExpandsAndSelects();
     void applyInitialStateFallsBackToFirstRow();
@@ -519,6 +524,59 @@ void TestWidgets::fitColumnsWhenFilledLeavesNoScrollBar()
     view.resize(fitted + 80, 200);
     QTRY_COMPARE(view.horizontalHeader()->length(), view.viewport()->width());
     QCOMPARE(view.horizontalScrollBar()->maximum(), 0);
+}
+
+void TestWidgets::growColumnWithContentsNeverShrinks()
+{
+    QStandardItemModel model(0, 3);
+    model.appendRow({ new QStandardItem(QStringLiteral("Speed")), new QStandardItem(QStringLiteral("1")),
+                      new QStandardItem(QStringLiteral("Good")) });
+    QTableView view;
+    view.setModel(&model);
+    ViewSetup::configureTable(&view);
+    ViewSetup::fitColumnsWhenFilled(&view);
+    ViewSetup::growColumnWithContents(&view, 1);
+    QHeaderView *header = view.horizontalHeader();
+    const int fitted = header->sectionSize(1);
+
+    model.setData(model.index(0, 1), QStringLiteral("1,234,567.891234"));
+    const int grown = header->sectionSize(1);
+    QVERIFY(grown > fitted);
+    QVERIFY(grown >= static_cast<const QAbstractItemView &>(view).sizeHintForColumn(1));
+
+    model.setData(model.index(0, 1), QStringLiteral("2"));
+    QCOMPARE(header->sectionSize(1), grown);
+
+    const int nameWidth = header->sectionSize(0);
+    model.setData(model.index(0, 0), QString(60, QLatin1Char('x')));
+    QCOMPARE(header->sectionSize(0), nameWidth);
+}
+
+void TestWidgets::growColumnWithContentsKeepsWiderUserWidth()
+{
+    QStandardItemModel model(1, 2);
+    QTableView view;
+    view.setModel(&model);
+    ViewSetup::configureTable(&view);
+    ViewSetup::growColumnWithContents(&view, 0);
+    view.horizontalHeader()->resizeSection(0, 250);
+    model.setData(model.index(0, 0), QStringLiteral("42"));
+    QCOMPARE(view.horizontalHeader()->sectionSize(0), 250);
+
+    model.setData(model.index(0, 0), QString(400, QLatin1Char('x')));
+    QCOMPARE(view.horizontalHeader()->sectionSize(0), 320);
+}
+
+void TestWidgets::fillVariableIconComboListsResolvableIcons()
+{
+    QComboBox combo;
+    ViewSetup::fillVariableIconCombo(&combo);
+    QCOMPARE(combo.count(), AppIcons::variableIcons().size());
+    QVERIFY(combo.findData(QStringLiteral("signal")) >= 0);
+    for (int index = 0; index < combo.count(); ++index) {
+        QVERIFY2(!combo.itemIcon(index).isNull(), qPrintable(combo.itemData(index).toString()));
+        QVERIFY(!combo.itemText(index).isEmpty());
+    }
 }
 
 void TestWidgets::splitByStretchFollowsStretchFactors()

@@ -12,6 +12,7 @@
 #include "addnodedialog.h"
 #include "simulation/valuecast.h"
 #include "ui_addnodedialog.h"
+#include "viewsetup.h"
 
 namespace {
 
@@ -46,6 +47,7 @@ AddNodeDialog::AddNodeDialog(const QString &parentName, const QStringList &sibli
     ui->parentValue->setText(parentName);
     ui->dataTypeCombo->addItems(ValueCast::dataTypes());
     ui->dataTypeCombo->setCurrentText(QStringLiteral("Double"));
+    ViewSetup::fillVariableIconCombo(ui->iconCombo);
 
     connect(ui->kindCombo, &QComboBox::currentIndexChanged, this, &AddNodeDialog::updateKindFields);
     connect(ui->browseNameEdit, &QLineEdit::textChanged, this, &AddNodeDialog::validate);
@@ -74,6 +76,7 @@ NodeDefinition AddNodeDialog::node() const
     if (node.kind == NodeDefinition::Kind::Variable) {
         node.dataType = ui->dataTypeCombo->currentText();
         node.access = ui->accessCombo->currentText();
+        node.icon = ui->iconCombo->currentData().toString();
         node.initialValue = ValueCast::defaultValue(node.dataType);
     }
     return node;
@@ -99,13 +102,14 @@ QString AddNodeDialog::problem() const
 }
 
 ///
-/// \brief Enables the data type and access fields for variables only.
+/// \brief Enables the data type, access and icon fields for variables only.
 ///
 void AddNodeDialog::updateKindFields()
 {
     const bool variable = NodeDefinition::Kind(ui->kindCombo->currentIndex()) == NodeDefinition::Kind::Variable;
     ui->dataTypeCombo->setEnabled(variable);
     ui->accessCombo->setEnabled(variable);
+    ui->iconCombo->setEnabled(variable);
     validate();
 }
 

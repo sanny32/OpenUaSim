@@ -50,6 +50,14 @@ public:
     QModelIndex findById(const QString &id) const;
 
     ///
+    /// \brief Replaces the icon of the first node carrying an identifier.
+    /// \param id Identifier of the node.
+    /// \param icon Icon resource name.
+    /// \return False when no node carries the identifier.
+    ///
+    bool setIcon(const QString &id, const QString &icon);
+
+    ///
     /// \brief Returns the index of a child node.
     /// \param row Child row.
     /// \param column Child column.

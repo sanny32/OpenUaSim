@@ -6,6 +6,7 @@
 /// \brief Implements the theme-aware application icons.
 ///
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QGuiApplication>
 #include <QHash>
@@ -208,6 +209,29 @@ QIcon statusDot(StatusKind kind)
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">"
         "<circle cx=\"12\" cy=\"12\" r=\"9.5\" fill=\"currentColor\"/></svg>");
     return tinted(dot, Tint::Status, kind);
+}
+
+///
+/// \brief Lists the icons a variable can be given.
+/// \return Icons in picker order.
+///
+QList<NamedIcon> variableIcons()
+{
+    const auto named = [](const char *name, const char *label) {
+        return NamedIcon{ QString::fromLatin1(name), QCoreApplication::translate("AppIcons", label) };
+    };
+    return {
+        named("signal", QT_TRANSLATE_NOOP("AppIcons", "Signal")),
+        named("gauge", QT_TRANSLATE_NOOP("AppIcons", "Gauge")),
+        named("thermometer", QT_TRANSLATE_NOOP("AppIcons", "Temperature")),
+        named("droplet", QT_TRANSLATE_NOOP("AppIcons", "Liquid")),
+        named("zap", QT_TRANSLATE_NOOP("AppIcons", "Electrical")),
+        named("clock", QT_TRANSLATE_NOOP("AppIcons", "Time")),
+        named("hash", QT_TRANSLATE_NOOP("AppIcons", "Counter")),
+        named("text", QT_TRANSLATE_NOOP("AppIcons", "Text")),
+        named("status-good", QT_TRANSLATE_NOOP("AppIcons", "Active")),
+        named("status-inactive", QT_TRANSLATE_NOOP("AppIcons", "Inactive")),
+    };
 }
 
 }

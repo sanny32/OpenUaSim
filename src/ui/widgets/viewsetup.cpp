@@ -10,6 +10,7 @@
 #include <QAction>
 #include <QCoreApplication>
 #include <QClipboard>
+#include <QComboBox>
 #include <QGuiApplication>
 #include <QHeaderView>
 #include <QLineEdit>
@@ -137,6 +138,61 @@ void ColumnFitter::fitOnceFilled()
 }
 
 ///
+/// \brief Widens one column of a table whenever its contents stop fitting.
+///
+class ColumnGrower : public QObject
+{
+public:
+    ColumnGrower(QTableView *view, int column);
+    void growOnChange(const QModelIndex &topLeft, const QModelIndex &bottomRight);
+    void grow();
+
+private:
+    QTableView *_view;
+    int _column;
+};
+
+///
+/// \brief Watches the model of a table for new or changed rows.
+/// \param view Table view to size; it owns the grower.
+/// \param column Column to keep wide enough.
+///
+ColumnGrower::ColumnGrower(QTableView *view, int column)
+    : QObject(view)
+    , _view(view)
+    , _column(column)
+{
+    connect(view->model(), &QAbstractItemModel::dataChanged, this, &ColumnGrower::growOnChange);
+    connect(view->model(), &QAbstractItemModel::modelReset, this, &ColumnGrower::grow);
+    connect(view->model(), &QAbstractItemModel::rowsInserted, this, &ColumnGrower::grow);
+}
+
+///
+/// \brief Grows the column when a change touches it.
+/// \param topLeft First changed cell.
+/// \param bottomRight Last changed cell.
+///
+void ColumnGrower::growOnChange(const QModelIndex &topLeft, const QModelIndex &bottomRight)
+{
+    if (topLeft.column() <= _column && _column <= bottomRight.column())
+        grow();
+}
+
+///
+/// \brief Widens the column to its contents, capped, when they no longer fit.
+///
+void ColumnGrower::grow()
+{
+    QHeaderView *header = _view->horizontalHeader();
+    // QTableView narrows the public QAbstractItemView::sizeHintForColumn() override to protected.
+    const QAbstractItemView *view = _view;
+    const int needed = qMin(qMax(view->sizeHintForColumn(_column), header->sectionSizeHint(_column)),
+                            kMaxFittedColumnWidth);
+    if (needed > header->sectionSize(_column))
+        header->resizeSection(_column, needed);
+}
+
+///
 /// \brief Expands marked nodes below a parent, depth-first.
 /// \param view Tree view to update.
 /// \param parent Parent whose children are visited.
@@ -190,6 +246,28 @@ void fitColumnsWhenFilled(QTableView *view)
 {
     auto *fitter = new ColumnFitter(view);
     fitter->fitOnceFilled();
+}
+
+///
+/// \brief Widens a column whenever its contents stop fitting and never narrows it, so changing
+///        values are not elided and do not make the column width jitter.
+/// \param view Table view whose model is already set.
+/// \param column Column to keep wide enough; growth stops at the same cap as fitColumnsWhenFilled().
+///
+void growColumnWithContents(QTableView *view, int column)
+{
+    auto *grower = new ColumnGrower(view, column);
+    grower->grow();
+}
+
+///
+/// \brief Fills a combo box with the icons a variable can be given; item data holds the icon name.
+/// \param combo Combo box to fill.
+///
+void fillVariableIconCombo(QComboBox *combo)
+{
+    for (const AppIcons::NamedIcon &icon : AppIcons::variableIcons())
+        combo->addItem(AppIcons::icon(icon.name), icon.label, icon.name);
 }
 
 ///

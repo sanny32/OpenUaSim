@@ -169,6 +169,7 @@ void TestServerController::updateVariableAppliesLiveSettings()
     VariableInfo valve = SnapshotBuilder::variableInfo(
         *ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Tank_01.InletValve")),
         controller.addressSpace());
+    valve.icon = QStringLiteral("droplet");
     valve.access = QStringLiteral("Read");
     valve.simulation.function = SimulationFunction::Square;
     valve.simulation.intervalMs = 50;
@@ -177,6 +178,8 @@ void TestServerController::updateVariableAppliesLiveSettings()
     QCOMPARE(structure.count(), 0);
     QCOMPARE(variable.count(), 1);
     QCOMPARE(variable.first().first().value<VariableInfo>().access, QStringLiteral("Read"));
+    QCOMPARE(variable.first().first().value<VariableInfo>().icon, QStringLiteral("droplet"));
+    QCOMPARE(ProjectNodes::find(controller.project().nodes, valve.nodeId)->icon, QStringLiteral("droplet"));
     QCOMPARE(ProjectNodes::find(controller.project().nodes, valve.nodeId)->simulation.function,
              SimulationFunction::Square);
 

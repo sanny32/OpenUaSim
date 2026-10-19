@@ -134,6 +134,7 @@ void TestProjectNodes::updatesVariable()
     QList<NodeDefinition> nodes = DefaultProject::create().nodes;
     NodeDefinition edited = *ProjectNodes::find(nodes, QStringLiteral("ns=1;s=Motor_01.Speed"));
     edited.browseName = QStringLiteral("Rpm");
+    edited.icon = QStringLiteral("zap");
     edited.access = QStringLiteral("Read");
     edited.simulation.function = SimulationFunction::Step;
     edited.children = { node(NodeDefinition::Kind::Variable, QStringLiteral("Ignored")) };
@@ -141,6 +142,7 @@ void TestProjectNodes::updatesVariable()
     QVERIFY(ProjectNodes::updateVariable(nodes, edited));
     const NodeDefinition *stored = ProjectNodes::find(nodes, edited.nodeId);
     QCOMPARE(stored->browseName, QStringLiteral("Rpm"));
+    QCOMPARE(stored->icon, QStringLiteral("zap"));
     QCOMPARE(stored->access, QStringLiteral("Read"));
     QCOMPARE(stored->simulation.function, SimulationFunction::Step);
     QVERIFY(stored->children.isEmpty());

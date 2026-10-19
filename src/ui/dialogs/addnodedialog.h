@@ -19,7 +19,7 @@ class AddNodeDialog;
 }
 
 ///
-/// \brief Asks for the kind, browse name, node id and, for variables, data type and access of a new node.
+/// \brief Asks for the kind, browse name, node id and, for variables, data type, access and icon of a new node.
 ///
 class AddNodeDialog : public QDialog
 {

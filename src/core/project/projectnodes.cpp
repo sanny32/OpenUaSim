@@ -273,7 +273,7 @@ bool remove(QList<NodeDefinition> &nodes, const QString &nodeId)
 ///
 /// \brief Replaces the editable fields of a variable.
 /// \param nodes Node tree holding the variable.
-/// \param variable Variable with its node id and the new browse name, data type, access and
+/// \param variable Variable with its node id and the new browse name, icon, data type, access and
 ///        simulation; the initial value is converted when the data type changes.
 /// \param error Receives the reason on failure; may be null.
 /// \return False when the node is unknown or not a variable, the browse name is empty or used
@@ -302,6 +302,7 @@ bool updateVariable(QList<NodeDefinition> &nodes, const NodeDefinition &variable
     if (existing->dataType != variable.dataType)
         existing->initialValue = ValueCast::convert(existing->initialValue, variable.dataType);
     existing->browseName = variable.browseName;
+    existing->icon = variable.icon;
     existing->dataType = variable.dataType;
     existing->access = variable.access;
     existing->simulation = variable.simulation;

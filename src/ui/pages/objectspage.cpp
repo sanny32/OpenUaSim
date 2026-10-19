@@ -44,6 +44,7 @@ ObjectsPage::ObjectsPage(QWidget *parent)
     ViewSetup::configureTable(ui->variablesView);
     ui->variablesView->setModel(_variablesModel);
     ViewSetup::fitColumnsWhenFilled(ui->variablesView);
+    ViewSetup::growColumnWithContents(ui->variablesView, VariablesModel::ColValue);
 
     connect(ui->addressTree->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &ObjectsPage::showTreeNode);
@@ -118,6 +119,7 @@ void ObjectsPage::updateVariable(const VariableInfo &variable)
                 stored = variable;
         }
     }
+    _treeModel->setIcon(variable.nodeId, variable.icon);
     const int row = _variablesModel->rowOf(variable.nodeId);
     if (row < 0)
         return;
@@ -217,6 +219,7 @@ void ObjectsPage::showVariable(const QModelIndex &current)
     ui->propertiesHost->setEnabled(true);
     ui->nodeIdEdit->setText(variable.nodeId);
     ui->displayNameEdit->setText(variable.displayName);
+    ui->iconCombo->setCurrentIndex(ui->iconCombo->findData(variable.icon));
     ui->dataTypeCombo->setCurrentText(variable.dataType);
     ui->accessCombo->setCurrentText(variable.access);
     ui->simulationCombo->setCurrentIndex(
@@ -231,10 +234,11 @@ void ObjectsPage::showVariable(const QModelIndex &current)
 }
 
 ///
-/// \brief Lists the supported data types and simulation functions.
+/// \brief Lists the variable icons, the supported data types and simulation functions.
 ///
 void ObjectsPage::fillCombos()
 {
+    ViewSetup::fillVariableIconCombo(ui->iconCombo);
     ui->dataTypeCombo->addItems(ValueCast::dataTypes());
     for (SimulationFunction function : SignalGenerator::functions())
         ui->simulationCombo->addItem(SignalGenerator::displayName(function), int(function));
@@ -270,12 +274,15 @@ void ObjectsPage::revertProperties()
 
 ///
 /// \brief Reads the properties panel.
-/// \return Shown variable with the edited fields; an interval in seconds is converted to milliseconds.
+/// \return Shown variable with the edited fields; an interval in seconds is converted to milliseconds,
+///         and an icon the picker does not offer is kept unless another one is chosen.
 ///
 VariableInfo ObjectsPage::editedVariable() const
 {
     VariableInfo variable = _variablesModel->item(ui->variablesView->currentIndex().row());
     variable.displayName = ui->displayNameEdit->text().trimmed();
+    if (ui->iconCombo->currentIndex() >= 0)
+        variable.icon = ui->iconCombo->currentData().toString();
     variable.dataType = ui->dataTypeCombo->currentText();
     variable.access = ui->accessCombo->currentText();
     variable.simulation.function = SimulationFunction(ui->simulationCombo->currentData().toInt());

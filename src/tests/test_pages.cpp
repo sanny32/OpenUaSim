@@ -24,6 +24,7 @@
 #include "certificatespage.h"
 #include "endpointsmodel.h"
 #include "endpointspage.h"
+#include "itemroles.h"
 #include "logfilterproxymodel.h"
 #include "logmodel.h"
 #include "logpage.h"
@@ -77,6 +78,9 @@ private slots:
     void objectsPageRevertsEdits();
     void objectsPageKeepsSelectionOnReload();
     void objectsPageUpdatesOneVariable();
+    void objectsPageUpdatesVariableIcon();
+    void objectsPageKeepsUnlistedIcon();
+    void objectsPageValueColumnOnlyGrows();
     void objectsPageReportsCurrentNode();
     void typesPage();
     void namespacesPage();
@@ -193,7 +197,10 @@ void TestPages::objectsPageAppliesEditedProperties()
     page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
     QSignalSpy requested(&page, &ObjectsPage::variableChangeRequested);
 
+    auto *icons = child<QComboBox>(page, "iconCombo");
+    QCOMPARE(icons->currentData().toString(), QStringLiteral("signal"));
     child<QLineEdit>(page, "displayNameEdit")->setText(QStringLiteral(" Rpm "));
+    icons->setCurrentIndex(icons->findData(QStringLiteral("zap")));
     child<QComboBox>(page, "dataTypeCombo")->setCurrentText(QStringLiteral("Int32"));
     child<QComboBox>(page, "accessCombo")->setCurrentText(QStringLiteral("Read"));
     child<QComboBox>(page, "simulationCombo")->setCurrentText(QStringLiteral("Ramp"));
@@ -208,6 +215,7 @@ void TestPages::objectsPageAppliesEditedProperties()
     const VariableInfo variable = requested.first().first().value<VariableInfo>();
     QCOMPARE(variable.nodeId, QStringLiteral("ns=2;s=Motor_01.Speed"));
     QCOMPARE(variable.displayName, QStringLiteral("Rpm"));
+    QCOMPARE(variable.icon, QStringLiteral("zap"));
     QCOMPARE(variable.dataType, QStringLiteral("Int32"));
     QCOMPARE(variable.access, QStringLiteral("Read"));
     QCOMPARE(variable.simulation.function, SimulationFunction::Ramp);
@@ -250,6 +258,56 @@ void TestPages::objectsPageUpdatesOneVariable()
     QCOMPARE(page.variablesModel()->item(0).access, QStringLiteral("Read"));
     QCOMPARE(child<QDoubleSpinBox>(page, "amplitudeSpin")->value(), 7.0);
     QCOMPARE(child<QComboBox>(page, "accessCombo")->currentText(), QStringLiteral("Read"));
+}
+
+void TestPages::objectsPageUpdatesVariableIcon()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    VariableInfo speed = page.variablesModel()->item(0);
+    speed.icon = QStringLiteral("gauge");
+    page.updateVariable(speed);
+
+    QCOMPARE(child<QComboBox>(page, "iconCombo")->currentData().toString(), QStringLiteral("gauge"));
+    QCOMPARE(page.variablesModel()->data(page.variablesModel()->index(0, VariablesModel::ColName),
+                                         ItemRoles::IconName).toString(),
+             QStringLiteral("gauge"));
+    const QAbstractItemModel *tree = child<QTreeView>(page, "addressTree")->model();
+    const QModelIndexList found = tree->match(tree->index(0, 0), ItemRoles::Id, speed.nodeId, 1,
+                                              Qt::MatchExactly | Qt::MatchRecursive);
+    QCOMPARE(found.size(), 1);
+    QCOMPARE(found.first().data(ItemRoles::IconName).toString(), QStringLiteral("gauge"));
+}
+
+void TestPages::objectsPageKeepsUnlistedIcon()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    VariableInfo speed = page.variablesModel()->item(0);
+    speed.icon = QStringLiteral("custom-icon");
+    page.updateVariable(speed);
+    QCOMPARE(child<QComboBox>(page, "iconCombo")->currentIndex(), -1);
+
+    QSignalSpy requested(&page, &ObjectsPage::variableChangeRequested);
+    child<QPushButton>(page, "applyButton")->click();
+    QCOMPARE(requested.count(), 1);
+    QCOMPARE(requested.first().first().value<VariableInfo>().icon, QStringLiteral("custom-icon"));
+}
+
+void TestPages::objectsPageValueColumnOnlyGrows()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    const QHeaderView *header = child<QTableView>(page, "variablesView")->horizontalHeader();
+    const QString speed = QStringLiteral("ns=2;s=Motor_01.Speed");
+
+    page.updateValues({ { speed, 1.0 } });
+    const int initial = header->sectionSize(VariablesModel::ColValue);
+    page.updateValues({ { speed, 1234567.891234 } });
+    const int grown = header->sectionSize(VariablesModel::ColValue);
+    QVERIFY(grown > initial);
+    page.updateValues({ { speed, 2.0 } });
+    QCOMPARE(header->sectionSize(VariablesModel::ColValue), grown);
 }
 
 void TestPages::objectsPageReportsCurrentNode()

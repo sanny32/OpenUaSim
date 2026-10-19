@@ -86,6 +86,22 @@ QModelIndex TreeModel::findById(const QString &id) const
 }
 
 ///
+/// \brief Replaces the icon of the first node carrying an identifier.
+/// \param id Identifier of the node.
+/// \param icon Icon resource name.
+/// \return False when no node carries the identifier.
+///
+bool TreeModel::setIcon(const QString &id, const QString &icon)
+{
+    const QModelIndex index = findById(id);
+    if (!index.isValid())
+        return false;
+    nodeFor(index)->data.icon = icon;
+    emit dataChanged(index, index, { ItemRoles::IconName });
+    return true;
+}
+
+///
 /// \brief Searches a subtree depth-first for a node identifier.
 /// \param parent Subtree root, itself not matched.
 /// \param id Identifier to look for.
