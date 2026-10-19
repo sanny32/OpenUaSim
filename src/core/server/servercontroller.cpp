@@ -35,6 +35,7 @@ ServerController::ServerController(QObject *parent)
     connect(&_server, &SimServer::startFailed, this, &ServerController::startFailed);
     connect(&_engine, &SimulationEngine::valuesUpdated, this, &ServerController::valuesChanged);
     connect(&_addressSpace, &AddressSpace::valueWrittenByClient, this, &ServerController::handleClientWrite);
+    connect(&_server, &SimServer::clientCertificateRejected, this, &ServerController::handleCertificateRejected);
 }
 
 ///
@@ -473,4 +474,24 @@ void ServerController::handleClientWrite(const QString &nodeId, const QVariant &
     appendLog(LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::DataChanges,
                                tr("Client wrote %1 to %2").arg(Formatting::value(value), nodeId)));
     emit valuesChanged({ { nodeId, value } });
+}
+
+///
+/// \brief Keeps a rejected client certificate in the rejected folder, where it can be reviewed and trusted.
+/// \param certificate Rejected DER certificate.
+/// \param reason Status code name of the rejection.
+///
+void ServerController::handleCertificateRejected(const QByteArray &certificate, const QString &reason)
+{
+    QString error;
+    const QString stored = _certificates.addCertificate(certificate, CertificateInfo::Category::Rejected, &error);
+    if (stored.isEmpty()) {
+        appendLog(LogMapper::entry(LogEntry::Level::Error, LogEntry::Category::Security,
+                                   tr("A rejected client certificate could not be kept: %1").arg(error)));
+        return;
+    }
+    appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Security,
+                               tr("Client certificate '%1' rejected (%2); it was moved to the rejected folder")
+                                   .arg(QFileInfo(stored).completeBaseName(), reason)));
+    emit certificatesChanged();
 }

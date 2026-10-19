@@ -265,17 +265,35 @@ QList<CertificateInfo> CertificateStore::certificates() const
 QString CertificateStore::importCertificate(const QString &fileName, CertificateInfo::Category category,
                                             QString *error)
 {
+    const QByteArray data = readFile(fileName);
+    if (category != CertificateInfo::Category::Application && parseCertificate(data).isNull()) {
+        setError(error, tr("'%1' is not a PEM or DER certificate").arg(fileName));
+        return {};
+    }
+    return addCertificate(data, category, error);
+}
+
+///
+/// \brief Stores a certificate held in memory into a folder as DER.
+/// \param certificate PEM or DER certificate.
+/// \param category Trusted, Rejected or Issuer folder.
+/// \param error Receives the reason on failure; may be null.
+/// \return Path of the stored file, or empty when the data is not a certificate or cannot be stored.
+///
+QString CertificateStore::addCertificate(const QByteArray &certificate, CertificateInfo::Category category,
+                                         QString *error)
+{
     if (category == CertificateInfo::Category::Application) {
         setError(error, tr("The server certificate is installed together with its private key"));
         return {};
     }
-    const QSslCertificate certificate = parseCertificate(readFile(fileName));
-    if (certificate.isNull()) {
-        setError(error, tr("'%1' is not a PEM or DER certificate").arg(fileName));
+    const QSslCertificate parsed = parseCertificate(certificate);
+    if (parsed.isNull()) {
+        setError(error, tr("The data is not a PEM or DER certificate"));
         return {};
     }
-    const QString target = folder(category) + QLatin1Char('/') + storedFileName(certificate);
-    return writeFile(target, certificate.toDer(), error) ? target : QString();
+    const QString target = folder(category) + QLatin1Char('/') + storedFileName(parsed);
+    return writeFile(target, parsed.toDer(), error) ? target : QString();
 }
 
 ///

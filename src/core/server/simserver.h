@@ -20,6 +20,7 @@
 class QTimer;
 class QUaServer;
 class QUaSession;
+class QUaStatusCode;
 struct ListenerSettings;
 struct QUaLog;
 
@@ -126,6 +127,13 @@ signals:
     ///
     void startFailed(const QString &reason);
 
+    ///
+    /// \brief Announces a client application certificate that failed validation; encryption builds only.
+    /// \param certificate Rejected DER certificate.
+    /// \param reason Status code name, e.g. BadCertificateUntrusted.
+    ///
+    void clientCertificateRejected(const QByteArray &certificate, const QString &reason);
+
 private:
     bool configure(const ProjectConfig &project, const ListenerSettings &listener);
     bool configureSecurity(const ListenerSettings &listener);
@@ -135,6 +143,9 @@ private:
     void handleLog(const QUaLog &log);
     void handleClientConnected(const QUaSession *session);
     void handleClientDisconnected(const QUaSession *session);
+#ifdef OUASIM_HAVE_ENCRYPTION
+    void handleCertificateRejected(const QByteArray &certificate, const QUaStatusCode &statusCode);
+#endif
 
     QUaServer *_server;
     QTimer *_diagnosticsTimer;

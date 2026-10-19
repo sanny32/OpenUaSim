@@ -83,6 +83,16 @@ public:
                               QString *error = nullptr);
 
     ///
+    /// \brief Stores a certificate held in memory into a folder as DER.
+    /// \param certificate PEM or DER certificate.
+    /// \param category Trusted, Rejected or Issuer folder.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return Path of the stored file, or empty when the data is not a certificate or cannot be stored.
+    ///
+    QString addCertificate(const QByteArray &certificate, CertificateInfo::Category category,
+                           QString *error = nullptr);
+
+    ///
     /// \brief Installs the server certificate and its private key, replacing earlier ones.
     /// \param certificateFile PEM or DER certificate.
     /// \param keyFile PEM or DER private key.

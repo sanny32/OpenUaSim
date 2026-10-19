@@ -287,6 +287,7 @@ private:
     bool finishCertificateChange(bool changed);
     void appendLog(const LogEntry &entry);
     void handleClientWrite(const QString &nodeId, const QVariant &value);
+    void handleCertificateRejected(const QByteArray &certificate, const QString &reason);
 
     SimServer _server;
     AddressSpace _addressSpace;

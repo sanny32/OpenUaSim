@@ -58,6 +58,16 @@ public:
     UA_StatusCode disconnect();
 
     ///
+    /// \brief Makes the following connections use a SignAndEncrypt secure channel; encryption builds only.
+    /// \param certificate DER client certificate.
+    /// \param privateKey DER private key of the certificate.
+    /// \param applicationUri Application URI stored in the certificate.
+    /// \return Status of the client configuration.
+    ///
+    UA_StatusCode setEncryption(const QByteArray &certificate, const QByteArray &privateKey,
+                                const QString &applicationUri);
+
+    ///
     /// \brief Reads the Value attribute of a node.
     /// \param nodeId Node id in XML notation, e.g. "ns=1;s=Motor_01.Speed".
     /// \param value Receives the value on success.

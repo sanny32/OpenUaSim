@@ -113,6 +113,9 @@ SimServer::SimServer(QObject *parent)
     connect(_server, &QUaServer::clientConnected, this, &SimServer::handleClientConnected);
     connect(_server, &QUaServer::clientDisconnected, this, &SimServer::handleClientDisconnected);
     connect(_diagnosticsTimer, &QTimer::timeout, this, &SimServer::refreshSessionDiagnostics);
+#ifdef OUASIM_HAVE_ENCRYPTION
+    connect(_server, &QUaServer::clientCertificateRejected, this, &SimServer::handleCertificateRejected);
+#endif
 }
 
 ///
@@ -372,3 +375,15 @@ void SimServer::refreshSessionDiagnostics()
     if (changed)
         emit sessionsChanged();
 }
+
+#ifdef OUASIM_HAVE_ENCRYPTION
+///
+/// \brief Forwards a client certificate QUaServer rejected.
+/// \param certificate Rejected DER certificate.
+/// \param statusCode Reason of the rejection.
+///
+void SimServer::handleCertificateRejected(const QByteArray &certificate, const QUaStatusCode &statusCode)
+{
+    emit clientCertificateRejected(certificate, QString::fromLatin1(UA_StatusCode_name(UA_StatusCode(statusCode))));
+}
+#endif

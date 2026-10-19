@@ -46,6 +46,8 @@ private slots:
     void materialCollectsFolders();
     void controllerAnnouncesChanges();
     void secureEndpointRunsWithInstalledCertificate();
+    void addsCertificateFromMemory();
+    void rejectedClientLandsInRejectedFolder();
 
 private:
     QTemporaryDir *_directory = nullptr;
@@ -241,6 +243,59 @@ void TestCertificateStore::secureEndpointRunsWithInstalledCertificate()
     QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
                                                 testData(QStringLiteral("server.key.pem"))));
     QVERIFY(controller.start());
+#endif
+}
+
+void TestCertificateStore::addsCertificateFromMemory()
+{
+    QFile file(testData(QStringLiteral("client.der")));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const QString stored = _store.addCertificate(file.readAll(), Category::Rejected);
+    QVERIFY(QFileInfo::exists(stored));
+    QCOMPARE(_store.certificates().first().category, Category::Rejected);
+
+    QString error;
+    QVERIFY(_store.addCertificate(QByteArray("garbage"), Category::Trusted, &error).isEmpty());
+    QVERIFY(!error.isEmpty());
+}
+
+void TestCertificateStore::rejectedClientLandsInRejectedFolder()
+{
+#ifndef OUASIM_HAVE_ENCRYPTION
+    QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+#else
+    ProjectConfig project = DefaultProject::create();
+    EndpointInfo &endpoint = project.endpoints.first();
+    endpoint.port = TestPort::freePort();
+    endpoint.securityPolicy = QStringLiteral("Basic256Sha256");
+    endpoint.securityMode = QStringLiteral("Sign & Encrypt");
+
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                                testData(QStringLiteral("server.key.pem"))));
+    QVERIFY(controller.importCertificate(testData(QStringLiteral("client.der")), Category::Trusted));
+    controller.setProject(project);
+    QVERIFY(controller.start());
+    QSignalSpy changed(&controller, &ServerController::certificatesChanged);
+
+    QFile certificate(testData(QStringLiteral("stranger.der")));
+    QFile key(testData(QStringLiteral("stranger.key.der")));
+    QVERIFY(certificate.open(QIODevice::ReadOnly) && key.open(QIODevice::ReadOnly));
+    UaTestClient client;
+    QCOMPARE(client.setEncryption(certificate.readAll(), key.readAll(), QStringLiteral("urn:openuasim:test:stranger")),
+             UA_STATUSCODE_GOOD);
+    QVERIFY(client.connect(controller.server().endpointUrl()) != UA_STATUSCODE_GOOD);
+
+    QTRY_VERIFY(changed.count() >= 1);
+    QList<CertificateInfo> rejected;
+    for (const CertificateInfo &info : controller.certificates()) {
+        if (info.category == Category::Rejected)
+            rejected << info;
+    }
+    QCOMPARE(rejected.size(), 1);
+    QCOMPARE(rejected.first().commonName, QStringLiteral("Stranger Client"));
+    QVERIFY(!controller.isRestartRequired());
 #endif
 }
 

@@ -90,6 +90,39 @@ UA_StatusCode UaTestClient::disconnect()
 }
 
 ///
+/// \brief Makes the following connections use a SignAndEncrypt secure channel; encryption builds only.
+/// \param certificate DER client certificate.
+/// \param privateKey DER private key of the certificate.
+/// \param applicationUri Application URI stored in the certificate.
+/// \return Status of the client configuration.
+///
+UA_StatusCode UaTestClient::setEncryption(const QByteArray &certificate, const QByteArray &privateKey,
+                                          const QString &applicationUri)
+{
+#ifdef UA_ENABLE_ENCRYPTION
+    UA_ClientConfig *config = UA_Client_getConfig(_client);
+    UA_ByteString uaCertificate { static_cast<size_t>(certificate.size()),
+                                  reinterpret_cast<UA_Byte *>(const_cast<char *>(certificate.constData())) };
+    UA_ByteString uaPrivateKey { static_cast<size_t>(privateKey.size()),
+                                 reinterpret_cast<UA_Byte *>(const_cast<char *>(privateKey.constData())) };
+    const UA_StatusCode status =
+        UA_ClientConfig_setDefaultEncryption(config, uaCertificate, uaPrivateKey, nullptr, 0, nullptr, 0);
+    if (status != UA_STATUSCODE_GOOD)
+        return status;
+    config->securityMode = UA_MESSAGESECURITYMODE_SIGNANDENCRYPT;
+    // The server rejects a client whose application URI differs from the one in its certificate.
+    UA_String_clear(&config->clientDescription.applicationUri);
+    config->clientDescription.applicationUri = UA_String_fromChars(applicationUri.toUtf8().constData());
+    return UA_STATUSCODE_GOOD;
+#else
+    Q_UNUSED(certificate);
+    Q_UNUSED(privateKey);
+    Q_UNUSED(applicationUri);
+    return UA_STATUSCODE_BADNOTSUPPORTED;
+#endif
+}
+
+///
 /// \brief Reads the Value attribute of a node.
 /// \param nodeId Node id in XML notation, e.g. "ns=1;s=Motor_01.Speed".
 /// \param value Receives the value on success.

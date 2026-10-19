@@ -15,7 +15,8 @@ The server side is based on [QUaServer](https://github.com/sanny32/QUaServer).
   logins. All enabled endpoints share one TCP port; changes on a running server apply on restart.
 - **Certificates** — PKI store (own, trusted, rejected, issuers) below the application data
   directory: install the server certificate with its key, import, trust, reject, export and delete
-  certificates. Secure endpoints need an installed server certificate.
+  certificates. Secure endpoints need an installed server certificate; client certificates the server
+  rejects are put into the rejected folder for review.
 - **Projects** — New, Open, Save and Save As of `.ouasim` JSON projects; the last project reopens on
   startup and unsaved changes are confirmed before they are dropped.
 - **Models** — import NodeSet2 companion models and export the project nodes as NodeSet2.
@@ -28,7 +29,6 @@ The server side is based on [QUaServer](https://github.com/sanny32/QUaServer).
 - QUaServer serves one listener, so endpoints cannot use different ports.
 - Imported NodeSet2 models stay loaded until the application restarts; their nodes are served but
   not listed on the Objects page.
-- Rejected client certificates are not collected automatically.
 
 ## Project layout
 
