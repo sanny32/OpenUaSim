@@ -25,6 +25,7 @@
 #include <QTableView>
 #include <QTest>
 #include <QToolButton>
+#include <QTreeView>
 
 #include "addnodedialog.h"
 #include "apppalette.h"
@@ -32,6 +33,7 @@
 #include "apptheme.h"
 #include "endpointspage.h"
 #include "eventlogwidget.h"
+#include "itemroles.h"
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
@@ -84,6 +86,8 @@ private slots:
     void addNodeThroughDialog();
     void deleteNodeAfterConfirmation();
     void deleteNodeFollowsSelection();
+    void duplicatesAndPastesNodes();
+    void deletesSelectedNodes();
     void renamesNodeFromDialog();
     void appliesServerSettingsFromDialog();
     void refusedVariableChangeShowsMessage();
@@ -441,6 +445,58 @@ void TestMainWindow::deleteNodeFollowsSelection()
     QVERIFY(child<QAction>(window, "actionRenameNode")->isEnabled());
     QVERIFY(page->selectNode(QStringLiteral("i=85")));
     QVERIFY(!child<QAction>(window, "actionRenameNode")->isEnabled());
+}
+
+void TestMainWindow::duplicatesAndPastesNodes()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+    auto *page = child<ObjectsPage>(window, "objectsPage");
+    auto *paste = child<QAction>(window, "actionPasteNode");
+    QVERIFY(!paste->isEnabled());
+
+    QVERIFY(page->selectNode(QStringLiteral("ns=1;s=Motor_01")));
+    child<QAction>(window, "actionDuplicateNode")->trigger();
+    const QString duplicate = page->currentNodeId();
+    QCOMPARE(ProjectNodes::find(controller.project().nodes, duplicate)->browseName, QStringLiteral("Motor_01_copy"));
+    QCOMPARE(ProjectNodes::parentId(controller.project().nodes, duplicate), QStringLiteral("ns=1;s=FactoryLine_01"));
+
+    QVERIFY(page->selectNode(QStringLiteral("ns=1;s=Motor_01.Speed")));
+    child<QAction>(window, "actionCopyNode")->trigger();
+    QVERIFY(paste->isEnabled());
+    QVERIFY(page->selectNode(QStringLiteral("ns=1;s=Pump_01")));
+    paste->trigger();
+    const QString pasted = page->currentNodeId();
+    QCOMPARE(ProjectNodes::parentId(controller.project().nodes, pasted), QStringLiteral("ns=1;s=Pump_01"));
+    QCOMPARE(ProjectNodes::find(controller.project().nodes, pasted)->browseName, QStringLiteral("Speed"));
+}
+
+void TestMainWindow::deletesSelectedNodes()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+    auto *page = child<ObjectsPage>(window, "objectsPage");
+    QVERIFY(page->selectNode(QStringLiteral("ns=1;s=Motor_01")));
+    auto *tree = child<QTreeView>(window, "addressTree");
+    const QModelIndexList pump = tree->model()->match(tree->model()->index(0, 0), ItemRoles::Id,
+                                                      QStringLiteral("ns=1;s=Pump_01"), 1,
+                                                      Qt::MatchExactly | Qt::MatchRecursive);
+    QCOMPARE(pump.size(), 1);
+    tree->selectionModel()->select(pump.first(), QItemSelectionModel::Select | QItemSelectionModel::Rows);
+    QCOMPARE(page->selectedNodeIds().size(), 2);
+
+    child<QAction>(window, "actionDeleteNode")->trigger();
+    auto *question = window.findChild<QMessageBox *>();
+    QVERIFY(question);
+    QVERIFY(question->text().contains(QStringLiteral("2 nodes")));
+    question->button(QMessageBox::Yes)->click();
+    QVERIFY(!ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Motor_01")));
+    QVERIFY(!ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Pump_01")));
+    QVERIFY(ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Tank_01")));
 }
 
 void TestMainWindow::renamesNodeFromDialog()

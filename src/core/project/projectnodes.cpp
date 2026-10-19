@@ -123,6 +123,17 @@ bool checkRename(QList<NodeDefinition> &nodes, const QString &nodeId, const QStr
 }
 
 ///
+/// \brief Drops the node ids of a node and its children so new ones get assigned.
+/// \param node Node to clear.
+///
+void clearNodeIds(NodeDefinition &node)
+{
+    node.nodeId.clear();
+    for (NodeDefinition &child : node.children)
+        clearNodeIds(child);
+}
+
+///
 /// \brief Collects the node ids already present in a tree.
 /// \param nodes Node tree.
 /// \param ids Receives the non-empty ids.
@@ -289,6 +300,45 @@ bool remove(QList<NodeDefinition> &nodes, const QString &nodeId)
         }
     }
     return false;
+}
+
+///
+/// \brief Returns the folder or object holding a node.
+/// \param nodes Node tree.
+/// \param nodeId Node to look up.
+/// \return Parent node id; empty for top-level and unknown nodes.
+///
+QString parentId(const QList<NodeDefinition> &nodes, const QString &nodeId)
+{
+    for (const NodeDefinition &node : nodes) {
+        for (const NodeDefinition &child : node.children) {
+            if (child.nodeId == nodeId)
+                return node.nodeId;
+        }
+        const QString found = parentId(node.children, nodeId);
+        if (!found.isEmpty())
+            return found;
+    }
+    return {};
+}
+
+///
+/// \brief Copies a node with its children for inserting it elsewhere.
+/// \param node Node to copy.
+/// \param takenNames Browse names already used where the copy goes.
+/// \return Copy without node ids, renamed to "<name>_copy", "<name>_copy2", ... when its name is taken.
+///
+NodeDefinition detachedCopy(const NodeDefinition &node, const QStringList &takenNames)
+{
+    NodeDefinition copy = node;
+    clearNodeIds(copy);
+    if (!takenNames.contains(copy.browseName))
+        return copy;
+    const QString base = node.browseName + QStringLiteral("_copy");
+    copy.browseName = base;
+    for (int suffix = 2; takenNames.contains(copy.browseName); ++suffix)
+        copy.browseName = base + QString::number(suffix);
+    return copy;
 }
 
 ///

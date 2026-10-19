@@ -12,7 +12,8 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
   menu; the status page and status bar show the endpoint, uptime, node count and
   connected clients.
 - Build the address space under the Objects folder from folders, objects and
-  variables; rename any node and edit a variable's data type, access level,
+  variables; duplicate, copy and paste whole subtrees, delete several nodes at
+  once, rename any node and edit a variable's data type, access level,
   initial value, quality and simulation. Forcing a Bad or Uncertain quality
   tests how clients handle it. Clients read and write the variables.
 - Drive variables with sine, square, triangle, ramp, random and step waveforms

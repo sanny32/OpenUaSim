@@ -331,6 +331,9 @@
     <addaction name="separator"/>
     <addaction name="actionAddNode"/>
     <addaction name="actionRenameNode"/>
+    <addaction name="actionDuplicateNode"/>
+    <addaction name="actionCopyNode"/>
+    <addaction name="actionPasteNode"/>
     <addaction name="actionDeleteNode"/>
     <addaction name="separator"/>
     <addaction name="actionServerSettings"/>
@@ -481,6 +484,39 @@
    </property>
    <property name="shortcut">
     <string>F2</string>
+   </property>
+  </action>
+  <action name="actionDuplicateNode">
+   <property name="text">
+    <string>D&amp;uplicate Node</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
+   </property>
+   <property name="shortcutContext">
+    <enum>Qt::WidgetWithChildrenShortcut</enum>
+   </property>
+  </action>
+  <action name="actionCopyNode">
+   <property name="text">
+    <string>&amp;Copy Node</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+C</string>
+   </property>
+   <property name="shortcutContext">
+    <enum>Qt::WidgetWithChildrenShortcut</enum>
+   </property>
+  </action>
+  <action name="actionPasteNode">
+   <property name="text">
+    <string>&amp;Paste Node</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+V</string>
+   </property>
+   <property name="shortcutContext">
+    <enum>Qt::WidgetWithChildrenShortcut</enum>
    </property>
   </action>
   <action name="actionDeleteNode">

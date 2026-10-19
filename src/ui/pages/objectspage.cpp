@@ -158,6 +158,23 @@ QString ObjectsPage::currentContainerId() const
 }
 
 ///
+/// \brief Returns the nodes selected in the view the current node was picked in.
+/// \return Node ids of the selected tree nodes or variable rows; the current node when nothing is selected.
+///
+QStringList ObjectsPage::selectedNodeIds() const
+{
+    const QAbstractItemView *view = _currentFromTable ? static_cast<const QAbstractItemView *>(ui->variablesView)
+                                                      : ui->addressTree;
+    QStringList ids;
+    const QModelIndexList rows = view->selectionModel()->selectedRows();
+    for (const QModelIndex &row : rows)
+        ids.append(row.data(ItemRoles::Id).toString());
+    if (ids.isEmpty() && !_currentNodeId.isEmpty())
+        ids.append(_currentNodeId);
+    return ids;
+}
+
+///
 /// \brief Adds actions to the context menu of the address space tree.
 /// \param actions Actions in menu order.
 ///
@@ -189,6 +206,7 @@ void ObjectsPage::showTreeNode(const QModelIndex &current)
     }
     // Selecting the first variable above made it current; the tree choice wins.
     _currentNodeId = current.data(ItemRoles::Id).toString();
+    _currentFromTable = false;
     emit currentNodeChanged(_currentNodeId);
 }
 
@@ -233,6 +251,7 @@ void ObjectsPage::showVariable(const QModelIndex &current)
     ui->amplitudeSpin->setValue(variable.simulation.amplitude);
     ui->offsetSpin->setValue(variable.simulation.offset);
     _currentNodeId = variable.nodeId;
+    _currentFromTable = true;
     emit currentNodeChanged(_currentNodeId);
 }
 

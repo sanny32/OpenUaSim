@@ -45,6 +45,8 @@ private slots:
     void renamesAnyNodeKeepingIds();
     void renameRejectsInvalidNames_data();
     void renameRejectsInvalidNames();
+    void findsParents();
+    void copiesWithoutIds();
 };
 
 void TestProjectNodes::findsNodes()
@@ -231,6 +233,32 @@ void TestProjectNodes::renameRejectsInvalidNames()
     QVERIFY(!ProjectNodes::rename(nodes, nodeId, name, &actual));
     QCOMPARE(actual, error);
     QCOMPARE(ProjectNodes::find(nodes, QStringLiteral("ns=1;s=Motor_01"))->browseName, QStringLiteral("Motor_01"));
+}
+
+void TestProjectNodes::findsParents()
+{
+    const QList<NodeDefinition> nodes = DefaultProject::create().nodes;
+    QCOMPARE(ProjectNodes::parentId(nodes, QStringLiteral("ns=1;s=Motor_01.Speed")), QStringLiteral("ns=1;s=Motor_01"));
+    QCOMPARE(ProjectNodes::parentId(nodes, QStringLiteral("ns=1;s=Motor_01")), QStringLiteral("ns=1;s=FactoryLine_01"));
+    QVERIFY(ProjectNodes::parentId(nodes, QStringLiteral("ns=1;s=FactoryLine_01")).isEmpty());
+    QVERIFY(ProjectNodes::parentId(nodes, QStringLiteral("ns=1;s=None")).isEmpty());
+}
+
+void TestProjectNodes::copiesWithoutIds()
+{
+    const NodeDefinition motor = *ProjectNodes::find(DefaultProject::create().nodes, QStringLiteral("ns=1;s=Motor_01"));
+
+    const NodeDefinition free = ProjectNodes::detachedCopy(motor, { QStringLiteral("Pump_01") });
+    QCOMPARE(free.browseName, QStringLiteral("Motor_01"));
+    QVERIFY(free.nodeId.isEmpty());
+    QCOMPARE(free.children.size(), motor.children.size());
+    for (const NodeDefinition &child : free.children)
+        QVERIFY(child.nodeId.isEmpty());
+
+    QCOMPARE(ProjectNodes::detachedCopy(motor, { QStringLiteral("Motor_01") }).browseName,
+             QStringLiteral("Motor_01_copy"));
+    QCOMPARE(ProjectNodes::detachedCopy(motor, { QStringLiteral("Motor_01"), QStringLiteral("Motor_01_copy") }).browseName,
+             QStringLiteral("Motor_01_copy2"));
 }
 
 void TestProjectNodes::assignsIdsFromBrowsePath()

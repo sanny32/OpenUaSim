@@ -76,6 +76,22 @@ QString insert(QList<NodeDefinition> &nodes, const QString &parentId, const Node
 bool remove(QList<NodeDefinition> &nodes, const QString &nodeId);
 
 ///
+/// \brief Returns the folder or object holding a node.
+/// \param nodes Node tree.
+/// \param nodeId Node to look up.
+/// \return Parent node id; empty for top-level and unknown nodes.
+///
+QString parentId(const QList<NodeDefinition> &nodes, const QString &nodeId);
+
+///
+/// \brief Copies a node with its children for inserting it elsewhere.
+/// \param node Node to copy.
+/// \param takenNames Browse names already used where the copy goes.
+/// \return Copy without node ids, renamed to "<name>_copy", "<name>_copy2", ... when its name is taken.
+///
+NodeDefinition detachedCopy(const NodeDefinition &node, const QStringList &takenNames);
+
+///
 /// \brief Replaces the editable fields of a variable.
 /// \param nodes Node tree holding the variable.
 /// \param variable Variable with its node id and the new browse name, icon, data type, access,

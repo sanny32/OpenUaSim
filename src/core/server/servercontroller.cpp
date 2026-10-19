@@ -177,11 +177,45 @@ QString ServerController::addNode(const QString &parentId, const NodeDefinition 
 ///
 bool ServerController::removeNode(const QString &nodeId)
 {
-    if (!ProjectNodes::remove(_project.nodes, nodeId))
+    return removeNodes({ nodeId });
+}
+
+///
+/// \brief Removes nodes with their children and rebuilds the address space once.
+/// \param nodeIds Nodes to remove; ids below an already removed node are skipped.
+/// \return False when the project has none of the nodes.
+///
+bool ServerController::removeNodes(const QStringList &nodeIds)
+{
+    bool removed = false;
+    for (const QString &nodeId : nodeIds)
+        removed |= ProjectNodes::remove(_project.nodes, nodeId);
+    if (!removed)
         return false;
     rebuildNodes();
     emit projectEdited();
     return true;
+}
+
+///
+/// \brief Copies a node with its children into a folder or object and rebuilds the address space.
+/// \param nodeId Node to copy.
+/// \param parentId Folder or object receiving the copy; empty for the top level.
+/// \param error Receives the reason on failure; may be null.
+/// \return Node id of the copy, or empty when it was refused. A taken name gets a "_copy" suffix,
+///         and the copy and its children get node ids from their browse paths.
+///
+QString ServerController::copyNode(const QString &nodeId, const QString &parentId, QString *error)
+{
+    const NodeDefinition *source = ProjectNodes::find(_project.nodes, nodeId);
+    if (!source) {
+        if (error)
+            *error = tr("There is no node '%1'").arg(nodeId);
+        return {};
+    }
+    const NodeDefinition copy =
+        ProjectNodes::detachedCopy(*source, ProjectNodes::childNames(_project.nodes, parentId));
+    return addNode(parentId, copy, error);
 }
 
 ///

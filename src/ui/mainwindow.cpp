@@ -132,6 +132,9 @@ void MainWindow::setController(ServerController *controller)
     connect(ui->objectsPage, &ObjectsPage::currentNodeChanged, this, &MainWindow::updateNodeActions);
     connect(ui->actionAddNode, &QAction::triggered, this, &MainWindow::showAddNodeDialog);
     connect(ui->actionRenameNode, &QAction::triggered, this, &MainWindow::showRenameDialog);
+    connect(ui->actionDuplicateNode, &QAction::triggered, this, &MainWindow::duplicateNode);
+    connect(ui->actionCopyNode, &QAction::triggered, this, &MainWindow::copyNode);
+    connect(ui->actionPasteNode, &QAction::triggered, this, &MainWindow::pasteNode);
     connect(ui->actionDeleteNode, &QAction::triggered, this, &MainWindow::confirmDeleteNode);
     connect(ui->actionServerSettings, &QAction::triggered, this, &MainWindow::showServerSettingsDialog);
     connect(ui->certificatesPage, &CertificatesPage::generateRequested,
@@ -383,9 +386,12 @@ void MainWindow::setupActions()
     connect(ui->actionStartServer, &QAction::enabledChanged, ui->startButton, &QWidget::setEnabled);
     connect(ui->actionStopServer, &QAction::enabledChanged, ui->stopButton, &QWidget::setEnabled);
 
-    ui->objectsPage->setTreeActions({ ui->actionAddNode, ui->actionRenameNode, ui->actionDeleteNode });
-    ui->actionRenameNode->setEnabled(false);
-    ui->actionDeleteNode->setEnabled(false);
+    const QList<QAction *> nodeActions = { ui->actionAddNode, ui->actionRenameNode, ui->actionDuplicateNode,
+                                           ui->actionCopyNode, ui->actionPasteNode, ui->actionDeleteNode };
+    ui->objectsPage->setTreeActions(nodeActions);
+    ui->objectsPage->addActions({ ui->actionDuplicateNode, ui->actionCopyNode, ui->actionPasteNode });
+    for (QAction *action : nodeActions.mid(1))
+        action->setEnabled(false);
     connect(ui->actionEventLog, &QAction::toggled, this, &MainWindow::updateEventLogVisibility);
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
     connect(ui->actionAbout, &QAction::triggered, this, &MainWindow::showAbout);
@@ -597,9 +603,7 @@ void MainWindow::showAddNodeDialog()
     if (!_controller)
         return;
     const QList<NodeDefinition> &nodes = _controller->project().nodes;
-    const NodeDefinition *selected = ProjectNodes::find(nodes, ui->objectsPage->currentNodeId());
-    if (selected && selected->kind == NodeDefinition::Kind::Variable)
-        selected = ProjectNodes::find(nodes, ui->objectsPage->currentContainerId());
+    const NodeDefinition *selected = targetContainer();
     _pendingParentId = selected ? selected->nodeId : QString();
 
     auto *dialog = new AddNodeDialog(selected ? selected->browseName : tr("Objects"),
@@ -628,18 +632,88 @@ void MainWindow::addNodeFromDialog()
 }
 
 ///
-/// \brief Asks before deleting the selected project node with its children.
+/// \brief Returns the project folder or object that new and pasted nodes go to.
+/// \return Selected folder or object, the owner of a selected variable, or null for the top level.
+///
+const NodeDefinition *MainWindow::targetContainer() const
+{
+    const QList<NodeDefinition> &nodes = _controller->project().nodes;
+    const NodeDefinition *selected = ProjectNodes::find(nodes, ui->objectsPage->currentNodeId());
+    if (selected && selected->kind == NodeDefinition::Kind::Variable)
+        selected = ProjectNodes::find(nodes, ui->objectsPage->currentContainerId());
+    return selected;
+}
+
+///
+/// \brief Copies the selected project node next to itself and selects the copy.
+///
+void MainWindow::duplicateNode()
+{
+    if (!_controller)
+        return;
+    const QString nodeId = ui->objectsPage->currentNodeId();
+    if (ProjectNodes::find(_controller->project().nodes, nodeId))
+        copyNodeTo(nodeId, ProjectNodes::parentId(_controller->project().nodes, nodeId));
+}
+
+///
+/// \brief Remembers the selected project node for Paste Node.
+///
+void MainWindow::copyNode()
+{
+    if (!_controller || !ProjectNodes::find(_controller->project().nodes, ui->objectsPage->currentNodeId()))
+        return;
+    _copiedNodeId = ui->objectsPage->currentNodeId();
+    updateNodeActions();
+}
+
+///
+/// \brief Copies the node remembered by Copy Node into the selected folder or object.
+///
+void MainWindow::pasteNode()
+{
+    if (!_controller)
+        return;
+    const NodeDefinition *target = targetContainer();
+    copyNodeTo(_copiedNodeId, target ? target->nodeId : QString());
+}
+
+///
+/// \brief Copies a node with its children, selecting the copy or reporting why it was refused.
+/// \param nodeId Node to copy.
+/// \param parentId Folder or object receiving the copy; empty for the top level.
+///
+void MainWindow::copyNodeTo(const QString &nodeId, const QString &parentId)
+{
+    QString error;
+    const QString copyId = _controller->copyNode(nodeId, parentId, &error);
+    if (copyId.isEmpty()) {
+        showError(tr("Node not copied"), error);
+        return;
+    }
+    ui->objectsPage->selectNode(copyId);
+}
+
+///
+/// \brief Asks before deleting the selected project nodes with their children.
 ///
 void MainWindow::confirmDeleteNode()
 {
     if (!_controller)
         return;
-    const NodeDefinition *node = ProjectNodes::find(_controller->project().nodes, ui->objectsPage->currentNodeId());
-    if (!node)
+    const QList<NodeDefinition> &nodes = _controller->project().nodes;
+    _pendingDeleteIds.clear();
+    const QStringList selected = ui->objectsPage->selectedNodeIds();
+    for (const QString &nodeId : selected) {
+        if (ProjectNodes::find(nodes, nodeId))
+            _pendingDeleteIds.append(nodeId);
+    }
+    if (_pendingDeleteIds.isEmpty())
         return;
-    _pendingDeleteId = node->nodeId;
-    auto *box = new QMessageBox(QMessageBox::Question, tr("Delete Node"),
-                                tr("Delete '%1' and everything below it?").arg(node->browseName),
+    const QString question = _pendingDeleteIds.size() == 1
+        ? tr("Delete '%1' and everything below it?").arg(ProjectNodes::find(nodes, _pendingDeleteIds.first())->browseName)
+        : tr("Delete %n nodes and everything below them?", nullptr, int(_pendingDeleteIds.size()));
+    auto *box = new QMessageBox(QMessageBox::Question, tr("Delete Node"), question,
                                 QMessageBox::Yes | QMessageBox::Cancel, this);
     box->setAttribute(Qt::WA_DeleteOnClose);
     connect(box, &QDialog::finished, this, &MainWindow::deletePendingNode);
@@ -712,13 +786,13 @@ void MainWindow::applyServerSettingsFromDialog()
 }
 
 ///
-/// \brief Deletes the node the Delete Node question was answered Yes for.
+/// \brief Deletes the nodes the Delete Node question was answered Yes for.
 ///
 void MainWindow::deletePendingNode()
 {
     const auto *box = qobject_cast<const QMessageBox *>(sender());
     if (_controller && box && box->standardButton(box->clickedButton()) == QMessageBox::Yes)
-        _controller->removeNode(_pendingDeleteId);
+        _controller->removeNodes(_pendingDeleteIds);
 }
 
 ///
@@ -1034,5 +1108,8 @@ void MainWindow::updateNodeActions()
     const bool hasNode =
         _controller && ProjectNodes::find(_controller->project().nodes, ui->objectsPage->currentNodeId());
     ui->actionRenameNode->setEnabled(hasNode);
+    ui->actionDuplicateNode->setEnabled(hasNode);
+    ui->actionCopyNode->setEnabled(hasNode);
     ui->actionDeleteNode->setEnabled(hasNode);
+    ui->actionPasteNode->setEnabled(_controller && ProjectNodes::find(_controller->project().nodes, _copiedNodeId));
 }

@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QStringList>
 
 #include "data/certificateinfo.h"
 
@@ -24,6 +25,7 @@ class QActionGroup;
 class ProjectDocument;
 class QLabel;
 struct EndpointInfo;
+struct NodeDefinition;
 class QTimer;
 class ServerController;
 struct LogEntry;
@@ -169,6 +171,11 @@ private:
     void addNodeFromDialog();
     void confirmDeleteNode();
     void deletePendingNode();
+    const NodeDefinition *targetContainer() const;
+    void duplicateNode();
+    void copyNode();
+    void pasteNode();
+    void copyNodeTo(const QString &nodeId, const QString &parentId);
     void showRenameDialog();
     void renamePendingNode(const QString &browseName);
     void showServerSettingsDialog();
@@ -208,7 +215,8 @@ private:
     QTimer *_statusTimer;
     QLabel *_restartNote;
     QString _pendingParentId;
-    QString _pendingDeleteId;
+    QStringList _pendingDeleteIds;
+    QString _copiedNodeId;
     QString _pendingRenameId;
     QString _pendingModelFile;
     QString _pendingCertificate;

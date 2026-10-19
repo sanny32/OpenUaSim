@@ -55,6 +55,8 @@ private slots:
     void addNodeRebuildsAddressSpace();
     void addNodeReportsRefusal();
     void removeNodeRebuildsAddressSpace();
+    void removeNodesRebuildsOnce();
+    void copyNodeDuplicatesSubtree();
     void updateVariableAppliesLiveSettings();
     void updateVariableRenameRebuilds();
     void updateVariableReportsRefusal();
@@ -162,6 +164,46 @@ void TestServerController::removeNodeRebuildsAddressSpace()
     QVERIFY(!controller.addressSpace().hasVariable(QStringLiteral("ns=1;s=Motor_01.Speed")));
     QCOMPARE(controller.addressSpace().nodeCount(), 13);
     QVERIFY(!controller.removeNode(QStringLiteral("ns=1;s=Motor_01")));
+}
+
+void TestServerController::removeNodesRebuildsOnce()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QSignalSpy structure(&controller, &ServerController::projectChanged);
+    QVERIFY(controller.removeNodes({ QStringLiteral("ns=1;s=Motor_01"), QStringLiteral("ns=1;s=Motor_01.Speed"),
+                                     QStringLiteral("ns=1;s=Pump_01") }));
+    QCOMPARE(structure.count(), 1);
+    QCOMPARE(controller.addressSpace().nodeCount(), 9);
+    QVERIFY(!controller.removeNodes({ QStringLiteral("ns=1;s=Motor_01") }));
+    QCOMPARE(structure.count(), 1);
+}
+
+void TestServerController::copyNodeDuplicatesSubtree()
+{
+    ServerController controller;
+    controller.setProject(project());
+    const QString line = QStringLiteral("ns=1;s=FactoryLine_01");
+    const QString motor = QStringLiteral("ns=1;s=Motor_01");
+
+    const QString copyId = controller.copyNode(motor, line);
+    QVERIFY(!copyId.isEmpty());
+    QVERIFY(copyId != motor);
+    const NodeDefinition *copy = ProjectNodes::find(controller.project().nodes, copyId);
+    QCOMPARE(copy->browseName, QStringLiteral("Motor_01_copy"));
+    QCOMPARE(ProjectNodes::parentId(controller.project().nodes, copyId), line);
+    QCOMPARE(copy->children.size(), ProjectNodes::find(controller.project().nodes, motor)->children.size());
+    QVERIFY(controller.addressSpace().hasVariable(copy->children.first().nodeId));
+    QCOMPARE(controller.addressSpace().nodeCount(), 17 + 1 + int(copy->children.size()));
+
+    const QString intoPump = controller.copyNode(QStringLiteral("ns=1;s=Motor_01.Speed"), QStringLiteral("ns=1;s=Pump_01"));
+    QCOMPARE(ProjectNodes::find(controller.project().nodes, intoPump)->browseName, QStringLiteral("Speed"));
+
+    QString error;
+    QVERIFY(controller.copyNode(QStringLiteral("ns=1;s=None"), line, &error).isEmpty());
+    QCOMPARE(error, QStringLiteral("There is no node 'ns=1;s=None'"));
+    QVERIFY(controller.copyNode(motor, QStringLiteral("ns=1;s=Motor_01.Speed"), &error).isEmpty());
+    QVERIFY(error.contains(QStringLiteral("cannot hold child nodes")));
 }
 
 void TestServerController::updateVariableAppliesLiveSettings()

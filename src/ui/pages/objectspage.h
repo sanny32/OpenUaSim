@@ -89,6 +89,12 @@ public:
     QString currentContainerId() const;
 
     ///
+    /// \brief Returns the nodes selected in the view the current node was picked in.
+    /// \return Node ids of the selected tree nodes or variable rows; the current node when nothing is selected.
+    ///
+    QStringList selectedNodeIds() const;
+
+    ///
     /// \brief Adds actions to the context menu of the address space tree.
     /// \param actions Actions in menu order.
     ///
@@ -123,4 +129,5 @@ private:
     QHash<QString, QList<VariableInfo>> _variables;
     QString _containerId;
     QString _currentNodeId;
+    bool _currentFromTable = false;
 };
