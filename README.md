@@ -51,6 +51,14 @@ anonymous unsecured endpoint.
    `opc.tcp://localhost:48400` with security `None` and anonymous login.
 3. Browse `Objects/FactoryLine_01` and subscribe to a variable to watch it change.
 
+## System requirements
+
+The application runs on:
+
+- <img src="docs/icons/logo_windows.svg" width="16" height="16" /> **Windows** 10 or later (x64)
+- <img src="docs/icons/logo_apple.svg" width="16" height="16" /> **macOS** 13 or later (Apple silicon)
+- <img src="docs/icons/logo_linux.svg" width="16" height="16" /> **Linux** — any recent x86-64 distribution with glibc 2.28 or newer
+
 ## Building
 
 Requirements:
@@ -89,27 +97,6 @@ Options:
 cmake -S src -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.9/<kit> -DOUASIM_BUILD_TESTS=ON
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
-```
-
-### Project layout
-
-```text
-src/
-  app/      executable, entry point and icon resources
-  core/     UI-independent code
-    data/        plain structs describing the project and the server state
-    models/      Qt item models over that data
-    project/     project file, document and node tree helpers
-    server/      SimServer, address space, controller, snapshot for the UI
-    simulation/  waveforms, data type conversion, simulation engine
-    pki/         certificate store
-  ui/       widgets library
-    pages/    one page per tab (.ui + class)
-    dialogs/  dialogs (.ui + class)
-    widgets/  reusable widgets, the item delegate and view helpers
-    style/    light and dark palettes
-  cmake/    CMake helpers (Qt, QUaServer, tests)
-  tests/    Qt Test suites run by CTest, sample data and test certificates
 ```
 
 ## Feedback
