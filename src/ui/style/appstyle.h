@@ -91,6 +91,16 @@ public:
                     const QWidget *widget = nullptr) const override;
 
     ///
+    /// \brief Pulls item view text towards a decoration on its left.
+    /// \param element Sub-element to place.
+    /// \param option Style option of the control.
+    /// \param widget Widget being laid out.
+    /// \return Sub-element rectangle.
+    ///
+    QRect subElementRect(SubElement element, const QStyleOption *option,
+                         const QWidget *widget = nullptr) const override;
+
+    ///
     /// \brief Makes panel scroll areas transparent so the panel colour shows through.
     /// \param widget Widget being polished.
     ///

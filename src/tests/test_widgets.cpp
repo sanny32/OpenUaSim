@@ -92,6 +92,7 @@ private slots:
     void eventLogHeightShowsWholeRows();
     void appStyleMakesPanelScrollAreasTransparent();
     void appStyleCheckBoxes();
+    void appStyleKeepsItemTextNearDecoration();
     void appStyleShowsMnemonicsAfterAlt();
     void addCopyActionCopies();
     void configureTable();
@@ -437,6 +438,34 @@ void TestWidgets::appStyleCheckBoxes()
                           + QPoint(indicator.width() * 4 / 5, indicator.height() * 4 / 5);
     QCOMPARE(checked.grab().toImage().pixelColor(corner), palette.color(QPalette::Highlight));
     QCOMPARE(unchecked.grab().toImage().pixelColor(indicator.center()), palette.color(QPalette::Base));
+}
+
+void TestWidgets::appStyleKeepsItemTextNearDecoration()
+{
+    AppStyle style;
+    QTableView view;
+    QStyleOptionViewItem option;
+    option.initFrom(&view);
+    option.rect = QRect(0, 0, 200, 27);
+    option.text = QStringLiteral("Yes");
+    option.features = QStyleOptionViewItem::HasDisplay;
+    const QRect plainText = style.subElementRect(QStyle::SE_ItemViewItemText, &option, &view);
+    const std::unique_ptr<QStyle> fusion(QStyleFactory::create(QStringLiteral("Fusion")));
+    QCOMPARE(plainText, fusion->subElementRect(QStyle::SE_ItemViewItemText, &option, &view));
+
+    option.features |= QStyleOptionViewItem::HasDecoration;
+    option.decorationSize = QSize(12, 12);
+    option.icon = AppIcons::statusDot(StatusKind::Good);
+    const QRect decoration = style.subElementRect(QStyle::SE_ItemViewItemDecoration, &option, &view);
+    const QRect text = style.subElementRect(QStyle::SE_ItemViewItemText, &option, &view);
+    const int textPadding = style.pixelMetric(QStyle::PM_FocusFrameHMargin, &option, &view) + 1;
+    QCOMPARE(text.left() + textPadding - (decoration.right() + 1), 6);
+    QCOMPARE(text.right(), plainText.right());
+
+    option.direction = Qt::RightToLeft;
+    const QRect rtlDecoration = style.subElementRect(QStyle::SE_ItemViewItemDecoration, &option, &view);
+    const QRect rtlText = style.subElementRect(QStyle::SE_ItemViewItemText, &option, &view);
+    QCOMPARE(rtlDecoration.left() - (rtlText.right() + 1 - textPadding), 6);
 }
 
 void TestWidgets::addCopyActionCopies()

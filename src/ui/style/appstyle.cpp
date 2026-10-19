@@ -19,6 +19,7 @@
 #include <QStyleFactory>
 #include <QStyleOptionButton>
 #include <QStyleOptionTab>
+#include <QStyleOptionViewItem>
 #include <QWidget>
 
 #include "appcolors.h"
@@ -41,6 +42,7 @@ constexpr int kHeaderHeight = 29;
 constexpr int kHeaderMargin = 6;
 constexpr int kItemTextMargin = 10;
 constexpr int kItemIconSize = 18;
+constexpr int kItemIconTextGap = 6;
 constexpr int kTreeIndentation = 22;
 constexpr int kCheckIndicatorSize = 14;
 
@@ -266,6 +268,31 @@ int AppStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, const 
             return kItemIconSize;
     }
     return QProxyStyle::pixelMetric(metric, option, widget);
+}
+
+///
+/// \brief Pulls item view text towards a decoration on its left.
+/// \param element Sub-element to place.
+/// \param option Style option of the control.
+/// \param widget Widget being laid out.
+/// \return Sub-element rectangle.
+///
+QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option, const QWidget *widget) const
+{
+    QRect rect = QProxyStyle::subElementRect(element, option, widget);
+    const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
+    if (element != SE_ItemViewItemText || !item
+        || !item->features.testFlag(QStyleOptionViewItem::HasDecoration)
+        || item->decorationPosition != QStyleOptionViewItem::Left)
+        return rect;
+    // Fusion pads both the decoration and the text by the item margin, doubling the gap.
+    const QRect decoration = QProxyStyle::subElementRect(SE_ItemViewItemDecoration, option, widget);
+    const int textPadding = pixelMetric(PM_FocusFrameHMargin, option, widget) + 1;
+    if (item->direction == Qt::RightToLeft)
+        rect.setRight(decoration.left() - 1 - kItemIconTextGap + textPadding);
+    else
+        rect.setLeft(decoration.right() + 1 + kItemIconTextGap - textPadding);
+    return rect;
 }
 
 ///
