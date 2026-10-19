@@ -1,0 +1,1343 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_DIR="$PROJECT_DIR/src"
+TOOLS_DIR="$PROJECT_DIR/.build-tools"
+BUILD_TYPE=Release
+RUN_TESTS=0
+RUN_INSTALL=0
+INSTALL_PREFIX=""
+QT_FROM_AQT=0
+
+QT_PREFIX=""
+QT_VERSION=""
+CMAKE_BIN=""
+LINUX_ID=""
+LINUX_VERSION_ID=""
+PYTHON_BIN=""
+PYTHON_MIN_VERSION="3.9"
+PYTHON_BUILD_VERSION="3.12.13"
+
+log_info() {
+    printf '\033[32mℹ %s\033[0m\n' "$*"
+}
+
+log_warn() {
+    printf '\033[33m⚠ %s\033[0m\n' "$*" >&2
+}
+
+log_error() {
+    printf '\033[31m✖ %s\033[0m\n' "$*" >&2
+}
+print_banner() {
+    echo "================================"
+    echo " OpenUaSim build script"
+    echo "================================"
+    echo ""
+}
+
+usage() {
+    echo "Usage: ./build.sh [--tests] [--install[=PREFIX]]"
+    echo ""
+    echo "Options:"
+    echo "  --tests             Build and run the test suite"
+    echo "  --install[=PREFIX]  Install after building"
+}
+
+version_part() {
+    local version="$1"
+    local index="$2"
+    local part
+    local -a parts
+
+    IFS=. read -r -a parts <<<"$version"
+    part="${parts[$index]:-0}"
+    printf '%s' "${part%%[^0-9]*}"
+}
+
+version_ge() {
+    local left="$1"
+    local right="$2"
+    local i
+    local left_part
+    local right_part
+
+    for i in 0 1 2 3; do
+        left_part="$(version_part "$left" "$i")"
+        right_part="$(version_part "$right" "$i")"
+        left_part="${left_part:-0}"
+        right_part="${right_part:-0}"
+
+        if ((10#$left_part > 10#$right_part)); then
+            return 0
+        fi
+        if ((10#$left_part < 10#$right_part)); then
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+extract_version() {
+    grep -oE '[0-9]+(\.[0-9]+){1,3}' | head -n1
+}
+
+required_cmake_version() {
+    local version
+
+    version="$(sed -nE 's/^[[:space:]]*cmake_minimum_required[[:space:]]*\([[:space:]]*VERSION[[:space:]]+([0-9]+(\.[0-9]+){1,3}).*/\1/p' \
+        "$SOURCE_DIR/CMakeLists.txt" | head -n1)"
+    if [ -z "$version" ]; then
+        log_error "Cannot detect minimum CMake version from $SOURCE_DIR/CMakeLists.txt"
+        exit 1
+    fi
+
+    printf '%s\n' "$version"
+}
+
+required_qt_version() {
+    local version
+
+    version="$(sed -nE 's/^[[:space:]]*find_package[[:space:]]*\([[:space:]]*Qt6[[:space:]]+([0-9]+(\.[0-9]+){1,3}).*/\1/p' \
+        "$SOURCE_DIR/cmake/qt.cmake" | head -n1)"
+    if [ -z "$version" ]; then
+        log_error "Cannot detect minimum Qt version from $SOURCE_DIR/cmake/qt.cmake"
+        exit 1
+    fi
+
+    printf '%s\n' "$version"
+}
+
+cmake_version() {
+    "$1" --version 2>/dev/null | head -n1 | extract_version || true
+}
+
+python_version() {
+    "$1" -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null || true
+}
+
+python_runs_aqt() {
+    "$1" -c 'import ssl, zlib, lzma, bz2, ctypes' >/dev/null 2>&1
+}
+
+python_usable() {
+    local found
+
+    found="$(python_version "$1")"
+    [ -n "$found" ] || return 1
+    version_ge "$found" "$PYTHON_MIN_VERSION" || return 1
+    python_runs_aqt "$1"
+}
+
+find_python() {
+    local candidate
+    local path
+
+    for candidate in python3.13 python3.12 python3.11 python3.10 python3.9 python3; do
+        path="$(command -v "$candidate" 2>/dev/null)" || continue
+        if python_usable "$path"; then
+            printf '%s\n' "$path"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+python_build_packages() {
+    case "$DISTRO" in
+        debian)
+            echo "zlib1g-dev libffi-dev liblzma-dev libbz2-dev"
+            ;;
+        rhel)
+            echo "zlib-devel libffi-devel xz-devel bzip2-devel"
+            ;;
+        altlinux)
+            echo "zlib-devel libffi-devel liblzma-devel libbz2-devel"
+            ;;
+        suse)
+            echo "zlib-devel libffi-devel xz-devel libbz2-devel"
+            ;;
+        arch)
+            echo "zlib libffi xz bzip2"
+            ;;
+    esac
+}
+
+build_python() {
+    local prefix="$TOOLS_DIR/python"
+    local archive="$TOOLS_DIR/Python-$PYTHON_BUILD_VERSION.tgz"
+    local source_dir="$TOOLS_DIR/Python-$PYTHON_BUILD_VERSION"
+    local build_log="$TOOLS_DIR/python-build.log"
+    local -a packages
+
+    if python_usable "$prefix/bin/python3"; then
+        PYTHON_BIN="$prefix/bin/python3"
+        log_info "Using Python $(python_version "$PYTHON_BIN") from $PYTHON_BIN"
+        return
+    fi
+
+    if [ "$(uname -s)" != "Linux" ]; then
+        log_error "Python $PYTHON_MIN_VERSION or newer is required. Install it with 'brew install python'."
+        exit 1
+    fi
+
+    read -r -a packages <<<"$(python_build_packages)"
+    install_packages "${packages[@]}"
+
+    log_info "Building Python $PYTHON_BUILD_VERSION in $prefix (see $build_log)..."
+    rm -rf "$prefix" "$TOOLS_DIR/aqt-venv"
+    mkdir -p "$TOOLS_DIR"
+    curl -fsSL -o "$archive" \
+        "https://www.python.org/ftp/python/$PYTHON_BUILD_VERSION/Python-$PYTHON_BUILD_VERSION.tgz"
+    rm -rf "$source_dir"
+    tar -xzf "$archive" -C "$TOOLS_DIR"
+
+    if ! (
+        cd "$source_dir"
+        ./configure --prefix="$prefix" --with-ensurepip=install
+        make -j"$(nproc)"
+        make install
+    ) >"$build_log" 2>&1; then
+        log_error "Cannot build Python $PYTHON_BUILD_VERSION; see $build_log"
+        exit 1
+    fi
+
+    rm -rf "$source_dir" "$archive"
+
+    if ! python_usable "$prefix/bin/python3"; then
+        log_error "Python $PYTHON_BUILD_VERSION was built without the modules aqtinstall needs (ssl, zlib, lzma, bz2, ctypes); see $build_log"
+        exit 1
+    fi
+
+    PYTHON_BIN="$prefix/bin/python3"
+    log_info "Using Python $(python_version "$PYTHON_BIN") from $PYTHON_BIN"
+}
+
+ensure_python() {
+    local found
+    local system
+
+    if [ -n "$PYTHON_BIN" ]; then
+        return
+    fi
+
+    if found="$(find_python)"; then
+        PYTHON_BIN="$found"
+        log_info "Using Python $(python_version "$PYTHON_BIN") from $PYTHON_BIN"
+        return
+    fi
+
+    system="$(python_version "$(command -v python3 2>/dev/null || echo /nonexistent)")"
+    log_warn "Python ${system:-not found} is older than $PYTHON_MIN_VERSION, which aqtinstall needs to offer Qt $(required_qt_version) and newer."
+    build_python
+}
+
+ensure_python_tools() {
+    local venv_python="$TOOLS_DIR/aqt-venv/bin/python3"
+
+    ensure_python
+
+    if python_usable "$venv_python"; then
+        return
+    fi
+
+    rm -rf "$TOOLS_DIR/aqt-venv"
+    mkdir -p "$TOOLS_DIR"
+    "$PYTHON_BIN" -m venv "$TOOLS_DIR/aqt-venv"
+    "$venv_python" -m pip install --upgrade pip
+}
+
+ensure_cmake() {
+    local required="$1"
+    local found
+
+    if command -v cmake >/dev/null 2>&1; then
+        found="$(cmake_version "$(command -v cmake)")"
+        if [ -n "$found" ] && version_ge "$found" "$required"; then
+            CMAKE_BIN="$(command -v cmake)"
+            log_info "Using CMake $found from $CMAKE_BIN"
+            return
+        fi
+        log_warn "Found CMake ${found:-unknown}, but $required or newer is required."
+    fi
+
+    ensure_python_tools
+    "$TOOLS_DIR/aqt-venv/bin/python3" -m pip install --upgrade cmake
+    CMAKE_BIN="$TOOLS_DIR/aqt-venv/bin/cmake"
+    found="$(cmake_version "$CMAKE_BIN")"
+
+    if [ -z "$found" ] || ! version_ge "$found" "$required"; then
+        log_error "Cannot install CMake $required or newer."
+        exit 1
+    fi
+
+    log_info "Using local CMake $found from $CMAKE_BIN"
+}
+
+download_file() {
+    local url="$1"
+    local output="$2"
+
+    if command -v curl >/dev/null 2>&1; then
+        curl -L --fail "$url" -o "$output"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -O "$output" "$url"
+    else
+        log_error "curl or wget is required to download $url"
+        exit 1
+    fi
+}
+
+run_as_root() {
+    if [ "$EUID" -eq 0 ]; then
+        "$@"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo "$@"
+    else
+        su -c "$(printf '%q ' "$@")"
+    fi
+}
+
+detect_linux_distro() {
+    local ID=""
+    local ID_LIKE=""
+
+    if [ ! -f /etc/os-release ]; then
+        log_error "Cannot detect Linux distribution."
+        exit 1
+    fi
+
+    . /etc/os-release
+
+    LINUX_ID="${ID:-}"
+    LINUX_VERSION_ID="${VERSION_ID:-}"
+
+    DISTRO=""
+    case "${ID:-}" in
+        debian|ubuntu|linuxmint|zorin|astra)
+            DISTRO="debian"
+            ;;
+        fedora|rhel|rocky|almalinux|redos)
+            DISTRO="rhel"
+            ;;
+        altlinux)
+            DISTRO="altlinux"
+            ;;
+        opensuse*|suse|sles)
+            DISTRO="suse"
+            ;;
+        arch|endeavouros|manjaro)
+            DISTRO="arch"
+            ;;
+    esac
+
+    if [ -z "$DISTRO" ]; then
+        case " ${ID_LIKE:-} " in
+            *" debian "*)
+                DISTRO="debian"
+                ;;
+            *" rhel "*|*" fedora "*)
+                DISTRO="rhel"
+                ;;
+            *" suse "*)
+                DISTRO="suse"
+                ;;
+            *" arch "*)
+                DISTRO="arch"
+                ;;
+        esac
+    fi
+
+    if [ -z "$DISTRO" ]; then
+        log_error "Unsupported Linux distribution: ${ID:-unknown}"
+        exit 1
+    fi
+}
+
+enable_rhel_build_repositories() {
+    local major
+    local repo
+
+    if [ "$DISTRO" != "rhel" ] || [ "$LINUX_ID" = "fedora" ]; then
+        return
+    fi
+
+    major="${LINUX_VERSION_ID%%.*}"
+    if [ -z "$major" ] || ! command -v dnf >/dev/null 2>&1; then
+        return
+    fi
+
+    run_as_root dnf install -y dnf-plugins-core
+
+    case "$LINUX_ID" in
+        rocky|almalinux|centos|ol|redos)
+            if dnf repolist all 2>/dev/null | awk '{ print $1 }' | grep -Fxq crb; then
+                log_info "Enabling CRB repository."
+                run_as_root dnf config-manager --set-enabled crb
+                return
+            fi
+            if dnf repolist all 2>/dev/null | awk '{ print $1 }' | grep -Fxq powertools; then
+                log_info "Enabling PowerTools repository."
+                run_as_root dnf config-manager --set-enabled powertools
+                return
+            fi
+            ;;
+        rhel)
+            repo="codeready-builder-for-rhel-${major}-$(uname -m)-rpms"
+            if dnf repolist all 2>/dev/null | awk '{ print $1 }' | grep -Fxq "$repo"; then
+                log_info "Enabling CodeReady Builder repository."
+                run_as_root dnf config-manager --set-enabled "$repo"
+                return
+            fi
+            ;;
+    esac
+
+    log_warn "RHEL-family build repository was not found; package availability may be incomplete."
+}
+
+linux_general_packages() {
+    local -a packages
+
+    case "$DISTRO" in
+        debian)
+            packages=(
+                build-essential cmake ninja-build git curl tar gzip pkg-config
+                libgl1-mesa-dev libxcb-cursor-dev libxkbcommon-x11-0
+                libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0
+                libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
+                libxcb-xkb1 libxcb-util1
+                libssl-dev libdbus-1-3
+                perl python3 python3-pip python3-venv
+            )
+            ;;
+        rhel)
+            packages=(
+                gcc gcc-c++ libstdc++-static cmake ninja-build git curl tar gzip
+                pkgconf-pkg-config mesa-libGL-devel
+                xcb-util-cursor-devel xcb-util-wm xcb-util-image
+                xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon-x11
+                openssl-devel dbus-libs
+                perl python3 python3-pip
+            )
+            ;;
+        altlinux)
+            packages=(
+                gcc gcc-c++ libstdc++-devel-static cmake ninja-build git curl tar gzip
+                pkg-config libGL-devel
+                libxcbutil-cursor libxcbutil-icccm libxcbutil-image
+                libxcbutil-keysyms libxcb-render-util libxcbutil libxkbcommon
+                openssl-devel libdbus
+                perl python3 python3-base python3-module-pip
+            )
+            ;;
+        suse)
+            packages=(
+                gcc gcc-c++ cmake ninja git curl tar gzip
+                pkgconf-pkg-config Mesa-libGL-devel xcb-util-cursor-devel
+                libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0
+                libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
+                libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0
+                libopenssl-devel libdbus-1-3
+                perl python3 python3-pip
+            )
+            ;;
+        arch)
+            packages=(
+                base-devel cmake ninja git curl tar gzip pkgconf mesa libxcb
+                xcb-util-cursor xcb-util-wm xcb-util-image xcb-util-keysyms
+                xcb-util-renderutil xcb-util libxkbcommon
+                openssl dbus
+                perl python python-pip
+            )
+            ;;
+    esac
+
+    echo "${packages[*]}"
+}
+
+linux_qt6_packages() {
+    local -a packages
+
+    case "$DISTRO" in
+        debian)
+            packages=(
+                qt6-base-dev qt6-base-dev-tools
+                qt6-tools-dev qt6-tools-dev-tools
+                libqt6svg6-dev
+            )
+            ;;
+        rhel)
+            packages=(
+                qt6-qtbase-devel
+                qt6-qttools-devel qt6-qtsvg-devel
+            )
+            ;;
+        altlinux)
+            packages=(
+                qt6-base-devel qt6-tools-devel qt6-svg-devel
+            )
+            ;;
+        suse)
+            packages=(
+                qt6-base-devel
+                qt6-tools-devel qt6-linguist-devel
+                qt6-svg-devel
+            )
+            ;;
+        arch)
+            packages=(
+                qt6-base qt6-tools qt6-svg
+            )
+            ;;
+    esac
+
+    echo "${packages[*]}"
+}
+
+linux_gtk_runtime_package() {
+    case "$DISTRO" in
+        debian)
+            echo "libgtk-3-0"
+            ;;
+        rhel)
+            echo "gtk3"
+            ;;
+        altlinux)
+            echo "libgtk+3"
+            ;;
+        suse)
+            echo "libgtk-3-0"
+            ;;
+        arch)
+            echo "gtk3"
+            ;;
+    esac
+}
+
+package_installed() {
+    local package="$1"
+
+    case "$DISTRO" in
+        debian|altlinux)
+            dpkg -s "$package" >/dev/null 2>&1 || rpm -q "$package" >/dev/null 2>&1
+            ;;
+        rhel|suse)
+            rpm -q "$package" >/dev/null 2>&1
+            ;;
+        arch)
+            pacman -Qq "$package" >/dev/null 2>&1
+            ;;
+    esac
+}
+
+package_available() {
+    local package="$1"
+    local candidate
+
+    case "$DISTRO" in
+        debian|altlinux)
+            candidate="$(apt-cache policy "$package" 2>/dev/null | sed -nE 's/^[[:space:]]*Candidate:[[:space:]]*([^[:space:]]+).*/\1/p')"
+            [ -n "$candidate" ] && [ "$candidate" != "(none)" ]
+            ;;
+        rhel)
+            candidate="$(dnf repoquery --available --qf '%{name}' "$package" 2>/dev/null | head -n1 || true)"
+            [ -n "$candidate" ] || dnf list --available "$package" 2>/dev/null | awk 'NR > 1 { found = 1 } END { exit !found }'
+            ;;
+        suse)
+            zypper --non-interactive info "$package" >/dev/null 2>&1
+            ;;
+        arch)
+            pacman -Si "$package" >/dev/null 2>&1
+            ;;
+    esac
+}
+
+qt_packages_available() {
+    local missing=()
+    local package
+
+    for package in "$@"; do
+        if package_installed "$package" || package_available "$package"; then
+            continue
+        fi
+        missing+=("$package")
+    done
+
+    if [ "${#missing[@]}" -eq 0 ]; then
+        return 0
+    fi
+
+    log_warn "Repository does not provide required Qt packages: ${missing[*]}"
+    log_info "Falling back to aqtinstall."
+    return 1
+}
+
+install_packages() {
+    local missing=()
+    local unavailable=()
+    local package
+
+    for package in "$@"; do
+        if package_installed "$package"; then
+            log_info "Found package: $package"
+        else
+            missing+=("$package")
+        fi
+    done
+
+    if [ "${#missing[@]}" -eq 0 ]; then
+        return
+    fi
+
+    if [ "$DISTRO" = "rhel" ]; then
+        for package in "${missing[@]}"; do
+            if ! package_available "$package"; then
+                unavailable+=("$package")
+            fi
+        done
+
+        if [ "${#unavailable[@]}" -ne 0 ]; then
+            log_error "Package manager does not provide required packages: ${unavailable[*]}"
+            exit 1
+        fi
+    fi
+
+    log_info "Installing packages: ${missing[*]}"
+    case "$DISTRO" in
+        debian)
+            run_as_root apt-get update
+            run_as_root apt-get install -y "${missing[@]}"
+            ;;
+        rhel)
+            run_as_root dnf install -y "${missing[@]}"
+            ;;
+        altlinux)
+            run_as_root apt-get install -y "${missing[@]}"
+            ;;
+        suse)
+            run_as_root zypper --non-interactive install --force-resolution "${missing[@]}"
+            ;;
+        arch)
+            run_as_root pacman -S --needed --noconfirm "${missing[@]}"
+            ;;
+    esac
+}
+
+repo_qt6_probe_package() {
+    case "$DISTRO" in
+        debian)
+            echo "qt6-base-dev"
+            ;;
+        rhel)
+            echo "qt6-qtbase-devel"
+            ;;
+        altlinux)
+            echo "qt6-base-devel"
+            ;;
+        suse)
+            echo "qt6-base-devel"
+            ;;
+        arch)
+            echo "qt6-base"
+            ;;
+    esac
+}
+
+repo_qt6_version() {
+    local package
+    local version
+
+    package="$(repo_qt6_probe_package)"
+    case "$DISTRO" in
+        debian|altlinux)
+            version="$(apt-cache policy "$package" 2>/dev/null | sed -nE 's/^[[:space:]]*Candidate:[[:space:]]*([^[:space:]]+).*/\1/p' | extract_version)"
+            ;;
+        rhel)
+            version="$(dnf repoquery --qf '%{version}' --latest-limit=1 "$package" 2>/dev/null | extract_version)"
+            if [ -z "$version" ]; then
+                version="$(dnf list --available "$package" 2>/dev/null | awk 'NR > 1 { print $2; exit }' | extract_version)"
+            fi
+            ;;
+        suse)
+            version="$(zypper --non-interactive info "$package" 2>/dev/null | sed -nE 's/^Version[[:space:]]*:[[:space:]]*([^[:space:]]+).*/\1/p' | extract_version)"
+            ;;
+        arch)
+            version="$(pacman -Si "$package" 2>/dev/null | sed -nE 's/^Version[[:space:]]*:[[:space:]]*([^[:space:]]+).*/\1/p' | extract_version)"
+            ;;
+    esac
+
+    printf '%s\n' "$version"
+}
+
+qt_version_from_prefix() {
+    local prefix="$1"
+    local config
+    local qmake
+
+    for qmake in "$prefix/bin/qmake6" "$prefix/bin/qmake" "$prefix/bin/qtpaths6"; do
+        if [ -x "$qmake" ]; then
+            case "$(basename "$qmake")" in
+                qtpaths6)
+                    "$qmake" --qt-version 2>/dev/null || "$qmake" --version 2>/dev/null | extract_version
+                    ;;
+                *)
+                    "$qmake" -query QT_VERSION 2>/dev/null
+                    ;;
+            esac
+            return
+        fi
+    done
+
+    for config in \
+        "$prefix"/lib*/cmake/Qt6Core/Qt6CoreConfigVersion.cmake \
+        "$prefix"/lib/*/cmake/Qt6Core/Qt6CoreConfigVersion.cmake \
+        "$prefix"/cmake/Qt6Core/Qt6CoreConfigVersion.cmake \
+        "$prefix"/Qt6CoreConfigVersion.cmake; do
+        if [ -f "$config" ]; then
+            sed -nE 's/^[[:space:]]*set[[:space:]]*\([[:space:]]*PACKAGE_VERSION[[:space:]]+"?([^" )]+)"?.*/\1/p' "$config" | head -n1
+            return
+        fi
+    done
+}
+
+qt_prefix_from_core_config() {
+    local config="$1"
+    local prefix
+
+    case "$config" in
+        */lib*/cmake/Qt6Core/Qt6CoreConfig.cmake)
+            prefix="${config%%/lib*/cmake/Qt6Core/Qt6CoreConfig.cmake}"
+            ;;
+        */cmake/Qt6Core/Qt6CoreConfig.cmake)
+            prefix="${config%%/cmake/Qt6Core/Qt6CoreConfig.cmake}"
+            ;;
+        *)
+            prefix="$(dirname "$(dirname "$config")")"
+            ;;
+    esac
+
+    printf '%s\n' "$prefix"
+}
+
+qt_prefix_from_system() {
+    local prefix
+    local tool
+    local config
+
+    if command -v pkg-config >/dev/null 2>&1; then
+        prefix="$(pkg-config --variable=prefix Qt6Core 2>/dev/null || true)"
+        if [ -n "$prefix" ]; then
+            echo "$prefix"
+            return
+        fi
+    fi
+
+    for tool in qmake6 qmake qtpaths6; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            continue
+        fi
+
+        case "$tool" in
+            qtpaths6)
+                prefix="$("$tool" --install-prefix 2>/dev/null || true)"
+                ;;
+            *)
+                prefix="$("$tool" -query QT_INSTALL_PREFIX 2>/dev/null || true)"
+                ;;
+        esac
+
+        if [ -n "$prefix" ]; then
+            echo "$prefix"
+            return
+        fi
+    done
+
+    config="$(find /usr /usr/local -type f -name Qt6CoreConfig.cmake 2>/dev/null | head -n1 || true)"
+    if [ -n "$config" ]; then
+        qt_prefix_from_core_config "$config"
+    fi
+}
+
+aqt_arch_candidates() {
+    case "$(uname -m)" in
+        x86_64|amd64)
+            echo "linux_gcc_64 gcc_64"
+            ;;
+        aarch64|arm64)
+            echo "linux_gcc_arm64"
+            ;;
+        *)
+            log_error "Unsupported Linux architecture for aqtinstall: $(uname -m)"
+            exit 1
+            ;;
+    esac
+}
+
+aqt_arch() {
+    local version="$1"
+    local available
+    local candidate
+
+    available="$("$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop --arch "$version" 2>/dev/null \
+        | tr ' ' '\n')"
+
+    for candidate in $(aqt_arch_candidates); do
+        if printf '%s\n' "$available" | grep -Fxq "$candidate"; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+qt_release_has_final_tag() {
+    local version="$1"
+
+    git ls-remote --exit-code --tags https://code.qt.io/qt/qtbase.git \
+        "refs/tags/v${version}" >/dev/null 2>&1
+}
+
+glibc_version() {
+    local version
+
+    version="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{ print $2 }')"
+    if [ -z "$version" ]; then
+        version="$(ldd --version 2>/dev/null | head -n1 | extract_version)"
+    fi
+
+    printf '%s\n' "$version"
+}
+
+qt_required_glibc() {
+    if version_ge "$1" "6.10"; then
+        echo "2.34"
+    else
+        echo "2.28"
+    fi
+}
+
+aqt_qt6_versions() {
+    local versions
+    local version
+    local required="$1"
+    local glibc
+
+    glibc="$(glibc_version)"
+
+    versions="$("$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop 2>/dev/null \
+        | tr ' ' '\n' | sed -nE '/^6\.[0-9]+\.[0-9]+$/p' | sort -Vr)"
+
+    for version in $versions; do
+        if ! version_ge "$version" "$required"; then
+            continue
+        fi
+        if [ -n "$glibc" ] && ! version_ge "$glibc" "$(qt_required_glibc "$version")"; then
+            continue
+        fi
+        if [ -n "$(aqt_arch "$version")" ]; then
+            echo "$version"
+        fi
+    done
+}
+
+aqt_prefix_in() {
+    local base="$1"
+    local qmake
+
+    for qmake in "$base"/*/bin/qmake6 "$base"/*/bin/qmake; do
+        if [ -x "$qmake" ]; then
+            dirname "$(dirname "$qmake")"
+            return
+        fi
+    done
+}
+
+ensure_aqt() {
+    ensure_python_tools
+    "$TOOLS_DIR/aqt-venv/bin/python3" -m pip install --upgrade aqtinstall
+}
+
+install_qt6_with_aqt() {
+    local required="$1"
+    local arch
+    local version
+    local root="$TOOLS_DIR/qt"
+    local installed=0
+    local glibc
+
+    ensure_aqt
+
+    glibc="$(glibc_version)"
+    if [ -n "$glibc" ]; then
+        if ! version_ge "$glibc" "$(qt_required_glibc "$required")"; then
+            log_error "Qt $required binaries need glibc $(qt_required_glibc "$required") or newer, but this system has glibc $glibc. Build Qt from sources or upgrade the distribution."
+            exit 1
+        fi
+        if ! version_ge "$glibc" "2.34"; then
+            log_info "glibc $glibc: skipping Qt 6.10 and newer, whose binaries need glibc 2.34."
+        fi
+    fi
+
+    QT_FROM_AQT=1
+
+    for version in $(aqt_qt6_versions "$required"); do
+        if ! qt_release_has_final_tag "$version"; then
+            log_warn "Skipping Qt $version (no final release tag; beta/RC)."
+            continue
+        fi
+
+        QT_PREFIX="$(aqt_prefix_in "$root/$version")"
+        if [ -n "$QT_PREFIX" ]; then
+            installed=1
+            break
+        fi
+
+        arch="$(aqt_arch "$version")"
+        log_info "Installing Qt $version for $arch with aqtinstall..."
+        if "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-qt linux desktop "$version" "$arch" \
+            -O "$root"; then
+            QT_PREFIX="$(aqt_prefix_in "$root/$version")"
+            if [ -n "$QT_PREFIX" ]; then
+                installed=1
+                break
+            fi
+        fi
+        log_warn "Qt $version is not installable with the required modules, trying an older version..."
+    done
+
+    if [ "$installed" -eq 0 ]; then
+        log_error "Cannot install Qt 6 >= $required with the required modules using aqtinstall."
+        exit 1
+    fi
+
+    QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
+}
+
+use_repo_qt_fallback() {
+    local repo_version="$1"
+
+    if [ -n "$QT_PREFIX" ] && [ -n "$QT_VERSION" ]; then
+        return
+    fi
+    if [ -z "$repo_version" ]; then
+        return
+    fi
+
+    QT_FROM_AQT=0
+    QT_PREFIX="/usr"
+    QT_VERSION="$repo_version"
+}
+
+configure_linux_qt() {
+    local required="$1"
+    local repo_version
+    local -a general_packages
+    local -a qt_packages
+
+    read -r -a general_packages <<<"$(linux_general_packages)"
+    install_packages "${general_packages[@]}"
+
+    repo_version="$(repo_qt6_version)"
+    if [ -n "$repo_version" ] && version_ge "$repo_version" "$required"; then
+        log_info "Repository Qt $repo_version satisfies minimum Qt $required."
+        QT_FROM_AQT=0
+        read -r -a qt_packages <<<"$(linux_qt6_packages)"
+        if qt_packages_available "${qt_packages[@]}"; then
+            install_packages "${qt_packages[@]}"
+            QT_PREFIX="$(qt_prefix_from_system)"
+            QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
+            use_repo_qt_fallback "$repo_version"
+        else
+            install_qt6_with_aqt "$required"
+        fi
+    else
+        if [ -n "$repo_version" ]; then
+            log_warn "Repository Qt $repo_version is older than required Qt $required."
+        else
+            log_warn "Repository Qt 6 packages were not found."
+        fi
+        install_qt6_with_aqt "$required"
+    fi
+
+    if [ -z "$QT_PREFIX" ] || [ -z "$QT_VERSION" ]; then
+        log_error "Cannot detect Qt installation."
+        exit 1
+    fi
+
+    if ! version_ge "$QT_VERSION" "$required"; then
+        log_error "Qt $QT_VERSION is older than required Qt $required."
+        exit 1
+    fi
+
+    log_info "Using Qt $QT_VERSION from $QT_PREFIX"
+    if [ "$QT_FROM_AQT" -eq 1 ]; then
+        install_packages "$(linux_gtk_runtime_package)"
+    fi
+}
+
+gcc_version() {
+    { "$1" -dumpfullversion -dumpversion 2>/dev/null || true; } | head -n1
+}
+
+package_cxx_compilers() {
+    local package="$1"
+
+    dpkg -L "$package" 2>/dev/null \
+        | grep -E '/(g\+\+|c\+\+)(-[0-9.]+)?$' \
+        | sort -r
+}
+
+configure_linux_compiler() {
+    local required="9"
+    local version
+    local cxx
+    local cc
+
+    if [ -n "${CXX:-}" ]; then
+        log_info "Using the compiler from the environment: $CXX"
+        return
+    fi
+
+    version="$(gcc_version gcc)"
+    if [ -n "$version" ] && version_ge "$version" "$required"; then
+        log_info "Using GCC $version"
+        return
+    fi
+
+    log_warn "GCC ${version:-unknown} is older than the required GCC $required."
+
+    if [ "$LINUX_ID" != "astra" ]; then
+        log_error "No compiler new enough for the Qt headers is available."
+        exit 1
+    fi
+
+    install_packages gcc-astra gcc-astra-libs
+
+    while IFS= read -r cxx; do
+        if [ ! -f "$cxx" ] || [ ! -x "$cxx" ]; then
+            continue
+        fi
+
+        version="$(gcc_version "$cxx")"
+        if [ -z "$version" ] || ! version_ge "$version" "$required"; then
+            continue
+        fi
+
+        cc="$(dirname "$cxx")/$(basename "$cxx" | sed -e 's/g++/gcc/' -e 's/c++/cc/')"
+        if [ ! -f "$cc" ] || [ ! -x "$cc" ]; then
+            continue
+        fi
+
+        CC="$cc"
+        CXX="$cxx"
+        export CC CXX
+        log_info "Using GCC $version from gcc-astra: $CXX"
+        return
+    done < <(package_cxx_compilers gcc-astra)
+
+    log_error "gcc-astra is installed, but it provides no GCC $required or newer."
+    log_error "Compilers in the package: $(package_cxx_compilers gcc-astra | tr '\n' ' ')"
+    exit 1
+}
+
+system_openssl3_available() {
+    if command -v pkg-config >/dev/null 2>&1 \
+        && pkg-config --atleast-version=3 openssl 2>/dev/null; then
+        return 0
+    fi
+    local header
+    for header in /usr/include/openssl/opensslv.h \
+                  /usr/include/*/openssl/opensslv.h; do
+        if [ -f "$header" ] \
+            && grep -qE '^#[[:space:]]*define[[:space:]]+OPENSSL_VERSION_MAJOR[[:space:]]+3' "$header"; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+openssl_source_dir() {
+    local root="$1"
+    local candidate
+
+    for candidate in "$root/Tools/OpenSSLv3/src" "$root"; do
+        if [ -f "$candidate/Configure" ]; then
+            printf '%s\n' "$candidate"
+            return
+        fi
+    done
+}
+
+install_openssl_source() {
+    local root="$1"
+
+    OPENSSL_SOURCE_DIR="$(openssl_source_dir "$root")"
+    if [ -n "$OPENSSL_SOURCE_DIR" ]; then
+        return
+    fi
+
+    ensure_aqt
+    log_info "Installing the OpenSSL sources with aqtinstall..."
+    "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-tool \
+        linux desktop tools_opensslv3_src -O "$root"
+
+    OPENSSL_SOURCE_DIR="$(openssl_source_dir "$root")"
+    if [ -z "$OPENSSL_SOURCE_DIR" ]; then
+        log_error "aqtinstall completed, but no OpenSSL sources were found under $root"
+        exit 1
+    fi
+}
+configure_linux_openssl() {
+    local root="$TOOLS_DIR/openssl-src"
+    local prefix="$TOOLS_DIR/openssl"
+
+    if [ -n "${OPENSSL_ROOT_DIR:-}" ]; then
+        log_info "Using OpenSSL from $OPENSSL_ROOT_DIR"
+        return
+    fi
+
+    if system_openssl3_available; then
+        log_info "Using the OpenSSL 3 of the distribution."
+        return
+    fi
+
+    log_warn "The distribution has no OpenSSL 3; building OpenSSL 3 from source."
+
+    if ! command -v perl >/dev/null 2>&1; then
+        log_error "perl is required to build OpenSSL."
+        exit 1
+    fi
+
+    install_openssl_source "$root"
+    bash "$PROJECT_DIR/tools/build_openssl.sh" "$OPENSSL_SOURCE_DIR" "$prefix"
+
+    export OPENSSL_ROOT_DIR="$prefix"
+    log_info "Using OpenSSL from $OPENSSL_ROOT_DIR"
+}
+
+default_install_prefix() {
+    case "$(uname -s)" in
+        Linux)
+            if [ "$QT_FROM_AQT" -eq 1 ]; then
+                echo "$1/install"
+            else
+                echo "/usr/local"
+            fi
+            ;;
+        Darwin)
+            echo "$HOME/Applications"
+            ;;
+    esac
+}
+
+install_project() {
+    local build_dir="$1"
+    local prefix="${INSTALL_PREFIX:-$(default_install_prefix "$build_dir")}"
+
+    log_info "Installing into $prefix"
+    if [ "$(uname -s)" = "Linux" ] && [ ! -w "$prefix" ] && [ ! -w "$(dirname "$prefix")" ]; then
+        run_as_root "$CMAKE_BIN" --install "$build_dir" --prefix "$prefix"
+    else
+        "$CMAKE_BIN" --install "$build_dir" --prefix "$prefix"
+    fi
+}
+build_project() {
+    local compiler="$1"
+    local qt_version_safe
+    local arch
+    local build_dir
+    local cmake_args
+    local build_tests
+
+    qt_version_safe="$(printf '%s' "$QT_VERSION" | tr '. ' '__')"
+    arch="$(uname -m)"
+    build_dir="$PROJECT_DIR/build-ouasim-Qt_${qt_version_safe}_${compiler}_${arch}-${BUILD_TYPE}"
+    build_tests=OFF
+    if [ "$RUN_TESTS" -eq 1 ]; then
+        build_tests=ON
+    fi
+    log_info "Configuring build in $build_dir"
+    cmake_args=(
+        -S "$SOURCE_DIR"
+        -B "$build_dir"
+        -GNinja
+        -DCMAKE_PREFIX_PATH="$QT_PREFIX"
+        -DCMAKE_BUILD_TYPE="$BUILD_TYPE"
+        -DOUASIM_BUILD_TESTS="$build_tests"
+    )
+    if [ -n "${OPENSSL_ROOT_DIR:-}" ]; then
+        cmake_args+=("-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR")
+    fi
+    if [ -n "${CXX:-}" ]; then
+        cmake_args+=("-DCMAKE_CXX_COMPILER=$CXX")
+    fi
+    if [ -n "${CC:-}" ]; then
+        cmake_args+=("-DCMAKE_C_COMPILER=$CC")
+    fi
+    if [ -n "$PYTHON_BIN" ]; then
+        cmake_args+=("-DPython3_EXECUTABLE=$PYTHON_BIN")
+    fi
+
+    "$CMAKE_BIN" "${cmake_args[@]}"
+
+    "$CMAKE_BIN" --build "$build_dir" --parallel
+    if [ "$RUN_TESTS" -eq 1 ]; then
+        "$(dirname "$CMAKE_BIN")/ctest" --test-dir "$build_dir" --output-on-failure --no-tests=error -L ouasim
+    fi
+    if [ "$RUN_INSTALL" -eq 1 ]; then
+        install_project "$build_dir"
+    fi
+    log_info "Build finished successfully in $build_dir"
+}
+
+build_linux() {
+    local min_cmake
+    local min_qt
+
+    detect_linux_distro
+    min_cmake="$(required_cmake_version)"
+    min_qt="$(required_qt_version)"
+
+    enable_rhel_build_repositories
+    configure_linux_qt "$min_qt"
+    configure_linux_compiler
+    configure_linux_openssl
+    ensure_cmake "$min_cmake"
+
+    build_project "gcc"
+}
+
+brew_install_or_upgrade() {
+    local formula
+
+    for formula in "$@"; do
+        if brew list --versions "$formula" >/dev/null 2>&1; then
+            if brew outdated --quiet "$formula" | grep -Fxq "$formula"; then
+                brew upgrade "$formula"
+            fi
+        else
+            brew install "$formula"
+        fi
+    done
+}
+
+homebrew_cmake_bin() {
+    local cmake_prefix
+    local cmake_bin
+
+    cmake_prefix="$(brew --prefix cmake 2>/dev/null || true)"
+    if [ -n "$cmake_prefix" ]; then
+        cmake_bin="$cmake_prefix/bin/cmake"
+        if [ -x "$cmake_bin" ]; then
+            echo "$cmake_bin"
+            return
+        fi
+    fi
+
+    if command -v cmake >/dev/null 2>&1; then
+        command -v cmake
+        return
+    fi
+
+    log_error "CMake executable was not found after Homebrew installation."
+    exit 1
+}
+
+build_macos() {
+    local min_cmake
+    local min_qt
+    local cmake_found
+    local openssl_prefix
+
+    if ! xcode-select -p >/dev/null 2>&1; then
+        log_error "Xcode Command Line Tools not found. Install them with: xcode-select --install"
+        exit 1
+    fi
+    if ! command -v brew >/dev/null 2>&1; then
+        log_error "Homebrew not found. Install it from https://brew.sh"
+        exit 1
+    fi
+
+    min_cmake="$(required_cmake_version)"
+    min_qt="$(required_qt_version)"
+
+    brew_install_or_upgrade cmake ninja qt openssl@3 git python
+
+    CMAKE_BIN="$(homebrew_cmake_bin)"
+    cmake_found="$(cmake_version "$CMAKE_BIN")"
+    if [ -z "$cmake_found" ] || ! version_ge "$cmake_found" "$min_cmake"; then
+        log_error "CMake $min_cmake or newer is required, found ${cmake_found:-unknown} at $CMAKE_BIN."
+        exit 1
+    fi
+
+    QT_PREFIX="$(brew --prefix qt 2>/dev/null)"
+    QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
+    if [ -z "$QT_VERSION" ] || ! version_ge "$QT_VERSION" "$min_qt"; then
+        log_error "Qt $min_qt or newer is required, found ${QT_VERSION:-unknown}."
+        exit 1
+    fi
+
+    openssl_prefix="$(brew --prefix openssl@3 2>/dev/null || true)"
+    if [ -n "$openssl_prefix" ]; then
+        export OPENSSL_ROOT_DIR="$openssl_prefix"
+    fi
+
+    log_info "Using Qt $QT_VERSION from $QT_PREFIX"
+    log_info "Using CMake $(cmake_version "$CMAKE_BIN") from $CMAKE_BIN"
+    build_project "clang"
+}
+
+main() {
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            -h|--help)
+                usage
+                return 0
+                ;;
+            --tests)
+                RUN_TESTS=1
+                ;;
+            --install)
+                RUN_INSTALL=1
+                ;;
+            --install=*)
+                RUN_INSTALL=1
+                INSTALL_PREFIX="${1#--install=}"
+                if [ -z "$INSTALL_PREFIX" ]; then
+                    log_error "--install prefix must not be empty"
+                    return 1
+                fi
+                ;;
+            *)
+                log_error "Unknown argument: $1"
+                usage >&2
+                return 1
+                ;;
+        esac
+        shift
+    done
+
+    print_banner
+
+    case "$(uname -s)" in
+        Linux)
+            build_linux
+            ;;
+        Darwin)
+            build_macos
+            ;;
+        *)
+            log_error "Unsupported OS: $(uname -s)"
+            return 1
+            ;;
+    esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

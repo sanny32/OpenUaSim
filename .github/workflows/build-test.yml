@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'build.ps1'
+      - 'build.sh'
+      - 'tools/build_openssl.sh'
       - '.github/workflows/build-test.yml'
       - '!**/*.md'
 

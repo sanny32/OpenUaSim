@@ -1,3 +1,12 @@
+function(ouasim_add_build_script_test)
+    add_executable(ouasim_tests_build_scripts test_buildscripts.cpp)
+    target_link_libraries(ouasim_tests_build_scripts PRIVATE Qt6::Test)
+    target_compile_definitions(ouasim_tests_build_scripts PRIVATE
+        OUASIM_SOURCE_DIR="${PROJECT_SOURCE_DIR}/..")
+    add_test(NAME ouasim_tests_build_scripts COMMAND ouasim_tests_build_scripts)
+    ouasim_configure_test_environment(ouasim_tests_build_scripts)
+endfunction()
+
 function(ouasim_configure_test_environment test_name)
     set(environment_modifications
         "PATH=path_list_prepend:${QT_BINARY_DIR}"

@@ -77,6 +77,7 @@ Requirements:
 
 - **CMake** 3.22 or newer and a **C++17** compiler.
 - **Qt** 6.9 or newer (Core, Gui, Network, Widgets, Svg; Test for the test suite).
+- **Qt LinguistTools** for the application translations.
 - **Git** and **Python 3** — QUaServer and open62541 are fetched and built
   during configuration.
 - **OpenSSL 3** for encryption (on by default). On Windows the OpenSSL from the Qt
@@ -88,7 +89,27 @@ The build is continuously tested on:
 - **Windows** (latest GitHub runner, MSVC)
 - **macOS** (latest GitHub runner, Apple silicon)
 
-Configure and build with CMake, pointing `CMAKE_PREFIX_PATH` at your Qt kit:
+The helper scripts prepare the dependencies and build a Release version with
+Ninja, following the same approach as OpenUaExplorer:
+
+```powershell
+# Windows (PowerShell)
+.\build.ps1
+.\build.ps1 -Tests
+.\build.ps1 -InstallPrefix "D:\Apps\OpenUaSim"
+```
+
+```sh
+# Linux and macOS (Bash)
+bash build.sh
+bash build.sh --tests
+bash build.sh --install="$HOME/.local"
+```
+
+Use `-Help` or `--help` for options. See [BUILDING.md](BUILDING.md) for dependency
+installation, build directories and installation details.
+
+Alternatively, configure and build with CMake, pointing `CMAKE_PREFIX_PATH` at your Qt kit:
 
 ```sh
 cmake -S src -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.9/<kit>
