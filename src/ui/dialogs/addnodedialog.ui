@@ -51,6 +51,11 @@
          <string>Variable</string>
         </property>
        </item>
+       <item>
+        <property name="text">
+         <string>Method</string>
+        </property>
+       </item>
       </widget>
      </item>
      <item row="2" column="0">
@@ -140,6 +145,30 @@
      </item>
      <item row="6" column="1">
       <widget class="QComboBox" name="iconCombo"/>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="actionLabel">
+       <property name="text">
+        <string>Ac&amp;tion</string>
+       </property>
+       <property name="buddy">
+        <cstring>actionCombo</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QComboBox" name="actionCombo">
+       <item>
+        <property name="text">
+         <string>Reset the variables to their initial values</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Set a variable: SetValue(name, value)</string>
+        </property>
+       </item>
+      </widget>
      </item>
     </layout>
    </item>

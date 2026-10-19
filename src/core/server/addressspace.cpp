@@ -8,6 +8,8 @@
 
 #include <QUaServer>
 
+#include <algorithm>
+
 #include "addressspace.h"
 #include "simulation/valuecast.h"
 
@@ -250,13 +252,108 @@ QUaNode *AddressSpace::buildNode(QUaNode *parent, const NodeDefinition &node, co
     case NodeDefinition::Kind::Variable:
         created = addVariable(parent, node);
         break;
+    case NodeDefinition::Kind::Method:
+        problems.append(QStringLiteral("%1: %2").arg(path, tr("a method belongs to a folder or object")));
+        return nullptr;
     }
     if (!created)
         return nullptr;
     ++_nodeCount;
-    for (const NodeDefinition &child : node.children)
-        buildNode(created, child, path + QLatin1Char('/') + child.browseName, problems);
+    for (const NodeDefinition &child : node.children) {
+        const QString childPath = path + QLatin1Char('/') + child.browseName;
+        if (child.kind == NodeDefinition::Kind::Method)
+            addMethod(created, child, node.children, childPath, problems);
+        else
+            buildNode(created, child, childPath, problems);
+    }
     return created;
+}
+
+///
+/// \brief Adds a method that acts on the variables next to it.
+/// \param parent Folder or object receiving the method.
+/// \param method Method definition.
+/// \param siblings Definitions of the parent's children, whose variables the method acts on.
+/// \param path Slash-separated browse path for problem messages.
+/// \param problems Receives the reason the method was skipped.
+///
+void AddressSpace::addMethod(QUaNode *parent, const NodeDefinition &method, const QList<NodeDefinition> &siblings,
+                             const QString &path, QStringList &problems)
+{
+    const QString problem = checkNode(parent, method);
+    if (!problem.isEmpty()) {
+        problems.append(QStringLiteral("%1: %2").arg(path, problem));
+        return;
+    }
+    auto *object = qobject_cast<QUaBaseObject *>(parent);
+    QList<NodeDefinition> variables;
+    for (const NodeDefinition &sibling : siblings) {
+        if (sibling.kind == NodeDefinition::Kind::Variable)
+            variables.append(sibling);
+    }
+    const QUaQualifiedName browseName(kApplicationNamespace, method.browseName);
+    const QString methodId = method.nodeId;
+    switch (method.method) {
+    case NodeDefinition::MethodAction::Reset:
+        object->addMethod(browseName, [this, methodId, variables]() { return resetVariables(methodId, variables); },
+                          QUaNodeId(methodId));
+        break;
+    case NodeDefinition::MethodAction::SetValue:
+        object->addMethod(browseName,
+                          [this, methodId, variables](QString name, QString value) {
+                              return setVariableFromText(methodId, variables, name, value);
+                          },
+                          QUaNodeId(methodId));
+        break;
+    }
+    ++_nodeCount;
+}
+
+///
+/// \brief Runs a Reset method: sets each variable to its initial value.
+/// \param methodId Node id of the called method.
+/// \param variables Variables the method acts on.
+/// \return Result text for the client, e.g. "Reset 3 variables".
+///
+QString AddressSpace::resetVariables(const QString &methodId, const QList<NodeDefinition> &variables)
+{
+    QHash<QString, QVariant> values;
+    for (const NodeDefinition &variable : variables) {
+        if (setValue(variable.nodeId, variable.initialValue))
+            values.insert(variable.nodeId, value(variable.nodeId));
+    }
+    const QString result = tr("Reset %n variables", nullptr, int(values.size()));
+    emit valuesSetByMethod(values);
+    emit methodCalled(methodId, result);
+    return result;
+}
+
+///
+/// \brief Runs a SetValue method: parses a value for one variable and sets it.
+/// \param methodId Node id of the called method.
+/// \param variables Variables the method may set.
+/// \param name Browse name of the variable to set.
+/// \param text Value as text of the variable's data type; it fills every element of an array.
+/// \return Result text for the client: what was set, or why nothing was.
+///
+QString AddressSpace::setVariableFromText(const QString &methodId, const QList<NodeDefinition> &variables,
+                                          const QString &name, const QString &text)
+{
+    const auto target = std::find_if(variables.cbegin(), variables.cend(),
+                                     [&name](const NodeDefinition &variable) { return variable.browseName == name; });
+    QString result;
+    if (target == variables.cend()) {
+        result = tr("There is no variable '%1'").arg(name);
+    } else if (const QVariant parsed = ValueCast::fromText(text, target->dataType); !parsed.isValid()) {
+        result = tr("'%1' is not a %2 value").arg(text, target->dataType);
+    } else if (setValue(target->nodeId, parsed)) {
+        result = tr("Set %1 to %2").arg(name, text);
+        emit valuesSetByMethod({ { target->nodeId, value(target->nodeId) } });
+    } else {
+        result = tr("The variable '%1' is not built").arg(name);
+    }
+    emit methodCalled(methodId, result);
+    return result;
 }
 
 ///

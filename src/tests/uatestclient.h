@@ -84,6 +84,17 @@ public:
     UA_StatusCode writeValue(const QString &nodeId, const QVariant &value);
 
     ///
+    /// \brief Calls a method of an object.
+    /// \param objectId Node id of the object.
+    /// \param methodId Node id of the method.
+    /// \param inputs Input arguments; their Qt types select the OPC UA types.
+    /// \param output Receives the first output argument.
+    /// \return Service result.
+    ///
+    UA_StatusCode callMethod(const QString &objectId, const QString &methodId, const QVariantList &inputs,
+                             QVariant &output);
+
+    ///
     /// \brief Creates a subscription with a data change monitored item on the Value of a node.
     /// \param nodeId Node id in XML notation.
     /// \return Status of the monitored item creation.

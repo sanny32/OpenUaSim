@@ -37,6 +37,7 @@ private slots:
     void insertsAtTopLevel();
     void insertRejectsInvalidNodes_data();
     void insertRejectsInvalidNodes();
+    void placesMethodsInsideContainers();
     void removesSubtree();
     void updatesVariable();
     void updateConvertsInitialValue();
@@ -122,6 +123,21 @@ void TestProjectNodes::insertRejectsInvalidNodes()
     QVERIFY(ProjectNodes::insert(nodes, parentId, added, &actual).isEmpty());
     QCOMPARE(actual, error);
     QCOMPARE(ProjectNodes::count(nodes), 17);
+}
+
+void TestProjectNodes::placesMethodsInsideContainers()
+{
+    QList<NodeDefinition> nodes = DefaultProject::create().nodes;
+    const NodeDefinition reset = node(NodeDefinition::Kind::Method, QStringLiteral("Reset"));
+    QString error;
+    QVERIFY(ProjectNodes::insert(nodes, QString(), reset, &error).isEmpty());
+    QCOMPARE(error, QStringLiteral("A method belongs to a folder or object"));
+
+    const QString methodId = ProjectNodes::insert(nodes, QStringLiteral("ns=1;s=Motor_01"), reset);
+    QVERIFY(!methodId.isEmpty());
+    QVERIFY(ProjectNodes::insert(nodes, methodId, node(NodeDefinition::Kind::Variable, QStringLiteral("X")), &error)
+                .isEmpty());
+    QCOMPARE(error, QStringLiteral("'%1' cannot hold child nodes").arg(methodId));
 }
 
 void TestProjectNodes::removesSubtree()

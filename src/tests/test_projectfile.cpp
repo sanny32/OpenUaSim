@@ -51,6 +51,7 @@ private slots:
     void preservesEveryDataTypeValue();
     void preservesQuality();
     void preservesSimulationValues();
+    void preservesMethods();
     void preservesUsers();
     void movesFormat1EndpointLoginsToUsers();
     void emptyProjectRoundTrips();
@@ -169,6 +170,26 @@ void TestProjectFile::preservesSimulationValues()
     QCOMPARE(result.project.nodes.first().simulation.values, node.simulation.values);
 }
 
+void TestProjectFile::preservesMethods()
+{
+    NodeDefinition method;
+    method.kind = NodeDefinition::Kind::Method;
+    method.browseName = QStringLiteral("SetValue");
+    method.method = NodeDefinition::MethodAction::SetValue;
+    NodeDefinition object;
+    object.kind = NodeDefinition::Kind::Object;
+    object.browseName = QStringLiteral("Motor");
+    object.children = { method };
+    ProjectConfig project;
+    project.nodes = { object };
+
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(ProjectFile::toJson(project));
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    const NodeDefinition &loaded = result.project.nodes.first().children.first();
+    QCOMPARE(loaded.kind, NodeDefinition::Kind::Method);
+    QCOMPARE(loaded.method, NodeDefinition::MethodAction::SetValue);
+}
+
 void TestProjectFile::preservesUsers()
 {
     ProjectConfig project;
@@ -280,10 +301,10 @@ void TestProjectFile::rejectsInvalidNode_data()
     QTest::addColumn<QByteArray>("json");
     QTest::addColumn<QString>("expectedError");
 
-    QJsonObject unknownKind = variableNode(QStringLiteral("kind"), QStringLiteral("method"));
+    QJsonObject unknownKind = variableNode(QStringLiteral("kind"), QStringLiteral("view"));
     QJsonObject noName = variableNode(QStringLiteral("browseName"), QString());
 
-    QTest::newRow("kind") << projectWithNode(unknownKind) << "nodes[0]: unknown node kind 'method'";
+    QTest::newRow("kind") << projectWithNode(unknownKind) << "nodes[0]: unknown node kind 'view'";
     QTest::newRow("name") << projectWithNode(noName) << "nodes[0]: browse name is empty";
     QTest::newRow("data type") << projectWithNode(variableNode(QStringLiteral("dataType"), QStringLiteral("Guid")))
                                << "nodes[0]: unsupported data type 'Guid'";
@@ -296,6 +317,10 @@ void TestProjectFile::rejectsInvalidNode_data()
                              << "nodes[0]: unknown quality 'fair'";
     QTest::newRow("array length") << projectWithNode(variableNode(QStringLiteral("arrayLength"), 1001))
                                   << "nodes[0]: array length 1001 is outside 0..1000";
+    const QJsonObject method { { QStringLiteral("kind"), QStringLiteral("method") },
+                               { QStringLiteral("browseName"), QStringLiteral("Stop") },
+                               { QStringLiteral("action"), QStringLiteral("explode") } };
+    QTest::newRow("method action") << projectWithNode(method) << "nodes[0]: unknown method action 'explode'";
 
     const QJsonObject folder {
         { QStringLiteral("kind"), QStringLiteral("folder") },

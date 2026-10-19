@@ -39,6 +39,8 @@ ServerController::ServerController(QObject *parent)
     connect(&_server, &SimServer::startWarning, this, &ServerController::startWarning);
     connect(&_engine, &SimulationEngine::valuesUpdated, this, &ServerController::valuesChanged);
     connect(&_addressSpace, &AddressSpace::valueWrittenByClient, this, &ServerController::handleClientWrite);
+    connect(&_addressSpace, &AddressSpace::valuesSetByMethod, this, &ServerController::valuesChanged);
+    connect(&_addressSpace, &AddressSpace::methodCalled, this, &ServerController::logMethodCall);
     connect(&_server, &SimServer::clientCertificateRejected, this, &ServerController::handleCertificateRejected);
 }
 
@@ -695,6 +697,17 @@ void ServerController::appendLog(const LogEntry &entry)
     if (_log.size() > kLogLimit)
         _log.remove(0, _log.size() - kLogLimit);
     emit logAppended(entry);
+}
+
+///
+/// \brief Logs a method call of a client.
+/// \param methodId Node id of the called method.
+/// \param result Result text returned to the client.
+///
+void ServerController::logMethodCall(const QString &methodId, const QString &result)
+{
+    appendLog(LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::DataChanges,
+                               tr("Client called %1: %2").arg(methodId, result)));
 }
 
 ///

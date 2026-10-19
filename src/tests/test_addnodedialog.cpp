@@ -38,6 +38,7 @@ private slots:
     void validatesInput();
     void describesVariable();
     void describesFolderWithoutVariableFields();
+    void describesMethod();
 };
 
 void TestAddNodeDialog::showsParentAndStartsInvalid()
@@ -111,6 +112,22 @@ void TestAddNodeDialog::describesFolderWithoutVariableFields()
     child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(2);
     QVERIFY(child<QComboBox>(dialog, "dataTypeCombo")->isEnabled());
     QVERIFY(child<QComboBox>(dialog, "iconCombo")->isEnabled());
+    QVERIFY(!child<QComboBox>(dialog, "actionCombo")->isEnabled());
+}
+
+void TestAddNodeDialog::describesMethod()
+{
+    AddNodeDialog dialog(QStringLiteral("Motor_01"), {}, {});
+    child<QComboBox>(dialog, "kindCombo")->setCurrentText(QStringLiteral("Method"));
+    child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("SetValue"));
+    auto *action = child<QComboBox>(dialog, "actionCombo");
+    QVERIFY(action->isEnabled());
+    QVERIFY(!child<QComboBox>(dialog, "dataTypeCombo")->isEnabled());
+    action->setCurrentIndex(1);
+
+    const NodeDefinition node = dialog.node();
+    QCOMPARE(node.kind, NodeDefinition::Kind::Method);
+    QCOMPARE(node.method, NodeDefinition::MethodAction::SetValue);
 }
 
 QTEST_MAIN(TestAddNodeDialog)

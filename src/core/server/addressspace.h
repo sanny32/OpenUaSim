@@ -142,8 +142,26 @@ signals:
     ///
     void valueWrittenByClient(const QString &nodeId, const QVariant &value);
 
+    ///
+    /// \brief Announces values a method call set.
+    /// \param values New values keyed by node id.
+    ///
+    void valuesSetByMethod(const QHash<QString, QVariant> &values);
+
+    ///
+    /// \brief Announces a method call.
+    /// \param methodId Node id of the called method.
+    /// \param result Result text returned to the client.
+    ///
+    void methodCalled(const QString &methodId, const QString &result);
+
 private:
     QUaNode *buildNode(QUaNode *parent, const NodeDefinition &node, const QString &path, QStringList &problems);
+    void addMethod(QUaNode *parent, const NodeDefinition &method, const QList<NodeDefinition> &siblings,
+                   const QString &path, QStringList &problems);
+    QString resetVariables(const QString &methodId, const QList<NodeDefinition> &variables);
+    QString setVariableFromText(const QString &methodId, const QList<NodeDefinition> &variables,
+                                const QString &name, const QString &text);
     QString checkNode(QUaNode *parent, const NodeDefinition &node) const;
     QUaBaseDataVariable *addVariable(QUaNode *parent, const NodeDefinition &node);
     void handleValueChanged(const QVariant &value, const bool &networkChange);

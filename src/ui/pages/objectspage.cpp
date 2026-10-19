@@ -189,13 +189,16 @@ void ObjectsPage::setTreeActions(const QList<QAction *> &actions)
 }
 
 ///
-/// \brief Lists the variables of the selected folder or object, or of the selected variable's owner.
+/// \brief Lists the variables of the selected folder or object, or of the selected variable's or method's owner.
 /// \param current Selected tree index.
 ///
 void ObjectsPage::showTreeNode(const QModelIndex &current)
 {
     const auto kind = static_cast<TreeNode::Kind>(current.data(ItemRoles::NodeKind).toInt());
-    if (kind == TreeNode::Kind::Variable) {
+    if (kind == TreeNode::Kind::Method) {
+        const QModelIndex owner = current.parent();
+        showObject(owner.data(ItemRoles::Id).toString(), owner.data().toString());
+    } else if (kind == TreeNode::Kind::Variable) {
         const QModelIndex owner = current.parent();
         showObject(owner.data(ItemRoles::Id).toString(), owner.data().toString());
         ViewSetup::selectRow(ui->variablesView,

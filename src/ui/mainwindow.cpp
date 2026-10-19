@@ -635,13 +635,13 @@ void MainWindow::addNodeFromDialog()
 
 ///
 /// \brief Returns the project folder or object that new and pasted nodes go to.
-/// \return Selected folder or object, the owner of a selected variable, or null for the top level.
+/// \return Selected folder or object, the owner of a selected variable or method, or null for the top level.
 ///
 const NodeDefinition *MainWindow::targetContainer() const
 {
     const QList<NodeDefinition> &nodes = _controller->project().nodes;
     const NodeDefinition *selected = ProjectNodes::find(nodes, ui->objectsPage->currentNodeId());
-    if (selected && selected->kind == NodeDefinition::Kind::Variable)
+    if (selected && (selected->kind == NodeDefinition::Kind::Variable || selected->kind == NodeDefinition::Kind::Method))
         selected = ProjectNodes::find(nodes, ui->objectsPage->currentContainerId());
     return selected;
 }

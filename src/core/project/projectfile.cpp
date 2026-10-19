@@ -37,7 +37,7 @@ QString tr(const char *text)
 ///
 /// \brief Returns the stored name of a node kind.
 /// \param kind Node kind.
-/// \return "folder", "object" or "variable".
+/// \return "folder", "object", "variable" or "method".
 ///
 QString kindKey(NodeDefinition::Kind kind)
 {
@@ -45,6 +45,21 @@ QString kindKey(NodeDefinition::Kind kind)
     case NodeDefinition::Kind::Folder:   return QStringLiteral("folder");
     case NodeDefinition::Kind::Object:   return QStringLiteral("object");
     case NodeDefinition::Kind::Variable: return QStringLiteral("variable");
+    case NodeDefinition::Kind::Method:   return QStringLiteral("method");
+    }
+    return {};
+}
+
+///
+/// \brief Returns the stored name of a method action.
+/// \param action Action to name.
+/// \return "reset" or "setValue".
+///
+QString methodKey(NodeDefinition::MethodAction action)
+{
+    switch (action) {
+    case NodeDefinition::MethodAction::Reset:    return QStringLiteral("reset");
+    case NodeDefinition::MethodAction::SetValue: return QStringLiteral("setValue");
     }
     return {};
 }
@@ -58,7 +73,7 @@ QString kindKey(NodeDefinition::Kind kind)
 bool kindFromKey(const QString &key, NodeDefinition::Kind &kind)
 {
     for (NodeDefinition::Kind candidate : { NodeDefinition::Kind::Folder, NodeDefinition::Kind::Object,
-                                            NodeDefinition::Kind::Variable }) {
+                                            NodeDefinition::Kind::Variable, NodeDefinition::Kind::Method }) {
         if (kindKey(candidate) == key) {
             kind = candidate;
             return true;
@@ -174,6 +189,8 @@ QJsonObject nodeToJson(const NodeDefinition &node)
             json.insert(QStringLiteral("arrayLength"), node.arrayLength);
         json.insert(QStringLiteral("quality"), qualityKey(node.quality));
         json.insert(QStringLiteral("simulation"), simulationToJson(node.simulation));
+    } else if (node.kind == NodeDefinition::Kind::Method) {
+        json.insert(QStringLiteral("action"), methodKey(node.method));
     } else {
         QJsonArray children;
         for (const NodeDefinition &child : node.children)
@@ -316,6 +333,16 @@ bool NodeReader::readNode(const QJsonObject &json, const QString &path, NodeDefi
 
     if (node.kind == NodeDefinition::Kind::Variable)
         return readVariable(json, path, node);
+    if (node.kind == NodeDefinition::Kind::Method) {
+        const QString action = json.value(QStringLiteral("action")).toString();
+        for (auto candidate : { NodeDefinition::MethodAction::Reset, NodeDefinition::MethodAction::SetValue }) {
+            if (methodKey(candidate) == action) {
+                node.method = candidate;
+                return true;
+            }
+        }
+        return fail(path, tr("unknown method action '%1'").arg(action));
+    }
     return read(json.value(QStringLiteral("children")).toArray(), path + QStringLiteral(".children"),
                 node.children);
 }

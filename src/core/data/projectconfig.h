@@ -24,7 +24,15 @@ struct NodeDefinition
     ///
     /// \brief OPC UA node the definition becomes.
     ///
-    enum class Kind { Folder, Object, Variable };
+    enum class Kind { Folder, Object, Variable, Method };
+
+    ///
+    /// \brief What a method does with the variables next to it.
+    ///
+    enum class MethodAction {
+        Reset,    ///< Sets every sibling variable to its initial value.
+        SetValue  ///< Sets the sibling variable named by the first argument to the value text in the second.
+    };
 
     /// \brief Node class to create.
     Kind kind = Kind::Folder;
@@ -46,6 +54,8 @@ struct NodeDefinition
     VariableInfo::Quality quality = VariableInfo::Quality::Good;
     /// \brief Simulation driving the value; variables only.
     SimulationSettings simulation;
+    /// \brief Action of a method; methods only.
+    MethodAction method = MethodAction::Reset;
     /// \brief Child nodes; folders and objects only.
     QList<NodeDefinition> children;
 };

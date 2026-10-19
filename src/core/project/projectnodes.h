@@ -60,9 +60,10 @@ QStringList childNames(const QList<NodeDefinition> &nodes, const QString &parent
 /// \param parentId Folder or object id; empty for the top level.
 /// \param node Node to add; an empty node id is assigned from the browse path.
 /// \param error Receives the reason on failure; may be null.
-/// \return Node id of the added node, or empty when the parent is unknown or is a variable,
+/// \return Node id of the added node, or empty when the parent is unknown, a variable or a method,
 ///         the browse name is empty or used by a sibling, the node id is already used,
-///         the data type is unsupported or the array length is outside 0..kMaxArrayLength.
+///         the data type is unsupported, the array length is outside 0..kMaxArrayLength, or a
+///         method would go to the top level.
 ///
 QString insert(QList<NodeDefinition> &nodes, const QString &parentId, const NodeDefinition &node,
                QString *error = nullptr);

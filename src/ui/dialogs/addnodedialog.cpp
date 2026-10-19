@@ -78,6 +78,8 @@ NodeDefinition AddNodeDialog::node() const
         node.access = ui->accessCombo->currentText();
         node.icon = ui->iconCombo->currentData().toString();
         node.initialValue = ValueCast::defaultValue(node.dataType);
+    } else if (node.kind == NodeDefinition::Kind::Method) {
+        node.method = NodeDefinition::MethodAction(ui->actionCombo->currentIndex());
     }
     return node;
 }
@@ -102,14 +104,16 @@ QString AddNodeDialog::problem() const
 }
 
 ///
-/// \brief Enables the data type, access and icon fields for variables only.
+/// \brief Enables the data type, access and icon fields for variables and the action for methods only.
 ///
 void AddNodeDialog::updateKindFields()
 {
-    const bool variable = NodeDefinition::Kind(ui->kindCombo->currentIndex()) == NodeDefinition::Kind::Variable;
+    const auto kind = NodeDefinition::Kind(ui->kindCombo->currentIndex());
+    const bool variable = kind == NodeDefinition::Kind::Variable;
     ui->dataTypeCombo->setEnabled(variable);
     ui->accessCombo->setEnabled(variable);
     ui->iconCombo->setEnabled(variable);
+    ui->actionCombo->setEnabled(kind == NodeDefinition::Kind::Method);
     validate();
 }
 

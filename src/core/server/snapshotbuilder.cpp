@@ -30,6 +30,7 @@ TreeNode::Kind treeKind(NodeDefinition::Kind kind)
     case NodeDefinition::Kind::Folder:   return TreeNode::Kind::Folder;
     case NodeDefinition::Kind::Object:   return TreeNode::Kind::Object;
     case NodeDefinition::Kind::Variable: return TreeNode::Kind::Variable;
+    case NodeDefinition::Kind::Method:   return TreeNode::Kind::Method;
     }
     return TreeNode::Kind::Folder;
 }
@@ -43,7 +44,11 @@ QString iconOf(const NodeDefinition &node)
 {
     if (!node.icon.isEmpty())
         return node.icon;
-    return node.kind == NodeDefinition::Kind::Variable ? QStringLiteral("signal") : QStringLiteral("folder");
+    switch (node.kind) {
+    case NodeDefinition::Kind::Variable: return QStringLiteral("signal");
+    case NodeDefinition::Kind::Method:   return QStringLiteral("play");
+    default:                             return QStringLiteral("folder");
+    }
 }
 
 ///

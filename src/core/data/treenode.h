@@ -19,7 +19,7 @@ struct TreeNode
     ///
     /// \brief Role of the node, used by pages to decide what a selection shows.
     ///
-    enum class Kind { Folder, Object, Variable, Type, Category };
+    enum class Kind { Folder, Object, Variable, Type, Category, Method };
 
     /// \brief Text shown in the first column.
     QString text;

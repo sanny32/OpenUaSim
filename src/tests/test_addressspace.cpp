@@ -63,6 +63,8 @@ private slots:
     void readOnlyVariableRejectsClientWrite();
     void appliesConfiguredQuality();
     void buildsArrayVariables();
+    void clientCallsMethods();
+    void skipsTopLevelMethods();
     void clientReadsBadQuality();
 };
 
@@ -284,6 +286,74 @@ void TestAddressSpace::buildsArrayVariables()
     QVariant value;
     QCOMPARE(client.readValue(levels.nodeId, value), UA_STATUSCODE_GOOD);
     QCOMPARE(value.toList(), QVariantList({ 1, 3, 0 }));
+}
+
+void TestAddressSpace::clientCallsMethods()
+{
+    ProjectConfig project = serverProject(TestPort::freePort());
+    NodeDefinition speed = variable(QStringLiteral("Speed"), QStringLiteral("Double"));
+    speed.initialValue = 1500.0;
+    NodeDefinition state = variable(QStringLiteral("State"), QStringLiteral("String"));
+    NodeDefinition reset;
+    reset.kind = NodeDefinition::Kind::Method;
+    reset.browseName = QStringLiteral("Reset");
+    reset.nodeId = QStringLiteral("ns=1;s=Test.Reset");
+    NodeDefinition setValue = reset;
+    setValue.browseName = QStringLiteral("SetValue");
+    setValue.nodeId = QStringLiteral("ns=1;s=Test.SetValue");
+    setValue.method = NodeDefinition::MethodAction::SetValue;
+    project.nodes = { folder(QStringLiteral("Test"), { speed, state, reset, setValue }) };
+
+    SimServer server;
+    AddressSpace space(server.uaServer());
+    QVERIFY(space.build(project.nodes).isEmpty());
+    QCOMPARE(space.nodeCount(), 5);
+    QVERIFY(server.start(project));
+    QSignalSpy set(&space, &AddressSpace::valuesSetByMethod);
+    QSignalSpy called(&space, &AddressSpace::methodCalled);
+
+    UaTestClient client;
+    QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
+    QVariant result;
+    const QString object = QStringLiteral("ns=1;s=Test");
+    QCOMPARE(client.callMethod(object, setValue.nodeId, { QStringLiteral("Speed"), QStringLiteral("42.5") }, result),
+             UA_STATUSCODE_GOOD);
+    QCOMPARE(result.toString(), QStringLiteral("Set Speed to 42.5"));
+    QCOMPARE(space.value(speed.nodeId).toDouble(), 42.5);
+    QCOMPARE(set.count(), 1);
+
+    QCOMPARE(client.callMethod(object, setValue.nodeId, { QStringLiteral("Speed"), QStringLiteral("fast") }, result),
+             UA_STATUSCODE_GOOD);
+    QCOMPARE(result.toString(), QStringLiteral("'fast' is not a Double value"));
+    QCOMPARE(client.callMethod(object, setValue.nodeId, { QStringLiteral("Torque"), QStringLiteral("1") }, result),
+             UA_STATUSCODE_GOOD);
+    QCOMPARE(result.toString(), QStringLiteral("There is no variable 'Torque'"));
+    QCOMPARE(client.callMethod(object, setValue.nodeId, { QStringLiteral("State"), QStringLiteral("run") }, result),
+             UA_STATUSCODE_GOOD);
+    QCOMPARE(space.value(state.nodeId).toString(), QStringLiteral("run"));
+
+    QCOMPARE(client.callMethod(object, reset.nodeId, {}, result), UA_STATUSCODE_GOOD);
+    QCOMPARE(result.toString(), QStringLiteral("Reset 2 variables"));
+    QCOMPARE(space.value(speed.nodeId).toDouble(), 1500.0);
+    QCOMPARE(space.value(state.nodeId).toString(), QString());
+    QCOMPARE(called.count(), 5);
+    QCOMPARE(called.last().first().toString(), reset.nodeId);
+
+    QVERIFY(space.build(project.nodes).isEmpty());
+    QCOMPARE(client.callMethod(object, reset.nodeId, {}, result), UA_STATUSCODE_GOOD);
+}
+
+void TestAddressSpace::skipsTopLevelMethods()
+{
+    QUaServer server;
+    AddressSpace space(&server);
+    NodeDefinition method;
+    method.kind = NodeDefinition::Kind::Method;
+    method.browseName = QStringLiteral("Reset");
+    method.nodeId = QStringLiteral("ns=1;s=Reset");
+    const QStringList problems = space.build({ method });
+    QCOMPARE(problems.size(), 1);
+    QVERIFY(problems.first().contains(QStringLiteral("belongs to a folder or object")));
 }
 
 void TestAddressSpace::clientReadsBadQuality()

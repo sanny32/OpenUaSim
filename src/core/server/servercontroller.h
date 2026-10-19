@@ -371,6 +371,7 @@ private:
     bool finishCertificateChange(bool changed);
     void appendLog(const LogEntry &entry);
     void handleClientWrite(const QString &nodeId, const QVariant &value);
+    void logMethodCall(const QString &methodId, const QString &result);
     void handleCertificateRejected(const QByteArray &certificate, const QString &reason);
 
     SimServer _server;

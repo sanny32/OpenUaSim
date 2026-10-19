@@ -143,6 +143,39 @@ UA_StatusCode UaTestClient::readValue(const QString &nodeId, QVariant &value)
 }
 
 ///
+/// \brief Calls a method of an object.
+/// \param objectId Node id of the object.
+/// \param methodId Node id of the method.
+/// \param inputs Input arguments; their Qt types select the OPC UA types.
+/// \param output Receives the first output argument.
+/// \return Service result.
+///
+UA_StatusCode UaTestClient::callMethod(const QString &objectId, const QString &methodId, const QVariantList &inputs,
+                                       QVariant &output)
+{
+    UA_NodeId object = QUaNodeId(objectId).toUaNodeId();
+    UA_NodeId method = QUaNodeId(methodId).toUaNodeId();
+    QList<UA_Variant> arguments;
+    for (const QVariant &input : inputs)
+        arguments.append(QUaTypesConverter::uaVariantFromQVariant(input));
+    size_t outputSize = 0;
+    UA_Variant *outputs = nullptr;
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
+    runInWorker([&] {
+        status = UA_Client_call(_client, object, method, size_t(arguments.size()), arguments.data(), &outputSize,
+                                &outputs);
+    });
+    if (status == UA_STATUSCODE_GOOD && outputSize > 0)
+        output = QUaTypesConverter::uaVariantToQVariant(outputs[0]);
+    UA_Array_delete(outputs, outputSize, &UA_TYPES[UA_TYPES_VARIANT]);
+    for (UA_Variant &argument : arguments)
+        UA_Variant_clear(&argument);
+    UA_NodeId_clear(&object);
+    UA_NodeId_clear(&method);
+    return status;
+}
+
+///
 /// \brief Writes the Value attribute of a node.
 /// \param nodeId Node id in XML notation.
 /// \param value Value to write; its Qt type selects the OPC UA type.

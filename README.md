@@ -15,7 +15,9 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
   variables; duplicate, copy and paste whole subtrees, delete several nodes at
   once, rename any node and edit a variable's data type, access level,
   initial value, quality and simulation. Forcing a Bad or Uncertain quality
-  tests how clients handle it. Clients read and write the variables.
+  tests how clients handle it. Clients read and write the variables and call
+  methods added to folders and objects: Reset restores the variables next to
+  it to their initial values, SetValue(name, value) sets one of them.
 - Drive variables with sine, square, triangle, ramp, random and step waveforms
   with configurable interval, period, amplitude and offset, toggle Booleans,
   count up, or cycle through a list of values such as machine states; values

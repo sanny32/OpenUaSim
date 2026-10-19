@@ -73,14 +73,14 @@ QList<NodeDefinition> *siblingsOf(QList<NodeDefinition> &nodes, const QString &n
 /// \brief Returns the children list of a container.
 /// \param nodes Node tree.
 /// \param parentId Folder or object id; empty for the top level.
-/// \return Children list, or null when the parent is unknown or is a variable.
+/// \return Children list, or null when the parent is unknown or is a variable or method.
 ///
 QList<NodeDefinition> *childrenOf(QList<NodeDefinition> &nodes, const QString &parentId)
 {
     if (parentId.isEmpty())
         return &nodes;
     NodeDefinition *parent = findMutable(nodes, parentId);
-    if (!parent || parent->kind == NodeDefinition::Kind::Variable)
+    if (!parent || parent->kind == NodeDefinition::Kind::Variable || parent->kind == NodeDefinition::Kind::Method)
         return nullptr;
     return &parent->children;
 }
@@ -248,9 +248,10 @@ QStringList childNames(const QList<NodeDefinition> &nodes, const QString &parent
 /// \param parentId Folder or object id; empty for the top level.
 /// \param node Node to add; an empty node id is assigned from the browse path.
 /// \param error Receives the reason on failure; may be null.
-/// \return Node id of the added node, or empty when the parent is unknown or is a variable,
+/// \return Node id of the added node, or empty when the parent is unknown, a variable or a method,
 ///         the browse name is empty or used by a sibling, the node id is already used,
-///         the data type is unsupported or the array length is outside 0..kMaxArrayLength.
+///         the data type is unsupported, the array length is outside 0..kMaxArrayLength, or a
+///         method would go to the top level.
 ///
 QString insert(QList<NodeDefinition> &nodes, const QString &parentId, const NodeDefinition &node, QString *error)
 {
@@ -261,6 +262,10 @@ QString insert(QList<NodeDefinition> &nodes, const QString &parentId, const Node
     }
     if (node.browseName.trimmed().isEmpty()) {
         setError(error, tr("The browse name is empty"));
+        return {};
+    }
+    if (node.kind == NodeDefinition::Kind::Method && parentId.isEmpty()) {
+        setError(error, tr("A method belongs to a folder or object"));
         return {};
     }
     if (nameTaken(*siblings, node.browseName, QString())) {
