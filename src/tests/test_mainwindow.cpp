@@ -579,7 +579,11 @@ void TestMainWindow::importsAndExportsModels()
     QVERIFY(!window.importModelFrom(directory.filePath(QStringLiteral("missing.xml"))));
     auto *box = window.findChild<QMessageBox *>();
     QVERIFY(box);
+    QCOMPARE(box->icon(), QMessageBox::Warning);
+    QVERIFY(!box->text().isEmpty());
+#ifndef Q_OS_MACOS // QMessageBox drops the window title on macOS.
     QCOMPARE(box->windowTitle(), QStringLiteral("Model not imported"));
+#endif
     box->close();
 }
 

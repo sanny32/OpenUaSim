@@ -3,6 +3,7 @@
 
 #include <QCheckBox>
 #include <QClipboard>
+#include <QFontMetricsF>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
@@ -14,6 +15,7 @@
 #include <QTest>
 #include <QToolButton>
 #include <QToolTip>
+#include <QtMath>
 #include <QTreeView>
 
 #include <QScrollArea>
@@ -320,8 +322,10 @@ void TestWidgets::appStyleSpacesToolbarButtonLabels()
         else
             QVERIFY(qAbs(iconLeft - (image.width() - (iconLeft + 22 + 10 + textWidth))) <= 1);
 
-        // The gap repeats the background left of the icon, so no text intrudes into it.
-        for (int x = iconLeft + 22; x < iconLeft + 32; ++x) {
+        // The gap repeats the background left of the icon; a glyph's own negative bearing (Liberation Sans 'A') may overhang it.
+        const qreal bearing = QFontMetricsF(button.font()).leftBearing(button.text().front());
+        const int gapEnd = iconLeft + 32 + qFloor(qMin(qreal(0), bearing));
+        for (int x = iconLeft + 22; x < gapEnd; ++x) {
             for (int y = 0; y < image.height(); ++y)
                 QVERIFY2(image.pixelColor(x, y) == image.pixelColor(iconLeft - 2, y), flat ? "flat" : "bordered");
         }
