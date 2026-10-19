@@ -4,6 +4,7 @@ set(UI_FILES
     dialogs/addnodedialog.ui
     dialogs/serversettingsdialog.ui
     dialogs/usersdialog.ui
+    dialogs/valuedialog.ui
 
     pages/certificatespage.ui
     pages/endpointspage.ui
@@ -34,6 +35,8 @@ add_library(ouasim_ui STATIC
     dialogs/serversettingsdialog.h
     dialogs/usersdialog.cpp
     dialogs/usersdialog.h
+    dialogs/valuedialog.cpp
+    dialogs/valuedialog.h
 
     mainwindow.cpp
     mainwindow.h
@@ -71,6 +74,8 @@ add_library(ouasim_ui STATIC
     widgets/statusindicator.h
     widgets/viewsetup.cpp
     widgets/viewsetup.h
+    widgets/valuepreviewdelegate.cpp
+    widgets/valuepreviewdelegate.h
 )
 
 set_target_properties(ouasim_ui PROPERTIES

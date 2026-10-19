@@ -22,6 +22,8 @@
 #include "treebuilders.h"
 #include "treemodel.h"
 #include "ui_certificatespage.h"
+#include "valuedialog.h"
+#include "valuepreviewdelegate.h"
 #include "viewsetup.h"
 
 namespace {
@@ -84,9 +86,8 @@ CertificatesPage::CertificatesPage(QWidget *parent)
     ViewSetup::configureTable(ui->detailsView);
     ui->detailsView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->detailsView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->detailsSplitter->setStretchFactor(0, 1);
-    ui->detailsSplitter->setStretchFactor(1, 0);
-    ui->detailsSplitter->setSizes({ ui->detailsView->minimumHeight(), ui->valueHost->minimumSizeHint().height() });
+    auto *previewDelegate = new ValuePreviewDelegate(ui->detailsView);
+    ui->detailsView->setItemDelegateForColumn(1, previewDelegate);
     // The details never scroll sideways, so the splitter must not squeeze them below their width.
     ui->detailsPanelScroll->setMinimumWidth(ui->detailsPanelBody->minimumSizeHint().width()
                                             + ui->detailsPanelScroll->verticalScrollBar()->sizeHint().width());
@@ -101,7 +102,8 @@ CertificatesPage::CertificatesPage(QWidget *parent)
             this, &CertificatesPage::showCategory);
     connect(ui->certificatesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &CertificatesPage::showCertificate);
-    connect(ui->detailsView, &QTableWidget::itemSelectionChanged, this, &CertificatesPage::showSelectedValue);
+    connect(previewDelegate, &ValuePreviewDelegate::expandRequested, this, &CertificatesPage::showDetailValue);
+    connect(ui->detailsView, &QTableWidget::activated, this, &CertificatesPage::showDetailValue);
     connect(ui->generateButton, &QPushButton::clicked, this, &CertificatesPage::generateRequested);
     connect(ui->importButton, &QPushButton::clicked, this, &CertificatesPage::requestImport);
     connect(ui->exportButton, &QPushButton::clicked, this, &CertificatesPage::requestExport);
@@ -230,24 +232,22 @@ void CertificatesPage::showCertificate(const QModelIndex &current)
 void CertificatesPage::clearDetails()
 {
     ui->detailsView->setRowCount(0);
-    ui->selectedFieldLabel->setText(tr("Selected value"));
-    ui->selectedValueEdit->clear();
 }
 
 ///
-/// \brief Shows the full selected field in the wrapping, selectable value pane.
+/// \brief Opens the complete field value in a separate viewer.
+/// \param index Activated field cell.
 ///
-void CertificatesPage::showSelectedValue()
+void CertificatesPage::showDetailValue(const QModelIndex &index)
 {
-    const QList<QTableWidgetItem *> selected = ui->detailsView->selectedItems();
-    if (selected.isEmpty()) {
-        ui->selectedFieldLabel->setText(tr("Selected value"));
-        ui->selectedValueEdit->clear();
+    if (!index.isValid())
         return;
-    }
-    const int row = selected.first()->row();
-    ui->selectedFieldLabel->setText(ui->detailsView->item(row, 0)->text());
-    ui->selectedValueEdit->setPlainText(ui->detailsView->item(row, 1)->data(Qt::UserRole).toString());
+    const int row = index.row();
+    ui->detailsView->selectRow(row);
+    auto *dialog = new ValueDialog(ui->detailsView->item(row, 0)->text(),
+                                  ui->detailsView->item(row, 1)->data(Qt::UserRole).toString(), this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->open();
 }
 
 ///

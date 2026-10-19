@@ -5,6 +5,7 @@
 #include <QClipboard>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QDialogButtonBox>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
@@ -46,6 +47,7 @@
 #include "subtypesmodel.h"
 #include "typespage.h"
 #include "variablesmodel.h"
+#include "valuedialog.h"
 #include "viewsetup.h"
 
 Q_DECLARE_METATYPE(VariableInfo)
@@ -96,6 +98,32 @@ QString certificateField(const QWidget &page, const char *name)
         ->data(Qt::UserRole).toString();
 }
 
+///
+/// \brief Activates a certificate field and returns its value viewer.
+/// \param page Certificate page.
+/// \param row Field row.
+/// \return Open value dialog.
+///
+ValueDialog *openCertificateValue(CertificatesPage &page, int row)
+{
+    auto *view = child<QTableWidget>(page, "detailsView");
+    view->activated(view->model()->index(row, 1));
+    auto *dialog = page.findChild<ValueDialog *>();
+    if (!dialog)
+        qFatal("Missing certificate value dialog");
+    return dialog;
+}
+
+///
+/// \brief Closes a viewer and processes its deferred deletion.
+/// \param dialog Value viewer.
+///
+void closeCertificateValue(ValueDialog *dialog)
+{
+    child<QDialogButtonBox>(*dialog, "buttonBox")->button(QDialogButtonBox::Close)->click();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+}
+
 }
 
 class TestPages : public QObject
@@ -140,8 +168,9 @@ private slots:
     void certificateTechnicalDetails();
     void certificateFieldsHaveSingleLinePreviewsAndIcons();
     void certificateOmitsAbsentExtensions();
-    void certificateValuePaneDefaultSize_data();
-    void certificateValuePaneDefaultSize();
+    void certificateDetailsUseWholePanel_data();
+    void certificateDetailsUseWholePanel();
+    void certificateExpandButtonsFollowAvailableSpace();
     void certificateLongValues_data();
     void certificateLongValues();
     void sessionsPage();
@@ -739,9 +768,8 @@ void TestPages::certificatesPageClearsDetailsOfEmptyFolder()
     auto *categories = child<QTreeView>(page, "categoriesList");
 
     QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Application))));
-    QVERIFY(!child<QPlainTextEdit>(page, "selectedValueEdit")->toPlainText().isEmpty());
+    QVERIFY(child<QTableWidget>(page, "detailsView")->rowCount() > 0);
     QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Trusted))));
-    QVERIFY(child<QPlainTextEdit>(page, "selectedValueEdit")->toPlainText().isEmpty());
     QCOMPARE(child<QTableWidget>(page, "detailsView")->rowCount(), 0);
 }
 
@@ -776,12 +804,13 @@ void TestPages::certificateDetailsShowEveryLine()
     QVERIFY(QTest::qWaitForWindowExposed(&page));
 
     auto *view = child<QTableWidget>(page, "detailsView");
-    auto *edit = child<QPlainTextEdit>(page, "selectedValueEdit");
     for (const char *field : { "Subject", "Issuer" }) {
         const int row = certificateFieldRow(page, field);
-        view->selectRow(row);
+        auto *dialog = openCertificateValue(page, row);
+        auto *edit = child<QPlainTextEdit>(*dialog, "valueEdit");
         QCOMPARE(edit->blockCount(), 3);
         QCOMPARE(edit->toPlainText(), view->item(row, 1)->data(Qt::UserRole).toString());
+        closeCertificateValue(dialog);
     }
 
     CertificateInfo single = _snapshot.certificates.first();
@@ -789,6 +818,8 @@ void TestPages::certificateDetailsShowEveryLine()
     single.subject = QStringLiteral("CN=Single");
     view->selectRow(certificateFieldRow(page, "Subject"));
     page.setCertificates({ single });
+    auto *dialog = openCertificateValue(page, certificateFieldRow(page, "Subject"));
+    auto *edit = child<QPlainTextEdit>(*dialog, "valueEdit");
     QCOMPARE(edit->blockCount(), 1);
     QCOMPARE(edit->toPlainText(), single.subject);
 }
@@ -829,14 +860,14 @@ void TestPages::certificateTechnicalDetails()
     QCOMPARE(certificateField(page, "SHA-256 Fingerprint"), certificate.sha256Fingerprint);
     QCOMPARE(certificateField(page, "X.509 Details"), certificate.details);
     auto *view = child<QTableWidget>(page, "detailsView");
-    view->selectRow(view->rowCount() - 1);
-    auto *edit = child<QPlainTextEdit>(page, "selectedValueEdit");
+    auto *dialog = openCertificateValue(page, view->rowCount() - 1);
+    auto *edit = child<QPlainTextEdit>(*dialog, "valueEdit");
     QCOMPARE(edit->toPlainText(), certificate.details);
     QVERIFY(edit->isReadOnly());
     QCOMPARE(view->editTriggers(), QAbstractItemView::NoEditTriggers);
     page.setCertificates({});
     QCOMPARE(view->rowCount(), 0);
-    QVERIFY(edit->toPlainText().isEmpty());
+    QCOMPARE(edit->toPlainText(), certificate.details);
 }
 
 ///
@@ -870,8 +901,8 @@ void TestPages::certificateFieldsHaveSingleLinePreviewsAndIcons()
     }
     const int subjectRow = certificateFieldRow(page, "Subject");
     QCOMPARE(view->item(subjectRow, 1)->text(), QStringLiteral("CN=Server, O=Example Company, C=US"));
-    view->selectRow(subjectRow);
-    auto *value = child<QPlainTextEdit>(page, "selectedValueEdit");
+    auto *dialog = openCertificateValue(page, subjectRow);
+    auto *value = child<QPlainTextEdit>(*dialog, "valueEdit");
     QCOMPARE(value->toPlainText(), certificate.subject);
     value->selectAll();
     value->copy();
@@ -902,7 +933,7 @@ void TestPages::certificateOmitsAbsentExtensions()
 ///
 /// \brief Covers compact and tall certificate panels.
 ///
-void TestPages::certificateValuePaneDefaultSize_data()
+void TestPages::certificateDetailsUseWholePanel_data()
 {
     QTest::addColumn<int>("height");
     QTest::newRow("compact") << 470;
@@ -910,9 +941,9 @@ void TestPages::certificateValuePaneDefaultSize_data()
 }
 
 ///
-/// \brief Starts with a compact value pane while allowing its size to be adjusted and retained.
+/// \brief Gives the field list all available space without a lower value pane.
 ///
-void TestPages::certificateValuePaneDefaultSize()
+void TestPages::certificateDetailsUseWholePanel()
 {
     QFETCH(int, height);
     CertificatesPage page;
@@ -920,27 +951,58 @@ void TestPages::certificateValuePaneDefaultSize()
     page.resize(1100, height);
     page.show();
     QVERIFY(QTest::qWaitForWindowExposed(&page));
-    auto *value = child<QPlainTextEdit>(page, "selectedValueEdit");
-    auto *splitter = child<QSplitter>(page, "detailsSplitter");
-    QTRY_COMPARE(value->height(), value->minimumHeight());
-    const int initialHeight = value->height();
-    QVERIFY(value->maximumHeight() > initialHeight);
+    QVERIFY(!page.findChild<QPlainTextEdit *>(QStringLiteral("selectedValueEdit")));
+    QVERIFY(!page.findChild<QSplitter *>(QStringLiteral("detailsSplitter")));
+    auto *view = child<QTableWidget>(page, "detailsView");
+    QCOMPARE(view->height(), child<QWidget>(page, "detailsHost")->height());
+    const int initialHeight = view->height();
     page.resize(1100, height + 150);
     QCoreApplication::processEvents();
-    QCOMPARE(value->height(), initialHeight);
+    QVERIFY(view->height() > initialHeight);
+}
 
-    const QList<int> sizes = splitter->sizes();
-    splitter->setSizes({ sizes.first() - 40, sizes.last() + 40 });
-    QCoreApplication::processEvents();
-    QVERIFY(value->height() > initialHeight);
-    const int adjustedHeight = value->height();
-    page.resize(1100, height + 250);
-    QCoreApplication::processEvents();
-    QCOMPARE(value->height(), adjustedHeight);
-    page.hide();
+///
+/// \brief Offers expansion only while a single-line value does not fit.
+///
+void TestPages::certificateExpandButtonsFollowAvailableSpace()
+{
+    CertificateInfo certificate = _snapshot.certificates.first();
+    certificate.category = CertificateInfo::Category::Trusted;
+    certificate.serialNumber = QStringLiteral("01 23 45 67 89 AB CD EF");
+    CertificatesPage page;
+    page.setCertificates({ certificate });
+    page.resize(1300, 600);
     page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+    auto *view = child<QTableWidget>(page, "detailsView");
+    view->horizontalHeader()->setStretchLastSection(false);
+    view->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
+    const QModelIndex index = view->model()->index(certificateFieldRow(page, "Serial Number"), 1);
+    view->setColumnWidth(1, 300);
+    view->scrollTo(index);
     QCoreApplication::processEvents();
-    QCOMPARE(value->height(), adjustedHeight);
+    QRect rect = view->visualRect(index);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(rect.right() - 12, rect.center().y()));
+    QVERIFY(!page.findChild<ValueDialog *>());
+    view->setColumnWidth(1, 80);
+    view->scrollTo(index);
+    QCoreApplication::processEvents();
+    rect = view->visualRect(index);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(rect.right() - 12, rect.center().y()));
+    auto *dialog = page.findChild<ValueDialog *>();
+    QVERIFY(dialog);
+    QCOMPARE(child<QPlainTextEdit>(*dialog, "valueEdit")->toPlainText(), certificate.serialNumber);
+    closeCertificateValue(dialog);
+    view->setColumnWidth(1, 300);
+    view->scrollTo(index);
+    QCoreApplication::processEvents();
+    rect = view->visualRect(index);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(rect.right() - 12, rect.center().y()));
+    QVERIFY(!page.findChild<ValueDialog *>());
+    view->setCurrentIndex(index);
+    view->setFocus();
+    QTest::keyClick(view, Qt::Key_Return);
+    QVERIFY(page.findChild<ValueDialog *>());
 }
 
 ///
@@ -956,6 +1018,8 @@ void TestPages::certificateLongValues_data()
     QTest::newRow("path") << QStringLiteral("File Path") << QStringLiteral("C:/") + QString(300, QLatin1Char('a')) + QStringLiteral("/server.der");
     QTest::newRow("sha256") << QStringLiteral("SHA-256 Fingerprint") << QStringLiteral("A1:").repeated(31) + QStringLiteral("A1");
     QTest::newRow("sha1") << QStringLiteral("SHA-1 Thumbprint") << QStringLiteral("B2:").repeated(19) + QStringLiteral("B2");
+    QTest::newRow("multiline") << QStringLiteral("Subject") << QStringLiteral("CN=Server\nO=Example");
+    QTest::newRow("whitespace") << QStringLiteral("Subject") << QStringLiteral(" CN=Server\t  O=Example ");
 }
 
 ///
@@ -980,26 +1044,31 @@ void TestPages::certificateLongValues()
     QVERIFY(QTest::qWaitForWindowExposed(&page));
     child<QSplitter>(page, "splitter")->setSizes({ 760, 340 });
     auto *view = child<QTableWidget>(page, "detailsView");
-    for (int row = 0; row < view->rowCount(); ++row) {
-        if (view->item(row, 0)->text() == field)
-            view->selectRow(row);
-    }
-    auto *edit = child<QPlainTextEdit>(page, "selectedValueEdit");
+    view->horizontalHeader()->setStretchLastSection(false);
+    view->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
+    view->setColumnWidth(1, 140);
+    const int row = certificateFieldRow(page, qPrintable(field));
+    const QModelIndex index = view->model()->index(row, 1);
+    view->scrollTo(index);
+    QCoreApplication::processEvents();
+    const QRect rect = view->visualRect(index);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(rect.right() - 12, rect.center().y()));
+    auto *dialog = page.findChild<ValueDialog *>();
+    QVERIFY(dialog);
+    auto *edit = child<QPlainTextEdit>(*dialog, "valueEdit");
     QCOMPARE(edit->toPlainText(), value);
-    QCOMPARE(child<QLabel>(page, "selectedFieldLabel")->text(), field);
-    QTRY_VERIFY(edit->document()->firstBlock().layout()->lineCount() > 1
-                || edit->fontMetrics().horizontalAdvance(value) <= edit->viewport()->width());
+    QCOMPARE(dialog->windowTitle(), field);
+    QVERIFY(edit->isReadOnly());
     QCOMPARE(edit->horizontalScrollBar()->maximum(), 0);
-    edit->selectAll();
-    edit->copy();
+    child<QPushButton>(*dialog, "copyButton")->click();
     QCOMPARE(QApplication::clipboard()->text(), value);
-    const int row = view->currentRow();
+    closeCertificateValue(dialog);
+    QVERIFY(!page.findChild<ValueDialog *>());
     certificate.subject = QStringLiteral("CN=Replacement");
     page.setCertificates({ certificate });
     QCOMPARE(view->currentRow(), row);
-    QCOMPARE(edit->toPlainText(), view->item(row, 1)->data(Qt::UserRole).toString());
-    view->clearSelection();
-    QVERIFY(edit->toPlainText().isEmpty());
+    dialog = openCertificateValue(page, row);
+    QCOMPARE(child<QPlainTextEdit>(*dialog, "valueEdit")->toPlainText(), view->item(row, 1)->data(Qt::UserRole).toString());
 }
 
 void TestPages::sessionsPage()

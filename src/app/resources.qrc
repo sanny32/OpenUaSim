@@ -7,6 +7,7 @@
         <file alias="icons/copy.svg">res/icons/copy.svg</file>
         <file alias="icons/download.svg">res/icons/download.svg</file>
         <file alias="icons/droplet.svg">res/icons/droplet.svg</file>
+        <file alias="icons/external-link.svg">res/icons/external-link.svg</file>
         <file alias="icons/folder.svg">res/icons/folder.svg</file>
         <file alias="icons/gauge.svg">res/icons/gauge.svg</file>
         <file alias="icons/hash.svg">res/icons/hash.svg</file>
