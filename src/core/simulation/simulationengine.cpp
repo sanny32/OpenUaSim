@@ -13,7 +13,6 @@
 
 #include "signalgenerator.h"
 #include "simulationengine.h"
-#include "valuecast.h"
 #include "valuesink.h"
 
 namespace {
@@ -174,8 +173,7 @@ void SimulationEngine::tick(int intervalMs)
     for (const SimulatedVariable &variable : std::as_const(_variables)) {
         if (clampedInterval(variable.settings) != intervalMs)
             continue;
-        const double generated = SignalGenerator::value(variable.settings, elapsed, _random);
-        const QVariant value = ValueCast::fromDouble(generated, variable.dataType);
+        const QVariant value = SignalGenerator::sample(variable.settings, variable.dataType, elapsed, _random);
         if (_sink->setValue(variable.nodeId, value))
             values.insert(variable.nodeId, value);
     }

@@ -78,6 +78,7 @@ private slots:
     void objectsPageUpdatesValues();
     void objectsPageAppliesEditedProperties();
     void objectsPageRevertsEdits();
+    void objectsPageEditsValueList();
     void objectsPageEditsInitialValueAndQuality();
     void objectsPageKeepsSelectionOnReload();
     void objectsPageUpdatesOneVariable();
@@ -236,6 +237,29 @@ void TestPages::objectsPageAppliesEditedProperties()
     QCOMPARE(variable.simulation.offset, -1.0);
     QVERIFY(!variable.initialValue.isValid());
     QCOMPARE(variable.configuredQuality, VariableInfo::Quality::Good);
+}
+
+void TestPages::objectsPageEditsValueList()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    page.show();
+    QSignalSpy requested(&page, &ObjectsPage::variableChangeRequested);
+    auto *values = child<QLineEdit>(page, "valuesEdit");
+    auto *amplitude = child<QDoubleSpinBox>(page, "amplitudeSpin");
+    QVERIFY(!values->isVisible());
+    QVERIFY(amplitude->isVisible());
+
+    child<QComboBox>(page, "simulationCombo")->setCurrentText(QStringLiteral("Value list"));
+    QVERIFY(values->isVisible());
+    QVERIFY(!amplitude->isVisible());
+    values->setText(QStringLiteral(" 1; 2 ;;3 "));
+    child<QPushButton>(page, "applyButton")->click();
+
+    QCOMPARE(requested.count(), 1);
+    const VariableInfo variable = requested.first().first().value<VariableInfo>();
+    QCOMPARE(variable.simulation.function, SimulationFunction::List);
+    QCOMPARE(variable.simulation.values, QStringList({ QStringLiteral("1"), QStringLiteral("2"), QStringLiteral("3") }));
 }
 
 void TestPages::objectsPageEditsInitialValueAndQuality()

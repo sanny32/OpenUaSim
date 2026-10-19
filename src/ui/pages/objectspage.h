@@ -121,6 +121,7 @@ private:
     void clearProperties();
     void applyProperties();
     void revertProperties();
+    void updateSimulationFields();
     VariableInfo editedVariable() const;
 
     Ui::ObjectsPage *ui;

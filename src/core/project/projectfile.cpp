@@ -141,13 +141,16 @@ QVariant valueFromJson(const QJsonValue &json, const QString &dataType)
 ///
 QJsonObject simulationToJson(const SimulationSettings &simulation)
 {
-    return {
+    QJsonObject json {
         { QStringLiteral("function"), SignalGenerator::key(simulation.function) },
         { QStringLiteral("intervalMs"), simulation.intervalMs },
         { QStringLiteral("periodMs"), simulation.periodMs },
         { QStringLiteral("amplitude"), simulation.amplitude },
         { QStringLiteral("offset"), simulation.offset },
     };
+    if (!simulation.values.isEmpty())
+        json.insert(QStringLiteral("values"), QJsonArray::fromStringList(simulation.values));
+    return json;
 }
 
 ///
@@ -348,6 +351,9 @@ bool NodeReader::readVariable(const QJsonObject &json, const QString &path, Node
     node.simulation.periodMs = simulation.value(QStringLiteral("periodMs")).toInt(node.simulation.periodMs);
     node.simulation.amplitude = simulation.value(QStringLiteral("amplitude")).toDouble();
     node.simulation.offset = simulation.value(QStringLiteral("offset")).toDouble();
+    const QJsonArray values = simulation.value(QStringLiteral("values")).toArray();
+    for (const QJsonValue &value : values)
+        node.simulation.values.append(value.toString());
     return true;
 }
 

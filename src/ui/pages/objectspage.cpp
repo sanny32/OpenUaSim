@@ -51,8 +51,10 @@ ObjectsPage::ObjectsPage(QWidget *parent)
             this, &ObjectsPage::showTreeNode);
     connect(ui->variablesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &ObjectsPage::showVariable);
+    connect(ui->simulationCombo, &QComboBox::currentIndexChanged, this, &ObjectsPage::updateSimulationFields);
     connect(ui->applyButton, &QPushButton::clicked, this, &ObjectsPage::applyProperties);
     connect(ui->revertButton, &QPushButton::clicked, this, &ObjectsPage::revertProperties);
+    updateSimulationFields();
 }
 
 ///
@@ -250,6 +252,8 @@ void ObjectsPage::showVariable(const QModelIndex &current)
     ui->periodSpin->setValue(variable.simulation.periodMs);
     ui->amplitudeSpin->setValue(variable.simulation.amplitude);
     ui->offsetSpin->setValue(variable.simulation.offset);
+    ui->valuesEdit->setText(variable.simulation.values.join(QStringLiteral("; ")));
+    updateSimulationFields();
     _currentNodeId = variable.nodeId;
     _currentFromTable = true;
     emit currentNodeChanged(_currentNodeId);
@@ -266,6 +270,20 @@ void ObjectsPage::fillCombos()
         ui->simulationCombo->addItem(SignalGenerator::displayName(function), int(function));
     for (auto quality : { VariableInfo::Quality::Good, VariableInfo::Quality::Uncertain, VariableInfo::Quality::Bad })
         ui->qualityCombo->addItem(VariablesModel::qualityText(quality), int(quality));
+}
+
+///
+/// \brief Shows the value list for the List function and the waveform parameters for the others.
+///
+void ObjectsPage::updateSimulationFields()
+{
+    const bool list = SimulationFunction(ui->simulationCombo->currentData().toInt()) == SimulationFunction::List;
+    const QList<QWidget *> waveformFields = { ui->amplitudeLabel, ui->amplitudeSpin, ui->offsetLabel,
+                                              ui->offsetSpin, ui->periodLabel, ui->periodSpin };
+    for (QWidget *widget : waveformFields)
+        widget->setVisible(!list);
+    ui->valuesLabel->setVisible(list);
+    ui->valuesEdit->setVisible(list);
 }
 
 ///
@@ -320,5 +338,11 @@ VariableInfo ObjectsPage::editedVariable() const
     variable.simulation.periodMs = ui->periodSpin->value();
     variable.simulation.amplitude = ui->amplitudeSpin->value();
     variable.simulation.offset = ui->offsetSpin->value();
+    variable.simulation.values.clear();
+    const QStringList values = ui->valuesEdit->text().split(QLatin1Char(';'), Qt::SkipEmptyParts);
+    for (const QString &value : values) {
+        if (!value.trimmed().isEmpty())
+            variable.simulation.values.append(value.trimmed());
+    }
     return variable;
 }

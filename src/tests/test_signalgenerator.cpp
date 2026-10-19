@@ -38,6 +38,10 @@ private slots:
     void keysRoundTrip();
     void unknownKeyFallsBackToNone();
     void displayNamesAreDistinct();
+    void toggleAlternatesEveryUpdate();
+    void counterRestartsEachPeriod();
+    void listCyclesThroughValues();
+    void sampleConvertsWaveforms();
 };
 
 void TestSignalGenerator::waveform_data()
@@ -146,6 +150,61 @@ void TestSignalGenerator::displayNamesAreDistinct()
     QCOMPARE(names.first(), QStringLiteral("None"));
     names.removeDuplicates();
     QCOMPARE(names.size(), SignalGenerator::functions().size());
+}
+
+void TestSignalGenerator::toggleAlternatesEveryUpdate()
+{
+    QRandomGenerator random(1);
+    SimulationSettings toggle = settings(SimulationFunction::Toggle, 1.0, 0.0);
+    toggle.intervalMs = 100;
+    QCOMPARE(SignalGenerator::value(toggle, 0, random), 0.0);
+    QCOMPARE(SignalGenerator::value(toggle, 99, random), 0.0);
+    QCOMPARE(SignalGenerator::value(toggle, 100, random), 1.0);
+    QCOMPARE(SignalGenerator::value(toggle, 250, random), 0.0);
+    QCOMPARE(SignalGenerator::value(toggle, -50, random), 0.0);
+    QCOMPARE(SignalGenerator::sample(toggle, QStringLiteral("Boolean"), 100, random), QVariant(true));
+}
+
+void TestSignalGenerator::counterRestartsEachPeriod()
+{
+    QRandomGenerator random(1);
+    SimulationSettings counter = settings(SimulationFunction::Counter, 5.0, 100.0);
+    counter.intervalMs = 100;
+    counter.periodMs = 1000;
+    QCOMPARE(SignalGenerator::value(counter, 0, random), 100.0);
+    QCOMPARE(SignalGenerator::value(counter, 300, random), 115.0);
+    QCOMPARE(SignalGenerator::value(counter, 999, random), 145.0);
+    QCOMPARE(SignalGenerator::value(counter, 1000, random), 100.0);
+
+    counter.periodMs = 0;
+    QCOMPARE(SignalGenerator::value(counter, 2500, random), 225.0);
+    QCOMPARE(SignalGenerator::sample(counter, QStringLiteral("UInt16"), 2500, random),
+             QVariant::fromValue(quint16(225)));
+}
+
+void TestSignalGenerator::listCyclesThroughValues()
+{
+    QRandomGenerator random(1);
+    SimulationSettings list = settings(SimulationFunction::List);
+    list.intervalMs = 1000;
+    list.values = { QStringLiteral("idle"), QStringLiteral("run"), QStringLiteral("fault") };
+    QCOMPARE(SignalGenerator::sample(list, QStringLiteral("String"), 0, random), QVariant(QStringLiteral("idle")));
+    QCOMPARE(SignalGenerator::sample(list, QStringLiteral("String"), 2500, random), QVariant(QStringLiteral("fault")));
+    QCOMPARE(SignalGenerator::sample(list, QStringLiteral("String"), 3000, random), QVariant(QStringLiteral("idle")));
+
+    list.values = { QStringLiteral("7"), QStringLiteral("x") };
+    QCOMPARE(SignalGenerator::sample(list, QStringLiteral("Int32"), 0, random), QVariant::fromValue(qint32(7)));
+    QCOMPARE(SignalGenerator::sample(list, QStringLiteral("Int32"), 1000, random), QVariant::fromValue(qint32(0)));
+
+    list.values.clear();
+    QCOMPARE(SignalGenerator::sample(list, QStringLiteral("String"), 0, random), QVariant(QString()));
+}
+
+void TestSignalGenerator::sampleConvertsWaveforms()
+{
+    QRandomGenerator random(1);
+    const QVariant value = SignalGenerator::sample(settings(SimulationFunction::None), QStringLiteral("Int16"), 0, random);
+    QCOMPARE(value, QVariant::fromValue(qint16(10)));
 }
 
 QTEST_GUILESS_MAIN(TestSignalGenerator)

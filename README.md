@@ -17,8 +17,9 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
   initial value, quality and simulation. Forcing a Bad or Uncertain quality
   tests how clients handle it. Clients read and write the variables.
 - Drive variables with sine, square, triangle, ramp, random and step waveforms
-  with configurable interval, period, amplitude and offset; values are converted
-  to the variable's built-in data type.
+  with configurable interval, period, amplitude and offset, toggle Booleans,
+  count up, or cycle through a list of values such as machine states; values
+  are converted to the variable's built-in data type.
 - Serve `opc.tcp` endpoints with a choice of security policy and mode, and accept
   anonymous logins or the username/password logins listed in **Server → User
   Accounts**. Set the application name, URI and

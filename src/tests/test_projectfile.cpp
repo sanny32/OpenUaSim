@@ -50,6 +50,7 @@ private slots:
     void preservesEveryDataTypeValue_data();
     void preservesEveryDataTypeValue();
     void preservesQuality();
+    void preservesSimulationValues();
     void preservesUsers();
     void movesFormat1EndpointLoginsToUsers();
     void emptyProjectRoundTrips();
@@ -146,6 +147,23 @@ void TestProjectFile::preservesQuality()
     const ProjectFile::LoadResult result = ProjectFile::fromJson(json);
     QVERIFY2(result.ok(), qPrintable(result.error));
     QCOMPARE(result.project.nodes.first().quality, VariableInfo::Quality::Uncertain);
+}
+
+void TestProjectFile::preservesSimulationValues()
+{
+    NodeDefinition node;
+    node.kind = NodeDefinition::Kind::Variable;
+    node.browseName = QStringLiteral("State");
+    node.dataType = QStringLiteral("String");
+    node.simulation.function = SimulationFunction::List;
+    node.simulation.values = { QStringLiteral("idle"), QStringLiteral("run") };
+    ProjectConfig project;
+    project.nodes.append(node);
+
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(ProjectFile::toJson(project));
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.project.nodes.first().simulation.function, SimulationFunction::List);
+    QCOMPARE(result.project.nodes.first().simulation.values, node.simulation.values);
 }
 
 void TestProjectFile::preservesUsers()
