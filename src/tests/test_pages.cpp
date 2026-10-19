@@ -103,6 +103,8 @@ private slots:
     void logPageFilters();
     void logPageSelectsFirstEntryWhenFilledLater();
     void logPageDetailsAndClear();
+    void logPageExportsVisibleEntries();
+    void namespacesPageRequestsImportAndExport();
 
 private:
     ServerSnapshot _snapshot;
@@ -120,7 +122,7 @@ void TestPages::statusPage()
     page.setStatus(_snapshot.status);
 
     QCOMPARE(child<StatusIndicator>(page, "serverStatusIndicator")->status(), StatusKind::Good);
-    QCOMPARE(child<StatusIndicator>(page, "httpsIndicator")->status(), StatusKind::Inactive);
+    QVERIFY(!page.findChild<StatusIndicator *>(QStringLiteral("httpsIndicator")));
     QCOMPARE(child<QLabel>(page, "primaryEndpointValue")->text(), _snapshot.status.primaryEndpoint);
     QCOMPARE(child<QLabel>(page, "uptimeValue")->text(), QStringLiteral("00:27:36"));
     QCOMPARE(child<QLabel>(page, "totalNodesValue")->text(), QString::number(_snapshot.status.totalNodes));
@@ -733,6 +735,45 @@ void TestPages::logPageDetailsAndClear()
     QCOMPARE(model.rowCount(), 0);
     QVERIFY(text(page, "timeEdit").isEmpty());
     QVERIFY(!child<QWidget>(page, "detailsHost")->isEnabled());
+}
+
+void TestPages::logPageExportsVisibleEntries()
+{
+    LogModel model;
+    model.setItems(_snapshot.log);
+    LogPage page;
+    page.setLogModel(&model);
+    child<QCheckBox>(page, "infoCheck")->setChecked(false);
+    QSignalSpy requested(&page, &LogPage::exportRequested);
+
+    child<QPushButton>(page, "exportLogButton")->click();
+    QCOMPARE(requested.count(), 1);
+    const auto entries = requested.at(0).at(0).value<QList<LogEntry>>();
+    QCOMPARE(entries.size(), page.filterModel()->rowCount());
+    for (const LogEntry &entry : entries)
+        QVERIFY(entry.level != LogEntry::Level::Info);
+}
+
+void TestPages::namespacesPageRequestsImportAndExport()
+{
+    NamespacesPage page;
+    page.setNamespaces(_snapshot.namespaces);
+    auto *exportButton = child<QPushButton>(page, "exportButton");
+    QSignalSpy imports(&page, &NamespacesPage::importRequested);
+    QSignalSpy exports(&page, &NamespacesPage::exportRequested);
+
+    child<QPushButton>(page, "importButton")->click();
+    QCOMPARE(imports.count(), 1);
+
+    QVERIFY(!exportButton->isEnabled());
+    exportButton->click();
+    QCOMPARE(exports.count(), 0);
+
+    ViewSetup::selectRow(child<QTableView>(page, "namespacesView"), 1);
+    QVERIFY(exportButton->isEnabled());
+    exportButton->click();
+    QCOMPARE(exports.count(), 1);
+    QCOMPARE(exports.at(0).at(0).toString(), _snapshot.namespaces.at(1).uri);
 }
 
 QTEST_MAIN(TestPages)

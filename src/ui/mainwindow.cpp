@@ -20,6 +20,7 @@
 #include "appicons.h"
 #include "apptheme.h"
 #include "data/serversnapshot.h"
+#include "logexport.h"
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
@@ -78,6 +79,7 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     connect(ui->tabWidget, &QTabWidget::currentChanged, this, &MainWindow::handleTabChange);
     connect(_logModel, &LogModel::modelReset, this, &MainWindow::updateStatusBarNote);
     connect(_logModel, &LogModel::rowsInserted, this, &MainWindow::updateStatusBarNote);
+    connect(ui->logPage, &LogPage::exportRequested, this, &MainWindow::exportLog);
     handleTabChange(ui->tabWidget->currentIndex());
 }
 
@@ -137,6 +139,8 @@ void MainWindow::setController(ServerController *controller)
     connect(controller, &ServerController::certificatesChanged, this, &MainWindow::reloadCertificates);
     connect(ui->actionImportModel, &QAction::triggered, this, &MainWindow::importModel);
     connect(ui->actionExportModel, &QAction::triggered, this, &MainWindow::exportModel);
+    connect(ui->namespacesPage, &NamespacesPage::importRequested, this, &MainWindow::importModel);
+    connect(ui->namespacesPage, &NamespacesPage::exportRequested, this, &MainWindow::exportNamespace);
     connect(ui->endpointsPage, &EndpointsPage::endpointsChangeRequested, this, &MainWindow::applyEndpoints);
     connect(controller, &ServerController::endpointsChanged, this, &MainWindow::reloadEndpoints);
     connect(controller, &ServerController::restartRequiredChanged, this, &MainWindow::updateRestartNote);
@@ -242,6 +246,36 @@ bool MainWindow::exportModelTo(const QString &fileName)
     if (_controller && _controller->exportNodeSet(fileName, &error))
         return true;
     showError(tr("Model not exported"), error);
+    return false;
+}
+
+///
+/// \brief Exports the nodes of one namespace as NodeSet2, reporting a file that cannot be written.
+/// \param fileName Target path.
+/// \param namespaceUri URI of the namespace to export.
+/// \return True when the file was written.
+///
+bool MainWindow::exportNamespaceTo(const QString &fileName, const QString &namespaceUri)
+{
+    QString error;
+    if (_controller && _controller->exportNamespace(fileName, namespaceUri, &error))
+        return true;
+    showError(tr("Namespace not exported"), error);
+    return false;
+}
+
+///
+/// \brief Writes log entries to a CSV file, reporting a file that cannot be written.
+/// \param fileName Target path.
+/// \param entries Entries to write.
+/// \return True when the file was written.
+///
+bool MainWindow::exportLogTo(const QString &fileName, const QList<LogEntry> &entries)
+{
+    QString error;
+    if (LogExport::write(fileName, entries, &error))
+        return true;
+    showError(tr("Log not exported"), error);
     return false;
 }
 
@@ -730,6 +764,32 @@ void MainWindow::exportModel()
                                                           nodeSetFilter());
     if (!fileName.isEmpty())
         exportModelTo(fileName);
+}
+
+///
+/// \brief Asks for a file name and exports the nodes of a namespace there.
+/// \param namespaceUri URI of the namespace to export.
+///
+void MainWindow::exportNamespace(const QString &namespaceUri)
+{
+    if (!_controller)
+        return;
+    const QString fileName = QFileDialog::getSaveFileName(this, tr("Export Namespace"), QString(),
+                                                          nodeSetFilter());
+    if (!fileName.isEmpty())
+        exportNamespaceTo(fileName, namespaceUri);
+}
+
+///
+/// \brief Asks for a file name and writes the visible log entries there.
+/// \param entries Entries to write.
+///
+void MainWindow::exportLog(const QList<LogEntry> &entries)
+{
+    const QString fileName = QFileDialog::getSaveFileName(this, tr("Export Log"), QStringLiteral("openuasim-log.csv"),
+                                                          tr("CSV files (*.csv)"));
+    if (!fileName.isEmpty())
+        exportLogTo(fileName, entries);
 }
 
 ///

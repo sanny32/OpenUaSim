@@ -229,57 +229,6 @@
               </widget>
              </item>
              <item row="3" column="0" rowspan="1" colspan="2">
-              <widget class="QFrame" name="statusRowSeparator2">
-               <property name="frameShape">
-                <enum>QFrame::StyledPanel</enum>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>1</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>1</height>
-                </size>
-               </property>
-               <property name="separator" stdset="0">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="0">
-              <widget class="QLabel" name="httpsEndpointLabel">
-               <property name="text">
-                <string>HTTPS Endpoint</string>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>19</height>
-                </size>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="1">
-              <widget class="StatusIndicator" name="httpsIndicator" native="true">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>19</height>
-                </size>
-               </property>
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-              </widget>
-             </item>
-             <item row="5" column="0" rowspan="1" colspan="2">
               <widget class="QFrame" name="statusRowSeparator3">
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
@@ -301,7 +250,7 @@
                </property>
               </widget>
              </item>
-             <item row="6" column="0">
+             <item row="4" column="0">
               <widget class="QLabel" name="applicationUriLabel">
                <property name="text">
                 <string>Application URI</string>
@@ -314,7 +263,7 @@
                </property>
               </widget>
              </item>
-             <item row="6" column="1">
+             <item row="4" column="1">
               <widget class="QLabel" name="applicationUriValue">
                <property name="text">
                 <string/>
@@ -333,7 +282,7 @@
                </property>
               </widget>
              </item>
-             <item row="7" column="0" rowspan="1" colspan="2">
+             <item row="5" column="0" rowspan="1" colspan="2">
               <widget class="QFrame" name="statusRowSeparator4">
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
@@ -355,7 +304,7 @@
                </property>
               </widget>
              </item>
-             <item row="8" column="0">
+             <item row="6" column="0">
               <widget class="QLabel" name="startTimeLabel">
                <property name="text">
                 <string>Server Start Time</string>
@@ -368,7 +317,7 @@
                </property>
               </widget>
              </item>
-             <item row="8" column="1">
+             <item row="6" column="1">
               <widget class="QLabel" name="startTimeValue">
                <property name="text">
                 <string/>
@@ -387,7 +336,7 @@
                </property>
               </widget>
              </item>
-             <item row="9" column="0" rowspan="1" colspan="2">
+             <item row="7" column="0" rowspan="1" colspan="2">
               <widget class="QFrame" name="statusRowSeparator5">
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
@@ -409,7 +358,7 @@
                </property>
               </widget>
              </item>
-             <item row="10" column="0">
+             <item row="8" column="0">
               <widget class="QLabel" name="uptimeLabel">
                <property name="text">
                 <string>Uptime</string>
@@ -422,7 +371,7 @@
                </property>
               </widget>
              </item>
-             <item row="10" column="1">
+             <item row="8" column="1">
               <widget class="QLabel" name="uptimeValue">
                <property name="text">
                 <string/>
@@ -441,7 +390,7 @@
                </property>
               </widget>
              </item>
-             <item row="11" column="0" rowspan="1" colspan="2">
+             <item row="9" column="0" rowspan="1" colspan="2">
               <widget class="QFrame" name="statusRowSeparator6">
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
@@ -463,7 +412,7 @@
                </property>
               </widget>
              </item>
-             <item row="12" column="0">
+             <item row="10" column="0">
               <widget class="QLabel" name="securityModesLabel">
                <property name="text">
                 <string>Security Modes</string>
@@ -476,7 +425,7 @@
                </property>
               </widget>
              </item>
-             <item row="12" column="1">
+             <item row="10" column="1">
               <widget class="QLabel" name="securityModesValue">
                <property name="text">
                 <string/>
@@ -495,7 +444,7 @@
                </property>
               </widget>
              </item>
-             <item row="13" column="0" rowspan="1" colspan="2">
+             <item row="11" column="0" rowspan="1" colspan="2">
               <widget class="QFrame" name="statusRowSeparator7">
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
@@ -517,7 +466,7 @@
                </property>
               </widget>
              </item>
-             <item row="14" column="0">
+             <item row="12" column="0">
               <widget class="QLabel" name="totalNodesLabel">
                <property name="text">
                 <string>Total Nodes</string>
@@ -530,7 +479,7 @@
                </property>
               </widget>
              </item>
-             <item row="14" column="1">
+             <item row="12" column="1">
               <widget class="QLabel" name="totalNodesValue">
                <property name="text">
                 <string/>
@@ -549,7 +498,7 @@
                </property>
               </widget>
              </item>
-             <item row="15" column="0" rowspan="1" colspan="2">
+             <item row="13" column="0" rowspan="1" colspan="2">
               <widget class="QFrame" name="statusRowSeparator8">
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
@@ -571,7 +520,7 @@
                </property>
               </widget>
              </item>
-             <item row="16" column="0">
+             <item row="14" column="0">
               <widget class="QLabel" name="namespacesLabel">
                <property name="text">
                 <string>Namespaces</string>
@@ -584,7 +533,7 @@
                </property>
               </widget>
              </item>
-             <item row="16" column="1">
+             <item row="14" column="1">
               <widget class="QLabel" name="namespacesValue">
                <property name="text">
                 <string/>
@@ -603,7 +552,7 @@
                </property>
               </widget>
              </item>
-             <item row="17" column="0" rowspan="1" colspan="2">
+             <item row="15" column="0" rowspan="1" colspan="2">
               <widget class="QFrame" name="statusRowSeparator9">
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
@@ -625,7 +574,7 @@
                </property>
               </widget>
              </item>
-             <item row="18" column="0">
+             <item row="16" column="0">
               <widget class="QLabel" name="clientsLabel">
                <property name="text">
                 <string>Clients Connected</string>
@@ -638,7 +587,7 @@
                </property>
               </widget>
              </item>
-             <item row="18" column="1">
+             <item row="16" column="1">
               <widget class="QLabel" name="clientsValue">
                <property name="text">
                 <string/>
@@ -657,7 +606,7 @@
                </property>
               </widget>
              </item>
-             <item row="19" column="0" rowspan="1" colspan="2">
+             <item row="17" column="0" rowspan="1" colspan="2">
               <widget class="QFrame" name="statusRowSeparator10">
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>

@@ -55,6 +55,9 @@ private slots:
     void importReportsBrokenFile();
     void setProjectLoadsItsModels();
     void exportWritesFile();
+    void exportsImportedNamespace();
+    void exportRefusesStandardNamespace();
+    void exportReportsUnknownNamespace();
     void exportReportsUnwritablePath();
 
 private:
@@ -193,6 +196,46 @@ void TestNodeSets::exportWritesFile()
     QFile file(fileName);
     QVERIFY(file.open(QIODevice::ReadOnly));
     QVERIFY(file.readAll().contains("Motor_01.Speed"));
+}
+
+void TestNodeSets::exportsImportedNamespace()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    QVERIFY(controller.importNodeSet(testData(QStringLiteral("mixer.NodeSet2.xml"))));
+    const QString fileName = _directory.filePath(QStringLiteral("mixer.xml"));
+    QString error;
+    QVERIFY2(controller.exportNamespace(fileName, QStringLiteral("urn:openuasim:test:mixer"), &error),
+             qPrintable(error));
+
+    QUaServer server;
+    const QUaNodeSetResult result = server.loadNodeSet(fileName);
+    QVERIFY2(result.isOk(), qPrintable(result.errorString));
+    QCOMPARE(result.addedNodes.size(), 2);
+    QFile file(fileName);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QVERIFY(!file.readAll().contains("Motor_01.Speed"));
+}
+
+void TestNodeSets::exportRefusesStandardNamespace()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    const QString fileName = _directory.filePath(QStringLiteral("ns0.xml"));
+    QString error;
+    QVERIFY(!controller.exportNamespace(fileName, QStringLiteral("http://opcfoundation.org/UA/"), &error));
+    QVERIFY(!error.isEmpty());
+    QVERIFY(!QFile::exists(fileName));
+}
+
+void TestNodeSets::exportReportsUnknownNamespace()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    QString error;
+    QVERIFY(!controller.exportNamespace(_directory.filePath(QStringLiteral("unknown.xml")),
+                                        QStringLiteral("urn:no:such:namespace"), &error));
+    QVERIFY(!error.isEmpty());
 }
 
 void TestNodeSets::exportReportsUnwritablePath()

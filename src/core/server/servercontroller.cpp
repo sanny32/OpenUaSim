@@ -90,8 +90,24 @@ bool ServerController::importNodeSet(const QString &fileName, QString *error)
 ///
 bool ServerController::exportNodeSet(const QString &fileName, QString *error)
 {
-    const QString applicationNamespace = _server.uaServer()->namespaces().value(1);
-    const QUaNodeSetExportResult result = _server.uaServer()->exportNodeSet(fileName, { applicationNamespace });
+    return exportNamespace(fileName, _server.uaServer()->namespaces().value(1), error);
+}
+
+///
+/// \brief Writes the nodes of one namespace as a NodeSet2 file.
+/// \param fileName Target path.
+/// \param namespaceUri URI of a served namespace other than the standard namespace 0.
+/// \param error Receives the reason on failure; may be null.
+/// \return True when the file was written; values that cannot be exported are logged.
+///
+bool ServerController::exportNamespace(const QString &fileName, const QString &namespaceUri, QString *error)
+{
+    if (namespaceUri.isEmpty() || namespaceUri == _server.uaServer()->namespaces().value(0)) {
+        if (error)
+            *error = tr("The standard OPC UA namespace cannot be exported");
+        return false;
+    }
+    const QUaNodeSetExportResult result = _server.uaServer()->exportNodeSet(fileName, { namespaceUri });
     for (const QString &warning : result.warnings)
         appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
                                    tr("Model export: %1").arg(warning)));

@@ -104,6 +104,22 @@ public:
     bool exportModelTo(const QString &fileName);
 
     ///
+    /// \brief Exports the nodes of one namespace as NodeSet2, reporting a file that cannot be written.
+    /// \param fileName Target path.
+    /// \param namespaceUri URI of the namespace to export.
+    /// \return True when the file was written.
+    ///
+    bool exportNamespaceTo(const QString &fileName, const QString &namespaceUri);
+
+    ///
+    /// \brief Writes log entries to a CSV file, reporting a file that cannot be written.
+    /// \param fileName Target path.
+    /// \param entries Entries to write.
+    /// \return True when the file was written.
+    ///
+    bool exportLogTo(const QString &fileName, const QList<LogEntry> &entries);
+
+    ///
     /// \brief Adds a client or issuer certificate to the PKI store, reporting a refused file.
     /// \param fileName PEM or DER certificate.
     /// \param category Trusted, Rejected or Issuer folder.
@@ -165,6 +181,8 @@ private:
     void updateWindowTitle();
     void importModel();
     void exportModel();
+    void exportNamespace(const QString &namespaceUri);
+    void exportLog(const QList<LogEntry> &entries);
     void importCertificate(CertificateInfo::Category category);
     void exportCertificate(const QString &filePath);
     void moveCertificate(const QString &filePath, CertificateInfo::Category category);

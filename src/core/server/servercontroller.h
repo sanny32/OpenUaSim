@@ -97,6 +97,15 @@ public:
     bool exportNodeSet(const QString &fileName, QString *error = nullptr);
 
     ///
+    /// \brief Writes the nodes of one namespace as a NodeSet2 file.
+    /// \param fileName Target path.
+    /// \param namespaceUri URI of a served namespace other than the standard namespace 0.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return True when the file was written; values that cannot be exported are logged.
+    ///
+    bool exportNamespace(const QString &fileName, const QString &namespaceUri, QString *error = nullptr);
+
+    ///
     /// \brief Tells whether the running server still serves older endpoint or certificate settings.
     /// \return True after such a change on a running server until it restarts or stops.
     ///

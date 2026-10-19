@@ -37,6 +37,7 @@ LogPage::LogPage(QWidget *parent)
     connect(ui->logView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &LogPage::showEntry);
     connect(ui->clearLogButton, &QPushButton::clicked, this, &LogPage::clearLog);
+    connect(ui->exportLogButton, &QPushButton::clicked, this, &LogPage::requestExport);
     connect(_filter, &LogFilterProxyModel::rowsInserted, this, &LogPage::scrollIfEnabled);
     connect(_filter, &LogFilterProxyModel::modelReset, this, &LogPage::refreshDetails);
 }
@@ -128,6 +129,18 @@ void LogPage::clearLog()
 {
     if (_model)
         _model->clear();
+}
+
+///
+/// \brief Asks to save the entries the level and category filters let through.
+///
+void LogPage::requestExport()
+{
+    QList<LogEntry> entries;
+    entries.reserve(_filter->rowCount());
+    for (int row = 0; row < _filter->rowCount(); ++row)
+        entries.append(*_filter->entry(_filter->index(row, 0)));
+    emit exportRequested(entries);
 }
 
 ///

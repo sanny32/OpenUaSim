@@ -90,6 +90,7 @@ private slots:
     void openFailureShowsMessage();
     void closingAsksAboutUnsavedChanges();
     void importsAndExportsModels();
+    void exportsNamespaceAndLog();
     void panelsFitTheDefaultWindow();
 };
 
@@ -597,6 +598,32 @@ void TestMainWindow::importsAndExportsModels()
     QVERIFY(!box->text().isEmpty());
 #ifndef Q_OS_MACOS // QMessageBox drops the window title on macOS.
     QCOMPARE(box->windowTitle(), QStringLiteral("Model not imported"));
+#endif
+    box->close();
+}
+
+void TestMainWindow::exportsNamespaceAndLog()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+
+    QTemporaryDir directory;
+    const QString model = directory.filePath(QStringLiteral("namespace.xml"));
+    QVERIFY(window.exportNamespaceTo(model, controller.snapshot().namespaces.value(1).uri));
+    QVERIFY(QFile::exists(model));
+
+    const QString log = directory.filePath(QStringLiteral("log.csv"));
+    QVERIFY(window.exportLogTo(log, controller.log()));
+    QVERIFY(QFile::exists(log));
+
+    QVERIFY(!window.exportLogTo(directory.filePath(QStringLiteral("no/such/dir/log.csv")), controller.log()));
+    auto *box = window.findChild<QMessageBox *>();
+    QVERIFY(box);
+    QCOMPARE(box->icon(), QMessageBox::Warning);
+#ifndef Q_OS_MACOS // QMessageBox drops the window title on macOS.
+    QCOMPARE(box->windowTitle(), QStringLiteral("Log not exported"));
 #endif
     box->close();
 }

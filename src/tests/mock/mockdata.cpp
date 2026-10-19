@@ -564,7 +564,6 @@ ServerSnapshot snapshot()
     ServerStatus &status = snapshot.status;
     status.running = true;
     status.primaryEndpoint = kLocalEndpoint;
-    status.httpsEnabled = false;
     status.applicationUri = QStringLiteral("urn:OpenUaSim:localhost:4840");
     status.startTime = at(QStringLiteral("14:31:20.000"));
     status.uptimeSeconds = 27 * 60 + 36;

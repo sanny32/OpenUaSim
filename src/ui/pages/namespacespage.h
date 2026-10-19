@@ -51,8 +51,22 @@ public:
     ///
     const NamespacesModel *namespacesModel() const;
 
+signals:
+    ///
+    /// \brief Asks to import a NodeSet2 model.
+    ///
+    void importRequested();
+
+    ///
+    /// \brief Asks to save the nodes of a namespace as NodeSet2.
+    /// \param namespaceUri URI of the selected namespace; never the standard namespace 0.
+    ///
+    void exportRequested(const QString &namespaceUri);
+
 private:
     void showNamespace(const QModelIndex &current);
+    QString currentUri() const;
+    void requestExport();
 
     Ui::NamespacesPage *ui;
     NamespacesModel *_namespacesModel;

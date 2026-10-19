@@ -1,6 +1,8 @@
 add_library(ouasim_core STATIC
     formatting.cpp
     formatting.h
+    logexport.cpp
+    logexport.h
 
     data/certificateinfo.h
     data/endpointinfo.h

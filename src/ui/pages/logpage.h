@@ -8,7 +8,10 @@
 
 #pragma once
 
+#include <QList>
 #include <QWidget>
+
+#include "data/logentry.h"
 
 namespace Ui {
 class LogPage;
@@ -48,11 +51,19 @@ public:
     ///
     const LogFilterProxyModel *filterModel() const;
 
+signals:
+    ///
+    /// \brief Asks to save the entries the filter shows.
+    /// \param entries Visible entries, oldest first.
+    ///
+    void exportRequested(const QList<LogEntry> &entries);
+
 private:
     void applyFilters();
     void showEntry(const QModelIndex &current);
     void refreshDetails();
     void clearLog();
+    void requestExport();
     void scrollIfEnabled();
 
     Ui::LogPage *ui;

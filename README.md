@@ -26,9 +26,11 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 - Keep the simulation in `.ouasim` JSON projects — New, Open, Save and Save As;
   the last project reopens on startup and unsaved changes are confirmed before
   they are dropped.
-- Import NodeSet2 companion models and export the project nodes as NodeSet2.
+- Import NodeSet2 companion models and export the project nodes, or any other
+  served namespace, as NodeSet2.
 - Inspect the standard types in use, the namespace array, active and closed
-  sessions, and the server log filtered by level and category.
+  sessions, and the server log filtered by level and category; export the
+  filtered log to CSV.
 - Switch between light and dark application themes, or follow the system.
 
 ### Limitations

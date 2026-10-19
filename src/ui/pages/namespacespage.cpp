@@ -29,6 +29,7 @@ NamespacesPage::NamespacesPage(QWidget *parent)
     ViewSetup::bindCopyButton(ui->copyUriButton, ui->uriEdit);
     ui->importButton->setIcon(AppIcons::icon(QStringLiteral("download")));
     ui->exportButton->setIcon(AppIcons::icon(QStringLiteral("upload")));
+    ui->exportButton->setEnabled(false);
 
     ViewSetup::configureTable(ui->namespacesView);
     _searchModel = ViewSetup::attachTableSearch(ui->namespacesView, _namespacesModel, ui->searchEdit);
@@ -36,6 +37,8 @@ NamespacesPage::NamespacesPage(QWidget *parent)
 
     connect(ui->namespacesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &NamespacesPage::showNamespace);
+    connect(ui->importButton, &QPushButton::clicked, this, &NamespacesPage::importRequested);
+    connect(ui->exportButton, &QPushButton::clicked, this, &NamespacesPage::requestExport);
 }
 
 ///
@@ -73,6 +76,7 @@ void NamespacesPage::showNamespace(const QModelIndex &current)
 {
     const QModelIndex source = _searchModel->mapToSource(current);
     ui->detailsHost->setEnabled(source.isValid());
+    ui->exportButton->setEnabled(!currentUri().isEmpty());
     if (!source.isValid())
         return;
     const NamespaceInfo &ns = _namespacesModel->item(source.row());
@@ -81,4 +85,27 @@ void NamespacesPage::showNamespace(const QModelIndex &current)
     ui->versionEdit->setText(ns.version);
     ui->publicationDateEdit->setDate(ns.publicationDate);
     ui->descriptionEdit->setPlainText(ns.description);
+}
+
+///
+/// \brief Returns the URI of the selected namespace when it can be exported.
+/// \return URI, or empty when nothing or the standard namespace 0 is selected.
+///
+QString NamespacesPage::currentUri() const
+{
+    const QModelIndex source = _searchModel->mapToSource(ui->namespacesView->currentIndex());
+    if (!source.isValid())
+        return {};
+    const NamespaceInfo &ns = _namespacesModel->item(source.row());
+    return ns.index > 0 ? ns.uri : QString();
+}
+
+///
+/// \brief Asks to save the nodes of the selected namespace.
+///
+void NamespacesPage::requestExport()
+{
+    const QString uri = currentUri();
+    if (!uri.isEmpty())
+        emit exportRequested(uri);
 }

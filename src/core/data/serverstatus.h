@@ -21,8 +21,6 @@ struct ServerStatus
     bool running = false;
     /// \brief URL of the primary UA TCP endpoint.
     QString primaryEndpoint;
-    /// \brief Whether the HTTPS endpoint is enabled.
-    bool httpsEnabled = false;
     /// \brief Server application URI.
     QString applicationUri;
     /// \brief Time the server was started.

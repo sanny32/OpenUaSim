@@ -40,8 +40,6 @@ void StatusPage::setStatus(const ServerStatus &status)
     ui->serverStatusIndicator->setStatus(status.running ? StatusKind::Good : StatusKind::Inactive,
                                          status.running ? tr("Running") : tr("Stopped"));
     ui->primaryEndpointValue->setText(status.primaryEndpoint);
-    ui->httpsIndicator->setStatus(status.httpsEnabled ? StatusKind::Good : StatusKind::Inactive,
-                                  status.httpsEnabled ? tr("Enabled") : tr("Disabled"));
     ui->applicationUriValue->setText(status.applicationUri);
     ui->startTimeValue->setText(Formatting::dateTime(status.startTime));
     ui->uptimeValue->setText(Formatting::duration(status.uptimeSeconds));
