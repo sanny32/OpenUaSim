@@ -999,10 +999,18 @@ void TestPages::certificateExpandButtonsFollowAvailableSpace()
     rect = view->visualRect(index);
     QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(rect.right() - 12, rect.center().y()));
     QVERIFY(!page.findChild<ValueDialog *>());
-    view->setCurrentIndex(index);
-    view->setFocus();
-    QTest::keyClick(view, Qt::Key_Return);
-    QVERIFY(page.findChild<ValueDialog *>());
+    for (const auto key : { Qt::Key_Return, Qt::Key_Enter }) {
+        page.activateWindow();
+        view->setCurrentIndex(index);
+        view->setFocus();
+        QTRY_VERIFY(view->hasFocus());
+        QTest::keyClick(view, key);
+        auto *keyboardDialog = page.findChild<ValueDialog *>();
+        QVERIFY(keyboardDialog);
+        QCOMPARE(page.findChildren<ValueDialog *>().size(), 1);
+        QCOMPARE(child<QPlainTextEdit>(*keyboardDialog, "valueEdit")->toPlainText(), certificate.serialNumber);
+        closeCertificateValue(keyboardDialog);
+    }
 }
 
 ///

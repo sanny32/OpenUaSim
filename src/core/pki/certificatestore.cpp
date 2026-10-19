@@ -156,6 +156,13 @@ void describeCryptography(const QSslCertificate &certificate, CertificateInfo &i
     const std::unique_ptr<X509, decltype(&X509_free)> parsed(d2i_X509(nullptr, &data, long(der.size())), X509_free);
     if (!parsed)
         return;
+    // The native macOS TLS backend does not implement QSslCertificate::toText().
+    const std::unique_ptr<BIO, decltype(&BIO_free)> output(BIO_new(BIO_s_mem()), BIO_free);
+    if (output && X509_print(output.get(), parsed.get()) == 1) {
+        char *text = nullptr;
+        const long size = BIO_get_mem_data(output.get(), &text);
+        info.details = QString::fromUtf8(text, size);
+    }
     const int signature = X509_get_signature_nid(parsed.get());
     if (signature != NID_undef)
         info.signatureAlgorithm = QString::fromLatin1(OBJ_nid2ln(signature));
@@ -234,10 +241,10 @@ CertificateInfo describe(const QSslCertificate &certificate, CertificateInfo::Ca
     info.validTo = certificate.expiryDate().toLocalTime();
     info.fingerprint = hex(certificate.digest(QCryptographicHash::Sha1), ':');
     info.sha256Fingerprint = hex(certificate.digest(QCryptographicHash::Sha256), ':');
-    info.details = certificate.toText();
 #ifdef OUASIM_HAVE_ENCRYPTION
     describeCryptography(certificate, info);
 #else
+    info.details = certificate.toText();
     info.keyUsage = keyUsage(certificate);
 #endif
     info.filePath = QDir::toNativeSeparators(filePath);

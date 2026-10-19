@@ -10,6 +10,7 @@
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QScrollBar>
+#include <QShortcut>
 #include <QTableWidget>
 #include <QUrl>
 
@@ -104,6 +105,14 @@ CertificatesPage::CertificatesPage(QWidget *parent)
             this, &CertificatesPage::showCertificate);
     connect(previewDelegate, &ValuePreviewDelegate::expandRequested, this, &CertificatesPage::showDetailValue);
     connect(ui->detailsView, &QTableWidget::activated, this, &CertificatesPage::showDetailValue);
+    // Return does not activate table items on every platform (notably macOS).
+    for (const auto key : { Qt::Key_Return, Qt::Key_Enter }) {
+        auto *shortcut = new QShortcut(QKeySequence(key), ui->detailsView);
+        shortcut->setContext(Qt::WidgetShortcut);
+        connect(shortcut, &QShortcut::activated, this, [this] {
+            showDetailValue(ui->detailsView->currentIndex());
+        });
+    }
     connect(ui->generateButton, &QPushButton::clicked, this, &CertificatesPage::generateRequested);
     connect(ui->importButton, &QPushButton::clicked, this, &CertificatesPage::requestImport);
     connect(ui->exportButton, &QPushButton::clicked, this, &CertificatesPage::requestExport);
