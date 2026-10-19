@@ -91,7 +91,7 @@ void SimulationEngine::updateVariable(const SimulatedVariable &variable)
 ///
 void SimulationEngine::removeVariable(const QString &nodeId)
 {
-    if (_variables.remove(nodeId) > 0)
+    if (_variables.remove(nodeId))
         rebuildTimers();
 }
 
