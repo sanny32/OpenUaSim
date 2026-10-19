@@ -75,7 +75,7 @@ public:
 
     ///
     /// \brief Returns the URL clients connect to.
-    /// \return URL such as "opc.tcp://localhost:4840", or empty before the first start.
+    /// \return URL such as "opc.tcp://localhost:48400", or empty before the first start.
     ///
     QString endpointUrl() const;
 

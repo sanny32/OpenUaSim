@@ -7,7 +7,7 @@
 
 namespace {
 
-EndpointInfo endpoint(const QString &name, int port = 4840, const QString &policy = QStringLiteral("None"),
+EndpointInfo endpoint(const QString &name, int port = kDefaultEndpointPort, const QString &policy = QStringLiteral("None"),
                       const QString &mode = QStringLiteral("None"))
 {
     EndpointInfo info;
@@ -62,7 +62,7 @@ void TestListenerSettings::skipsDisabledEndpoints()
     const ListenerSettings settings = ListenerSettingsBuilder::build({ disabled, endpoint(QStringLiteral("on")) });
     QVERIFY2(settings.ok(), qPrintable(settings.error));
     QCOMPARE(settings.hostname, QStringLiteral("host-on"));
-    QCOMPARE(settings.port, quint16(4840));
+    QCOMPARE(settings.port, quint16(kDefaultEndpointPort));
 }
 
 void TestListenerSettings::collectsUsers()

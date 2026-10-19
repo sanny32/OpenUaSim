@@ -23,7 +23,7 @@ struct ListenerSettings
     /// \brief Host name advertised in endpoint URLs, taken from the first enabled endpoint.
     QString hostname;
     /// \brief TCP port shared by every enabled endpoint.
-    quint16 port = 4840;
+    quint16 port = kDefaultEndpointPort;
     /// \brief Whether any enabled endpoint accepts anonymous user tokens.
     bool anonymousAllowed = false;
     /// \brief User names and passwords of the endpoints accepting username tokens.

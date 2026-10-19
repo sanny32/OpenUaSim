@@ -14,7 +14,7 @@ namespace DefaultProject {
 
 ///
 /// \brief Builds the sample factory-line project.
-/// \return Project with an anonymous unsecured endpoint on port 4840 and a FactoryLine_01
+/// \return Project with an anonymous unsecured endpoint on port 48400 and a FactoryLine_01
 ///         folder holding a motor, a conveyor, a pump and a tank with simulated variables.
 ///
 ProjectConfig create();

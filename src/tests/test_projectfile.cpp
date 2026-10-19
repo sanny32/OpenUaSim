@@ -90,7 +90,7 @@ void TestProjectFile::preservesVariableFields()
     QCOMPARE(speed.simulation.amplitude, 500.0);
     QCOMPARE(speed.simulation.offset, 1000.0);
     QCOMPARE(loaded.endpoints.size(), 1);
-    QCOMPARE(loaded.endpoints.first().url(), QStringLiteral("opc.tcp://localhost:4840"));
+    QCOMPARE(loaded.endpoints.first().url(), QStringLiteral("opc.tcp://localhost:48400"));
 }
 
 void TestProjectFile::preservesEveryDataTypeValue_data()
@@ -149,7 +149,7 @@ void TestProjectFile::missingFieldsUseDefaults()
     QVERIFY2(result.ok(), qPrintable(result.error));
 
     const EndpointInfo &loadedEndpoint = result.project.endpoints.first();
-    QCOMPARE(loadedEndpoint.port, 4840);
+    QCOMPARE(loadedEndpoint.port, kDefaultEndpointPort);
     QCOMPARE(loadedEndpoint.protocol, QStringLiteral("opc.tcp"));
     QVERIFY(loadedEndpoint.enabled);
     QVERIFY(loadedEndpoint.allowAnonymous);

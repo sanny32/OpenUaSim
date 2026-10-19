@@ -10,6 +10,9 @@
 
 #include <QString>
 
+/// rief Port of new endpoints; not the IANA 4840 so the simulator can run next to a real server.
+constexpr int kDefaultEndpointPort = 48400;
+
 ///
 /// \brief Describes one endpoint the server listens on.
 ///
@@ -22,7 +25,7 @@ struct EndpointInfo
     /// \brief Host name or address.
     QString hostname;
     /// \brief TCP port.
-    int port = 4840;
+    int port = kDefaultEndpointPort;
     /// \brief Optional URL path, starting with a slash.
     QString path;
     /// \brief Security policy name.
@@ -44,7 +47,7 @@ struct EndpointInfo
 
     ///
     /// \brief Builds the endpoint URL from its parts.
-    /// \return URL such as "opc.tcp://localhost:4840/discovery".
+    /// \return URL such as "opc.tcp://localhost:48400/discovery".
     ///
     QString url() const
     {
