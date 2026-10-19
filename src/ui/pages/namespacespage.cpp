@@ -29,7 +29,9 @@ NamespacesPage::NamespacesPage(QWidget *parent)
     ViewSetup::bindCopyButton(ui->copyUriButton, ui->uriEdit);
     ui->importButton->setIcon(AppIcons::icon(QStringLiteral("download")));
     ui->exportButton->setIcon(AppIcons::icon(QStringLiteral("upload")));
+    ui->removeModelButton->setIcon(AppIcons::icon(QStringLiteral("trash")));
     ui->exportButton->setEnabled(false);
+    ui->removeModelButton->setEnabled(false);
 
     ViewSetup::configureTable(ui->namespacesView);
     _searchModel = ViewSetup::attachTableSearch(ui->namespacesView, _namespacesModel, ui->searchEdit);
@@ -39,6 +41,7 @@ NamespacesPage::NamespacesPage(QWidget *parent)
             this, &NamespacesPage::showNamespace);
     connect(ui->importButton, &QPushButton::clicked, this, &NamespacesPage::importRequested);
     connect(ui->exportButton, &QPushButton::clicked, this, &NamespacesPage::requestExport);
+    connect(ui->removeModelButton, &QPushButton::clicked, this, &NamespacesPage::requestModelRemoval);
 }
 
 ///
@@ -70,42 +73,48 @@ const NamespacesModel *NamespacesPage::namespacesModel() const
 
 ///
 /// \brief Fills the details panel from the selected namespace.
-/// \param current Selected table index.
 ///
-void NamespacesPage::showNamespace(const QModelIndex &current)
+void NamespacesPage::showNamespace()
 {
-    const QModelIndex source = _searchModel->mapToSource(current);
-    ui->detailsHost->setEnabled(source.isValid());
-    ui->exportButton->setEnabled(!currentUri().isEmpty());
-    if (!source.isValid())
+    const NamespaceInfo *ns = currentNamespace();
+    ui->detailsHost->setEnabled(ns != nullptr);
+    ui->exportButton->setEnabled(ns && ns->index > 0);
+    ui->removeModelButton->setEnabled(ns && !ns->modelFile.isEmpty());
+    if (!ns)
         return;
-    const NamespaceInfo &ns = _namespacesModel->item(source.row());
-    ui->indexEdit->setText(QString::number(ns.index));
-    ui->uriEdit->setText(ns.uri);
-    ui->versionEdit->setText(ns.version);
-    ui->publicationDateEdit->setDate(ns.publicationDate);
-    ui->descriptionEdit->setPlainText(ns.description);
+    ui->indexEdit->setText(QString::number(ns->index));
+    ui->uriEdit->setText(ns->uri);
+    ui->versionEdit->setText(ns->version);
+    ui->publicationDateEdit->setDate(ns->publicationDate);
+    ui->descriptionEdit->setPlainText(ns->description);
 }
 
 ///
-/// \brief Returns the URI of the selected namespace when it can be exported.
-/// \return URI, or empty when nothing or the standard namespace 0 is selected.
+/// \brief Returns the selected namespace.
+/// \return Namespace, or null when nothing is selected.
 ///
-QString NamespacesPage::currentUri() const
+const NamespaceInfo *NamespacesPage::currentNamespace() const
 {
     const QModelIndex source = _searchModel->mapToSource(ui->namespacesView->currentIndex());
-    if (!source.isValid())
-        return {};
-    const NamespaceInfo &ns = _namespacesModel->item(source.row());
-    return ns.index > 0 ? ns.uri : QString();
+    return source.isValid() ? &_namespacesModel->item(source.row()) : nullptr;
 }
 
 ///
-/// \brief Asks to save the nodes of the selected namespace.
+/// \brief Asks to save the nodes of the selected namespace unless it is the standard namespace 0.
 ///
 void NamespacesPage::requestExport()
 {
-    const QString uri = currentUri();
-    if (!uri.isEmpty())
-        emit exportRequested(uri);
+    const NamespaceInfo *ns = currentNamespace();
+    if (ns && ns->index > 0)
+        emit exportRequested(ns->uri);
+}
+
+///
+/// \brief Asks to unload the imported model the selected namespace came from.
+///
+void NamespacesPage::requestModelRemoval()
+{
+    const NamespaceInfo *ns = currentNamespace();
+    if (ns && !ns->modelFile.isEmpty())
+        emit modelRemovalRequested(ns->modelFile);
 }

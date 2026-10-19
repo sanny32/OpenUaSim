@@ -94,6 +94,7 @@ private slots:
     void openFailureShowsMessage();
     void closingAsksAboutUnsavedChanges();
     void importsAndExportsModels();
+    void removesModelAfterConfirmation();
     void exportsNamespaceAndLog();
     void panelsFitTheDefaultWindow();
 };
@@ -656,6 +657,29 @@ void TestMainWindow::importsAndExportsModels()
     QCOMPARE(box->windowTitle(), QStringLiteral("Model not imported"));
 #endif
     box->close();
+}
+
+void TestMainWindow::removesModelAfterConfirmation()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    QVERIFY(controller.importNodeSet(QStringLiteral(OUASIM_TEST_DATA_DIR "/mixer.NodeSet2.xml")));
+    MainWindow window;
+    window.setController(&controller);
+    auto *view = child<QTableView>(window, "namespacesView");
+    ViewSetup::selectRow(view, view->model()->rowCount() - 1);
+
+    child<QPushButton>(window, "removeModelButton")->click();
+    auto *question = window.findChild<QMessageBox *>();
+    QVERIFY(question);
+    question->button(QMessageBox::Cancel)->click();
+    QCOMPARE(controller.project().nodeSetFiles.size(), 1);
+
+    QTRY_VERIFY(!window.findChild<QMessageBox *>());
+    child<QPushButton>(window, "removeModelButton")->click();
+    window.findChild<QMessageBox *>()->button(QMessageBox::Yes)->click();
+    QVERIFY(controller.project().nodeSetFiles.isEmpty());
+    QCOMPARE(view->model()->rowCount(), controller.snapshot().namespaces.size());
 }
 
 void TestMainWindow::exportsNamespaceAndLog()

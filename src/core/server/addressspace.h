@@ -19,6 +19,7 @@
 #include "simulation/valuesink.h"
 
 class QUaBaseDataVariable;
+class QUaBaseVariable;
 class QUaNode;
 class QUaServer;
 
@@ -57,6 +58,12 @@ public:
     void clear();
 
     ///
+    /// \brief Removes the built nodes and builds later ones on another server.
+    /// \param server Server that receives the nodes; must outlive this object or the next call.
+    ///
+    void setServer(QUaServer *server);
+
+    ///
     /// \brief Returns the number of built nodes.
     /// \return Folders, objects and variables built by the last build().
     ///
@@ -82,6 +89,13 @@ public:
     /// \return Good, Uncertain or Bad, from the severity of the status code; Bad for an unknown variable.
     ///
     VariableInfo::Quality quality(const QString &nodeId) const;
+
+    ///
+    /// \brief Returns the quality of any server variable's value.
+    /// \param variable Variable to inspect.
+    /// \return Good, Uncertain or Bad, from the severity of its status code.
+    ///
+    static VariableInfo::Quality qualityOf(const QUaBaseVariable &variable);
 
     ///
     /// \brief Sets the value of a variable from the server side, keeping its data type.

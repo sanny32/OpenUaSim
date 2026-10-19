@@ -26,4 +26,6 @@ struct NamespaceInfo
     QDate publicationDate;
     /// \brief Free-form description.
     QString description;
+    /// \brief Imported NodeSet2 file the namespace came from; empty for namespaces 0 and 1.
+    QString modelFile;
 };

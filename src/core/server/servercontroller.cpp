@@ -51,15 +51,50 @@ ServerController::~ServerController()
 }
 
 ///
-/// \brief Replaces the served project and rebuilds its nodes; a running server keeps running.
+/// \brief Replaces the served project and rebuilds its nodes. Models the new project does not import are
+///        unloaded by recreating the server, which restarts a running one; otherwise it keeps running.
 /// \param project Project to serve; nodes without node ids get ids from their browse paths.
 ///
 void ServerController::setProject(const ProjectConfig &project)
 {
     _project = project;
     ProjectNodes::assignMissingNodeIds(_project.nodes);
+    const bool unusedModels = std::any_of(_loadedNodeSets.cbegin(), _loadedNodeSets.cend(),
+                                          [this](const QString &file) { return !_project.nodeSetFiles.contains(file); });
+    if (unusedModels) {
+        reloadServer();
+        return;
+    }
     loadProjectNodeSets();
     rebuildNodes();
+}
+
+///
+/// \brief Unloads an imported NodeSet2 model and drops it from the project.
+/// \param fileName Model file as listed in the project.
+/// \param error Receives the reason on failure; may be null.
+/// \return False when the project has no such model. The server is recreated without the model;
+///         a running server restarts, which disconnects its clients.
+///
+bool ServerController::removeNodeSet(const QString &fileName, QString *error)
+{
+    if (!_project.nodeSetFiles.removeOne(fileName)) {
+        if (error)
+            *error = tr("'%1' is not imported").arg(fileName);
+        return false;
+    }
+    reloadServer();
+    emit projectEdited();
+    return true;
+}
+
+///
+/// \brief Returns the imported model each namespace came from.
+/// \return Model file keyed by namespace URI; namespaces 0 and 1 are not listed.
+///
+QHash<QString, QString> ServerController::modelNamespaces() const
+{
+    return _modelNamespaces;
 }
 
 ///
@@ -389,6 +424,8 @@ bool ServerController::isRunning() const
 ServerSnapshot ServerController::snapshot(const QDateTime &now) const
 {
     ServerSnapshot result = SnapshotBuilder::build(_project, _server, _addressSpace, now);
+    for (NamespaceInfo &ns : result.namespaces)
+        ns.modelFile = _modelNamespaces.value(ns.uri);
     result.log = _log;
     result.certificates = _certificates.certificates();
     return result;
@@ -498,6 +535,7 @@ bool ServerController::loadNodeSet(const QString &fileName, QString *error)
 {
     if (_loadedNodeSets.contains(fileName))
         return true;
+    const QStringList namespacesBefore = _server.uaServer()->namespaces();
     const QUaNodeSetResult result = _server.uaServer()->loadNodeSet(fileName);
     if (!result.isOk()) {
         appendLog(LogMapper::entry(LogEntry::Level::Error, LogEntry::Category::Server,
@@ -512,21 +550,38 @@ bool ServerController::loadNodeSet(const QString &fileName, QString *error)
     appendLog(LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::Server,
                                tr("Model '%1' loaded with %2 nodes").arg(fileName).arg(result.addedNodes.size())));
     _loadedNodeSets.append(fileName);
+    for (const QString &uri : _server.uaServer()->namespaces()) {
+        if (!namespacesBefore.contains(uri))
+            _modelNamespaces.insert(uri, fileName);
+    }
     return true;
 }
 
 ///
-/// \brief Loads the project's NodeSet2 files; models of earlier projects stay until the application restarts.
+/// \brief Loads the project's NodeSet2 files that are not loaded yet.
 ///
 void ServerController::loadProjectNodeSets()
 {
     for (const QString &fileName : std::as_const(_project.nodeSetFiles))
         loadNodeSet(fileName, nullptr);
-    for (const QString &loaded : std::as_const(_loadedNodeSets)) {
-        if (!_project.nodeSetFiles.contains(loaded))
-            appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
-                                       tr("Model '%1' stays loaded until OpenUaSim restarts").arg(loaded)));
-    }
+}
+
+///
+/// \brief Recreates the server with the project's models and nodes only; a running server restarts.
+///
+void ServerController::reloadServer()
+{
+    const bool wasRunning = isRunning();
+    stop();
+    _addressSpace.clear();
+    _server.reset();
+    _addressSpace.setServer(_server.uaServer());
+    _loadedNodeSets.clear();
+    _modelNamespaces.clear();
+    loadProjectNodeSets();
+    rebuildNodes();
+    if (wasRunning)
+        start();
 }
 
 ///

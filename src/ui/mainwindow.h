@@ -187,6 +187,8 @@ private:
     void exportModel();
     void exportNamespace(const QString &namespaceUri);
     void exportLog(const QList<LogEntry> &entries);
+    void confirmRemoveModel(const QString &fileName);
+    void removePendingModel();
     void importCertificate(CertificateInfo::Category category);
     void exportCertificate(const QString &filePath);
     void moveCertificate(const QString &filePath, CertificateInfo::Category category);
@@ -208,6 +210,7 @@ private:
     QString _pendingParentId;
     QString _pendingDeleteId;
     QString _pendingRenameId;
+    QString _pendingModelFile;
     QString _pendingCertificate;
     QActionGroup *_pageActions = nullptr;
     bool _contentSplitApplied = false;

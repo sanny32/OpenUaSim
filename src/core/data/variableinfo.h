@@ -63,4 +63,6 @@ struct VariableInfo
     Quality configuredQuality = Quality::Good;
     /// \brief Simulation that drives the value.
     SimulationSettings simulation;
+    /// \brief Whether the variable comes from an imported model, whose properties cannot be edited.
+    bool readOnly = false;
 };

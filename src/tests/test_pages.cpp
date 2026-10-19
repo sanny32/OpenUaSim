@@ -107,6 +107,8 @@ private slots:
     void logPageDetailsAndClear();
     void logPageExportsVisibleEntries();
     void namespacesPageRequestsImportAndExport();
+    void namespacesPageRemovesImportedModels();
+    void objectsPageShowsImportedVariablesReadOnly();
 
 private:
     ServerSnapshot _snapshot;
@@ -811,6 +813,39 @@ void TestPages::namespacesPageRequestsImportAndExport()
     exportButton->click();
     QCOMPARE(exports.count(), 1);
     QCOMPARE(exports.at(0).at(0).toString(), _snapshot.namespaces.at(1).uri);
+}
+
+void TestPages::namespacesPageRemovesImportedModels()
+{
+    QList<NamespaceInfo> namespaces = _snapshot.namespaces;
+    namespaces.last().modelFile = QStringLiteral("/models/robot.xml");
+    NamespacesPage page;
+    page.setNamespaces(namespaces);
+    auto *remove = child<QPushButton>(page, "removeModelButton");
+    auto *view = child<QTableView>(page, "namespacesView");
+    QSignalSpy requested(&page, &NamespacesPage::modelRemovalRequested);
+
+    QVERIFY(!remove->isEnabled());
+    ViewSetup::selectRow(view, 1);
+    QVERIFY(!remove->isEnabled());
+    ViewSetup::selectRow(view, int(namespaces.size()) - 1);
+    QVERIFY(remove->isEnabled());
+    remove->click();
+    QCOMPARE(requested.count(), 1);
+    QCOMPARE(requested.first().first().toString(), QStringLiteral("/models/robot.xml"));
+}
+
+void TestPages::objectsPageShowsImportedVariablesReadOnly()
+{
+    QHash<QString, QList<VariableInfo>> variables = _snapshot.variables;
+    for (QList<VariableInfo> &list : variables) {
+        for (VariableInfo &variable : list)
+            variable.readOnly = true;
+    }
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, variables);
+    QVERIFY(!child<QWidget>(page, "propertiesHost")->isEnabled());
+    QCOMPARE(child<QLineEdit>(page, "displayNameEdit")->text(), QStringLiteral("Speed"));
 }
 
 QTEST_MAIN(TestPages)

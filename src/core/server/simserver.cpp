@@ -105,17 +105,11 @@ QUaMessageSecurityModes securityModes(const QStringList &names)
 ///
 SimServer::SimServer(QObject *parent)
     : QObject(parent)
-    , _server(new QUaServer(this))
     , _diagnosticsTimer(new QTimer(this))
 {
     _diagnosticsTimer->setInterval(kDiagnosticsRefreshMs);
-    connect(_server, &QUaServer::logMessage, this, &SimServer::handleLog);
-    connect(_server, &QUaServer::clientConnected, this, &SimServer::handleClientConnected);
-    connect(_server, &QUaServer::clientDisconnected, this, &SimServer::handleClientDisconnected);
     connect(_diagnosticsTimer, &QTimer::timeout, this, &SimServer::refreshSessionDiagnostics);
-#ifdef OUASIM_HAVE_ENCRYPTION
-    connect(_server, &QUaServer::clientCertificateRejected, this, &SimServer::handleCertificateRejected);
-#endif
+    createServer();
 }
 
 ///
@@ -123,9 +117,44 @@ SimServer::SimServer(QObject *parent)
 ///
 SimServer::~SimServer()
 {
+    releaseServer();
+}
+
+///
+/// \brief Replaces the server with an empty one, dropping every node and namespace loaded into it.
+///        A running server is stopped first; the next start() serves the new one.
+///
+void SimServer::reset()
+{
+    stop();
+    releaseServer();
+    createServer();
+}
+
+///
+/// \brief Creates the QUaServer and forwards its log, session and certificate events.
+///
+void SimServer::createServer()
+{
+    _server = new QUaServer(this);
+    connect(_server, &QUaServer::logMessage, this, &SimServer::handleLog);
+    connect(_server, &QUaServer::clientConnected, this, &SimServer::handleClientConnected);
+    connect(_server, &QUaServer::clientDisconnected, this, &SimServer::handleClientDisconnected);
+#ifdef OUASIM_HAVE_ENCRYPTION
+    connect(_server, &QUaServer::clientCertificateRejected, this, &SimServer::handleCertificateRejected);
+#endif
+}
+
+///
+/// \brief Stops and deletes the QUaServer.
+///
+void SimServer::releaseServer()
+{
     // Disconnect first so stopping does not call back into a half-destroyed object.
     _server->disconnect(this);
     _server->stop();
+    delete _server;
+    _server = nullptr;
 }
 
 ///

@@ -28,8 +28,9 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 - Keep the simulation in `.ouasim` JSON projects — New, Open, Save and Save As;
   the last project reopens on startup and unsaved changes are confirmed before
   they are dropped.
-- Import NodeSet2 companion models and export the project nodes, or any other
-  served namespace, as NodeSet2.
+- Import NodeSet2 companion models, browse their objects and variables on the
+  Objects page, and remove them again from the Namespaces page. Export the
+  project nodes, or any other served namespace, as NodeSet2.
 - Inspect the standard types in use, the namespace array, active and closed
   sessions, and the server log filtered by level and category; export the
   filtered log to CSV.
@@ -40,8 +41,9 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 - QUaServer serves a single listener, so all enabled endpoints share one TCP
   port; endpoint changes on a running server apply on restart.
 - Secure endpoints need an installed server certificate.
-- Imported NodeSet2 models stay loaded until the application restarts; their
-  nodes are served but not listed on the Objects page.
+- Nodes of imported models are read-only on the Objects page, and their values
+  there refresh only when the address space is rebuilt. Removing a model
+  restarts a running server, which disconnects its clients.
 
 ## Quick start
 

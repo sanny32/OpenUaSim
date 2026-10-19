@@ -62,6 +62,12 @@ public:
     void stop();
 
     ///
+    /// \brief Replaces the server with an empty one, dropping every node and namespace loaded into it.
+    ///        A running server is stopped first; the next start() serves the new one.
+    ///
+    void reset();
+
+    ///
     /// \brief Tells whether the server is listening.
     /// \return True between a successful start() and stop().
     ///
@@ -141,6 +147,8 @@ signals:
     void clientCertificateRejected(const QByteArray &certificate, const QString &reason);
 
 private:
+    void createServer();
+    void releaseServer();
     bool configure(const ProjectConfig &project, const ListenerSettings &listener);
     bool configureSecurity(const ListenerSettings &listener);
     void applyUsers(const ListenerSettings &listener);
@@ -153,7 +161,7 @@ private:
     void handleCertificateRejected(const QByteArray &certificate, const QUaStatusCode &statusCode);
 #endif
 
-    QUaServer *_server;
+    QUaServer *_server = nullptr;
     QTimer *_diagnosticsTimer;
     SessionTracker _sessions;
     QDateTime _startTime;

@@ -42,7 +42,8 @@ public:
     ~ServerController() override;
 
     ///
-    /// \brief Replaces the served project and rebuilds its nodes; a running server keeps running.
+    /// \brief Replaces the served project and rebuilds its nodes. Models the new project does not import are
+    ///        unloaded by recreating the server, which restarts a running one; otherwise it keeps running.
     /// \param project Project to serve; nodes without node ids get ids from their browse paths.
     ///
     void setProject(const ProjectConfig &project);
@@ -106,6 +107,21 @@ public:
     /// \return False when the file cannot be loaded or was already imported; warnings go to the log.
     ///
     bool importNodeSet(const QString &fileName, QString *error = nullptr);
+
+    ///
+    /// \brief Unloads an imported NodeSet2 model and drops it from the project.
+    /// \param fileName Model file as listed in the project.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return False when the project has no such model. The server is recreated without the model;
+    ///         a running server restarts, which disconnects its clients.
+    ///
+    bool removeNodeSet(const QString &fileName, QString *error = nullptr);
+
+    ///
+    /// \brief Returns the imported model each namespace came from.
+    /// \return Model file keyed by namespace URI; namespaces 0 and 1 are not listed.
+    ///
+    QHash<QString, QString> modelNamespaces() const;
 
     ///
     /// \brief Writes the nodes of the application namespace, i.e. the project nodes, as a NodeSet2 file.
@@ -326,6 +342,7 @@ private:
     void setRestartRequired(bool required);
     bool loadNodeSet(const QString &fileName, QString *error);
     void loadProjectNodeSets();
+    void reloadServer();
     bool finishCertificateChange(bool changed);
     void appendLog(const LogEntry &entry);
     void handleClientWrite(const QString &nodeId, const QVariant &value);
@@ -338,5 +355,6 @@ private:
     QList<LogEntry> _log;
     bool _restartRequired = false;
     QStringList _loadedNodeSets;
+    QHash<QString, QString> _modelNamespaces;
     CertificateStore _certificates;
 };

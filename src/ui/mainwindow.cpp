@@ -145,6 +145,7 @@ void MainWindow::setController(ServerController *controller)
     connect(ui->actionExportModel, &QAction::triggered, this, &MainWindow::exportModel);
     connect(ui->namespacesPage, &NamespacesPage::importRequested, this, &MainWindow::importModel);
     connect(ui->namespacesPage, &NamespacesPage::exportRequested, this, &MainWindow::exportNamespace);
+    connect(ui->namespacesPage, &NamespacesPage::modelRemovalRequested, this, &MainWindow::confirmRemoveModel);
     connect(ui->endpointsPage, &EndpointsPage::endpointsChangeRequested, this, &MainWindow::applyEndpoints);
     connect(controller, &ServerController::endpointsChanged, this, &MainWindow::reloadEndpoints);
     connect(controller, &ServerController::restartRequiredChanged, this, &MainWindow::updateRestartNote);
@@ -848,6 +849,36 @@ void MainWindow::exportNamespace(const QString &namespaceUri)
                                                           nodeSetFilter());
     if (!fileName.isEmpty())
         exportNamespaceTo(fileName, namespaceUri);
+}
+
+///
+/// \brief Asks before unloading an imported model.
+/// \param fileName Model file.
+///
+void MainWindow::confirmRemoveModel(const QString &fileName)
+{
+    _pendingModelFile = fileName;
+    auto *box = new QMessageBox(QMessageBox::Question, tr("Remove Model"),
+                                tr("Remove the model '%1' with its nodes and namespaces? "
+                                   "A running server restarts and disconnects its clients.")
+                                    .arg(QFileInfo(fileName).fileName()),
+                                QMessageBox::Yes | QMessageBox::Cancel, this);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    connect(box, &QDialog::finished, this, &MainWindow::removePendingModel);
+    box->open();
+}
+
+///
+/// \brief Unloads the model the Remove Model question was answered Yes for.
+///
+void MainWindow::removePendingModel()
+{
+    const auto *box = qobject_cast<const QMessageBox *>(sender());
+    if (!_controller || !box || box->standardButton(box->clickedButton()) != QMessageBox::Yes)
+        return;
+    QString error;
+    if (!_controller->removeNodeSet(_pendingModelFile, &error))
+        showError(tr("Model not removed"), error);
 }
 
 ///

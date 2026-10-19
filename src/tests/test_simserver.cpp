@@ -4,6 +4,8 @@
 #include <QSignalSpy>
 #include <QTest>
 
+#include <QUaServer>
+
 #include "server/simserver.h"
 #include "testport.h"
 #include "uatestclient.h"
@@ -43,6 +45,7 @@ class TestSimServer : public QObject
 private slots:
     void init();
     void startsAndStops();
+    void resetReplacesServer();
     void restartsAfterStop();
     void reportsInvalidEndpoints();
     void reportsPortInUse();
@@ -87,6 +90,24 @@ void TestSimServer::startsAndStops()
     QCOMPARE(running.at(1).first().toBool(), false);
     QVERIFY(containsMessage(log, QStringLiteral("Server started on")));
     QVERIFY(containsMessage(log, QStringLiteral("Server stopped")));
+}
+
+void TestSimServer::resetReplacesServer()
+{
+    SimServer server;
+    QVERIFY(server.uaServer()->loadNodeSet(QStringLiteral(OUASIM_TEST_DATA_DIR "/mixer.NodeSet2.xml")).isOk());
+    QVERIFY(server.start(project(_port)));
+    QSignalSpy running(&server, &SimServer::runningChanged);
+
+    server.reset();
+    QVERIFY(!server.isRunning());
+    QCOMPARE(running.count(), 1);
+    QVERIFY(!server.uaServer()->namespaces().contains(QStringLiteral("urn:openuasim:test:mixer")));
+
+    QVERIFY(server.start(project(_port)));
+    UaTestClient client;
+    QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
+    QTRY_COMPARE(server.clientCount(), 1);
 }
 
 void TestSimServer::restartsAfterStop()

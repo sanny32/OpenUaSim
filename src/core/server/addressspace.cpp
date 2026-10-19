@@ -110,6 +110,16 @@ void AddressSpace::clear()
 }
 
 ///
+/// \brief Removes the built nodes and builds later ones on another server.
+/// \param server Server that receives the nodes; must outlive this object or the next call.
+///
+void AddressSpace::setServer(QUaServer *server)
+{
+    clear();
+    _server = server;
+}
+
+///
 /// \brief Returns the number of built nodes.
 /// \return Folders, objects and variables built by the last build().
 ///
@@ -147,10 +157,18 @@ QVariant AddressSpace::value(const QString &nodeId) const
 VariableInfo::Quality AddressSpace::quality(const QString &nodeId) const
 {
     const QUaBaseDataVariable *variable = _variables.value(nodeId);
-    if (!variable)
-        return VariableInfo::Quality::Bad;
+    return variable ? qualityOf(*variable) : VariableInfo::Quality::Bad;
+}
+
+///
+/// \brief Returns the quality of any server variable's value.
+/// \param variable Variable to inspect.
+/// \return Good, Uncertain or Bad, from the severity of its status code.
+///
+VariableInfo::Quality AddressSpace::qualityOf(const QUaBaseVariable &variable)
+{
     // Bits 30-31 of a StatusCode hold its severity (OPC UA Part 4, 7.39).
-    switch (UA_StatusCode(variable->statusCode()) >> 30) {
+    switch (UA_StatusCode(variable.statusCode()) >> 30) {
     case 0:  return VariableInfo::Quality::Good;
     case 1:  return VariableInfo::Quality::Uncertain;
     default: return VariableInfo::Quality::Bad;

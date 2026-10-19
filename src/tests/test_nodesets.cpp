@@ -10,8 +10,13 @@
 
 #include <QUaServer>
 
+#include <algorithm>
+
 #include "project/defaultproject.h"
+#include "server/importednodes.h"
 #include "server/servercontroller.h"
+#include "testport.h"
+#include "uatestclient.h"
 
 namespace {
 
@@ -54,6 +59,11 @@ private slots:
     void importRejectsDuplicate();
     void importReportsBrokenFile();
     void setProjectLoadsItsModels();
+    void removeUnloadsModel();
+    void removeRestartsRunningServer();
+    void removeRejectsUnknownModel();
+    void snapshotListsImportedNodes();
+    void namesBuiltInDataTypes();
     void exportWritesFile();
     void exportsImportedNamespace();
     void exportRefusesStandardNamespace();
@@ -184,7 +194,91 @@ void TestNodeSets::setProjectLoadsItsModels()
     QVERIFY(controller.server().uaServer()->namespaces().contains(QStringLiteral("urn:openuasim:test:mixer")));
 
     controller.setProject(DefaultProject::create());
-    QVERIFY(logContains(controller.log(), QStringLiteral("stays loaded until OpenUaSim restarts")));
+    QVERIFY(!controller.server().uaServer()->namespaces().contains(QStringLiteral("urn:openuasim:test:mixer")));
+    QVERIFY(controller.addressSpace().hasVariable(QStringLiteral("ns=1;s=Motor_01.Speed")));
+}
+
+void TestNodeSets::removeUnloadsModel()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    const QString mixer = testData(QStringLiteral("mixer.NodeSet2.xml"));
+    QVERIFY(controller.importNodeSet(mixer));
+    const QString path = controller.project().nodeSetFiles.first();
+    QCOMPARE(controller.modelNamespaces().value(QStringLiteral("urn:openuasim:test:mixer")), path);
+    QSignalSpy edited(&controller, &ServerController::projectEdited);
+
+    QVERIFY(controller.removeNodeSet(path));
+    QCOMPARE(edited.count(), 1);
+    QVERIFY(controller.project().nodeSetFiles.isEmpty());
+    QVERIFY(controller.modelNamespaces().isEmpty());
+    QVERIFY(!controller.server().uaServer()->namespaces().contains(QStringLiteral("urn:openuasim:test:mixer")));
+    QVERIFY(controller.addressSpace().hasVariable(QStringLiteral("ns=1;s=Motor_01.Speed")));
+    QVERIFY(controller.importNodeSet(mixer));
+}
+
+void TestNodeSets::removeRestartsRunningServer()
+{
+    ProjectConfig project = DefaultProject::create();
+    project.endpoints.first().port = TestPort::freePort();
+    project.nodeSetFiles = { testData(QStringLiteral("mixer.NodeSet2.xml")) };
+    ServerController controller;
+    controller.setProject(project);
+    QVERIFY(controller.start());
+
+    QVERIFY(controller.removeNodeSet(project.nodeSetFiles.first()));
+    QVERIFY(controller.isRunning());
+    UaTestClient client;
+    QCOMPARE(client.connect(controller.server().endpointUrl()), UA_STATUSCODE_GOOD);
+    QVariant value;
+    QCOMPARE(client.readValue(QStringLiteral("ns=1;s=Motor_01.Speed"), value), UA_STATUSCODE_GOOD);
+}
+
+void TestNodeSets::removeRejectsUnknownModel()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    QString error;
+    QVERIFY(!controller.removeNodeSet(QStringLiteral("missing.xml"), &error));
+    QVERIFY(error.contains(QStringLiteral("not imported")));
+}
+
+void TestNodeSets::snapshotListsImportedNodes()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    QVERIFY(controller.importNodeSet(testData(QStringLiteral("mixer.NodeSet2.xml"))));
+    const ServerSnapshot snapshot = controller.snapshot();
+
+    const QList<TreeNode> &objects = snapshot.addressSpace.first().children;
+    const auto mixer = std::find_if(objects.cbegin(), objects.cend(),
+                                    [](const TreeNode &node) { return node.text == QLatin1String("Mixer"); });
+    QVERIFY(mixer != objects.cend());
+    QCOMPARE(mixer->kind, TreeNode::Kind::Object);
+    QCOMPARE(mixer->children.size(), 1);
+    QCOMPARE(mixer->children.first().kind, TreeNode::Kind::Variable);
+
+    const QList<VariableInfo> variables = snapshot.variables.value(mixer->id);
+    QCOMPARE(variables.size(), 1);
+    QCOMPARE(variables.first().displayName, QStringLiteral("Speed"));
+    QCOMPARE(variables.first().dataType, QStringLiteral("Double"));
+    QCOMPARE(variables.first().value.toDouble(), 42.5);
+    QCOMPARE(variables.first().access, QStringLiteral("Read/Write"));
+    QVERIFY(variables.first().readOnly);
+
+    const auto ns = std::find_if(snapshot.namespaces.cbegin(), snapshot.namespaces.cend(), [](const NamespaceInfo &info) {
+        return info.uri == QLatin1String("urn:openuasim:test:mixer");
+    });
+    QVERIFY(ns != snapshot.namespaces.cend());
+    QCOMPARE(ns->modelFile, controller.project().nodeSetFiles.first());
+    QVERIFY(snapshot.namespaces.at(1).modelFile.isEmpty());
+}
+
+void TestNodeSets::namesBuiltInDataTypes()
+{
+    QCOMPARE(ImportedNodes::dataTypeName(QStringLiteral("i=1")), QStringLiteral("Boolean"));
+    QCOMPARE(ImportedNodes::dataTypeName(QStringLiteral("ns=0;i=13")), QStringLiteral("DateTime"));
+    QCOMPARE(ImportedNodes::dataTypeName(QStringLiteral("ns=2;i=3002")), QStringLiteral("ns=2;i=3002"));
 }
 
 void TestNodeSets::exportWritesFile()

@@ -217,7 +217,7 @@ void ObjectsPage::showVariable(const QModelIndex &current)
         return;
     }
     const VariableInfo &variable = _variablesModel->item(current.row());
-    ui->propertiesHost->setEnabled(true);
+    ui->propertiesHost->setEnabled(!variable.readOnly);
     ui->nodeIdEdit->setText(variable.nodeId);
     ui->displayNameEdit->setText(variable.displayName);
     ui->iconCombo->setCurrentIndex(ui->iconCombo->findData(variable.icon));

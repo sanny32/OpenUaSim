@@ -63,10 +63,17 @@ signals:
     ///
     void exportRequested(const QString &namespaceUri);
 
+    ///
+    /// \brief Asks to unload an imported NodeSet2 model.
+    /// \param fileName Model file the selected namespace came from.
+    ///
+    void modelRemovalRequested(const QString &fileName);
+
 private:
-    void showNamespace(const QModelIndex &current);
-    QString currentUri() const;
+    void showNamespace();
+    const NamespaceInfo *currentNamespace() const;
     void requestExport();
+    void requestModelRemoval();
 
     Ui::NamespacesPage *ui;
     NamespacesModel *_namespacesModel;

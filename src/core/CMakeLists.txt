@@ -60,6 +60,8 @@ add_library(ouasim_core STATIC
 
     server/addressspace.cpp
     server/addressspace.h
+    server/importednodes.cpp
+    server/importednodes.h
     server/listenersettings.cpp
     server/listenersettings.h
     server/logmapper.cpp
