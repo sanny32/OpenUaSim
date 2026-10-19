@@ -55,6 +55,31 @@ SessionInfo sessionInfo(const QUaSession *session, const QString &endpointUrl)
     return info;
 }
 
+///
+/// \brief Describes the subscriptions of a session from the server diagnostics.
+/// \param server Server holding the session.
+/// \param session Session to describe.
+/// \return Subscriptions in the order the server lists them.
+///
+QList<SubscriptionInfo> subscriptionsOf(const QUaServer &server, const QUaSession *session)
+{
+    QList<SubscriptionInfo> result;
+    const QList<QUaSubscriptionDiagnostics> subscriptions = server.subscriptionDiagnostics(session);
+    for (const QUaSubscriptionDiagnostics &subscription : subscriptions) {
+        SubscriptionInfo info;
+        info.id = subscription.subscriptionId;
+        info.publishingIntervalMs = subscription.publishingInterval;
+        info.publishingEnabled = subscription.publishingEnabled;
+        info.priority = subscription.priority;
+        info.monitoredItems = subscription.monitoredItemCount;
+        info.notifications = subscription.notificationsCount;
+        info.maxKeepAliveCount = subscription.maxKeepAliveCount;
+        info.maxLifetimeCount = subscription.maxLifetimeCount;
+        result.append(info);
+    }
+    return result;
+}
+
 #ifdef OUASIM_HAVE_ENCRYPTION
 ///
 /// \brief Converts security policy names into QUaServer flags.
@@ -393,7 +418,7 @@ void SimServer::handleClientDisconnected(const QUaSession *session)
 }
 
 ///
-/// \brief Copies the subscription count and last activity of the open sessions from the server diagnostics.
+/// \brief Copies the subscriptions and last activity of the open sessions from the server diagnostics.
 ///        Runs every two seconds while the server runs.
 ///
 void SimServer::refreshSessionDiagnostics()
@@ -403,7 +428,7 @@ void SimServer::refreshSessionDiagnostics()
     for (const QUaSession *session : sessions) {
         const QUaSessionDiagnostics diagnostics = _server->sessionDiagnostics(session);
         if (diagnostics.isValid)
-            changed |= _sessions.update(session->sessionId(), int(diagnostics.subscriptionsCount),
+            changed |= _sessions.update(session->sessionId(), subscriptionsOf(*_server, session),
                                         diagnostics.lastContactTime.toLocalTime());
     }
     if (changed)

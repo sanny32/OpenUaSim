@@ -13,6 +13,7 @@
 #include "namespacesmodel.h"
 #include "referencesmodel.h"
 #include "sessionsmodel.h"
+#include "subscriptionsmodel.h"
 #include "subtypesmodel.h"
 #include "variablesmodel.h"
 
@@ -55,6 +56,7 @@ private slots:
     void variablesModelUpdatesValues();
     void variablesModelShowsArrays();
     void variablesModelShowsAlarmState();
+    void subscriptionsModel();
     void tableModelsHaveNoChildren();
     void variablesModel();
     void variablesModelQuality_data();
@@ -176,6 +178,31 @@ void TestTableModels::variablesModelShowsAlarmState()
     QCOMPARE(model.index(2, VariablesModel::ColAlarm).data().toString(), QStringLiteral("High"));
     QCOMPARE(model.index(2, VariablesModel::ColAlarm).data(ItemRoles::Status),
              ItemRoles::statusValue(StatusKind::Error));
+}
+
+void TestTableModels::subscriptionsModel()
+{
+    SubscriptionInfo subscription;
+    subscription.id = 7;
+    subscription.publishingIntervalMs = 500.0;
+    subscription.publishingEnabled = true;
+    subscription.priority = 2;
+    subscription.monitoredItems = 3;
+    subscription.notifications = 40;
+    subscription.maxKeepAliveCount = 10;
+    subscription.maxLifetimeCount = 30;
+    SubscriptionsModel model;
+    model.setItems({ subscription });
+
+    QCOMPARE(model.columnCount(), int(SubscriptionsModel::ColCount));
+    QCOMPARE(header(model, SubscriptionsModel::ColPublishingInterval), QStringLiteral("Publishing Interval"));
+    QCOMPARE(model.index(0, SubscriptionsModel::ColId).data().toUInt(), 7u);
+    QCOMPARE(model.index(0, SubscriptionsModel::ColPublishingInterval).data().toString(), QStringLiteral("500 ms"));
+    QCOMPARE(model.index(0, SubscriptionsModel::ColPublishing).data().toString(), QStringLiteral("Enabled"));
+    QCOMPARE(model.index(0, SubscriptionsModel::ColMonitoredItems).data().toUInt(), 3u);
+    QCOMPARE(model.index(0, SubscriptionsModel::ColNotifications).data().toUInt(), 40u);
+    QCOMPARE(model.index(0, SubscriptionsModel::ColLifetime).data().toUInt(), 30u);
+    QVERIFY(!model.index(0, SubscriptionsModel::ColId).data(Qt::DecorationRole).isValid());
 }
 
 void TestTableModels::tableModelsHaveNoChildren()

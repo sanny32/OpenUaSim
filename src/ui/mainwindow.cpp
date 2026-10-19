@@ -32,6 +32,7 @@
 #include "project/projectnodes.h"
 #include "server/servercontroller.h"
 #include "serversettingsdialog.h"
+#include "subscriptionsdialog.h"
 #include "ui_mainwindow.h"
 #include "usersdialog.h"
 #include "viewsetup.h"
@@ -86,6 +87,7 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     connect(_logModel, &LogModel::modelReset, this, &MainWindow::updateStatusBarNote);
     connect(_logModel, &LogModel::rowsInserted, this, &MainWindow::updateStatusBarNote);
     connect(ui->logPage, &LogPage::exportRequested, this, &MainWindow::exportLog);
+    connect(ui->sessionsPage, &SessionsPage::subscriptionsRequested, this, &MainWindow::showSubscriptions);
     handleTabChange(ui->tabWidget->currentIndex());
 }
 
@@ -1044,6 +1046,17 @@ void MainWindow::exportNamespace(const QString &namespaceUri)
                                                           nodeSetFilter());
     if (!fileName.isEmpty())
         exportNamespaceTo(fileName, namespaceUri);
+}
+
+///
+/// \brief Lists the subscriptions of a session in a dialog.
+/// \param session Session to describe.
+///
+void MainWindow::showSubscriptions(const SessionInfo &session)
+{
+    auto *dialog = new SubscriptionsDialog(session, this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->open();
 }
 
 ///

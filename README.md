@@ -42,8 +42,8 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
   Objects page, and remove them again from the Namespaces page. Export the
   project nodes, or any other served namespace, as NodeSet2.
 - Inspect the standard types in use, the namespace array, active and closed
-  sessions, and the server log filtered by level and category; export the
-  filtered log to CSV.
+  sessions with their subscriptions, and the server log filtered by level and
+  category; export the filtered log to CSV.
 - Switch between light and dark application themes, or follow the system.
 - Use the interface in English or Russian; **View → Language** switches it at
   once, without restarting.

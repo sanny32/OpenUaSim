@@ -49,6 +49,8 @@ SessionsPage::SessionsPage(QWidget *parent)
             this, &SessionsPage::showSession);
     connect(ui->stateFilterCombo, &QComboBox::currentIndexChanged,
             this, &SessionsPage::applyStateFilter);
+    connect(ui->showSubscriptionsButton, &QToolButton::clicked, this, &SessionsPage::requestSubscriptions);
+    ui->showSubscriptionsButton->setEnabled(false);
 }
 
 ///
@@ -113,12 +115,39 @@ void SessionsPage::changeEvent(QEvent *event)
 ///
 void SessionsPage::showSession(const QModelIndex &current)
 {
-    const QModelIndex source = _stateModel->mapToSource(_searchModel->mapToSource(current));
-    ui->propertiesHost->setEnabled(source.isValid());
-    if (!source.isValid())
-        return;
-    const SessionInfo &session = _sessionsModel->item(source.row());
+    const SessionInfo *session = sessionAt(current);
+    ui->propertiesHost->setEnabled(session != nullptr);
+    ui->showSubscriptionsButton->setEnabled(session && !session->subscriptionList.isEmpty());
+    if (session)
+        showSessionDetails(*session);
+}
 
+///
+/// \brief Returns the session behind a table row.
+/// \param index Index of the filtered table.
+/// \return Session, or null for an invalid index.
+///
+const SessionInfo *SessionsPage::sessionAt(const QModelIndex &index) const
+{
+    const QModelIndex source = _stateModel->mapToSource(_searchModel->mapToSource(index));
+    return source.isValid() ? &_sessionsModel->item(source.row()) : nullptr;
+}
+
+///
+/// \brief Asks to show the subscriptions of the selected session.
+///
+void SessionsPage::requestSubscriptions()
+{
+    if (const SessionInfo *session = sessionAt(ui->sessionsView->currentIndex()))
+        emit subscriptionsRequested(*session);
+}
+
+///
+/// \brief Fills the properties panel.
+/// \param session Session to show.
+///
+void SessionsPage::showSessionDetails(const SessionInfo &session)
+{
     ui->sessionIdEdit->setText(session.sessionId);
     ui->sessionNameEdit->setText(session.name);
     ui->applicationUriEdit->setText(session.applicationUri);

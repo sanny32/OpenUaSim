@@ -9,7 +9,10 @@
 #pragma once
 
 #include <QDateTime>
+#include <QList>
 #include <QString>
+
+#include "subscriptioninfo.h"
 
 ///
 /// \brief Describes one client session, active or closed.
@@ -28,6 +31,8 @@ struct SessionInfo
     bool active = false;
     /// \brief Number of subscriptions the session holds.
     int subscriptions = 0;
+    /// \brief Settings and counters of those subscriptions.
+    QList<SubscriptionInfo> subscriptionList;
     /// \brief Session creation time.
     QDateTime created;
     /// \brief Time of the last request.

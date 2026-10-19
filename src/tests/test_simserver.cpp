@@ -304,6 +304,11 @@ void TestSimServer::diagnosticsCountSubscriptions()
     sessions.clear();
     server.refreshSessionDiagnostics();
     QCOMPARE(server.sessions().first().subscriptions, 1);
+    const SubscriptionInfo subscription = server.sessions().first().subscriptionList.first();
+    QVERIFY(subscription.id > 0);
+    QCOMPARE(subscription.monitoredItems, 1u);
+    QVERIFY(subscription.publishingEnabled);
+    QVERIFY(subscription.publishingIntervalMs > 0.0);
     QVERIFY(server.sessions().first().lastActivity.isValid());
     QCOMPARE(sessions.count(), 1);
 

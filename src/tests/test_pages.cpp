@@ -44,6 +44,8 @@
 #include "sessionspage.h"
 #include "statusindicator.h"
 #include "statuspage.h"
+#include "subscriptionsdialog.h"
+#include "subscriptionsmodel.h"
 #include "subtypesmodel.h"
 #include "typespage.h"
 #include "variablesmodel.h"
@@ -51,6 +53,7 @@
 #include "viewsetup.h"
 
 Q_DECLARE_METATYPE(VariableInfo)
+Q_DECLARE_METATYPE(SessionInfo)
 Q_DECLARE_METATYPE(CertificateInfo::Category)
 
 namespace {
@@ -174,6 +177,7 @@ private slots:
     void certificateLongValues_data();
     void certificateLongValues();
     void sessionsPage();
+    void sessionsPageRequestsSubscriptions();
     void sessionsPageFiltersByState();
     void logPageFilters();
     void logPageSelectsFirstEntryWhenFilledLater();
@@ -1094,6 +1098,31 @@ void TestPages::sessionsPage()
     QCOMPARE(text(page, "sessionIdEdit"), QStringLiteral("ns=1;i=12344"));
     QCOMPARE(child<StatusIndicator>(page, "stateIndicator")->status(), StatusKind::Inactive);
     QCOMPARE(child<QComboBox>(page, "userIdentityCombo")->currentText(), QStringLiteral("Username"));
+}
+
+void TestPages::sessionsPageRequestsSubscriptions()
+{
+    QList<SessionInfo> sessions = _snapshot.sessions;
+    SubscriptionInfo subscription;
+    subscription.id = 11;
+    sessions.first().subscriptionList = { subscription };
+    SessionsPage page;
+    page.setSessions(sessions);
+    auto *button = child<QToolButton>(page, "showSubscriptionsButton");
+    QSignalSpy requested(&page, &SessionsPage::subscriptionsRequested);
+
+    QVERIFY(button->isEnabled());
+    button->click();
+    QCOMPARE(requested.count(), 1);
+    const SessionInfo session = requested.first().first().value<SessionInfo>();
+    QCOMPARE(session.sessionId, sessions.first().sessionId);
+
+    SubscriptionsDialog dialog(session);
+    QCOMPARE(dialog.subscriptionsModel()->rowCount(), 1);
+    QVERIFY(child<QLabel>(dialog, "sessionLabel")->text().contains(session.sessionId));
+
+    ViewSetup::selectRow(child<QTableView>(page, "sessionsView"), 1);
+    QVERIFY(!button->isEnabled());
 }
 
 void TestPages::sessionsPageFiltersByState()

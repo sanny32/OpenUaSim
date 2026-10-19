@@ -32,6 +32,7 @@ class ServerController;
 struct LogEntry;
 struct ServerSnapshot;
 struct ServerStatus;
+struct SessionInfo;
 
 ///
 /// \brief Main window: menu bar, server toolbar, the eight pages, the event log and the status bar.
@@ -202,6 +203,7 @@ private:
     void exportModel();
     void exportNamespace(const QString &namespaceUri);
     void exportLog(const QList<LogEntry> &entries);
+    void showSubscriptions(const SessionInfo &session);
     void confirmRemoveModel(const QString &fileName);
     void removePendingModel();
     void importCertificate(CertificateInfo::Category category);

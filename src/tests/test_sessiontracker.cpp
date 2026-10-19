@@ -38,11 +38,18 @@ void TestSessionTracker::updatesActiveSession()
 {
     SessionTracker tracker;
     tracker.open(session(QStringLiteral("1")));
-    QVERIFY(tracker.update(QStringLiteral("1"), 2, kClosedAt));
+    SubscriptionInfo first;
+    first.id = 1;
+    SubscriptionInfo second;
+    second.id = 2;
+    QVERIFY(tracker.update(QStringLiteral("1"), { first, second }, kClosedAt));
     QCOMPARE(tracker.sessions().first().subscriptions, 2);
+    QCOMPARE(tracker.sessions().first().subscriptionList.last().id, 2u);
     QCOMPARE(tracker.sessions().first().lastActivity, kClosedAt);
-    QVERIFY(!tracker.update(QStringLiteral("1"), 2, kClosedAt));
-    QVERIFY(tracker.update(QStringLiteral("1"), 3, kClosedAt));
+    QVERIFY(!tracker.update(QStringLiteral("1"), { first, second }, kClosedAt));
+    second.notifications = 5;
+    QVERIFY(tracker.update(QStringLiteral("1"), { first, second }, kClosedAt));
+    QCOMPARE(tracker.sessions().first().subscriptionList.last().notifications, 5u);
 }
 
 void TestSessionTracker::updateIgnoresUnknownAndClosedSessions()
@@ -50,8 +57,8 @@ void TestSessionTracker::updateIgnoresUnknownAndClosedSessions()
     SessionTracker tracker;
     tracker.open(session(QStringLiteral("1")));
     tracker.close(QStringLiteral("1"), kClosedAt);
-    QVERIFY(!tracker.update(QStringLiteral("1"), 5, kClosedAt.addSecs(1)));
-    QVERIFY(!tracker.update(QStringLiteral("9"), 5, kClosedAt));
+    QVERIFY(!tracker.update(QStringLiteral("1"), { SubscriptionInfo() }, kClosedAt.addSecs(1)));
+    QVERIFY(!tracker.update(QStringLiteral("9"), { SubscriptionInfo() }, kClosedAt));
     QCOMPARE(tracker.sessions().first().subscriptions, 0);
 }
 

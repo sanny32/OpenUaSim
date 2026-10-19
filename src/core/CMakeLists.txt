@@ -12,6 +12,7 @@ add_library(ouasim_core STATIC
     data/serversnapshot.h
     data/serverstatus.h
     data/sessioninfo.h
+    data/subscriptioninfo.h
     data/statuskind.h
     data/treenode.h
     data/typeinfo.h
@@ -35,6 +36,8 @@ add_library(ouasim_core STATIC
     models/sessionsmodel.h
     models/subtypesmodel.cpp
     models/subtypesmodel.h
+    models/subscriptionsmodel.cpp
+    models/subscriptionsmodel.h
     models/treebuilders.cpp
     models/treebuilders.h
     models/treemodel.cpp

@@ -51,12 +51,22 @@ public:
     ///
     const SessionsModel *sessionsModel() const;
 
+signals:
+    ///
+    /// \brief Asks to show the subscriptions of a session.
+    /// \param session Selected session; it holds at least one subscription.
+    ///
+    void subscriptionsRequested(const SessionInfo &session);
+
 protected:
     void changeEvent(QEvent *event) override;
 
 private:
     void applyStateFilter(int filter);
     void showSession(const QModelIndex &current);
+    const SessionInfo *sessionAt(const QModelIndex &index) const;
+    void requestSubscriptions();
+    void showSessionDetails(const SessionInfo &session);
 
     Ui::SessionsPage *ui;
     SessionsModel *_sessionsModel;

@@ -43,18 +43,20 @@ bool SessionTracker::close(const QString &sessionId, const QDateTime &time)
 ///
 /// \brief Updates the live counters of an active session.
 /// \param sessionId Identifier of the session.
-/// \param subscriptions Number of subscriptions it holds.
+/// \param subscriptions Subscriptions it holds.
 /// \param lastActivity Time of its last request.
 /// \return True when the session is active and a value changed.
 ///
-bool SessionTracker::update(const QString &sessionId, int subscriptions, const QDateTime &lastActivity)
+bool SessionTracker::update(const QString &sessionId, const QList<SubscriptionInfo> &subscriptions,
+                            const QDateTime &lastActivity)
 {
     for (SessionInfo &session : _active) {
         if (session.sessionId != sessionId)
             continue;
-        if (session.subscriptions == subscriptions && session.lastActivity == lastActivity)
+        if (session.subscriptionList == subscriptions && session.lastActivity == lastActivity)
             return false;
-        session.subscriptions = subscriptions;
+        session.subscriptions = int(subscriptions.size());
+        session.subscriptionList = subscriptions;
         session.lastActivity = lastActivity;
         return true;
     }
