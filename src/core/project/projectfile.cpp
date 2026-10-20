@@ -15,6 +15,9 @@
 #include <QSaveFile>
 #include <QSet>
 
+#include <tuple>
+
+#include "alarmrules.h"
 #include "projectfile.h"
 #include "simulation/signalgenerator.h"
 #include "simulation/valuecast.h"
@@ -169,6 +172,49 @@ QJsonObject simulationToJson(const SimulationSettings &simulation)
 }
 
 ///
+/// \brief Serializes alarm settings; limits are stored only when they apply.
+/// \param alarm Settings to write.
+/// \return JSON object.
+///
+QJsonObject alarmToJson(const AlarmSettings &alarm)
+{
+    QJsonObject json {
+        { QStringLiteral("severity"), alarm.severity },
+        { QStringLiteral("normalValue"), alarm.normalValue },
+    };
+    for (const auto &[key, enabled, limit] : { std::tuple { "highHigh", alarm.highHighEnabled, alarm.highHigh },
+                                               std::tuple { "high", alarm.highEnabled, alarm.high },
+                                               std::tuple { "low", alarm.lowEnabled, alarm.low },
+                                               std::tuple { "lowLow", alarm.lowLowEnabled, alarm.lowLow } }) {
+        if (enabled)
+            json.insert(QLatin1String(key), limit);
+    }
+    return json;
+}
+
+///
+/// \brief Parses alarm settings; a stored limit enables it.
+/// \param json Stored settings.
+/// \return Enabled alarm settings.
+///
+AlarmSettings alarmFromJson(const QJsonObject &json)
+{
+    AlarmSettings alarm;
+    alarm.enabled = true;
+    alarm.severity = json.value(QStringLiteral("severity")).toInt(alarm.severity);
+    alarm.normalValue = json.value(QStringLiteral("normalValue")).toBool();
+    alarm.highHighEnabled = json.contains(QStringLiteral("highHigh"));
+    alarm.highHigh = json.value(QStringLiteral("highHigh")).toDouble();
+    alarm.highEnabled = json.contains(QStringLiteral("high"));
+    alarm.high = json.value(QStringLiteral("high")).toDouble();
+    alarm.lowEnabled = json.contains(QStringLiteral("low"));
+    alarm.low = json.value(QStringLiteral("low")).toDouble();
+    alarm.lowLowEnabled = json.contains(QStringLiteral("lowLow"));
+    alarm.lowLow = json.value(QStringLiteral("lowLow")).toDouble();
+    return alarm;
+}
+
+///
 /// \brief Serializes a node and its children.
 /// \param node Node to write.
 /// \return JSON object; variable fields are written for variables only.
@@ -189,6 +235,8 @@ QJsonObject nodeToJson(const NodeDefinition &node)
             json.insert(QStringLiteral("arrayLength"), node.arrayLength);
         json.insert(QStringLiteral("quality"), qualityKey(node.quality));
         json.insert(QStringLiteral("simulation"), simulationToJson(node.simulation));
+        if (node.alarm.enabled)
+            json.insert(QStringLiteral("alarm"), alarmToJson(node.alarm));
     } else if (node.kind == NodeDefinition::Kind::Method) {
         json.insert(QStringLiteral("action"), methodKey(node.method));
     } else {
@@ -354,7 +402,7 @@ bool NodeReader::readNode(const QJsonObject &json, const QString &path, NodeDefi
 /// \param json Stored node.
 /// \param path Location of the node for error messages.
 /// \param node Variable receiving the fields.
-/// \return False for an unsupported data type, access level or simulation function.
+/// \return False for an unsupported data type, access level, quality, simulation function or alarm.
 ///
 bool NodeReader::readVariable(const QJsonObject &json, const QString &path, NodeDefinition &node)
 {
@@ -388,6 +436,12 @@ bool NodeReader::readVariable(const QJsonObject &json, const QString &path, Node
     const QJsonArray values = simulation.value(QStringLiteral("values")).toArray();
     for (const QJsonValue &value : values)
         node.simulation.values.append(value.toString());
+    if (json.contains(QStringLiteral("alarm"))) {
+        node.alarm = alarmFromJson(json.value(QStringLiteral("alarm")).toObject());
+        const QString problem = AlarmRules::problem(node.alarm, node.dataType, node.arrayLength);
+        if (!problem.isEmpty())
+            return fail(path, problem);
+    }
     return true;
 }
 

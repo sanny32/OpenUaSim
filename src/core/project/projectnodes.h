@@ -62,7 +62,8 @@ QStringList childNames(const QList<NodeDefinition> &nodes, const QString &parent
 /// \param error Receives the reason on failure; may be null.
 /// \return Node id of the added node, or empty when the parent is unknown, a variable or a method,
 ///         the browse name is empty or used by a sibling, the node id is already used,
-///         the data type is unsupported, the array length is outside 0..kMaxArrayLength, or a
+///         the data type is unsupported, the array length is outside 0..kMaxArrayLength, the alarm
+///         settings are refused by AlarmRules::problem(), or a
 ///         method would go to the top level.
 ///
 QString insert(QList<NodeDefinition> &nodes, const QString &parentId, const NodeDefinition &node,
@@ -96,10 +97,11 @@ NodeDefinition detachedCopy(const NodeDefinition &node, const QStringList &taken
 /// \brief Replaces the editable fields of a variable.
 /// \param nodes Node tree holding the variable.
 /// \param variable Variable with its node id and the new browse name, icon, data type, access,
-///        array length, initial value, quality and simulation; the initial value is converted to the data type.
+///        array length, initial value, quality, simulation and alarm; the initial value is converted to the data type.
 /// \param error Receives the reason on failure; may be null.
 /// \return False when the node is unknown or not a variable, the browse name is empty or used
-///         by a sibling, the data type is unsupported, or the array length is outside 0..kMaxArrayLength.
+///         by a sibling, the data type is unsupported, the array length is outside 0..kMaxArrayLength, or
+///         the alarm settings are refused by AlarmRules::problem().
 ///
 bool updateVariable(QList<NodeDefinition> &nodes, const NodeDefinition &variable, QString *error = nullptr);
 

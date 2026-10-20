@@ -30,7 +30,7 @@ int VariablesModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief Returns cell text, the variable icon, and the quality indicator.
+/// \brief Returns cell text, the variable icon, and the quality and alarm indicators.
 /// \param index Cell to query.
 /// \param role Requested data role.
 /// \return Value for the role, or an invalid variant.
@@ -61,6 +61,13 @@ QVariant VariablesModel::data(const QModelIndex &index, int role) const
         if (role == Qt::DisplayRole) return qualityText(variable.quality);
         if (role == ItemRoles::Status) return ItemRoles::statusValue(qualityStatus(variable.quality));
         break;
+    case ColAlarm:
+        if (!variable.alarm.enabled)
+            break;
+        if (role == Qt::DisplayRole) return variable.alarmState.isEmpty() ? tr("Normal") : variable.alarmState;
+        if (role == ItemRoles::Status)
+            return ItemRoles::statusValue(variable.alarmState.isEmpty() ? StatusKind::Good : StatusKind::Error);
+        break;
     default:
         break;
     }
@@ -83,6 +90,7 @@ QVariant VariablesModel::headerData(int section, Qt::Orientation orientation, in
     case ColValue:    return tr("Value");
     case ColDataType: return tr("Data Type");
     case ColQuality:  return tr("Quality");
+    case ColAlarm:    return tr("Alarm");
     default:          return {};
     }
 }

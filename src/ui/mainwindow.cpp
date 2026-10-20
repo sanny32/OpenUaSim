@@ -18,6 +18,7 @@
 #include <QTimer>
 
 #include "addnodedialog.h"
+#include "alarmdialog.h"
 #include "appicons.h"
 #include "applanguage.h"
 #include "apptheme.h"
@@ -132,6 +133,7 @@ void MainWindow::setController(ServerController *controller)
     connect(controller, &ServerController::startWarning, this, &MainWindow::showStartWarning);
     connect(controller, &ServerController::variableChanged, ui->objectsPage, &ObjectsPage::updateVariable);
     connect(ui->objectsPage, &ObjectsPage::variableChangeRequested, this, &MainWindow::applyVariableChange);
+    connect(ui->objectsPage, &ObjectsPage::alarmEditRequested, this, &MainWindow::showAlarmDialog);
     connect(ui->objectsPage, &ObjectsPage::currentNodeChanged, this, &MainWindow::updateNodeActions);
     connect(ui->actionAddNode, &QAction::triggered, this, &MainWindow::showAddNodeDialog);
     connect(ui->actionRenameNode, &QAction::triggered, this, &MainWindow::showRenameDialog);
@@ -848,6 +850,34 @@ void MainWindow::applyServerSettingsFromDialog()
         return;
     }
     refreshStatus();
+}
+
+///
+/// \brief Shows the alarm of a variable for editing.
+/// \param variable Variable as stored.
+///
+void MainWindow::showAlarmDialog(const VariableInfo &variable)
+{
+    _pendingAlarmVariable = variable;
+    auto *dialog = new AlarmDialog(variable, this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &QDialog::accepted, this, &MainWindow::applyAlarmFromDialog);
+    dialog->open();
+}
+
+///
+/// \brief Applies the alarm of the accepted Alarm dialog, keeping the variable's other properties.
+///
+void MainWindow::applyAlarmFromDialog()
+{
+    const auto *dialog = qobject_cast<const AlarmDialog *>(sender());
+    if (!dialog)
+        return;
+    VariableInfo variable = _pendingAlarmVariable;
+    variable.alarm = dialog->alarm();
+    // An invalid initial value keeps the stored one instead of resetting the live value.
+    variable.initialValue = QVariant();
+    applyVariableChange(variable);
 }
 
 ///

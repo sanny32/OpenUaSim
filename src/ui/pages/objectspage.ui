@@ -767,6 +767,16 @@
            <number>8</number>
           </property>
           <item>
+           <widget class="QPushButton" name="alarmButton">
+            <property name="text">
+             <string>Alarm...</string>
+            </property>
+            <property name="toolTip">
+             <string>Raise an OPC UA alarm when the value crosses limits or leaves its normal value</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <spacer name="propertiesButtonsSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>

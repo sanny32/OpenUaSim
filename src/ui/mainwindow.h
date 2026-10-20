@@ -12,6 +12,7 @@
 #include <QStringList>
 
 #include "data/certificateinfo.h"
+#include "data/variableinfo.h"
 
 namespace Ui {
 class MainWindow;
@@ -31,7 +32,6 @@ class ServerController;
 struct LogEntry;
 struct ServerSnapshot;
 struct ServerStatus;
-struct VariableInfo;
 
 ///
 /// \brief Main window: menu bar, server toolbar, the eight pages, the event log and the status bar.
@@ -184,6 +184,8 @@ private:
     void renamePendingNode(const QString &browseName);
     void showServerSettingsDialog();
     void applyServerSettingsFromDialog();
+    void showAlarmDialog(const VariableInfo &variable);
+    void applyAlarmFromDialog();
     void showUsersDialog();
     void applyUsersFromDialog();
     void applyVariableChange(const VariableInfo &variable);
@@ -222,6 +224,7 @@ private:
     QLabel *_restartNote;
     QString _pendingParentId;
     QStringList _pendingDeleteIds;
+    VariableInfo _pendingAlarmVariable;
     QString _copiedNodeId;
     QString _pendingRenameId;
     QString _pendingModelFile;

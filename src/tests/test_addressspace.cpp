@@ -65,6 +65,9 @@ private slots:
     void buildsArrayVariables();
     void clientCallsMethods();
     void skipsTopLevelMethods();
+    void raisesLevelAlarm();
+    void raisesOffNormalAlarmFromStart();
+    void skipsAlarmWithTakenName();
     void clientReadsBadQuality();
 };
 
@@ -354,6 +357,69 @@ void TestAddressSpace::skipsTopLevelMethods()
     const QStringList problems = space.build({ method });
     QCOMPARE(problems.size(), 1);
     QVERIFY(problems.first().contains(QStringLiteral("belongs to a folder or object")));
+}
+
+void TestAddressSpace::raisesLevelAlarm()
+{
+    QUaServer server;
+    AddressSpace space(&server);
+    NodeDefinition level = variable(QStringLiteral("Level"), QStringLiteral("Double"));
+    level.initialValue = 50.0;
+    level.alarm.enabled = true;
+    level.alarm.lowEnabled = true;
+    level.alarm.low = 10.0;
+    level.alarm.highEnabled = true;
+    level.alarm.high = 80.0;
+    level.alarm.highHighEnabled = true;
+    level.alarm.highHigh = 95.0;
+    QVERIFY(space.build({ folder(QStringLiteral("Test"), { level }) }).isEmpty());
+    QCOMPARE(space.nodeCount(), 2);
+    QVERIFY(server.objectsFolder()->browseChild(QUaQualifiedName(1, QStringLiteral("Test")))->hasChild(QUaQualifiedName(1, QStringLiteral("LevelAlarm"))));
+    QVERIFY(space.alarmState(level.nodeId).isEmpty());
+    QSignalSpy changed(&space, &AddressSpace::alarmChanged);
+
+    QVERIFY(space.setValue(level.nodeId, 85.0));
+    QCOMPARE(space.alarmState(level.nodeId), QStringLiteral("High"));
+    QVERIFY(space.setValue(level.nodeId, 97.0));
+    QCOMPARE(space.alarmState(level.nodeId), QStringLiteral("HighHigh"));
+    QVERIFY(space.setValue(level.nodeId, 50.0));
+    QVERIFY(space.alarmState(level.nodeId).isEmpty());
+    QCOMPARE(changed.count(), 3);
+    QCOMPARE(changed.at(0).at(0).toString(), level.nodeId);
+    QCOMPARE(changed.at(0).at(1).toString(), QStringLiteral("High"));
+    QCOMPARE(changed.at(2).at(1).toString(), QString());
+}
+
+void TestAddressSpace::raisesOffNormalAlarmFromStart()
+{
+    QUaServer server;
+    AddressSpace space(&server);
+    NodeDefinition fault = variable(QStringLiteral("Fault"), QStringLiteral("Boolean"));
+    fault.initialValue = true;
+    fault.alarm.enabled = true;
+    fault.alarm.normalValue = false;
+    QVERIFY(space.build({ fault }).isEmpty());
+    QCOMPARE(space.alarmState(fault.nodeId), QStringLiteral("Active"));
+    QVERIFY(space.setValue(fault.nodeId, false));
+    QVERIFY(space.alarmState(fault.nodeId).isEmpty());
+
+    space.clear();
+    QVERIFY(!server.objectsFolder()->hasChild(QUaQualifiedName(1, QStringLiteral("FaultAlarm"))));
+}
+
+void TestAddressSpace::skipsAlarmWithTakenName()
+{
+    QUaServer server;
+    AddressSpace space(&server);
+    NodeDefinition level = variable(QStringLiteral("Level"), QStringLiteral("Double"));
+    level.alarm.enabled = true;
+    level.alarm.highEnabled = true;
+    level.alarm.high = 1.0;
+    const NodeDefinition taken = variable(QStringLiteral("LevelAlarm"), QStringLiteral("Double"));
+    const QStringList problems = space.build({ folder(QStringLiteral("Test"), { taken, level }) });
+    QCOMPARE(problems.size(), 1);
+    QVERIFY(problems.first().contains(QStringLiteral("alarm name 'LevelAlarm'")));
+    QVERIFY(space.hasVariable(level.nodeId));
 }
 
 void TestAddressSpace::clientReadsBadQuality()

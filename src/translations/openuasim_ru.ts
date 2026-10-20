@@ -154,6 +154,76 @@
         <source>unsupported data type &apos;%1&apos;</source>
         <translation>неподдерживаемый тип данных «%1»</translation>
     </message>
+    <message>
+        <source>alarm name &apos;%1&apos; is used by a sibling</source>
+        <translation>имя аларма «%1» уже занято соседним узлом</translation>
+    </message>
+    <message>
+        <source>Active</source>
+        <translation>Активен</translation>
+    </message>
+</context>
+<context>
+    <name>AlarmDialog</name>
+    <message>
+        <source>Alarm</source>
+        <translation>Аларм</translation>
+    </message>
+    <message>
+        <source>&amp;Raise an alarm from the value</source>
+        <translation>&amp;Формировать аларм по значению</translation>
+    </message>
+    <message>
+        <source>HighHigh</source>
+        <translation>HighHigh</translation>
+    </message>
+    <message>
+        <source>High</source>
+        <translation>High</translation>
+    </message>
+    <message>
+        <source>Low</source>
+        <translation>Low</translation>
+    </message>
+    <message>
+        <source>LowLow</source>
+        <translation>LowLow</translation>
+    </message>
+    <message>
+        <source>&amp;Normal Value</source>
+        <translation>&amp;Нормальное значение</translation>
+    </message>
+    <message>
+        <source>&amp;Severity</source>
+        <translation>&amp;Важность</translation>
+    </message>
+    <message>
+        <source>Alarm of &apos;%1&apos; (%2)</source>
+        <translation>Аларм переменной «%1» (%2)</translation>
+    </message>
+</context>
+<context>
+    <name>AlarmRules</name>
+    <message>
+        <source>An alarm needs a scalar variable</source>
+        <translation>Аларм возможен только для скалярной переменной</translation>
+    </message>
+    <message>
+        <source>An alarm needs a numeric or Boolean variable</source>
+        <translation>Аларм возможен только для числовой или логической переменной</translation>
+    </message>
+    <message>
+        <source>The severity must be between 1 and 1000</source>
+        <translation>Важность должна быть от 1 до 1000</translation>
+    </message>
+    <message>
+        <source>Enable at least one limit</source>
+        <translation>Включите хотя бы один порог</translation>
+    </message>
+    <message>
+        <source>The limits must rise from LowLow through Low and High to HighHigh</source>
+        <translation>Пороги должны возрастать: LowLow, Low, High, HighHigh</translation>
+    </message>
 </context>
 <context>
     <name>AppIcons</name>
@@ -1476,6 +1546,14 @@
         <source>Variables in &apos;%1&apos;</source>
         <translation>Переменные «%1»</translation>
     </message>
+    <message>
+        <source>Alarm...</source>
+        <translation>Аларм...</translation>
+    </message>
+    <message>
+        <source>Raise an OPC UA alarm when the value crosses limits or leaves its normal value</source>
+        <translation>Формировать аларм OPC UA при выходе значения за пороги или из нормального состояния</translation>
+    </message>
 </context>
 <context>
     <name>ProjectDocument</name>
@@ -1645,6 +1723,14 @@
     <message>
         <source>Created a self-signed server certificate</source>
         <translation>Создан самоподписанный сертификат сервера</translation>
+    </message>
+    <message>
+        <source>Alarm of %1 returned to normal</source>
+        <translation>Аларм переменной %1 вернулся в норму</translation>
+    </message>
+    <message>
+        <source>Alarm of %1 is active: %2</source>
+        <translation>Аларм переменной %1 активен: %2</translation>
     </message>
 </context>
 <context>
@@ -2169,6 +2255,14 @@
     <message>
         <source>Bad</source>
         <translation>Плохое</translation>
+    </message>
+    <message>
+        <source>Normal</source>
+        <translation>Норма</translation>
+    </message>
+    <message>
+        <source>Alarm</source>
+        <translation>Аларм</translation>
     </message>
 </context>
 <context>

@@ -52,6 +52,7 @@ private slots:
     void preservesQuality();
     void preservesSimulationValues();
     void preservesMethods();
+    void preservesAlarms();
     void preservesUsers();
     void movesFormat1EndpointLoginsToUsers();
     void emptyProjectRoundTrips();
@@ -190,6 +191,31 @@ void TestProjectFile::preservesMethods()
     QCOMPARE(loaded.method, NodeDefinition::MethodAction::SetValue);
 }
 
+void TestProjectFile::preservesAlarms()
+{
+    NodeDefinition level;
+    level.kind = NodeDefinition::Kind::Variable;
+    level.browseName = QStringLiteral("Level");
+    level.alarm.enabled = true;
+    level.alarm.highEnabled = true;
+    level.alarm.high = 80.0;
+    level.alarm.lowLowEnabled = true;
+    level.alarm.lowLow = 5.0;
+    level.alarm.severity = 700;
+    NodeDefinition plain = level;
+    plain.browseName = QStringLiteral("Plain");
+    plain.alarm = AlarmSettings();
+    ProjectConfig project;
+    project.nodes = { level, plain };
+
+    const QByteArray json = ProjectFile::toJson(project);
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(json);
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QVERIFY(result.project.nodes.at(0).alarm == level.alarm);
+    QVERIFY(!result.project.nodes.at(1).alarm.enabled);
+    QCOMPARE(json.count("\"alarm\""), 1);
+}
+
 void TestProjectFile::preservesUsers()
 {
     ProjectConfig project;
@@ -321,6 +347,9 @@ void TestProjectFile::rejectsInvalidNode_data()
                                { QStringLiteral("browseName"), QStringLiteral("Stop") },
                                { QStringLiteral("action"), QStringLiteral("explode") } };
     QTest::newRow("method action") << projectWithNode(method) << "nodes[0]: unknown method action 'explode'";
+    const QJsonObject crossed { { QStringLiteral("low"), 90.0 }, { QStringLiteral("high"), 10.0 } };
+    QTest::newRow("alarm") << projectWithNode(variableNode(QStringLiteral("alarm"), crossed))
+                           << "nodes[0]: The limits must rise from LowLow through Low and High to HighHigh";
 
     const QJsonObject folder {
         { QStringLiteral("kind"), QStringLiteral("folder") },

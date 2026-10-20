@@ -62,6 +62,7 @@ private slots:
     void updateVariableReportsRefusal();
     void updateVariableAppliesInitialValueAndQuality();
     void updateVariableRejectsInvalidInitialValue();
+    void alarmChangesAreLoggedAndAnnounced();
     void renameNodeRebuilds();
     void setServerSettingsRequiresRestartWhileRunning();
     void setServerSettingsRejectsInvalidValues_data();
@@ -310,6 +311,40 @@ void TestServerController::updateVariableRejectsInvalidInitialValue()
     QVERIFY(!controller.updateVariable(level, &error));
     QCOMPARE(error, QStringLiteral("'40000' is not a Int16 value"));
     QCOMPARE(ProjectNodes::find(controller.project().nodes, nodeId)->dataType, QStringLiteral("Double"));
+}
+
+void TestServerController::alarmChangesAreLoggedAndAnnounced()
+{
+    ServerController controller;
+    controller.setProject(project());
+    const QString nodeId = QStringLiteral("ns=1;s=Tank_01.Level");
+    VariableInfo level = SnapshotBuilder::variableInfo(*ProjectNodes::find(controller.project().nodes, nodeId),
+                                                       controller.addressSpace());
+    level.simulation.function = SimulationFunction::None;
+    level.alarm.enabled = true;
+    level.alarm.highEnabled = true;
+    level.alarm.high = 90.0;
+    QSignalSpy structure(&controller, &ServerController::projectChanged);
+    QVERIFY(controller.updateVariable(level));
+    QCOMPARE(structure.count(), 1);
+    QVERIFY(ProjectNodes::find(controller.project().nodes, nodeId)->alarm == level.alarm);
+
+    QSignalSpy changed(&controller, &ServerController::variableChanged);
+    QVERIFY(controller.addressSpace().setValue(nodeId, 95.0));
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(changed.first().first().value<VariableInfo>().alarmState, QStringLiteral("High"));
+    QVERIFY(logContains(controller.log(), LogEntry::Category::DataChanges, QStringLiteral("Alarm of Level is active: High")));
+
+    QVERIFY(controller.addressSpace().setValue(nodeId, 20.0));
+    QVERIFY(changed.last().first().value<VariableInfo>().alarmState.isEmpty());
+    QVERIFY(logContains(controller.log(), LogEntry::Category::DataChanges, QStringLiteral("returned to normal")));
+
+    level.alarm.high = -1.0;
+    level.alarm.lowEnabled = true;
+    level.alarm.low = 0.0;
+    QString error;
+    QVERIFY(!controller.updateVariable(level, &error));
+    QVERIFY(error.contains(QStringLiteral("must rise")));
 }
 
 void TestServerController::renameNodeRebuilds()

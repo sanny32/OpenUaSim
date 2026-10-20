@@ -18,6 +18,7 @@
 #include "data/projectconfig.h"
 #include "simulation/valuesink.h"
 
+class QUaAlarmCondition;
 class QUaBaseDataVariable;
 class QUaBaseVariable;
 class QUaNode;
@@ -134,6 +135,14 @@ public:
     ///
     bool setQuality(const QString &nodeId, VariableInfo::Quality quality);
 
+    ///
+    /// \brief Returns the active state of a variable's alarm.
+    /// \param nodeId Variable node id.
+    /// \return Violated limit such as "High" for a level alarm, "Active" for an off-normal alarm, or empty
+    ///         while the alarm is inactive or the variable has none.
+    ///
+    QString alarmState(const QString &nodeId) const;
+
 signals:
     ///
     /// \brief Announces a value written by an OPC UA client.
@@ -155,8 +164,18 @@ signals:
     ///
     void methodCalled(const QString &methodId, const QString &result);
 
+    ///
+    /// \brief Announces that the alarm of a variable became active or inactive.
+    /// \param nodeId Variable node id.
+    /// \param state New state as alarmState() returns it.
+    ///
+    void alarmChanged(const QString &nodeId, const QString &state);
+
 private:
     QUaNode *buildNode(QUaNode *parent, const NodeDefinition &node, const QString &path, QStringList &problems);
+    void addAlarm(QUaNode *parent, QUaBaseDataVariable &variable, const NodeDefinition &node, const QString &path,
+                  QStringList &problems);
+    void handleAlarmChanged();
     void addMethod(QUaNode *parent, const NodeDefinition &method, const QList<NodeDefinition> &siblings,
                    const QString &path, QStringList &problems);
     QString resetVariables(const QString &methodId, const QList<NodeDefinition> &variables);
@@ -171,5 +190,7 @@ private:
     QHash<QString, QPointer<QUaBaseDataVariable>> _variables;
     QHash<QString, VariableShape> _shapes;
     QHash<const QObject *, QString> _variableIds;
+    QHash<QString, QPointer<QUaAlarmCondition>> _alarms;
+    QHash<const QObject *, QString> _alarmIds;
     int _nodeCount = 0;
 };

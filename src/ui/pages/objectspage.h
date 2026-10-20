@@ -108,6 +108,12 @@ signals:
     void variableChangeRequested(const VariableInfo &variable);
 
     ///
+    /// \brief Asks to edit the alarm of the shown variable.
+    /// \param variable Variable as stored, with its current alarm settings.
+    ///
+    void alarmEditRequested(const VariableInfo &variable);
+
+    ///
     /// \brief Announces that the current node changed.
     /// \param nodeId Node id now returned by currentNodeId().
     ///
@@ -125,6 +131,7 @@ private:
     void showVariable(const QModelIndex &current);
     void clearProperties();
     void applyProperties();
+    void requestAlarmEdit();
     void revertProperties();
     void updateSimulationFields();
     VariableInfo editedVariable() const;

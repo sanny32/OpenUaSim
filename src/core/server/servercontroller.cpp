@@ -41,6 +41,7 @@ ServerController::ServerController(QObject *parent)
     connect(&_addressSpace, &AddressSpace::valueWrittenByClient, this, &ServerController::handleClientWrite);
     connect(&_addressSpace, &AddressSpace::valuesSetByMethod, this, &ServerController::valuesChanged);
     connect(&_addressSpace, &AddressSpace::methodCalled, this, &ServerController::logMethodCall);
+    connect(&_addressSpace, &AddressSpace::alarmChanged, this, &ServerController::handleAlarmChanged);
     connect(&_server, &SimServer::clientCertificateRejected, this, &ServerController::handleCertificateRejected);
 }
 
@@ -227,7 +228,7 @@ QString ServerController::copyNode(const QString &nodeId, const QString &parentI
 ///        simulation; a valid initial value, typed text or a value, replaces the stored one.
 /// \param error Receives the reason on failure; may be null.
 /// \return False when the change was refused, e.g. for text that is no value of the data type. A new
-///         name, data type or array length rebuilds the address space; other changes apply to the live variable,
+///         name, data type, array length or alarm rebuilds the address space; other changes apply to the live variable,
 ///         and a new initial value becomes its current value.
 ///
 bool ServerController::updateVariable(const VariableInfo &variable, QString *error)
@@ -239,13 +240,14 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
         return false;
     }
     const bool structural = existing->browseName != variable.displayName || existing->dataType != variable.dataType
-        || existing->arrayLength != variable.arrayLength;
+        || existing->arrayLength != variable.arrayLength || existing->alarm != variable.alarm;
 
     NodeDefinition edited = *existing;
     edited.browseName = variable.displayName;
     edited.icon = variable.icon;
     edited.dataType = variable.dataType;
     edited.arrayLength = variable.arrayLength;
+    edited.alarm = variable.alarm;
     edited.access = variable.access;
     edited.quality = variable.configuredQuality;
     edited.simulation = variable.simulation;
@@ -697,6 +699,24 @@ void ServerController::appendLog(const LogEntry &entry)
     if (_log.size() > kLogLimit)
         _log.remove(0, _log.size() - kLogLimit);
     emit logAppended(entry);
+}
+
+///
+/// \brief Logs an alarm becoming active or inactive and announces the variable's new alarm state.
+/// \param nodeId Variable node id.
+/// \param state Active state, e.g. "High"; empty when the alarm became inactive.
+///
+void ServerController::handleAlarmChanged(const QString &nodeId, const QString &state)
+{
+    const NodeDefinition *node = ProjectNodes::find(_project.nodes, nodeId);
+    if (!node)
+        return;
+    appendLog(state.isEmpty()
+                  ? LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::DataChanges,
+                                     tr("Alarm of %1 returned to normal").arg(node->browseName))
+                  : LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::DataChanges,
+                                     tr("Alarm of %1 is active: %2").arg(node->browseName, state)));
+    emit variableChanged(SnapshotBuilder::variableInfo(*node, _addressSpace));
 }
 
 ///

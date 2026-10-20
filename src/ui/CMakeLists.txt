@@ -1,6 +1,7 @@
 set(UI_FILES
     mainwindow.ui
 
+    dialogs/alarmdialog.ui
     dialogs/addnodedialog.ui
     dialogs/serversettingsdialog.ui
     dialogs/usersdialog.ui
@@ -31,6 +32,8 @@ add_library(ouasim_ui STATIC
     apptheme.cpp
     apptheme.h
 
+    dialogs/alarmdialog.cpp
+    dialogs/alarmdialog.h
     dialogs/addnodedialog.cpp
     dialogs/addnodedialog.h
     dialogs/serversettingsdialog.cpp

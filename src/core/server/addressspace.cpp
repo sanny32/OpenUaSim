@@ -6,11 +6,14 @@
 /// \brief Implements the project nodes built under the Objects folder of a QUaServer.
 ///
 
+#include <QUaExclusiveLevelAlarm>
+#include <QUaOffNormalAlarm>
 #include <QUaServer>
 
 #include <algorithm>
 
 #include "addressspace.h"
+#include "project/alarmrules.h"
 #include "simulation/valuecast.h"
 
 namespace {
@@ -101,6 +104,15 @@ QStringList AddressSpace::build(const QList<NodeDefinition> &nodes)
 ///
 void AddressSpace::clear()
 {
+    // Alarms of top-level variables live in the Objects folder, which the roots do not own.
+    for (const QPointer<QUaAlarmCondition> &alarm : std::as_const(_alarms)) {
+        if (alarm) {
+            alarm->disconnect(this);
+            delete alarm.data();
+        }
+    }
+    _alarms.clear();
+    _alarmIds.clear();
     for (const QPointer<QUaNode> &root : std::as_const(_roots))
         delete root.data();
     _roots.clear();
@@ -249,9 +261,13 @@ QUaNode *AddressSpace::buildNode(QUaNode *parent, const NodeDefinition &node, co
     case NodeDefinition::Kind::Object:
         created = parent->addBaseObject(browseName, nodeId);
         break;
-    case NodeDefinition::Kind::Variable:
-        created = addVariable(parent, node);
+    case NodeDefinition::Kind::Variable: {
+        QUaBaseDataVariable *variable = addVariable(parent, node);
+        if (variable && node.alarm.enabled)
+            addAlarm(parent, *variable, node, path, problems);
+        created = variable;
         break;
+    }
     case NodeDefinition::Kind::Method:
         problems.append(QStringLiteral("%1: %2").arg(path, tr("a method belongs to a folder or object")));
         return nullptr;
@@ -267,6 +283,86 @@ QUaNode *AddressSpace::buildNode(QUaNode *parent, const NodeDefinition &node, co
             buildNode(created, child, childPath, problems);
     }
     return created;
+}
+
+///
+/// \brief Adds the alarm of a variable next to it: an exclusive level alarm for numbers, an off-normal
+///        alarm for Booleans.
+/// \param parent Folder or object holding the variable.
+/// \param variable Variable whose value drives the alarm.
+/// \param node Variable definition with enabled, validated alarm settings.
+/// \param path Slash-separated browse path for problem messages.
+/// \param problems Receives the reason the alarm was skipped.
+///
+void AddressSpace::addAlarm(QUaNode *parent, QUaBaseDataVariable &variable, const NodeDefinition &node,
+                            const QString &path, QStringList &problems)
+{
+    auto *owner = qobject_cast<QUaBaseObject *>(parent);
+    const QUaQualifiedName name(kApplicationNamespace, node.browseName + QStringLiteral("Alarm"));
+    if (!owner || owner->hasChild(name)) {
+        problems.append(QStringLiteral("%1: %2").arg(path, tr("alarm name '%1' is used by a sibling").arg(name.name())));
+        return;
+    }
+    owner->setSubscribeToEvents(true);
+
+    QUaAlarmCondition *alarm = nullptr;
+    if (AlarmRules::isOffNormal(node.dataType)) {
+        auto *offNormal = owner->addChild<QUaOffNormalAlarm>(name);
+        offNormal->setNormalValue(node.alarm.normalValue);
+        connect(offNormal, &QUaAlarmCondition::activated, this, &AddressSpace::handleAlarmChanged);
+        connect(offNormal, &QUaAlarmCondition::deactivated, this, &AddressSpace::handleAlarmChanged);
+        alarm = offNormal;
+    } else {
+        auto *level = owner->addChild<QUaExclusiveLevelAlarm>(name);
+        level->setHighHighLimitRequired(node.alarm.highHighEnabled);
+        level->setHighLimitRequired(node.alarm.highEnabled);
+        level->setLowLimitRequired(node.alarm.lowEnabled);
+        level->setLowLowLimitRequired(node.alarm.lowLowEnabled);
+        level->setHighHighLimit(node.alarm.highHigh);
+        level->setHighLimit(node.alarm.high);
+        level->setLowLimit(node.alarm.low);
+        level->setLowLowLimit(node.alarm.lowLow);
+        // Also announces moves between limits, e.g. from High to HighHigh, while the alarm stays active.
+        connect(level, &QUaExclusiveLimitAlarm::exclusiveLimitStateChanged, this, &AddressSpace::handleAlarmChanged);
+        alarm = level;
+    }
+    alarm->setInputNode(&variable);
+    alarm->setConditionName(node.browseName);
+    alarm->setSeverity(quint16(node.alarm.severity));
+    alarm->setEnabled(true);
+    _alarms.insert(node.nodeId, alarm);
+    _alarmIds.insert(alarm, node.nodeId);
+    // The alarm evaluates value changes only; replaying the current value covers an initial value beyond a limit.
+    emit variable.valueChanged(variable.value(), false);
+}
+
+///
+/// \brief Returns the active state of a variable's alarm.
+/// \param nodeId Variable node id.
+/// \return Violated limit such as "High" for a level alarm, "Active" for an off-normal alarm, or empty
+///         while the alarm is inactive or the variable has none.
+///
+QString AddressSpace::alarmState(const QString &nodeId) const
+{
+    const QUaAlarmCondition *alarm = _alarms.value(nodeId);
+    if (!alarm)
+        return {};
+    // A level alarm changes its limit state before its active state, so the limit state decides.
+    if (const auto *level = qobject_cast<const QUaExclusiveLimitAlarm *>(alarm)) {
+        const QUaExclusiveLimitState state = level->exclusiveLimitState();
+        return state == QUa::ExclusiveLimitState::None ? QString() : state.toString();
+    }
+    return alarm->active() ? tr("Active") : QString();
+}
+
+///
+/// \brief Announces that an alarm became active or inactive.
+///
+void AddressSpace::handleAlarmChanged()
+{
+    const QString nodeId = _alarmIds.value(sender());
+    if (!nodeId.isEmpty())
+        emit alarmChanged(nodeId, alarmState(nodeId));
 }
 
 ///

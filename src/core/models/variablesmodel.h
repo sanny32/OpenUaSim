@@ -15,7 +15,7 @@
 #include "itemtablemodel.h"
 
 ///
-/// \brief Table of the variables of one object: name, value, data type and quality.
+/// \brief Table of the variables of one object: name, value, data type, quality and alarm state.
 ///
 class VariablesModel : public ItemTableModel<VariableInfo>
 {
@@ -25,7 +25,7 @@ public:
     ///
     /// \brief Columns exposed by the model.
     ///
-    enum Column { ColName, ColValue, ColDataType, ColQuality, ColCount };
+    enum Column { ColName, ColValue, ColDataType, ColQuality, ColAlarm, ColCount };
 
     ///
     /// \brief Constructs an empty model.
@@ -41,7 +41,7 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
     ///
-    /// \brief Returns cell text, the variable icon, and the quality indicator.
+    /// \brief Returns cell text, the variable icon, and the quality and alarm indicators.
     /// \param index Cell to query.
     /// \param role Requested data role.
     /// \return Value for the role, or an invalid variant.

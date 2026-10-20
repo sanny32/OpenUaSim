@@ -37,6 +37,58 @@ struct SimulationSettings
 };
 
 ///
+/// \brief OPC UA alarm the server raises from a variable's value.
+///
+struct AlarmSettings
+{
+    /// \brief Whether the variable has an alarm.
+    bool enabled = false;
+    /// \brief Whether the HighHigh limit applies to a numeric variable.
+    bool highHighEnabled = false;
+    /// \brief Value at or above which the HighHigh state is active.
+    double highHigh = 0.0;
+    /// \brief Whether the High limit applies to a numeric variable.
+    bool highEnabled = false;
+    /// \brief Value at or above which the High state is active.
+    double high = 0.0;
+    /// \brief Whether the Low limit applies to a numeric variable.
+    bool lowEnabled = false;
+    /// \brief Value at or below which the Low state is active.
+    double low = 0.0;
+    /// \brief Whether the LowLow limit applies to a numeric variable.
+    bool lowLowEnabled = false;
+    /// \brief Value at or below which the LowLow state is active.
+    double lowLow = 0.0;
+    /// \brief Value of a Boolean variable that keeps its off-normal alarm inactive.
+    bool normalValue = false;
+    /// \brief Event severity from 1 (lowest) to 1000.
+    int severity = 500;
+
+    ///
+    /// \brief Compares every field.
+    /// \param other Settings to compare with.
+    /// \return True when all fields are equal.
+    ///
+    bool operator==(const AlarmSettings &other) const
+    {
+        return enabled == other.enabled && highHighEnabled == other.highHighEnabled && highHigh == other.highHigh
+            && highEnabled == other.highEnabled && high == other.high && lowEnabled == other.lowEnabled
+            && low == other.low && lowLowEnabled == other.lowLowEnabled && lowLow == other.lowLow
+            && normalValue == other.normalValue && severity == other.severity;
+    }
+
+    ///
+    /// \brief Tells whether any field differs.
+    /// \param other Settings to compare with.
+    /// \return True when a field differs.
+    ///
+    bool operator!=(const AlarmSettings &other) const
+    {
+        return !(*this == other);
+    }
+};
+
+///
 /// \brief Describes one variable of an object in the address space.
 ///
 struct VariableInfo
@@ -70,4 +122,8 @@ struct VariableInfo
     SimulationSettings simulation;
     /// \brief Whether the variable comes from an imported model, whose properties cannot be edited.
     bool readOnly = false;
+    /// \brief Alarm raised from the value.
+    AlarmSettings alarm;
+    /// \brief Active alarm state, e.g. "High" or "Active"; empty while the alarm is inactive or absent.
+    QString alarmState;
 };

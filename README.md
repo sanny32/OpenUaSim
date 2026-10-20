@@ -23,6 +23,10 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
   count up, or cycle through a list of values such as machine states; values
   are converted to the variable's built-in data type. Array variables of up
   to 1000 elements run the simulation with the phase spread across elements.
+- Raise OPC UA alarms from variables: exclusive level alarms with LowLow, Low,
+  High and HighHigh limits on numbers, off-normal alarms on Booleans. Clients
+  receive the alarm events and acknowledge them; the Objects page shows the
+  alarm state and the log records every activation.
 - Serve `opc.tcp` endpoints with a choice of security policy and mode, and accept
   anonymous logins or the username/password logins listed in **Server → User
   Accounts**. Set the application name, URI and

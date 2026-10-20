@@ -54,6 +54,8 @@ struct NodeDefinition
     VariableInfo::Quality quality = VariableInfo::Quality::Good;
     /// \brief Simulation driving the value; variables only.
     SimulationSettings simulation;
+    /// \brief Alarm raised from the value; variables only.
+    AlarmSettings alarm;
     /// \brief Action of a method; methods only.
     MethodAction method = MethodAction::Reset;
     /// \brief Child nodes; folders and objects only.

@@ -55,6 +55,7 @@ ObjectsPage::ObjectsPage(QWidget *parent)
             this, &ObjectsPage::showVariable);
     connect(ui->simulationCombo, &QComboBox::currentIndexChanged, this, &ObjectsPage::updateSimulationFields);
     connect(ui->applyButton, &QPushButton::clicked, this, &ObjectsPage::applyProperties);
+    connect(ui->alarmButton, &QPushButton::clicked, this, &ObjectsPage::requestAlarmEdit);
     connect(ui->revertButton, &QPushButton::clicked, this, &ObjectsPage::revertProperties);
     updateSimulationFields();
 }
@@ -350,6 +351,16 @@ void ObjectsPage::applyProperties()
     if (ViewSetup::currentId(ui->variablesView).isEmpty())
         return;
     emit variableChangeRequested(editedVariable());
+}
+
+///
+/// \brief Asks to edit the alarm of the shown variable as it is stored.
+///
+void ObjectsPage::requestAlarmEdit()
+{
+    const QModelIndex current = ui->variablesView->currentIndex();
+    if (current.isValid())
+        emit alarmEditRequested(_variablesModel->item(current.row()));
 }
 
 ///

@@ -54,6 +54,7 @@ private slots:
     void itemTableModelAppendsWithLimit();
     void variablesModelUpdatesValues();
     void variablesModelShowsArrays();
+    void variablesModelShowsAlarmState();
     void tableModelsHaveNoChildren();
     void variablesModel();
     void variablesModelQuality_data();
@@ -154,6 +155,27 @@ void TestTableModels::variablesModelShowsArrays()
     model.setItems({ levels });
     QCOMPARE(model.index(0, VariablesModel::ColDataType).data().toString(), QStringLiteral("Double[2]"));
     QCOMPARE(model.index(0, VariablesModel::ColValue).data().toString(), QStringLiteral("[1.5, 2]"));
+}
+
+void TestTableModels::variablesModelShowsAlarmState()
+{
+    VariableInfo plain = variable(QStringLiteral("a.Plain"), 1.0);
+    VariableInfo normal = variable(QStringLiteral("a.Normal"), 1.0);
+    normal.alarm.enabled = true;
+    VariableInfo high = normal;
+    high.nodeId = QStringLiteral("a.High");
+    high.alarmState = QStringLiteral("High");
+    VariablesModel model;
+    model.setItems({ plain, normal, high });
+
+    QCOMPARE(header(model, VariablesModel::ColAlarm), QStringLiteral("Alarm"));
+    QVERIFY(model.index(0, VariablesModel::ColAlarm).data().toString().isEmpty());
+    QCOMPARE(model.index(1, VariablesModel::ColAlarm).data().toString(), QStringLiteral("Normal"));
+    QCOMPARE(model.index(1, VariablesModel::ColAlarm).data(ItemRoles::Status),
+             ItemRoles::statusValue(StatusKind::Good));
+    QCOMPARE(model.index(2, VariablesModel::ColAlarm).data().toString(), QStringLiteral("High"));
+    QCOMPARE(model.index(2, VariablesModel::ColAlarm).data(ItemRoles::Status),
+             ItemRoles::statusValue(StatusKind::Error));
 }
 
 void TestTableModels::tableModelsHaveNoChildren()

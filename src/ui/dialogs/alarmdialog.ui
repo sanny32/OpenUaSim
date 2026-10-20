@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AlarmDialog</class>
+ <widget class="QDialog" name="AlarmDialog">
+  <property name="windowTitle">
+   <string>Alarm</string>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>380</width>
+    <height>0</height>
+   </size>
+  </property>
+  <layout class="QVBoxLayout" name="dialogLayout">
+   <item>
+    <widget class="QLabel" name="variableLabel">
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="enabledCheck">
+     <property name="text">
+      <string>&amp;Raise an alarm from the value</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="settingsHost" native="true">
+     <layout class="QGridLayout" name="settingsLayout" columnstretch="0,1">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="highHighCheck">
+        <property name="text">
+         <string>HighHigh</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QDoubleSpinBox" name="highHighSpin"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="highCheck">
+        <property name="text">
+         <string>High</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QDoubleSpinBox" name="highSpin"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="lowCheck">
+        <property name="text">
+         <string>Low</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QDoubleSpinBox" name="lowSpin"/>
+      </item>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="lowLowCheck">
+        <property name="text">
+         <string>LowLow</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QDoubleSpinBox" name="lowLowSpin"/>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="normalValueLabel">
+        <property name="text">
+         <string>&amp;Normal Value</string>
+        </property>
+        <property name="buddy">
+         <cstring>normalValueCombo</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QComboBox" name="normalValueCombo">
+        <item>
+         <property name="text">
+          <string notr="true">false</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string notr="true">true</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="severityLabel">
+        <property name="text">
+         <string>&amp;Severity</string>
+        </property>
+        <property name="buddy">
+         <cstring>severitySpin</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QSpinBox" name="severitySpin">
+        <property name="minimum">
+         <number>1</number>
+        </property>
+        <property name="maximum">
+         <number>1000</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="problemLabel">
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>AlarmDialog</receiver>
+   <slot>accept()</slot>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>AlarmDialog</receiver>
+   <slot>reject()</slot>
+  </connection>
+ </connections>
+</ui>

@@ -47,6 +47,8 @@ add_library(ouasim_core STATIC
     pki/certificatestore.cpp
     pki/certificatestore.h
 
+    project/alarmrules.cpp
+    project/alarmrules.h
     project/defaultproject.cpp
     project/defaultproject.h
     project/projectdocument.cpp

@@ -3,7 +3,9 @@
 
 #include <QAction>
 #include <QFile>
+#include <QCheckBox>
 #include <QComboBox>
+#include <QDoubleSpinBox>
 #include <QLabel>
 #include <QApplication>
 #include <QFontDatabase>
@@ -29,6 +31,7 @@
 #include <QTreeView>
 
 #include "addnodedialog.h"
+#include "alarmdialog.h"
 #include "applanguage.h"
 #include "apppalette.h"
 #include "appstyle.h"
@@ -93,6 +96,7 @@ private slots:
     void deletesSelectedNodes();
     void renamesNodeFromDialog();
     void switchesLanguageWithoutRestart();
+    void configuresAlarmFromDialog();
     void appliesUsersFromDialog();
     void appliesServerSettingsFromDialog();
     void refusedVariableChangeShowsMessage();
@@ -562,6 +566,31 @@ void TestMainWindow::switchesLanguageWithoutRestart()
     QTRY_COMPARE(variablesTitle->text(), QStringLiteral("Variables in 'Motor_01'"));
     QTRY_COMPARE(running->text(), QStringLiteral("Stopped"));
     QCOMPARE(AppLanguage::saved(), AppLanguage::Language::English);
+}
+
+void TestMainWindow::configuresAlarmFromDialog()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+    const QString speed = QStringLiteral("ns=1;s=Motor_01.Speed");
+    QVERIFY(child<ObjectsPage>(window, "objectsPage")->selectNode(speed));
+    const QVariant initialValue = ProjectNodes::find(controller.project().nodes, speed)->initialValue;
+
+    child<QPushButton>(window, "alarmButton")->click();
+    auto *dialog = window.findChild<AlarmDialog *>();
+    QVERIFY(dialog);
+    child<QCheckBox>(*dialog, "enabledCheck")->setChecked(true);
+    child<QCheckBox>(*dialog, "highCheck")->setChecked(true);
+    child<QDoubleSpinBox>(*dialog, "highSpin")->setValue(1400.0);
+    dialog->accept();
+
+    const NodeDefinition *node = ProjectNodes::find(controller.project().nodes, speed);
+    QVERIFY(node->alarm.enabled);
+    QCOMPARE(node->alarm.high, 1400.0);
+    QCOMPARE(node->initialValue, initialValue);
+    QCOMPARE(node->simulation.function, SimulationFunction::Sine);
 }
 
 void TestMainWindow::appliesUsersFromDialog()

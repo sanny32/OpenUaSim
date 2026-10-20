@@ -6,6 +6,8 @@ include(FetchContent)
 set(QUASERVER_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(QUASERVER_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(QUASERVER_ENCRYPTION ${OUASIM_WITH_ENCRYPTION} CACHE BOOL "" FORCE)
+# Limit and off-normal alarms on variables; QUaServer turns on events and the full namespace zero with them.
+set(QUASERVER_ALARMS_CONDITIONS ON CACHE BOOL "" FORCE)
 
 FetchContent_Declare(QUaServer
     GIT_REPOSITORY "https://github.com/sanny32/QUaServer.git"
