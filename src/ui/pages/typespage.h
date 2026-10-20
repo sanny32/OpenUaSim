@@ -43,11 +43,10 @@ public:
     ~TypesPage() override;
 
     ///
-    /// \brief Shows a type system.
-    /// \param typeTree Type hierarchy tree.
+    /// \brief Shows a type system; the tree holds every type or the relevant ones, as the page's check box says.
     /// \param types Types keyed by node id.
     ///
-    void setTypes(const QList<TreeNode> &typeTree, const QHash<QString, TypeInfo> &types);
+    void setTypes(const QHash<QString, TypeInfo> &types);
 
     ///
     /// \brief Returns the subtypes table model.
@@ -59,6 +58,7 @@ protected:
     void changeEvent(QEvent *event) override;
 
 private:
+    void showTree();
     void showTreeNode(const QModelIndex &current);
     void showSubtypesTitle();
     void showSubtype(const QModelIndex &current);

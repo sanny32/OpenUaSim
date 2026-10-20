@@ -7,6 +7,7 @@
 #include <QTest>
 
 #include "mock/mockdata.h"
+#include "server/typecatalog.h"
 
 namespace {
 
@@ -92,13 +93,14 @@ void TestMockData::everyObjectHasItsVariables()
 void TestMockData::treesMarkOneCurrentNode()
 {
     QCOMPARE(countCurrent(_snapshot.addressSpace), 1);
-    QCOMPARE(countCurrent(_snapshot.typeTree), 1);
+    QCOMPARE(countCurrent(TypeCatalog::tree(_snapshot.types, true)), 1);
 }
 
 void TestMockData::typesFormAHierarchy()
 {
     QList<const TreeNode *> nodes;
-    collect(_snapshot.typeTree, nodes);
+    const QList<TreeNode> tree = TypeCatalog::tree(_snapshot.types, true);
+    collect(tree, nodes);
     for (const TreeNode *node : std::as_const(nodes)) {
         if (node->kind == TreeNode::Kind::Type)
             QVERIFY2(_snapshot.types.contains(node->id), qPrintable(node->id));

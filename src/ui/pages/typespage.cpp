@@ -10,6 +10,7 @@
 
 #include "itemroles.h"
 #include "referencesmodel.h"
+#include "server/typecatalog.h"
 #include "subtypesmodel.h"
 #include "treemodel.h"
 #include "typespage.h"
@@ -52,6 +53,7 @@ TypesPage::TypesPage(QWidget *parent)
             this, &TypesPage::showTreeNode);
     connect(ui->subtypesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &TypesPage::showSubtype);
+    connect(ui->allTypesCheck, &QCheckBox::toggled, this, &TypesPage::showTree);
 }
 
 ///
@@ -63,11 +65,10 @@ TypesPage::~TypesPage()
 }
 
 ///
-/// \brief Shows a type system.
-/// \param typeTree Type hierarchy tree.
+/// \brief Shows a type system; the tree holds every type or the relevant ones, as the page's check box says.
 /// \param types Types keyed by node id.
 ///
-void TypesPage::setTypes(const QList<TreeNode> &typeTree, const QHash<QString, TypeInfo> &types)
+void TypesPage::setTypes(const QHash<QString, TypeInfo> &types)
 {
     _types = types;
 
@@ -77,8 +78,15 @@ void TypesPage::setTypes(const QList<TreeNode> &typeTree, const QHash<QString, T
     names.sort();
     ui->baseTypeCombo->clear();
     ui->baseTypeCombo->addItems(names);
+    showTree();
+}
 
-    _treeModel->setNodes(typeTree);
+///
+/// \brief Fills the tree with every type or only the relevant ones and selects the initial type.
+///
+void TypesPage::showTree()
+{
+    _treeModel->setNodes(TypeCatalog::tree(_types, ui->allTypesCheck->isChecked()));
     ViewSetup::applyInitialState(ui->typesTree);
 }
 

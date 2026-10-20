@@ -158,6 +158,7 @@ private slots:
     void objectsPageValueColumnOnlyGrows();
     void objectsPageReportsCurrentNode();
     void typesPage();
+    void typesPageShowsAllStandardTypesOnRequest();
     void namespacesPage();
     void endpointsPage();
     void endpointsPageAppliesEdits();
@@ -544,7 +545,9 @@ void TestPages::objectsPageReportsCurrentNode()
 void TestPages::typesPage()
 {
     TypesPage page;
-    page.setTypes(_snapshot.typeTree, _snapshot.types);
+    page.setTypes(_snapshot.types);
+    QCOMPARE(text(page, "browseNameEdit"), QStringLiteral("FolderType"));
+    QVERIFY(ViewSetup::selectById(child<QTreeView>(page, "typesTree"), QStringLiteral("ns=2;i=1000")));
 
     QCOMPARE(page.subtypesModel()->rowCount(), 3);
     QCOMPARE(child<QLabel>(page, "subtypesTitle")->text(), QStringLiteral("Subtype Definitions (DeviceType)"));
@@ -565,6 +568,28 @@ void TestPages::typesPage()
     tree->setCurrentIndex(tree->model()->index(0, 0));
     QCOMPARE(page.subtypesModel()->rowCount(), 0);
     QVERIFY(!child<QWidget>(page, "propertiesHost")->isEnabled());
+}
+
+void TestPages::typesPageShowsAllStandardTypesOnRequest()
+{
+    QHash<QString, TypeInfo> types = _snapshot.types;
+    TypeInfo serverStatus;
+    serverStatus.browseName = QStringLiteral("ServerStatusType");
+    serverStatus.nodeId = QStringLiteral("i=2138");
+    serverStatus.baseTypeId = QStringLiteral("i=63");
+    serverStatus.category = QStringLiteral("VariableType");
+    types.insert(serverStatus.nodeId, serverStatus);
+    TypesPage page;
+    page.setTypes(types);
+    auto *tree = child<QTreeView>(page, "typesTree");
+    QVERIFY(!ViewSetup::selectById(tree, serverStatus.nodeId));
+
+    child<QCheckBox>(page, "allTypesCheck")->setChecked(true);
+    QVERIFY(ViewSetup::selectById(tree, serverStatus.nodeId));
+    QCOMPARE(text(page, "browseNameEdit"), QStringLiteral("ServerStatusType"));
+
+    child<QCheckBox>(page, "allTypesCheck")->setChecked(false);
+    QVERIFY(!ViewSetup::selectById(tree, serverStatus.nodeId));
 }
 
 void TestPages::namespacesPage()

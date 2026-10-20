@@ -16,6 +16,7 @@
 #include "project/defaultproject.h"
 #include "server/importednodes.h"
 #include "server/servercontroller.h"
+#include "server/typecatalog.h"
 #include "testport.h"
 #include "uatestclient.h"
 
@@ -59,6 +60,17 @@ VariableInfo modelVariable(const ServerController &controller, const QString &na
     return {};
 }
 
+const TreeNode *findTreeNode(const QList<TreeNode> &nodes, const QString &id)
+{
+    for (const TreeNode &node : nodes) {
+        if (node.id == id)
+            return &node;
+        if (const TreeNode *found = findTreeNode(node.children, id))
+            return found;
+    }
+    return nullptr;
+}
+
 bool logContains(const QList<LogEntry> &log, const QString &text)
 {
     for (const LogEntry &entry : log) {
@@ -96,6 +108,7 @@ private slots:
     void examplesLoadCleanly();
     void modelVariableOfUnsupportedTypeIsReadOnly();
     void modelEnumerationIsEditedAsInt32();
+    void modelTypesAreListed();
     void updateModelVariableKeepsSettings();
     void updateModelVariableReplacesSettings();
     void updateModelVariableRejectsInvalidValue();
@@ -440,6 +453,24 @@ void TestNodeSets::modelEnumerationIsEditedAsInt32()
     QVariant value;
     QCOMPARE(client.readValue(mode.nodeId, value), UA_STATUSCODE_GOOD);
     QCOMPARE(value.toInt(), 2);
+}
+
+void TestNodeSets::modelTypesAreListed()
+{
+    ServerController controller;
+    controller.setProject(tankProject());
+    const QHash<QString, TypeInfo> types = controller.snapshot().types;
+    const TypeInfo mode = types.value(QStringLiteral("ns=2;i=3000"));
+    QCOMPARE(mode.browseName, QStringLiteral("TankMode"));
+    QCOMPARE(mode.baseTypeId, QStringLiteral("i=29"));
+    QCOMPARE(mode.category, QStringLiteral("DataType"));
+    QVERIFY(TypeCatalog::isRelevant(mode));
+
+    const QList<TreeNode> tree = TypeCatalog::tree(types, false);
+    const TreeNode *enumeration = findTreeNode(tree, QStringLiteral("i=29"));
+    QVERIFY(enumeration);
+    QVERIFY(std::any_of(enumeration->children.cbegin(), enumeration->children.cend(),
+                        [&mode](const TreeNode &child) { return child.id == mode.nodeId; }));
 }
 
 void TestNodeSets::updateModelVariableKeepsSettings()

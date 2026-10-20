@@ -2296,6 +2296,10 @@
         <source>Subtype Definitions (%1)</source>
         <translation>Определения подтипов (%1)</translation>
     </message>
+    <message>
+        <source>Show all standard types</source>
+        <translation>Показать все стандартные типы</translation>
+    </message>
 </context>
 <context>
     <name>UserAccountRules</name>

@@ -32,8 +32,6 @@ struct ServerSnapshot
     QList<TreeNode> addressSpace;
     /// \brief Variables of each object, keyed by the object node id.
     QHash<QString, QList<VariableInfo>> variables;
-    /// \brief Type hierarchy tree.
-    QList<TreeNode> typeTree;
     /// \brief Types keyed by node id.
     QHash<QString, TypeInfo> types;
     /// \brief Namespace array.

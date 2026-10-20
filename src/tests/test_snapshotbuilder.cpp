@@ -3,6 +3,8 @@
 
 #include <QTest>
 
+#include <algorithm>
+
 #include "project/defaultproject.h"
 #include "server/addressspace.h"
 #include "server/simserver.h"
@@ -41,7 +43,8 @@ private slots:
     void runningServerStatus();
     void statusOfInvalidEndpoints();
     void listsNamespaces();
-    void typeCatalogCountsSubtypes();
+    void typeCatalogReadsServerTypes();
+    void typeTreeHidesUnusedStandardTypes();
     void buildCombinesEverything();
 
 private:
@@ -165,19 +168,40 @@ void TestSnapshotBuilder::listsNamespaces()
     QVERIFY(!namespaces[1].description.isEmpty());
 }
 
-void TestSnapshotBuilder::typeCatalogCountsSubtypes()
+void TestSnapshotBuilder::typeCatalogReadsServerTypes()
 {
-    const QHash<QString, TypeInfo> types = TypeCatalog::types();
-    QCOMPARE(types.size(), 5);
-    QCOMPARE(types.value(QStringLiteral("i=62")).references.first().count, 2);
-    QVERIFY(types.value(QStringLiteral("i=62")).isAbstract);
+    const QHash<QString, TypeInfo> types = TypeCatalog::types(*_server->uaServer());
+    const TypeInfo variableRoot = types.value(QStringLiteral("i=62"));
+    QCOMPARE(variableRoot.browseName, QStringLiteral("BaseVariableType"));
+    QVERIFY(variableRoot.isAbstract);
+    QVERIFY(variableRoot.baseTypeId.isEmpty());
+    QCOMPARE(variableRoot.category, QStringLiteral("VariableType"));
+    QVERIFY(!variableRoot.description.isEmpty());
+    const auto subtypes = std::find_if(
+        variableRoot.references.cbegin(), variableRoot.references.cend(),
+        [](const ReferenceCount &count) { return count.referenceType == QLatin1String("HasSubtype"); });
+    QVERIFY(subtypes != variableRoot.references.cend());
+    QVERIFY(subtypes->count >= 2);
     QCOMPARE(types.value(QStringLiteral("i=61")).baseTypeId, QStringLiteral("i=58"));
+    QCOMPARE(types.value(QStringLiteral("i=29")).category, QStringLiteral("DataType"));
+    QCOMPARE(types.value(QStringLiteral("i=35")).category, QStringLiteral("ReferenceType"));
+    QCOMPARE(types.value(QStringLiteral("i=11")).browseName, QStringLiteral("Double"));
+}
 
-    const QList<TreeNode> tree = TypeCatalog::tree();
-    QCOMPARE(tree.size(), 1);
-    QVERIFY(findById(tree, QStringLiteral("i=61"))->current);
+void TestSnapshotBuilder::typeTreeHidesUnusedStandardTypes()
+{
+    const QHash<QString, TypeInfo> types = TypeCatalog::types(*_server->uaServer());
+    const QList<TreeNode> relevant = TypeCatalog::tree(types, false);
+    QCOMPARE(relevant.size(), 1);
+    QCOMPARE(relevant.first().children.size(), 4);
+    QVERIFY(findById(relevant, QStringLiteral("i=61"))->current);
+    QVERIFY(findById(relevant, QStringLiteral("i=11")));
+    QVERIFY(findById(relevant, QStringLiteral("i=26")));
+    QVERIFY(!findById(relevant, QStringLiteral("i=852")));
+
+    const QList<TreeNode> all = TypeCatalog::tree(types, true);
     for (const QString &id : types.keys())
-        QVERIFY2(findById(tree, id), qPrintable(id));
+        QVERIFY2(findById(all, id), qPrintable(id));
 }
 
 void TestSnapshotBuilder::buildCombinesEverything()
@@ -185,7 +209,7 @@ void TestSnapshotBuilder::buildCombinesEverything()
     const ServerSnapshot snapshot = SnapshotBuilder::build(_project, *_server, *_space, QDateTime::currentDateTime());
     QCOMPARE(snapshot.addressSpace.size(), 3);
     QCOMPARE(snapshot.variables.size(), 4);
-    QCOMPARE(snapshot.types.size(), 5);
+    QCOMPARE(snapshot.types.value(QStringLiteral("i=61")).browseName, QStringLiteral("FolderType"));
     QCOMPARE(snapshot.endpoints.size(), 1);
     QCOMPARE(snapshot.namespaces.size(), snapshot.status.namespaces);
     QVERIFY(snapshot.sessions.isEmpty());

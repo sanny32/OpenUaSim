@@ -159,6 +159,13 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QCheckBox" name="allTypesCheck">
+            <property name="text">
+             <string>Show all standard types</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

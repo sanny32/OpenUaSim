@@ -107,7 +107,7 @@ void MainWindow::setSnapshot(const ServerSnapshot &snapshot)
 {
     applyStatus(snapshot.status);
     ui->objectsPage->setAddressSpace(snapshot.addressSpace, snapshot.variables);
-    ui->typesPage->setTypes(snapshot.typeTree, snapshot.types);
+    ui->typesPage->setTypes(snapshot.types);
     ui->namespacesPage->setNamespaces(snapshot.namespaces);
     ui->endpointsPage->setEndpoints(snapshot.endpoints);
     ui->certificatesPage->setCertificates(snapshot.certificates);

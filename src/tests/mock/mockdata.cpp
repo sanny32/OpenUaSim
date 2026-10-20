@@ -256,28 +256,6 @@ void fillTypes(ServerSnapshot &snapshot)
         });
         info.references.first().count = static_cast<int>(subtypes);
     }
-
-    const QString folder = QStringLiteral("folder");
-    auto typeNode = [&folder](const TypeInfo &info) {
-        return node(info.browseName, folder, TreeNode::Kind::Type, info.nodeId);
-    };
-
-    TreeNode deviceNode = typeNode(types[2]);
-    deviceNode.expanded = true;
-    deviceNode.current = true;
-    deviceNode.children = { typeNode(types[3]), typeNode(types[4]), typeNode(types[5]) };
-
-    TreeNode objectRoot = typeNode(types[0]);
-    objectRoot.expanded = true;
-    objectRoot.children = { typeNode(types[1]), deviceNode };
-
-    TreeNode variableRoot = typeNode(types[6]);
-    variableRoot.children = { typeNode(types[7]), typeNode(types[8]) };
-
-    TreeNode root = node(QStringLiteral("Types"), folder, TreeNode::Kind::Folder);
-    root.expanded = true;
-    root.children = { objectRoot, variableRoot };
-    snapshot.typeTree = { root };
 }
 
 ///

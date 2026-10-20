@@ -272,8 +272,7 @@ ServerSnapshot build(const ProjectConfig &project, const SimServer &server, cons
     snapshot.variables = variables(project.nodes, addressSpace);
     ImportedNodes::collect(*server.uaServer(), ModelVariables::resolve(project.modelVariables, *server.uaServer()),
                            addressSpace, snapshot.addressSpace.first().children, snapshot.variables);
-    snapshot.typeTree = TypeCatalog::tree();
-    snapshot.types = TypeCatalog::types();
+    snapshot.types = TypeCatalog::types(*server.uaServer());
     snapshot.namespaces = namespaces(server);
     snapshot.endpoints = project.endpoints;
     snapshot.sessions = server.sessions();

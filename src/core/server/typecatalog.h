@@ -3,7 +3,7 @@
 
 ///
 /// \file typecatalog.h
-/// \brief Declares the standard types the simulator's nodes are instances of.
+/// \brief Declares the type hierarchy of the server: standard types and the types of imported models.
 ///
 
 #pragma once
@@ -14,19 +14,32 @@
 #include "data/treenode.h"
 #include "data/typeinfo.h"
 
+class QUaServer;
+
 namespace TypeCatalog {
 
 ///
-/// \brief Returns the standard object and variable types of namespace 0 the project nodes use.
-/// \return Types keyed by node id, with HasSubtype counts.
+/// \brief Reads the object, variable, data and reference types of a server.
+/// \param server Server holding the standard types and the types of imported models.
+/// \return Types keyed by node id, e.g. "i=61" or "ns=2;i=1000", with their supertype, category, declared
+///         children and forward references counted by reference type.
 ///
-QHash<QString, TypeInfo> types();
+QHash<QString, TypeInfo> types(const QUaServer &server);
 
 ///
-/// \brief Builds the navigation tree of types().
-/// \return One "Types" root holding the BaseObjectType and BaseVariableType hierarchies,
-///         with FolderType current.
+/// \brief Tells whether a type is shown without the full standard type system.
+/// \param type Type to check.
+/// \return True for a type outside namespace 0, a root of a hierarchy, a type of the project nodes or a data type
+///         the simulation writes.
 ///
-QList<TreeNode> tree();
+bool isRelevant(const TypeInfo &type);
+
+///
+/// \brief Builds the navigation tree of types.
+/// \param types Types keyed by node id, as types() returns them.
+/// \param allStandardTypes Whether every type is shown; otherwise only relevant types and their supertypes.
+/// \return One "Types" root holding a hierarchy per root type, siblings sorted by name, with FolderType current.
+///
+QList<TreeNode> tree(const QHash<QString, TypeInfo> &types, bool allStandardTypes);
 
 }
