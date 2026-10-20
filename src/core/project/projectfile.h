@@ -52,14 +52,14 @@ QByteArray toJson(const ProjectConfig &project);
 /// \brief Parses a project from JSON and validates it.
 /// \param json Document produced by toJson().
 /// \return Project, or the first problem found: malformed JSON, a newer format version,
-///         an unknown node kind, data type, access level or simulation function, or a
-///         duplicated node id.
+///         an unknown node kind, data type, access level or simulation function, a duplicated
+///         node id, or model variable settings without a namespace URI or given twice.
 ///
 LoadResult fromJson(const QByteArray &json);
 
 ///
 /// \brief Writes a project to a file, replacing it atomically.
-/// \param project Project to write.
+/// \param project Project to write; its model paths are stored relative to the file's directory.
 /// \param fileName Target path.
 /// \param error Receives the reason on failure; may be null.
 /// \return True when the file was written.
@@ -69,7 +69,7 @@ bool save(const ProjectConfig &project, const QString &fileName, QString *error 
 ///
 /// \brief Reads a project from a file.
 /// \param fileName Path to read.
-/// \return Project, or the reason the file could not be opened or parsed.
+/// \return Project with absolute model paths, or the reason the file could not be opened or parsed.
 ///
 LoadResult load(const QString &fileName);
 

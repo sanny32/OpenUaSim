@@ -56,10 +56,11 @@ public:
     bool save(QString *error = nullptr);
 
     ///
-    /// \brief Writes the served project to a new file and makes it the document's file.
+    /// \brief Writes the served project to a new file and makes it the document's file; the imported models are
+    ///        copied into the models directory next to it.
     /// \param fileName Target path.
     /// \param error Receives the reason on failure; may be null.
-    /// \return False when the file cannot be written.
+    /// \return False when the models or the file cannot be written.
     ///
     bool saveAs(const QString &fileName, QString *error = nullptr);
 

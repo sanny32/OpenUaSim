@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <QDateTime>
+#include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -38,6 +39,25 @@ const NodeDefinition &firstVariable(const ProjectConfig &project)
     return project.nodes.first().children.first().children.first();
 }
 
+QByteArray projectWithModelVariables(const QJsonArray &variables)
+{
+    const QJsonObject root {
+        { QStringLiteral("formatVersion"), ProjectFile::kFormatVersion },
+        { QStringLiteral("modelVariables"), variables },
+    };
+    return QJsonDocument(root).toJson();
+}
+
+QJsonObject modelVariable(const QString &namespaceUri, const QString &nodeId)
+{
+    return {
+        { QStringLiteral("namespaceUri"), namespaceUri },
+        { QStringLiteral("kind"), QStringLiteral("variable") },
+        { QStringLiteral("browseName"), QStringLiteral("Level") },
+        { QStringLiteral("nodeId"), nodeId },
+    };
+}
+
 }
 
 class TestProjectFile : public QObject
@@ -66,6 +86,10 @@ private slots:
     void rejectsInvalidNode();
     void rejectsDuplicateNodeIds();
     void savesAndLoadsFile();
+    void preservesModelVariables();
+    void rejectsInvalidModelVariable_data();
+    void rejectsInvalidModelVariable();
+    void storesModelPathsRelativeToFile();
     void loadReportsMissingFile();
     void saveReportsUnwritablePath();
 };
@@ -393,6 +417,98 @@ void TestProjectFile::savesAndLoadsFile()
     const ProjectFile::LoadResult result = ProjectFile::load(fileName);
     QVERIFY2(result.ok(), qPrintable(result.error));
     QCOMPARE(result.project.nodes.first().browseName, QStringLiteral("FactoryLine_01"));
+}
+
+void TestProjectFile::preservesModelVariables()
+{
+    ModelVariable simulated;
+    simulated.namespaceUri = QStringLiteral("urn:test:tank");
+    simulated.variable.kind = NodeDefinition::Kind::Variable;
+    simulated.variable.browseName = QStringLiteral("Level");
+    simulated.variable.nodeId = QStringLiteral("i=1001");
+    simulated.variable.access = QStringLiteral("Read");
+    simulated.variable.quality = VariableInfo::Quality::Uncertain;
+    simulated.variable.simulation.function = SimulationFunction::Sine;
+    simulated.variable.simulation.amplitude = 5.0;
+    simulated.variable.alarm.enabled = true;
+    simulated.variable.alarm.highEnabled = true;
+    simulated.variable.alarm.high = 90.0;
+    ModelVariable started = simulated;
+    started.namespaceUri = QStringLiteral("urn:test:boiler");
+    started.variable.initialValue = 12.5;
+    started.variable.alarm = AlarmSettings();
+    ProjectConfig project;
+    project.modelVariables = { simulated, started };
+
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(ProjectFile::toJson(project));
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.project.modelVariables.size(), 2);
+    const ModelVariable &first = result.project.modelVariables.at(0);
+    QCOMPARE(first.namespaceUri, simulated.namespaceUri);
+    QCOMPARE(first.variable.nodeId, QStringLiteral("i=1001"));
+    QCOMPARE(first.variable.access, QStringLiteral("Read"));
+    QCOMPARE(first.variable.quality, VariableInfo::Quality::Uncertain);
+    QCOMPARE(first.variable.simulation.function, SimulationFunction::Sine);
+    QCOMPARE(first.variable.simulation.amplitude, 5.0);
+    QVERIFY(first.variable.alarm == simulated.variable.alarm);
+    QVERIFY(!first.variable.initialValue.isValid());
+    const ModelVariable &second = result.project.modelVariables.at(1);
+    QCOMPARE(second.namespaceUri, QStringLiteral("urn:test:boiler"));
+    QCOMPARE(second.variable.nodeId, QStringLiteral("i=1001"));
+    QCOMPARE(second.variable.initialValue.toDouble(), 12.5);
+}
+
+void TestProjectFile::rejectsInvalidModelVariable_data()
+{
+    QTest::addColumn<QByteArray>("json");
+    QTest::addColumn<QString>("expectedError");
+
+    const QString uri = QStringLiteral("urn:test:tank");
+    QTest::newRow("namespace") << projectWithModelVariables({ modelVariable(QString(), QStringLiteral("i=1")) })
+                               << "modelVariables[0]: namespace URI is empty";
+    QTest::newRow("node id") << projectWithModelVariables({ modelVariable(uri, QString()) })
+                             << "modelVariables[0]: node id is empty";
+    QJsonObject folder = modelVariable(uri, QStringLiteral("i=1"));
+    folder.insert(QStringLiteral("kind"), QStringLiteral("folder"));
+    QTest::newRow("kind") << projectWithModelVariables({ folder })
+                          << "modelVariables[0]: model settings belong to a variable";
+    QTest::newRow("twice") << projectWithModelVariables({ modelVariable(uri, QStringLiteral("i=1")),
+                                                          modelVariable(uri, QStringLiteral("i=1")) })
+                           << "modelVariables[1]: the variable has settings more than once";
+    QJsonObject access = modelVariable(uri, QStringLiteral("i=1"));
+    access.insert(QStringLiteral("access"), QStringLiteral("Execute"));
+    QTest::newRow("access") << projectWithModelVariables({ access })
+                            << "modelVariables[0]: unknown access level 'Execute'";
+}
+
+void TestProjectFile::rejectsInvalidModelVariable()
+{
+    QFETCH(QByteArray, json);
+    QFETCH(QString, expectedError);
+
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(json);
+    QCOMPARE(result.error, QStringLiteral("Invalid project file: ") + expectedError);
+}
+
+void TestProjectFile::storesModelPathsRelativeToFile()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString fileName = directory.filePath(QStringLiteral("line.ouasim"));
+    ProjectConfig project;
+    project.nodeSetFiles = { directory.filePath(QStringLiteral("line.models/tank.NodeSet2.xml")) };
+
+    QString error;
+    QVERIFY2(ProjectFile::save(project, fileName, &error), qPrintable(error));
+    QFile file(fileName);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
+    const QJsonArray stored = root.value(QStringLiteral("nodeSetFiles")).toArray();
+    QCOMPARE(stored, QJsonArray { QStringLiteral("line.models/tank.NodeSet2.xml") });
+
+    const ProjectFile::LoadResult result = ProjectFile::load(fileName);
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.project.nodeSetFiles, project.nodeSetFiles);
 }
 
 void TestProjectFile::loadReportsMissingFile()

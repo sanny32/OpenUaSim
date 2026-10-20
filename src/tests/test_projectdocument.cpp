@@ -1,11 +1,15 @@
 // SPDX-FileCopyrightText: 2026 OpenUaSim contributors
 // SPDX-License-Identifier: MIT
 
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
+
+#include <QUaServer>
 
 #include "project/defaultproject.h"
 #include "project/projectdocument.h"
@@ -23,6 +27,8 @@ private slots:
     void editsMarkModified();
     void saveWithoutFileFails();
     void saveAsWritesAndClearsModified();
+    void saveAsKeepsModelsNextToProject();
+    void saveAsReportsUncopyableModel();
     void openServesFileAndClearsModified();
     void openKeepsProjectOnError();
     void openRestartsRunningServer();
@@ -98,6 +104,49 @@ void TestProjectDocument::saveAsWritesAndClearsModified()
     QVERIFY(controller.removeNode(QStringLiteral("ns=1;s=Tank_01")));
     QVERIFY(document.save());
     QCOMPARE(ProjectFile::load(fileName).project.nodes.first().children.size(), 2);
+}
+
+void TestProjectDocument::saveAsKeepsModelsNextToProject()
+{
+    const QString download = _directory.filePath(QStringLiteral("download/tank.NodeSet2.xml"));
+    QVERIFY(QDir().mkpath(QFileInfo(download).absolutePath()));
+    QVERIFY(QFile::copy(QStringLiteral(OUASIM_TEST_DATA_DIR "/tank.NodeSet2.xml"), download));
+    ServerController controller;
+    ProjectDocument document(&controller);
+    document.newProject();
+    QVERIFY(controller.importNodeSet(download));
+
+    const QString fileName = _directory.filePath(QStringLiteral("plant.ouasim"));
+    QString error;
+    QVERIFY2(document.saveAs(fileName, &error), qPrintable(error));
+    const QString copy = _directory.filePath(QStringLiteral("plant.models/tank.NodeSet2.xml"));
+    QVERIFY(QFile::exists(copy));
+    QCOMPARE(controller.project().nodeSetFiles, QStringList { copy });
+    QCOMPARE(controller.modelNamespaces().value(QStringLiteral("urn:openuasim:test:tank")), copy);
+    QVERIFY(!document.isModified());
+
+    QVERIFY(QFile::remove(download));
+    ServerController reopened;
+    ProjectDocument other(&reopened);
+    QVERIFY(other.open(fileName));
+    QCOMPARE(reopened.project().nodeSetFiles, QStringList { copy });
+    QVERIFY(reopened.server().uaServer()->namespaces().contains(QStringLiteral("urn:openuasim:test:tank")));
+}
+
+void TestProjectDocument::saveAsReportsUncopyableModel()
+{
+    ProjectConfig project = DefaultProject::create();
+    project.nodeSetFiles = { _directory.filePath(QStringLiteral("missing.NodeSet2.xml")) };
+    ServerController controller;
+    ProjectDocument document(&controller);
+    controller.setProject(project);
+
+    const QString fileName = _directory.filePath(QStringLiteral("broken.ouasim"));
+    QString error;
+    QVERIFY(!document.saveAs(fileName, &error));
+    QVERIFY(error.contains(QStringLiteral("missing.NodeSet2.xml")));
+    QVERIFY(!QFile::exists(fileName));
+    QVERIFY(document.fileName().isEmpty());
 }
 
 void TestProjectDocument::openServesFileAndClearsModified()

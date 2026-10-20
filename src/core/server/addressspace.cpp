@@ -100,7 +100,31 @@ QStringList AddressSpace::build(const QList<NodeDefinition> &nodes)
 }
 
 ///
-/// \brief Removes every built node from the server.
+/// \brief Takes over variables of imported models, so they are set, simulated and alarmed like built ones.
+/// \param variables Variable definitions with the server node ids of model variables; the access, quality,
+///        alarm and a valid initial value are applied. Variables taken over before are skipped.
+/// \return Problems with variables that are not served.
+///
+QStringList AddressSpace::attach(const QList<NodeDefinition> &variables)
+{
+    QStringList problems;
+    for (const NodeDefinition &node : variables) {
+        if (hasVariable(node.nodeId))
+            continue;
+        auto *variable = _server->nodeById<QUaBaseDataVariable>(QUaNodeId(node.nodeId));
+        if (!variable) {
+            problems.append(QStringLiteral("%1: %2").arg(node.nodeId, tr("the server has no such variable")));
+            continue;
+        }
+        registerVariable(variable, node);
+        if (node.alarm.enabled)
+            addAlarm(qobject_cast<QUaNode *>(variable->parent()), *variable, node, node.nodeId, problems);
+    }
+    return problems;
+}
+
+///
+/// \brief Removes every built node from the server and releases the attached model variables.
 ///
 void AddressSpace::clear()
 {
@@ -113,6 +137,10 @@ void AddressSpace::clear()
     }
     _alarms.clear();
     _alarmIds.clear();
+    for (const QPointer<QUaBaseDataVariable> &variable : std::as_const(_variables)) {
+        if (variable)
+            variable->disconnect(this);
+    }
     for (const QPointer<QUaNode> &root : std::as_const(_roots))
         delete root.data();
     _roots.clear();
@@ -142,7 +170,7 @@ int AddressSpace::nodeCount() const
 }
 
 ///
-/// \brief Tells whether a variable was built.
+/// \brief Tells whether a variable was built or attached.
 /// \param nodeId Variable node id.
 /// \return True when the variable exists.
 ///
@@ -490,18 +518,28 @@ QUaBaseDataVariable *AddressSpace::addVariable(QUaNode *parent, const NodeDefini
         parent->addBaseDataVariable(QUaQualifiedName(kApplicationNamespace, node.browseName), QUaNodeId(node.nodeId));
     if (!variable)
         return nullptr;
-    const VariableShape shape { node.dataType, node.arrayLength, node.quality };
-    setTypedValue(variable, node.initialValue, shape);
-    if (shape.arrayLength > 0) {
+    if (node.arrayLength > 0) {
         variable->setValueRank(1);
-        variable->setArrayDimensions({ quint32(shape.arrayLength) });
+        variable->setArrayDimensions({ quint32(node.arrayLength) });
     }
+    registerVariable(variable, node);
+    return variable;
+}
+
+///
+/// \brief Applies the value, quality and access of a definition to a variable and serves it by node id.
+/// \param variable Built or attached variable.
+/// \param node Variable definition; an invalid initial value keeps the current value.
+///
+void AddressSpace::registerVariable(QUaBaseDataVariable *variable, const NodeDefinition &node)
+{
+    const VariableShape shape { node.dataType, node.arrayLength, node.quality };
+    setTypedValue(variable, node.initialValue.isValid() ? node.initialValue : variable->value(), shape);
     applyAccess(variable, node.access);
     _variables.insert(node.nodeId, variable);
     _shapes.insert(node.nodeId, shape);
     _variableIds.insert(variable, node.nodeId);
     connect(variable, &QUaBaseVariable::valueChanged, this, &AddressSpace::handleValueChanged);
-    return variable;
 }
 
 ///

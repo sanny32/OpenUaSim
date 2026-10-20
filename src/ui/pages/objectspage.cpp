@@ -282,6 +282,9 @@ void ObjectsPage::showVariable(const QModelIndex &current)
     const VariableInfo &variable = _variablesModel->item(current.row());
     ui->propertiesHost->setEnabled(!variable.readOnly);
     ui->propertiesActions->setEnabled(!variable.readOnly);
+    const QList<QWidget *> structuralFields = { ui->displayNameEdit, ui->dataTypeCombo, ui->arrayLengthSpin };
+    for (QWidget *widget : structuralFields)
+        widget->setEnabled(!variable.fromModel);
     ui->nodeIdEdit->setText(variable.nodeId);
     ui->displayNameEdit->setText(variable.displayName);
     ui->iconCombo->setCurrentIndex(ui->iconCombo->findData(variable.icon));

@@ -63,6 +63,18 @@ struct NodeDefinition
 };
 
 ///
+/// \brief Settings a project keeps for a variable of an imported model, whose structure the model defines.
+///
+struct ModelVariable
+{
+    /// \brief URI of the model namespace holding the variable.
+    QString namespaceUri;
+    /// \brief Icon, access, quality, initial value, simulation and alarm of the variable. Its node id is the
+    ///        identifier within the namespace, e.g. "i=1003"; an invalid initial value keeps the model value.
+    NodeDefinition variable;
+};
+
+///
 /// \brief Login that endpoints accepting username/password tokens check clients against.
 ///
 struct UserAccount
@@ -105,6 +117,8 @@ struct ProjectConfig
     QList<UserAccount> users;
     /// \brief Nodes added under the Objects folder.
     QList<NodeDefinition> nodes;
-    /// \brief NodeSet2 files loaded before the project nodes are built.
+    /// \brief Absolute paths of the NodeSet2 files loaded before the project nodes are built.
     QStringList nodeSetFiles;
+    /// \brief Settings of imported model variables that differ from their model.
+    QList<ModelVariable> modelVariables;
 };

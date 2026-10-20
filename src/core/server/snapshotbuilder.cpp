@@ -13,6 +13,7 @@
 #include "addressspace.h"
 #include "importednodes.h"
 #include "listenersettings.h"
+#include "modelvariables.h"
 #include "simserver.h"
 #include "snapshotbuilder.h"
 #include "typecatalog.h"
@@ -269,7 +270,8 @@ ServerSnapshot build(const ProjectConfig &project, const SimServer &server, cons
     snapshot.status = status(project, server, addressSpace, now);
     snapshot.addressSpace = addressSpaceTree(project.nodes);
     snapshot.variables = variables(project.nodes, addressSpace);
-    ImportedNodes::collect(*server.uaServer(), snapshot.addressSpace.first().children, snapshot.variables);
+    ImportedNodes::collect(*server.uaServer(), ModelVariables::resolve(project.modelVariables, *server.uaServer()),
+                           addressSpace, snapshot.addressSpace.first().children, snapshot.variables);
     snapshot.typeTree = TypeCatalog::tree();
     snapshot.types = TypeCatalog::types();
     snapshot.namespaces = namespaces(server);

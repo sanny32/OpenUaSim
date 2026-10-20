@@ -13,9 +13,12 @@
 #include <algorithm>
 
 #include "formatting.h"
+#include "importednodes.h"
 #include "listenersettings.h"
 #include "logmapper.h"
+#include "modelvariables.h"
 #include "pki/certificategenerator.h"
+#include "project/alarmrules.h"
 #include "project/projectnodes.h"
 #include "project/serversettingsrules.h"
 #include "project/useraccountrules.h"
@@ -87,9 +90,27 @@ bool ServerController::removeNodeSet(const QString &fileName, QString *error)
             *error = tr("'%1' is not imported").arg(fileName);
         return false;
     }
+    _project.modelVariables.removeIf([this, &fileName](const ModelVariable &variable) {
+        return _modelNamespaces.value(variable.namespaceUri) == fileName;
+    });
     reloadServer();
     emit projectEdited();
     return true;
+}
+
+///
+/// \brief Points the project at moved model files without reloading them, e.g. after they were copied next to
+///        the project file.
+/// \param movedFiles New absolute path keyed by the former one; paths the project does not import are ignored.
+///
+void ServerController::renameNodeSetFiles(const QHash<QString, QString> &movedFiles)
+{
+    for (QStringList *files : { &_project.nodeSetFiles, &_loadedNodeSets }) {
+        for (QString &file : *files)
+            file = movedFiles.value(file, file);
+    }
+    for (QString &file : _modelNamespaces)
+        file = movedFiles.value(file, file);
 }
 
 ///
@@ -234,35 +255,16 @@ QString ServerController::copyNode(const QString &nodeId, const QString &parentI
 bool ServerController::updateVariable(const VariableInfo &variable, QString *error)
 {
     const NodeDefinition *existing = ProjectNodes::find(_project.nodes, variable.nodeId);
-    if (!existing) {
-        if (error)
-            *error = tr("'%1' is not a variable").arg(variable.nodeId);
-        return false;
-    }
+    if (!existing)
+        return updateModelVariable(variable, error);
     const bool structural = existing->browseName != variable.displayName || existing->dataType != variable.dataType
         || existing->arrayLength != variable.arrayLength || existing->alarm != variable.alarm;
 
     NodeDefinition edited = *existing;
     edited.browseName = variable.displayName;
-    edited.icon = variable.icon;
     edited.dataType = variable.dataType;
     edited.arrayLength = variable.arrayLength;
-    edited.alarm = variable.alarm;
-    edited.access = variable.access;
-    edited.quality = variable.configuredQuality;
-    edited.simulation = variable.simulation;
-    const bool valueEdited = variable.initialValue.isValid();
-    if (valueEdited) {
-        edited.initialValue = variable.initialValue.typeId() == QMetaType::QString
-            ? ValueCast::fromText(variable.initialValue.toString(), variable.dataType)
-            : variable.initialValue;
-        if (!edited.initialValue.isValid()) {
-            if (error)
-                *error = tr("'%1' is not a %2 value").arg(variable.initialValue.toString(), variable.dataType);
-            return false;
-        }
-    }
-    if (!ProjectNodes::updateVariable(_project.nodes, edited, error))
+    if (!applyVariableEdits(variable, edited, error) || !ProjectNodes::updateVariable(_project.nodes, edited, error))
         return false;
 
     emit projectEdited();
@@ -270,14 +272,115 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
         rebuildNodes();
         return true;
     }
-    _addressSpace.setAccess(edited.nodeId, edited.access);
-    _addressSpace.setQuality(edited.nodeId, edited.quality);
-    if (valueEdited)
-        _addressSpace.setValue(edited.nodeId, edited.initialValue);
-    _engine.updateVariable({ edited.nodeId, edited.dataType, edited.simulation, edited.arrayLength });
-    emit variableChanged(SnapshotBuilder::variableInfo(*ProjectNodes::find(_project.nodes, edited.nodeId),
-                                                       _addressSpace));
+    applyLiveSettings(*ProjectNodes::find(_project.nodes, edited.nodeId), variable.initialValue.isValid());
     return true;
+}
+
+///
+/// \brief Applies edited properties of an imported model variable and keeps them in the project.
+/// \param variable Server node id with the new icon, access, configured quality, simulation, alarm and, when
+///        valid, initial value; the model keeps defining the name, data type and array length.
+/// \param error Receives the reason on failure; may be null.
+/// \return False for a node that is no model variable the simulation can drive, or for refused settings. A new
+///         alarm rebuilds the address space; other changes apply to the live variable.
+///
+bool ServerController::updateModelVariable(const VariableInfo &variable, QString *error)
+{
+    const QUaBaseDataVariable *served = ModelVariables::find(*_server.uaServer(), variable.nodeId);
+    if (!served || !ModelVariables::isEditable(*served)) {
+        if (error)
+            *error = tr("'%1' is not a variable").arg(variable.nodeId);
+        return false;
+    }
+    ModelVariable model = ModelVariables::describe(*_server.uaServer(), *served);
+    const qsizetype index =
+        ModelVariables::indexOf(_project.modelVariables, model.namespaceUri, model.variable.nodeId);
+    const AlarmSettings storedAlarm = index >= 0 ? _project.modelVariables.at(index).variable.alarm : AlarmSettings();
+    if (index >= 0)
+        model.variable.initialValue = _project.modelVariables.at(index).variable.initialValue;
+    if (!applyVariableEdits(variable, model.variable, error))
+        return false;
+    if (const QString problem =
+            AlarmRules::problem(model.variable.alarm, model.variable.dataType, model.variable.arrayLength);
+        !problem.isEmpty()) {
+        if (error)
+            *error = problem;
+        return false;
+    }
+    if (index >= 0)
+        _project.modelVariables[index] = model;
+    else
+        _project.modelVariables.append(model);
+
+    emit projectEdited();
+    if (storedAlarm != model.variable.alarm) {
+        rebuildNodes();
+        return true;
+    }
+    NodeDefinition settings = model.variable;
+    settings.nodeId = variable.nodeId;
+    const auto entry = std::find_if(_modelSettings.begin(), _modelSettings.end(),
+                                    [&settings](const NodeDefinition &node) { return node.nodeId == settings.nodeId; });
+    if (entry != _modelSettings.end())
+        *entry = settings;
+    else
+        _modelSettings.append(settings);
+    _addressSpace.attach({ settings });
+    applyLiveSettings(settings, variable.initialValue.isValid());
+    return true;
+}
+
+///
+/// \brief Copies the edited icon, access, quality, simulation, alarm and initial value of a variable.
+/// \param variable Edited properties; a valid initial value, typed text or a value, replaces the stored one.
+/// \param node Definition receiving the edits; its data type parses the initial value.
+/// \param error Receives the reason on failure; may be null.
+/// \return False for an initial value that is no value of the data type.
+///
+bool ServerController::applyVariableEdits(const VariableInfo &variable, NodeDefinition &node, QString *error)
+{
+    node.icon = variable.icon;
+    node.alarm = variable.alarm;
+    node.access = variable.access;
+    node.quality = variable.configuredQuality;
+    node.simulation = variable.simulation;
+    if (!variable.initialValue.isValid())
+        return true;
+    node.initialValue = variable.initialValue.typeId() == QMetaType::QString
+        ? ValueCast::fromText(variable.initialValue.toString(), node.dataType)
+        : variable.initialValue;
+    if (node.initialValue.isValid())
+        return true;
+    if (error)
+        *error = tr("'%1' is not a %2 value").arg(variable.initialValue.toString(), node.dataType);
+    return false;
+}
+
+///
+/// \brief Applies the access, quality and simulation of a served variable without rebuilding the address space.
+/// \param node Stored definition with the server node id.
+/// \param valueEdited Whether the initial value changed and becomes the current value.
+///
+void ServerController::applyLiveSettings(const NodeDefinition &node, bool valueEdited)
+{
+    _addressSpace.setAccess(node.nodeId, node.access);
+    _addressSpace.setQuality(node.nodeId, node.quality);
+    if (valueEdited)
+        _addressSpace.setValue(node.nodeId, node.initialValue);
+    _engine.updateVariable({ node.nodeId, node.dataType, node.simulation, node.arrayLength });
+    emit variableChanged(variableInfo(node));
+}
+
+///
+/// \brief Describes a project or model variable for the views.
+/// \param node Stored definition with the server node id.
+/// \return Description with the live value and alarm state.
+///
+VariableInfo ServerController::variableInfo(const NodeDefinition &node) const
+{
+    if (const QUaBaseDataVariable *model = ModelVariables::find(*_server.uaServer(), node.nodeId))
+        return ImportedNodes::variableInfo(*_server.uaServer(), *model, &node, _addressSpace);
+    return SnapshotBuilder::variableInfo(node, _addressSpace);
 }
 
 ///
@@ -584,7 +687,14 @@ void ServerController::rebuildNodes()
     for (const QString &problem : problems)
         appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
                                    tr("Node skipped: %1").arg(problem)));
-    _engine.setVariables(SimulationEngine::variablesOf(_project.nodes));
+    QStringList modelProblems;
+    _modelSettings = ModelVariables::resolve(_project.modelVariables, *_server.uaServer(), &modelProblems);
+    modelProblems += _addressSpace.attach(_modelSettings);
+    for (const QString &problem : std::as_const(modelProblems))
+        appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
+                                   tr("Model variable settings skipped: %1").arg(problem)));
+    _engine.setVariables(SimulationEngine::variablesOf(_project.nodes)
+                         + SimulationEngine::variablesOf(_modelSettings));
     emit projectChanged();
 }
 
@@ -710,13 +820,15 @@ void ServerController::handleAlarmChanged(const QString &nodeId, const QString &
 {
     const NodeDefinition *node = ProjectNodes::find(_project.nodes, nodeId);
     if (!node)
+        node = ProjectNodes::find(_modelSettings, nodeId);
+    if (!node)
         return;
     appendLog(state.isEmpty()
                   ? LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::DataChanges,
                                      tr("Alarm of %1 returned to normal").arg(node->browseName))
                   : LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::DataChanges,
                                      tr("Alarm of %1 is active: %2").arg(node->browseName, state)));
-    emit variableChanged(SnapshotBuilder::variableInfo(*node, _addressSpace));
+    emit variableChanged(variableInfo(*node));
 }
 
 ///

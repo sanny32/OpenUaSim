@@ -192,6 +192,7 @@ private slots:
     void namespacesPageRequestsImportAndExport();
     void namespacesPageRemovesImportedModels();
     void objectsPageShowsImportedVariablesReadOnly();
+    void objectsPageLocksModelVariableStructure();
 
 private:
     ServerSnapshot _snapshot;
@@ -1371,6 +1372,28 @@ void TestPages::objectsPageShowsImportedVariablesReadOnly()
     QCOMPARE(child<QLineEdit>(page, "displayNameEdit")->text(), QStringLiteral("Speed"));
     QVERIFY(!child<QPushButton>(page, "applyButton")->isEnabled());
     QVERIFY(!child<QPushButton>(page, "revertButton")->isEnabled());
+}
+
+void TestPages::objectsPageLocksModelVariableStructure()
+{
+    QHash<QString, QList<VariableInfo>> variables = _snapshot.variables;
+    for (QList<VariableInfo> &list : variables) {
+        for (VariableInfo &variable : list)
+            variable.fromModel = true;
+    }
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, variables);
+    QVERIFY(child<QWidget>(page, "propertiesHost")->isEnabled());
+    QVERIFY(child<QPushButton>(page, "applyButton")->isEnabled());
+    QVERIFY(!child<QLineEdit>(page, "displayNameEdit")->isEnabled());
+    QVERIFY(!child<QComboBox>(page, "dataTypeCombo")->isEnabled());
+    QVERIFY(!child<QSpinBox>(page, "arrayLengthSpin")->isEnabled());
+    QVERIFY(child<QComboBox>(page, "simulationCombo")->isEnabled());
+    QVERIFY(child<QLineEdit>(page, "initialValueEdit")->isEnabled());
+
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    QVERIFY(child<QLineEdit>(page, "displayNameEdit")->isEnabled());
+    QVERIFY(child<QComboBox>(page, "dataTypeCombo")->isEnabled());
 }
 
 QTEST_MAIN(TestPages)

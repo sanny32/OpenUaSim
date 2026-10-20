@@ -8,7 +8,9 @@
 
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -230,7 +232,8 @@ QJsonObject nodeToJson(const NodeDefinition &node)
     if (node.kind == NodeDefinition::Kind::Variable) {
         json.insert(QStringLiteral("dataType"), node.dataType);
         json.insert(QStringLiteral("access"), node.access);
-        json.insert(QStringLiteral("initialValue"), valueToJson(node.initialValue));
+        if (node.initialValue.isValid())
+            json.insert(QStringLiteral("initialValue"), valueToJson(node.initialValue));
         if (node.arrayLength > 0)
             json.insert(QStringLiteral("arrayLength"), node.arrayLength);
         json.insert(QStringLiteral("quality"), qualityKey(node.quality));
@@ -245,6 +248,18 @@ QJsonObject nodeToJson(const NodeDefinition &node)
             children.append(nodeToJson(child));
         json.insert(QStringLiteral("children"), children);
     }
+    return json;
+}
+
+///
+/// \brief Serializes the settings of a model variable.
+/// \param variable Settings to write.
+/// \return Variable node object with the namespace URI.
+///
+QJsonObject modelVariableToJson(const ModelVariable &variable)
+{
+    QJsonObject json = nodeToJson(variable.variable);
+    json.insert(QStringLiteral("namespaceUri"), variable.namespaceUri);
     return json;
 }
 
@@ -327,6 +342,7 @@ class NodeReader
 
 public:
     bool read(const QJsonArray &array, const QString &path, QList<NodeDefinition> &nodes);
+    bool readModelVariables(const QJsonArray &array, const QString &path, QList<ModelVariable> &variables);
     QString error() const { return _error; }
 
 private:
@@ -352,6 +368,42 @@ bool NodeReader::read(const QJsonArray &array, const QString &path, QList<NodeDe
         if (!readNode(array.at(index).toObject(), QStringLiteral("%1[%2]").arg(path).arg(index), node))
             return false;
         nodes.append(node);
+    }
+    return true;
+}
+
+///
+/// \brief Parses the settings of model variables.
+/// \param array Stored settings.
+/// \param path Location of the array for error messages.
+/// \param variables Receives the parsed settings.
+/// \return False when settings are invalid, lack the namespace URI or repeat a variable; error() tells why.
+///
+bool NodeReader::readModelVariables(const QJsonArray &array, const QString &path, QList<ModelVariable> &variables)
+{
+    QSet<QString> keys;
+    for (qsizetype index = 0; index < array.size(); ++index) {
+        const QString itemPath = QStringLiteral("%1[%2]").arg(path).arg(index);
+        const QJsonObject json = array.at(index).toObject();
+        ModelVariable variable;
+        variable.namespaceUri = json.value(QStringLiteral("namespaceUri")).toString();
+        if (variable.namespaceUri.isEmpty())
+            return fail(itemPath, tr("namespace URI is empty"));
+        // Identifiers repeat across model namespaces, so only the URI and identifier together must be unique.
+        _nodeIds.clear();
+        if (!readNode(json, itemPath, variable.variable))
+            return false;
+        if (variable.variable.kind != NodeDefinition::Kind::Variable)
+            return fail(itemPath, tr("model settings belong to a variable"));
+        if (variable.variable.nodeId.isEmpty())
+            return fail(itemPath, tr("node id is empty"));
+        if (!json.contains(QStringLiteral("initialValue")))
+            variable.variable.initialValue = QVariant();
+        const QString key = variable.namespaceUri + QLatin1Char('\n') + variable.variable.nodeId;
+        if (keys.contains(key))
+            return fail(itemPath, tr("the variable has settings more than once"));
+        keys.insert(key);
+        variables.append(variable);
     }
     return true;
 }
@@ -502,6 +554,10 @@ QByteArray toJson(const ProjectConfig &project)
     for (const NodeDefinition &node : project.nodes)
         nodes.append(nodeToJson(node));
 
+    QJsonArray modelVariables;
+    for (const ModelVariable &variable : project.modelVariables)
+        modelVariables.append(modelVariableToJson(variable));
+
     const QJsonObject server {
         { QStringLiteral("applicationName"), project.server.applicationName },
         { QStringLiteral("applicationUri"), project.server.applicationUri },
@@ -515,6 +571,7 @@ QByteArray toJson(const ProjectConfig &project)
         { QStringLiteral("users"), users },
         { QStringLiteral("nodes"), nodes },
         { QStringLiteral("nodeSetFiles"), QJsonArray::fromStringList(project.nodeSetFiles) },
+        { QStringLiteral("modelVariables"), modelVariables },
     };
     return QJsonDocument(root).toJson(QJsonDocument::Indented);
 }
@@ -523,8 +580,8 @@ QByteArray toJson(const ProjectConfig &project)
 /// \brief Parses a project from JSON and validates it.
 /// \param json Document produced by toJson().
 /// \return Project, or the first problem found: malformed JSON, a newer format version,
-///         an unknown node kind, data type, access level or simulation function, or a
-///         duplicated node id.
+///         an unknown node kind, data type, access level or simulation function, a duplicated
+///         node id, or model variable settings without a namespace URI or given twice.
 ///
 LoadResult fromJson(const QByteArray &json)
 {
@@ -570,20 +627,30 @@ LoadResult fromJson(const QByteArray &json)
     const QJsonArray nodeSetFiles = root.value(QStringLiteral("nodeSetFiles")).toArray();
     for (const QJsonValue &file : nodeSetFiles)
         project.nodeSetFiles.append(file.toString());
+
+    NodeReader modelReader;
+    if (!modelReader.readModelVariables(root.value(QStringLiteral("modelVariables")).toArray(),
+                                        QStringLiteral("modelVariables"), project.modelVariables))
+        return failure(tr("Invalid project file: %1").arg(modelReader.error()));
     return result;
 }
 
 ///
 /// \brief Writes a project to a file, replacing it atomically.
-/// \param project Project to write.
+/// \param project Project to write; its model paths are stored relative to the file's directory.
 /// \param fileName Target path.
 /// \param error Receives the reason on failure; may be null.
 /// \return True when the file was written.
 ///
 bool save(const ProjectConfig &project, const QString &fileName, QString *error)
 {
+    ProjectConfig stored = project;
+    const QDir directory = QFileInfo(fileName).absoluteDir();
+    for (QString &model : stored.nodeSetFiles)
+        model = directory.relativeFilePath(model);
+
     QSaveFile file(fileName);
-    if (file.open(QIODevice::WriteOnly) && file.write(toJson(project)) >= 0 && file.commit())
+    if (file.open(QIODevice::WriteOnly) && file.write(toJson(stored)) >= 0 && file.commit())
         return true;
     if (error)
         *error = file.errorString();
@@ -593,14 +660,18 @@ bool save(const ProjectConfig &project, const QString &fileName, QString *error)
 ///
 /// \brief Reads a project from a file.
 /// \param fileName Path to read.
-/// \return Project, or the reason the file could not be opened or parsed.
+/// \return Project with absolute model paths, or the reason the file could not be opened or parsed.
 ///
 LoadResult load(const QString &fileName)
 {
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly))
         return failure(tr("Cannot open '%1': %2").arg(fileName, file.errorString()));
-    return fromJson(file.readAll());
+    LoadResult result = fromJson(file.readAll());
+    const QDir directory = QFileInfo(fileName).absoluteDir();
+    for (QString &model : result.project.nodeSetFiles)
+        model = QDir::cleanPath(directory.absoluteFilePath(model));
+    return result;
 }
 
 }

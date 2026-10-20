@@ -67,7 +67,15 @@ public:
     QStringList build(const QList<NodeDefinition> &nodes);
 
     ///
-    /// \brief Removes every built node from the server.
+    /// \brief Takes over variables of imported models, so they are set, simulated and alarmed like built ones.
+    /// \param variables Variable definitions with the server node ids of model variables; the access, quality,
+    ///        alarm and a valid initial value are applied. Variables taken over before are skipped.
+    /// \return Problems with variables that are not served.
+    ///
+    QStringList attach(const QList<NodeDefinition> &variables);
+
+    ///
+    /// \brief Removes every built node from the server and releases the attached model variables.
     ///
     void clear();
 
@@ -84,7 +92,7 @@ public:
     int nodeCount() const;
 
     ///
-    /// \brief Tells whether a variable was built.
+    /// \brief Tells whether a variable was built or attached.
     /// \param nodeId Variable node id.
     /// \return True when the variable exists.
     ///
@@ -183,6 +191,7 @@ private:
                                 const QString &name, const QString &text);
     QString checkNode(QUaNode *parent, const NodeDefinition &node) const;
     QUaBaseDataVariable *addVariable(QUaNode *parent, const NodeDefinition &node);
+    void registerVariable(QUaBaseDataVariable *variable, const NodeDefinition &node);
     void handleValueChanged(const QVariant &value, const bool &networkChange);
 
     QUaServer *_server;

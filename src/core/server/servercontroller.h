@@ -84,7 +84,8 @@ public:
     ///
     /// \brief Applies edited variable properties.
     /// \param variable Node id with the new display name, icon, data type, access, configured quality and
-    ///        simulation; a valid initial value, typed text or a value, replaces the stored one.
+    ///        simulation; a valid initial value, typed text or a value, replaces the stored one. An imported
+    ///        model variable keeps the name, data type and array length of its model.
     /// \param error Receives the reason on failure; may be null.
     /// \return False when the change was refused, e.g. for text that is no value of the data type. A new
     ///         name, data type, array length or alarm rebuilds the address space; other changes apply to the live variable,
@@ -141,6 +142,13 @@ public:
     ///         a running server restarts, which disconnects its clients.
     ///
     bool removeNodeSet(const QString &fileName, QString *error = nullptr);
+
+    ///
+    /// \brief Points the project at moved model files without reloading them, e.g. after they were copied next to
+    ///        the project file.
+    /// \param movedFiles New absolute path keyed by the former one; paths the project does not import are ignored.
+    ///
+    void renameNodeSetFiles(const QHash<QString, QString> &movedFiles);
 
     ///
     /// \brief Returns the imported model each namespace came from.
@@ -367,6 +375,10 @@ signals:
     void startWarning(const QString &reason);
 
 private:
+    bool updateModelVariable(const VariableInfo &variable, QString *error);
+    static bool applyVariableEdits(const VariableInfo &variable, NodeDefinition &node, QString *error);
+    void applyLiveSettings(const NodeDefinition &node, bool valueEdited);
+    VariableInfo variableInfo(const NodeDefinition &node) const;
     void rebuildNodes();
     void setRestartRequired(bool required);
     bool loadNodeSet(const QString &fileName, QString *error);
@@ -387,5 +399,6 @@ private:
     bool _restartRequired = false;
     QStringList _loadedNodeSets;
     QHash<QString, QString> _modelNamespaces;
+    QList<NodeDefinition> _modelSettings;
     CertificateStore _certificates;
 };

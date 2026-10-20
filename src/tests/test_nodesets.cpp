@@ -37,6 +37,28 @@ QByteArray exportProject(ServerController &controller, const QString &fileName)
     return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
 }
 
+const QString kTankUri = QStringLiteral("urn:openuasim:test:tank");
+
+ProjectConfig tankProject()
+{
+    ProjectConfig project = DefaultProject::create();
+    project.endpoints.first().port = TestPort::freePort();
+    project.nodeSetFiles = { testData(QStringLiteral("tank.NodeSet2.xml")) };
+    return project;
+}
+
+VariableInfo modelVariable(const ServerController &controller, const QString &name)
+{
+    const ServerSnapshot snapshot = controller.snapshot();
+    for (const QList<VariableInfo> &variables : snapshot.variables) {
+        for (const VariableInfo &variable : variables) {
+            if (variable.fromModel && variable.displayName == name)
+                return variable;
+        }
+    }
+    return {};
+}
+
 bool logContains(const QList<LogEntry> &log, const QString &text)
 {
     for (const LogEntry &entry : log) {
@@ -72,6 +94,15 @@ private slots:
     void exportReportsUnwritablePath();
     void examplesLoadCleanly_data();
     void examplesLoadCleanly();
+    void modelVariableOfUnsupportedTypeIsReadOnly();
+    void updateModelVariableKeepsSettings();
+    void updateModelVariableReplacesSettings();
+    void updateModelVariableRejectsInvalidValue();
+    void modelVariableRaisesAlarm();
+    void modelVariableIsSimulated();
+    void modelSettingsApplyWhenProjectLoads();
+    void modelSettingsOfUnknownNamespaceAreLogged();
+    void removeNodeSetDropsModelSettings();
 
 private:
     QTemporaryDir _directory;
@@ -267,7 +298,8 @@ void TestNodeSets::snapshotListsImportedNodes()
     QCOMPARE(variables.first().dataType, QStringLiteral("Double"));
     QCOMPARE(variables.first().value.toDouble(), 42.5);
     QCOMPARE(variables.first().access, QStringLiteral("Read/Write"));
-    QVERIFY(variables.first().readOnly);
+    QVERIFY(variables.first().fromModel);
+    QVERIFY(!variables.first().readOnly);
 
     const auto ns = std::find_if(snapshot.namespaces.cbegin(), snapshot.namespaces.cend(), [](const NamespaceInfo &info) {
         return info.uri == QLatin1String("urn:openuasim:test:mixer");
@@ -367,6 +399,181 @@ void TestNodeSets::examplesLoadCleanly()
     const QList<LogEntry> &log = controller.log();
     for (qsizetype i = logBefore; i < log.size(); ++i)
         QVERIFY2(log.at(i).level == LogEntry::Level::Info, qPrintable(log.at(i).message));
+}
+
+void TestNodeSets::modelVariableOfUnsupportedTypeIsReadOnly()
+{
+    ServerController controller;
+    controller.setProject(tankProject());
+    const VariableInfo recipe = modelVariable(controller, QStringLiteral("Recipe"));
+    QVERIFY(recipe.fromModel);
+    QVERIFY(recipe.readOnly);
+    QVERIFY(!modelVariable(controller, QStringLiteral("Level")).readOnly);
+
+    QString error;
+    QVERIFY(!controller.updateVariable(recipe, &error));
+    QVERIFY(error.contains(recipe.nodeId));
+    QVERIFY(controller.project().modelVariables.isEmpty());
+}
+
+void TestNodeSets::updateModelVariableKeepsSettings()
+{
+    ServerController controller;
+    controller.setProject(tankProject());
+    QSignalSpy edited(&controller, &ServerController::projectEdited);
+    QSignalSpy changed(&controller, &ServerController::variableChanged);
+    VariableInfo level = modelVariable(controller, QStringLiteral("Level"));
+    level.displayName = QStringLiteral("Renamed");
+    level.dataType = QStringLiteral("Int32");
+    level.arrayLength = 3;
+    level.icon = QStringLiteral("thermometer");
+    level.access = QStringLiteral("Read/Write");
+    level.configuredQuality = VariableInfo::Quality::Uncertain;
+    level.initialValue = QStringLiteral("12.5");
+    level.simulation.function = SimulationFunction::Sine;
+
+    QString error;
+    QVERIFY2(controller.updateVariable(level, &error), qPrintable(error));
+    QCOMPARE(edited.count(), 1);
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(controller.project().modelVariables.size(), 1);
+    const ModelVariable &stored = controller.project().modelVariables.first();
+    QCOMPARE(stored.namespaceUri, kTankUri);
+    QCOMPARE(stored.variable.nodeId, QStringLiteral("i=1001"));
+    QCOMPARE(stored.variable.browseName, QStringLiteral("Level"));
+    QCOMPARE(stored.variable.dataType, QStringLiteral("Double"));
+    QCOMPARE(stored.variable.arrayLength, 0);
+    QCOMPARE(stored.variable.icon, QStringLiteral("thermometer"));
+    QCOMPARE(stored.variable.access, QStringLiteral("Read/Write"));
+    QCOMPARE(stored.variable.quality, VariableInfo::Quality::Uncertain);
+    QCOMPARE(stored.variable.initialValue.toDouble(), 12.5);
+    QCOMPARE(stored.variable.simulation.function, SimulationFunction::Sine);
+
+    const VariableInfo shown = modelVariable(controller, QStringLiteral("Level"));
+    QCOMPARE(shown.nodeId, level.nodeId);
+    QCOMPARE(shown.dataType, QStringLiteral("Double"));
+    QCOMPARE(shown.value.toDouble(), 12.5);
+    QCOMPARE(shown.quality, VariableInfo::Quality::Uncertain);
+    QCOMPARE(shown.access, QStringLiteral("Read/Write"));
+    QCOMPARE(shown.simulation.function, SimulationFunction::Sine);
+    QVERIFY(shown.fromModel);
+}
+
+void TestNodeSets::updateModelVariableReplacesSettings()
+{
+    ServerController controller;
+    controller.setProject(tankProject());
+    VariableInfo level = modelVariable(controller, QStringLiteral("Level"));
+    level.initialValue = QStringLiteral("12.5");
+    QVERIFY(controller.updateVariable(level));
+
+    level = modelVariable(controller, QStringLiteral("Level"));
+    level.access = QStringLiteral("Write");
+    level.initialValue = QVariant();
+    QVERIFY(controller.updateVariable(level));
+    QCOMPARE(controller.project().modelVariables.size(), 1);
+    QCOMPARE(controller.project().modelVariables.first().variable.access, QStringLiteral("Write"));
+    QCOMPARE(controller.project().modelVariables.first().variable.initialValue.toDouble(), 12.5);
+}
+
+void TestNodeSets::updateModelVariableRejectsInvalidValue()
+{
+    ServerController controller;
+    controller.setProject(tankProject());
+    VariableInfo level = modelVariable(controller, QStringLiteral("Level"));
+    level.initialValue = QStringLiteral("full");
+
+    QString error;
+    QVERIFY(!controller.updateVariable(level, &error));
+    QCOMPARE(error, QStringLiteral("'full' is not a Double value"));
+    QVERIFY(controller.project().modelVariables.isEmpty());
+    QCOMPARE(modelVariable(controller, QStringLiteral("Level")).value.toDouble(), 40.0);
+}
+
+void TestNodeSets::modelVariableRaisesAlarm()
+{
+    ServerController controller;
+    controller.setProject(tankProject());
+    VariableInfo level = modelVariable(controller, QStringLiteral("Level"));
+    level.alarm.enabled = true;
+    level.alarm.highEnabled = true;
+    level.alarm.high = 30.0;
+
+    QVERIFY(controller.updateVariable(level));
+    QCOMPARE(modelVariable(controller, QStringLiteral("Level")).alarmState, QStringLiteral("High"));
+    QVERIFY(logContains(controller.log(), QStringLiteral("Alarm of Level is active: High")));
+}
+
+void TestNodeSets::modelVariableIsSimulated()
+{
+    ServerController controller;
+    controller.setProject(tankProject());
+    QVERIFY(controller.start());
+    QSignalSpy values(&controller, &ServerController::valuesChanged);
+    VariableInfo level = modelVariable(controller, QStringLiteral("Level"));
+    level.simulation.function = SimulationFunction::Ramp;
+    level.simulation.intervalMs = 20;
+
+    QVERIFY(controller.updateVariable(level));
+    QTRY_VERIFY(std::any_of(values.cbegin(), values.cend(), [&level](const QList<QVariant> &arguments) {
+        return arguments.first().value<QHash<QString, QVariant>>().contains(level.nodeId);
+    }));
+}
+
+void TestNodeSets::modelSettingsApplyWhenProjectLoads()
+{
+    ServerController editor;
+    editor.setProject(tankProject());
+    VariableInfo level = modelVariable(editor, QStringLiteral("Level"));
+    level.initialValue = QStringLiteral("12.5");
+    level.configuredQuality = VariableInfo::Quality::Bad;
+    QVERIFY(editor.updateVariable(level));
+
+    ServerController controller;
+    controller.setProject(editor.project());
+    const VariableInfo loaded = modelVariable(controller, QStringLiteral("Level"));
+    QCOMPARE(loaded.value.toDouble(), 12.5);
+    QCOMPARE(loaded.quality, VariableInfo::Quality::Bad);
+    QVERIFY(controller.addressSpace().hasVariable(loaded.nodeId));
+}
+
+void TestNodeSets::modelSettingsOfUnknownNamespaceAreLogged()
+{
+    ModelVariable orphan;
+    orphan.namespaceUri = QStringLiteral("urn:missing");
+    orphan.variable.kind = NodeDefinition::Kind::Variable;
+    orphan.variable.browseName = QStringLiteral("Lost");
+    orphan.variable.nodeId = QStringLiteral("i=1");
+    ProjectConfig project = tankProject();
+    project.modelVariables = { orphan };
+    ModelVariable unknownNode = orphan;
+    unknownNode.namespaceUri = kTankUri;
+    unknownNode.variable.nodeId = QStringLiteral("i=9999");
+    project.modelVariables.append(unknownNode);
+
+    ServerController controller;
+    controller.setProject(project);
+    QVERIFY(logContains(controller.log(), QStringLiteral("urn:missing;i=1: no imported model has the namespace")));
+    QVERIFY(logContains(controller.log(), QStringLiteral(";i=9999: the model has no such variable")));
+    QCOMPARE(controller.project().modelVariables.size(), 2);
+}
+
+void TestNodeSets::removeNodeSetDropsModelSettings()
+{
+    ProjectConfig project = tankProject();
+    project.nodeSetFiles.append(testData(QStringLiteral("mixer.NodeSet2.xml")));
+    ServerController controller;
+    controller.setProject(project);
+    VariableInfo level = modelVariable(controller, QStringLiteral("Level"));
+    level.access = QStringLiteral("Read/Write");
+    QVERIFY(controller.updateVariable(level));
+    VariableInfo speed = modelVariable(controller, QStringLiteral("Speed"));
+    speed.access = QStringLiteral("Read");
+    QVERIFY(controller.updateVariable(speed));
+
+    QVERIFY(controller.removeNodeSet(project.nodeSetFiles.first()));
+    QCOMPARE(controller.project().modelVariables.size(), 1);
+    QCOMPARE(controller.project().modelVariables.first().namespaceUri, QStringLiteral("urn:openuasim:test:mixer"));
 }
 
 QTEST_GUILESS_MAIN(TestNodeSets)

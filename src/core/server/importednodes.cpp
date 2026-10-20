@@ -10,44 +10,42 @@
 
 #include "addressspace.h"
 #include "importednodes.h"
-#include "simulation/valuecast.h"
+#include "modelvariables.h"
+#include "snapshotbuilder.h"
 
 namespace {
 
 constexpr quint16 kFirstImportedNamespace = 2;
 
 ///
-/// \brief Returns the access level text of a variable.
-/// \param variable Variable to describe.
-/// \return "Read", "Write" or "Read/Write".
+/// \brief Describes the nodes of imported models, with the settings the project keeps for their variables.
 ///
-QString accessText(const QUaBaseVariable &variable)
+class ModelNodeCollector
 {
-    if (variable.readAccess() && variable.writeAccess())
-        return QStringLiteral("Read/Write");
-    return variable.writeAccess() ? QStringLiteral("Write") : QStringLiteral("Read");
-}
+public:
+    ModelNodeCollector(const QUaServer &server, const QList<NodeDefinition> &settings,
+                       const AddressSpace &addressSpace);
+    TreeNode containerNode(const QUaBaseObject &node, QHash<QString, QList<VariableInfo>> &variables) const;
+
+private:
+    const QUaServer &_server;
+    QHash<QString, const NodeDefinition *> _settings;
+    const AddressSpace &_addressSpace;
+};
 
 ///
-/// \brief Describes an imported variable.
-/// \param variable Server variable.
-/// \return Read-only description with the live value.
+/// \brief Prepares the description of model nodes.
+/// \param server Server holding the models.
+/// \param settings Model variable settings with server node ids, as ModelVariables::resolve() returns them.
+/// \param addressSpace Built nodes providing the live state of variables with settings.
 ///
-VariableInfo variableInfo(const QUaBaseDataVariable &variable)
+ModelNodeCollector::ModelNodeCollector(const QUaServer &server, const QList<NodeDefinition> &settings,
+                                       const AddressSpace &addressSpace)
+    : _server(server)
+    , _addressSpace(addressSpace)
 {
-    VariableInfo info;
-    info.nodeId = variable.nodeId();
-    info.displayName = variable.browseName().name();
-    info.icon = QStringLiteral("signal");
-    info.value = variable.value();
-    info.dataType = ImportedNodes::dataTypeName(variable.dataTypeNodeId());
-    if (ValueCast::isArray(info.value))
-        info.arrayLength = int(info.value.toList().size());
-    info.access = accessText(variable);
-    info.quality = AddressSpace::qualityOf(variable);
-    info.configuredQuality = info.quality;
-    info.readOnly = true;
-    return info;
+    for (const NodeDefinition &variable : settings)
+        _settings.insert(variable.nodeId, &variable);
 }
 
 ///
@@ -56,7 +54,8 @@ VariableInfo variableInfo(const QUaBaseDataVariable &variable)
 /// \param variables Receives the variables keyed by the node id of their owner.
 /// \return Tree node.
 ///
-TreeNode containerNode(const QUaBaseObject &node, QHash<QString, QList<VariableInfo>> &variables)
+TreeNode ModelNodeCollector::containerNode(const QUaBaseObject &node,
+                                           QHash<QString, QList<VariableInfo>> &variables) const
 {
     TreeNode result;
     result.text = node.browseName().name();
@@ -68,7 +67,8 @@ TreeNode containerNode(const QUaBaseObject &node, QHash<QString, QList<VariableI
     const QList<QUaNode *> children = node.browseChildren();
     for (const QUaNode *child : children) {
         if (const auto *variable = qobject_cast<const QUaBaseDataVariable *>(child)) {
-            owned.append(variableInfo(*variable));
+            owned.append(ImportedNodes::variableInfo(_server, *variable, _settings.value(variable->nodeId()),
+                                                     _addressSpace));
             TreeNode leaf;
             leaf.text = owned.constLast().displayName;
             leaf.icon = owned.constLast().icon;
@@ -91,18 +91,53 @@ namespace ImportedNodes {
 ///
 /// \brief Describes the folders, objects and variables of imported models under the Objects folder.
 /// \param server Server holding the models; nodes of namespaces 0 and 1 are skipped.
+/// \param settings Model variable settings with server node ids, as ModelVariables::resolve() returns them.
+/// \param addressSpace Built nodes providing the live state of variables with settings.
 /// \param tree Receives the top-level imported nodes with their children.
-/// \param variables Receives the read-only variables keyed by the node id of their folder or object.
+/// \param variables Receives the variables keyed by the node id of their folder or object.
 ///
-void collect(const QUaServer &server, QList<TreeNode> &tree, QHash<QString, QList<VariableInfo>> &variables)
+void collect(const QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
+             QList<TreeNode> &tree, QHash<QString, QList<VariableInfo>> &variables)
 {
+    const ModelNodeCollector collector(server, settings, addressSpace);
     const QList<QUaNode *> roots = server.objectsFolder()->browseChildren();
     for (const QUaNode *root : roots) {
         if (root->nodeId().namespaceIndex() < kFirstImportedNamespace)
             continue;
         if (const auto *object = qobject_cast<const QUaBaseObject *>(root))
-            tree.append(containerNode(*object, variables));
+            tree.append(collector.containerNode(*object, variables));
     }
+}
+
+///
+/// \brief Describes a variable of an imported model.
+/// \param server Server holding the model.
+/// \param variable Model variable.
+/// \param settings Settings the project keeps for the variable, with its server node id; null for none.
+/// \param addressSpace Built nodes providing the live state of a variable with settings.
+/// \return Description with the live value; read-only when the simulation cannot drive the variable.
+///
+VariableInfo variableInfo(const QUaServer &server, const QUaBaseDataVariable &variable,
+                          const NodeDefinition *settings, const AddressSpace &addressSpace)
+{
+    VariableInfo info;
+    if (settings) {
+        info = SnapshotBuilder::variableInfo(*settings, addressSpace);
+    } else {
+        const NodeDefinition model = ModelVariables::describe(server, variable).variable;
+        info.nodeId = variable.nodeId();
+        info.displayName = model.browseName;
+        info.icon = model.icon;
+        info.value = variable.value();
+        info.dataType = model.dataType;
+        info.arrayLength = model.arrayLength;
+        info.access = model.access;
+        info.quality = AddressSpace::qualityOf(variable);
+        info.configuredQuality = info.quality;
+    }
+    info.fromModel = true;
+    info.readOnly = !ModelVariables::isEditable(variable);
+    return info;
 }
 
 ///

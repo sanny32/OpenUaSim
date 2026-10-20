@@ -162,6 +162,10 @@
         <source>Active</source>
         <translation>Активен</translation>
     </message>
+    <message>
+        <source>the server has no such variable</source>
+        <translation>на сервере нет такой переменной</translation>
+    </message>
 </context>
 <context>
     <name>AlarmDialog</name>
@@ -1300,6 +1304,21 @@
     </message>
 </context>
 <context>
+    <name>ModelVariables</name>
+    <message>
+        <source>no imported model has the namespace</source>
+        <translation>ни одна импортированная модель не содержит это пространство имён</translation>
+    </message>
+    <message>
+        <source>the model has no such variable</source>
+        <translation>в модели нет такой переменной</translation>
+    </message>
+    <message>
+        <source>the simulation cannot drive a %1 variable</source>
+        <translation>симуляция не поддерживает переменные типа %1</translation>
+    </message>
+</context>
+<context>
     <name>NamespacesModel</name>
     <message>
         <source>Index</source>
@@ -1410,6 +1429,22 @@
     <message>
         <source>unknown simulation function &apos;%1&apos;</source>
         <translation>неизвестная функция симуляции «%1»</translation>
+    </message>
+    <message>
+        <source>namespace URI is empty</source>
+        <translation>URI пространства имён пустой</translation>
+    </message>
+    <message>
+        <source>model settings belong to a variable</source>
+        <translation>настройки модели относятся только к переменной</translation>
+    </message>
+    <message>
+        <source>node id is empty</source>
+        <translation>идентификатор узла пустой</translation>
+    </message>
+    <message>
+        <source>the variable has settings more than once</source>
+        <translation>настройки переменной заданы несколько раз</translation>
     </message>
 </context>
 <context>
@@ -1598,6 +1633,21 @@
     </message>
 </context>
 <context>
+    <name>ProjectModels</name>
+    <message>
+        <source>Cannot create the models directory &apos;%1&apos;</source>
+        <translation>Не удалось создать папку моделей «%1»</translation>
+    </message>
+    <message>
+        <source>Cannot replace &apos;%1&apos;</source>
+        <translation>Не удалось заменить «%1»</translation>
+    </message>
+    <message>
+        <source>Cannot copy the model &apos;%1&apos; to &apos;%2&apos;</source>
+        <translation>Не удалось скопировать модель «%1» в «%2»</translation>
+    </message>
+</context>
+<context>
     <name>ProjectNodes</name>
     <message>
         <source>&apos;%1&apos; cannot hold child nodes</source>
@@ -1731,6 +1781,10 @@
     <message>
         <source>Alarm of %1 is active: %2</source>
         <translation>Аларм переменной %1 активен: %2</translation>
+    </message>
+    <message>
+        <source>Model variable settings skipped: %1</source>
+        <translation>Настройки переменной модели пропущены: %1</translation>
     </message>
 </context>
 <context>

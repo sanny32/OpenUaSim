@@ -58,6 +58,8 @@ add_library(ouasim_core STATIC
     project/projectdocument.h
     project/projectfile.cpp
     project/projectfile.h
+    project/projectmodels.cpp
+    project/projectmodels.h
     project/projectnodes.cpp
     project/projectnodes.h
     project/serversettingsrules.cpp
@@ -73,6 +75,8 @@ add_library(ouasim_core STATIC
     server/listenersettings.h
     server/logmapper.cpp
     server/logmapper.h
+    server/modelvariables.cpp
+    server/modelvariables.h
     server/servercontroller.cpp
     server/servercontroller.h
     server/sessiontracker.cpp

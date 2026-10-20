@@ -120,8 +120,10 @@ struct VariableInfo
     Quality configuredQuality = Quality::Good;
     /// \brief Simulation that drives the value.
     SimulationSettings simulation;
-    /// \brief Whether the variable comes from an imported model, whose properties cannot be edited.
+    /// \brief Whether the properties cannot be edited, e.g. for a model variable of a data type the simulation lacks.
     bool readOnly = false;
+    /// \brief Whether an imported model defines the variable, so its name, data type and array length are fixed.
+    bool fromModel = false;
     /// \brief Alarm raised from the value.
     AlarmSettings alarm;
     /// \brief Active alarm state, e.g. "High" or "Active"; empty while the alarm is inactive or absent.
