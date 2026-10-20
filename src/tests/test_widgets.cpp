@@ -103,6 +103,7 @@ private slots:
     void growColumnWithContentsKeepsWiderUserWidth();
     void fillVariableIconComboListsResolvableIcons();
     void splitByStretchFollowsStretchFactors();
+    void splitByStretchKeepsLastPaneWidth();
     void applyInitialStateExpandsAndSelects();
     void applyInitialStateFallsBackToFirstRow();
     void selectById();
@@ -628,6 +629,36 @@ void TestWidgets::splitByStretchFollowsStretchFactors()
     const QByteArray text = QStringLiteral("%1 %2 %3").arg(sizes.at(0)).arg(sizes.at(1)).arg(sizes.at(2)).toUtf8();
     QVERIFY2(qAbs(sizes.at(1) - 2 * sizes.at(0)) <= 6, text.constData());
     QVERIFY2(qAbs(sizes.at(2) - sizes.at(0)) <= 6, text.constData());
+}
+
+void TestWidgets::splitByStretchKeepsLastPaneWidth()
+{
+    QSplitter splitter;
+    for (int stretch : { 1, 2, 1 }) {
+        auto *pane = new QWidget;
+        QSizePolicy policy = pane->sizePolicy();
+        policy.setHorizontalStretch(stretch);
+        pane->setSizePolicy(policy);
+        splitter.addWidget(pane);
+    }
+    splitter.resize(400, 100);
+    ViewSetup::splitByStretch(&splitter);
+    splitter.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&splitter));
+
+    const QList<int> initial = splitter.sizes();
+    const QByteArray initialText =
+        QStringLiteral("%1 %2 %3").arg(initial.at(0)).arg(initial.at(1)).arg(initial.at(2)).toUtf8();
+    QVERIFY2(qAbs(initial.at(1) - 2 * initial.at(0)) <= 6, initialText.constData());
+    QVERIFY2(qAbs(initial.at(2) - initial.at(0)) <= 6, initialText.constData());
+
+    splitter.resize(800, 100);    QTRY_COMPARE(splitter.sizes().at(2), initial.at(2));
+    const QList<int> grown = splitter.sizes();
+    QVERIFY(grown.at(0) > initial.at(0));
+    QVERIFY(grown.at(1) > initial.at(1));
+
+    splitter.resize(600, 100);
+    QTRY_COMPARE(splitter.sizes().at(2), initial.at(2));
 }
 
 void TestWidgets::applyInitialStateExpandsAndSelects()
