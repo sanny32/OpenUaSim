@@ -6,6 +6,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QGroupBox>
 #include <QLabel>
 #include <QApplication>
 #include <QFontDatabase>
@@ -581,7 +582,7 @@ void TestMainWindow::configuresAlarmFromDialog()
     child<QPushButton>(window, "alarmButton")->click();
     auto *dialog = window.findChild<AlarmDialog *>();
     QVERIFY(dialog);
-    child<QCheckBox>(*dialog, "enabledCheck")->setChecked(true);
+    child<QGroupBox>(*dialog, "alarmGroup")->setChecked(true);
     child<QCheckBox>(*dialog, "highCheck")->setChecked(true);
     child<QDoubleSpinBox>(*dialog, "highSpin")->setValue(1400.0);
     dialog->accept();

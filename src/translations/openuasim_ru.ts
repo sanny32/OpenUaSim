@@ -202,6 +202,10 @@
         <translation>&amp;Важность</translation>
     </message>
     <message>
+        <source>From 1 (lowest) to 1000 (most urgent)</source>
+        <translation>От 1 (низшая) до 1000 (наивысшая)</translation>
+    </message>
+    <message>
         <source>Alarm of &apos;%1&apos; (%2)</source>
         <translation>Аларм переменной «%1» (%2)</translation>
     </message>

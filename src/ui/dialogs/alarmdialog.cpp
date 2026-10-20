@@ -9,6 +9,7 @@
 #include <QPushButton>
 
 #include <limits>
+#include <utility>
 
 #include "alarmdialog.h"
 #include "project/alarmrules.h"
@@ -16,7 +17,55 @@
 
 namespace {
 
-constexpr int kLimitDecimals = 3;
+constexpr int kRealDecimals = 3;
+
+///
+/// \brief Returns the lowest and highest value of a numeric type as doubles.
+///
+template <typename T>
+std::pair<double, double> rangeOf()
+{
+    return { double(std::numeric_limits<T>::lowest()), double(std::numeric_limits<T>::max()) };
+}
+
+///
+/// \brief Returns the values a limit can take for a data type.
+/// \param dataType Built-in data type name of the variable.
+/// \return Lowest and highest value of the type; the whole double range for Double or an unknown type.
+///
+std::pair<double, double> limitRange(const QString &dataType)
+{
+    if (dataType == QLatin1String("SByte"))
+        return rangeOf<qint8>();
+    if (dataType == QLatin1String("Byte"))
+        return rangeOf<quint8>();
+    if (dataType == QLatin1String("Int16"))
+        return rangeOf<qint16>();
+    if (dataType == QLatin1String("UInt16"))
+        return rangeOf<quint16>();
+    if (dataType == QLatin1String("Int32"))
+        return rangeOf<qint32>();
+    if (dataType == QLatin1String("UInt32"))
+        return rangeOf<quint32>();
+    if (dataType == QLatin1String("Int64"))
+        return rangeOf<qint64>();
+    if (dataType == QLatin1String("UInt64"))
+        return rangeOf<quint64>();
+    if (dataType == QLatin1String("Float"))
+        return rangeOf<float>();
+    return rangeOf<double>();
+}
+
+///
+/// \brief Returns how many decimals a limit of a data type shows.
+/// \param dataType Built-in data type name of the variable.
+/// \return None for the integer types, a few for Float and Double.
+///
+int limitDecimals(const QString &dataType)
+{
+    const bool real = dataType == QLatin1String("Float") || dataType == QLatin1String("Double");
+    return real ? kRealDecimals : 0;
+}
 
 }
 
@@ -41,13 +90,14 @@ AlarmDialog::AlarmDialog(const VariableInfo &variable, QWidget *parent)
         field->setVisible(!offNormal);
     ui->normalValueLabel->setVisible(offNormal);
     ui->normalValueCombo->setVisible(offNormal);
+    const auto [lowest, highest] = limitRange(variable.dataType);
     for (QDoubleSpinBox *spin : { ui->highHighSpin, ui->highSpin, ui->lowSpin, ui->lowLowSpin }) {
-        spin->setDecimals(kLimitDecimals);
-        spin->setRange(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
+        spin->setDecimals(limitDecimals(variable.dataType));
+        spin->setRange(lowest, highest);
     }
 
     const AlarmSettings &alarm = variable.alarm;
-    ui->enabledCheck->setChecked(alarm.enabled);
+    ui->alarmGroup->setChecked(alarm.enabled);
     ui->highHighCheck->setChecked(alarm.highHighEnabled);
     ui->highHighSpin->setValue(alarm.highHigh);
     ui->highCheck->setChecked(alarm.highEnabled);
@@ -59,7 +109,7 @@ AlarmDialog::AlarmDialog(const VariableInfo &variable, QWidget *parent)
     ui->normalValueCombo->setCurrentIndex(alarm.normalValue ? 1 : 0);
     ui->severitySpin->setValue(alarm.severity);
 
-    connect(ui->enabledCheck, &QCheckBox::toggled, this, &AlarmDialog::validate);
+    connect(ui->alarmGroup, &QGroupBox::toggled, this, &AlarmDialog::validate);
     for (QCheckBox *check : { ui->highHighCheck, ui->highCheck, ui->lowCheck, ui->lowLowCheck })
         connect(check, &QCheckBox::toggled, this, &AlarmDialog::validate);
     for (QDoubleSpinBox *spin : { ui->highHighSpin, ui->highSpin, ui->lowSpin, ui->lowLowSpin })
@@ -83,7 +133,7 @@ AlarmDialog::~AlarmDialog()
 AlarmSettings AlarmDialog::alarm() const
 {
     AlarmSettings alarm;
-    alarm.enabled = ui->enabledCheck->isChecked();
+    alarm.enabled = ui->alarmGroup->isChecked();
     alarm.highHighEnabled = ui->highHighCheck->isChecked();
     alarm.highHigh = ui->highHighSpin->value();
     alarm.highEnabled = ui->highCheck->isChecked();
@@ -98,11 +148,14 @@ AlarmSettings AlarmDialog::alarm() const
 }
 
 ///
-/// \brief Enables the settings with the alarm, shows why they cannot be applied, and allows OK only when they can.
+/// \brief Enables each limit with its check box, shows why the settings cannot be applied, and allows OK only when they can.
 ///
 void AlarmDialog::validate()
 {
-    ui->settingsHost->setEnabled(ui->enabledCheck->isChecked());
+    ui->highHighSpin->setEnabled(ui->highHighCheck->isChecked());
+    ui->highSpin->setEnabled(ui->highCheck->isChecked());
+    ui->lowSpin->setEnabled(ui->lowCheck->isChecked());
+    ui->lowLowSpin->setEnabled(ui->lowLowCheck->isChecked());
     const QString problem = AlarmRules::problem(alarm(), _dataType, _arrayLength);
     ui->problemLabel->setText(problem);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(problem.isEmpty());
