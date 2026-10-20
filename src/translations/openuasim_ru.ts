@@ -2054,6 +2054,64 @@
     </message>
 </context>
 <context>
+    <name>SubscriptionsDialog</name>
+    <message>
+        <source>Subscriptions</source>
+        <translation>Подписки</translation>
+    </message>
+    <message>
+        <source>Subscriptions of session &apos;%1&apos; (%2)</source>
+        <translation>Подписки сеанса «%1» (%2)</translation>
+    </message>
+</context>
+<context>
+    <name>SubscriptionsModel</name>
+    <message>
+        <source>%1 ms</source>
+        <translation>%1 мс</translation>
+    </message>
+    <message>
+        <source>Enabled</source>
+        <translation>Включена</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <translation>Выключена</translation>
+    </message>
+    <message>
+        <source>ID</source>
+        <translation>ID</translation>
+    </message>
+    <message>
+        <source>Publishing Interval</source>
+        <translation>Интервал публикации</translation>
+    </message>
+    <message>
+        <source>Publishing</source>
+        <translation>Публикация</translation>
+    </message>
+    <message>
+        <source>Priority</source>
+        <translation>Приоритет</translation>
+    </message>
+    <message>
+        <source>Monitored Items</source>
+        <translation>Отслеживаемые элементы</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Уведомления</translation>
+    </message>
+    <message>
+        <source>Max Keep-Alive</source>
+        <translation>Макс. Keep-Alive</translation>
+    </message>
+    <message>
+        <source>Max Lifetime</source>
+        <translation>Макс. время жизни</translation>
+    </message>
+</context>
+<context>
     <name>SubtypesModel</name>
     <message>
         <source>Name</source>
