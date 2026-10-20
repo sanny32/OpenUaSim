@@ -225,10 +225,47 @@ void ObjectsPage::showTreeNode(const QModelIndex &current)
 void ObjectsPage::showObject(const QString &objectId, const QString &objectName)
 {
     _containerId = objectId;
+    _containerName = objectName;
     _variablesModel->setItems(_variables.value(objectId));
-    ui->variablesTitle->setText(objectName.isEmpty() ? tr("Variables")
-                                                     : tr("Variables in '%1'").arg(objectName));
+    showVariablesTitle();
     clearProperties();
+}
+
+///
+/// \brief Titles the variables panel after the shown folder or object.
+///
+void ObjectsPage::showVariablesTitle()
+{
+    ui->variablesTitle->setText(_containerName.isEmpty() ? tr("Variables")
+                                                         : tr("Variables in '%1'").arg(_containerName));
+}
+
+///
+/// \brief Retranslates the page when the language changes.
+/// \param event Change event.
+///
+void ObjectsPage::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange)
+        retranslate();
+    QWidget::changeEvent(event);
+}
+
+///
+/// \brief Reapplies the translated texts, including the combo boxes filled from code and the table headers.
+///
+void ObjectsPage::retranslate()
+{
+    ui->retranslateUi(this);
+    showVariablesTitle();
+    ViewSetup::retranslateVariableIconCombo(ui->iconCombo);
+    for (int index = 0; index < ui->simulationCombo->count(); ++index)
+        ui->simulationCombo->setItemText(
+            index, SignalGenerator::displayName(SimulationFunction(ui->simulationCombo->itemData(index).toInt())));
+    for (int index = 0; index < ui->qualityCombo->count(); ++index)
+        ui->qualityCombo->setItemText(
+            index, VariablesModel::qualityText(VariableInfo::Quality(ui->qualityCombo->itemData(index).toInt())));
+    _variablesModel->retranslate();
 }
 
 ///

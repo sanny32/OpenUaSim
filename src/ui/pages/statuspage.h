@@ -10,11 +10,11 @@
 
 #include <QWidget>
 
+#include "data/serverstatus.h"
+
 namespace Ui {
 class StatusPage;
 }
-
-struct ServerStatus;
 
 ///
 /// \brief Page summarising the server state and its key figures.
@@ -41,6 +41,10 @@ public:
     ///
     void setStatus(const ServerStatus &status);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     Ui::StatusPage *ui;
+    ServerStatus _status;
 };

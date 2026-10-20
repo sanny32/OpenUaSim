@@ -51,6 +51,9 @@ public:
     ///
     const SessionsModel *sessionsModel() const;
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     void applyStateFilter(int filter);
     void showSession(const QModelIndex &current);

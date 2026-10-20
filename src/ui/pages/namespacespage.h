@@ -69,6 +69,9 @@ signals:
     ///
     void modelRemovalRequested(const QString &fileName);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     void showNamespace();
     const NamespaceInfo *currentNamespace() const;

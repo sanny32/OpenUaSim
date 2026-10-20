@@ -72,6 +72,19 @@ const NamespacesModel *NamespacesPage::namespacesModel() const
 }
 
 ///
+/// \brief Retranslates the page when the language changes.
+/// \param event Change event.
+///
+void NamespacesPage::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        _namespacesModel->retranslate();
+    }
+    QWidget::changeEvent(event);
+}
+
+///
 /// \brief Fills the details panel from the selected namespace.
 ///
 void NamespacesPage::showNamespace()

@@ -36,8 +36,32 @@ MainStatusBarWidget::~MainStatusBarWidget()
 ///
 void MainStatusBarWidget::setServerStatus(const ServerStatus &status)
 {
-    ui->serverIndicator->setStatus(status.running ? StatusKind::Good : StatusKind::Inactive,
-                                   status.running ? tr("Server running") : tr("Server stopped"));
+    _running = status.running;
+    showRunning();
+}
+
+///
+/// \brief Shows the last known server state in the indicator.
+///
+void MainStatusBarWidget::showRunning()
+{
+    ui->serverIndicator->setStatus(_running ? StatusKind::Good : StatusKind::Inactive,
+                                   _running ? tr("Server running") : tr("Server stopped"));
+}
+
+///
+/// \brief Retranslates the widget when the language changes, keeping the server state and the note.
+/// \param event Change event.
+///
+void MainStatusBarWidget::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        const QString trailing = trailingText();
+        ui->retranslateUi(this);
+        setTrailingText(trailing);
+        showRunning();
+    }
+    QWidget::changeEvent(event);
 }
 
 ///

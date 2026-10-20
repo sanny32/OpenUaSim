@@ -82,7 +82,11 @@ signals:
     ///
     void deleteRequested(const QString &filePath);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
+    void fitDetailsWidth();
     void showCategory(const QModelIndex &current);
     void showCertificate(const QModelIndex &current);
     void showDetailValue(const QModelIndex &index);

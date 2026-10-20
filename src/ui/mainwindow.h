@@ -146,6 +146,7 @@ public:
 protected:
     void showEvent(QShowEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
+    void changeEvent(QEvent *event) override;
 
 private:
     void setupIcons();
@@ -154,6 +155,9 @@ private:
     void selectPage(QAction *action);
     void showAbout();
     void setupThemeMenu();
+    void setupLanguageMenu();
+    void selectLanguage(QAction *action);
+    void retranslate();
     void syncThemeActions();
     void selectTheme(QAction *action);
     void handleTabChange(int index);

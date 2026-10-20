@@ -113,7 +113,12 @@ signals:
     ///
     void currentNodeChanged(const QString &nodeId);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
+    void showVariablesTitle();
+    void retranslate();
     void fillCombos();
     void showTreeNode(const QModelIndex &current);
     void showObject(const QString &objectId, const QString &objectName);
@@ -129,6 +134,7 @@ private:
     VariablesModel *_variablesModel;
     QHash<QString, QList<VariableInfo>> _variables;
     QString _containerId;
+    QString _containerName;
     QString _currentNodeId;
     bool _currentFromTable = false;
 };

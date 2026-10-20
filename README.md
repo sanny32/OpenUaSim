@@ -41,6 +41,8 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
   sessions, and the server log filtered by level and category; export the
   filtered log to CSV.
 - Switch between light and dark application themes, or follow the system.
+- Use the interface in English or Russian; **View → Language** switches it at
+  once, without restarting.
 
 ### Limitations
 

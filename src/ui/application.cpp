@@ -8,6 +8,7 @@
 
 #include <QIcon>
 
+#include "applanguage.h"
 #include "application.h"
 #include "appstyle.h"
 
@@ -23,6 +24,7 @@ Application::Application(int &argc, char **argv)
     setApplicationName(QStringLiteral(APP_NAME));
     setApplicationVersion(QStringLiteral(APP_VERSION));
     setWindowIcon(QIcon(QStringLiteral(":/icons/app.svg")));
+    AppLanguage::apply(*this, AppLanguage::saved());
 
     // AppStyle draws on top of Fusion, which renders entirely from the palette: that is what
     // makes both themes possible without style sheets.

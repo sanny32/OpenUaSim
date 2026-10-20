@@ -271,6 +271,19 @@ void fillVariableIconCombo(QComboBox *combo)
 }
 
 ///
+/// \brief Relabels a combo box filled by fillVariableIconCombo() in the current language.
+/// \param combo Combo box to relabel; the selection is kept.
+///
+void retranslateVariableIconCombo(QComboBox *combo)
+{
+    for (const AppIcons::NamedIcon &icon : AppIcons::variableIcons()) {
+        const int index = combo->findData(icon.name);
+        if (index >= 0)
+            combo->setItemText(index, icon.label);
+    }
+}
+
+///
 /// \brief Sets the editor height to show exactly the given number of text lines.
 /// \param edit Editor to resize.
 /// \param lines Visible line count.

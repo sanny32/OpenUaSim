@@ -37,6 +37,7 @@ StatusPage::~StatusPage()
 ///
 void StatusPage::setStatus(const ServerStatus &status)
 {
+    _status = status;
     ui->serverStatusIndicator->setStatus(status.running ? StatusKind::Good : StatusKind::Inactive,
                                          status.running ? tr("Running") : tr("Stopped"));
     ui->primaryEndpointValue->setText(status.primaryEndpoint);
@@ -47,4 +48,17 @@ void StatusPage::setStatus(const ServerStatus &status)
     ui->totalNodesValue->setNum(status.totalNodes);
     ui->namespacesValue->setNum(status.namespaces);
     ui->clientsValue->setNum(status.clientsConnected);
+}
+
+///
+/// \brief Retranslates the page and shows the last status again when the language changes.
+/// \param event Change event.
+///
+void StatusPage::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        setStatus(_status);
+    }
+    QWidget::changeEvent(event);
 }

@@ -54,6 +54,9 @@ public:
     ///
     int heightForWholeRows(int height) const;
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     void clearLog();
     void scrollToBottom();

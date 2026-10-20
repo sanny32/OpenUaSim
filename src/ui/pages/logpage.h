@@ -58,6 +58,9 @@ signals:
     ///
     void exportRequested(const QList<LogEntry> &entries);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     void applyFilters();
     void showEntry(const QModelIndex &current);

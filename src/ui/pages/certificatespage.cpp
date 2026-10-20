@@ -89,9 +89,7 @@ CertificatesPage::CertificatesPage(QWidget *parent)
     ui->detailsView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     auto *previewDelegate = new ValuePreviewDelegate(ui->detailsView);
     ui->detailsView->setItemDelegateForColumn(1, previewDelegate);
-    // The details never scroll sideways, so the splitter must not squeeze them below their width.
-    ui->detailsPanelScroll->setMinimumWidth(ui->detailsPanelBody->minimumSizeHint().width()
-                                            + ui->detailsPanelScroll->verticalScrollBar()->sizeHint().width());
+    fitDetailsWidth();
 
     ViewSetup::installDelegate(ui->categoriesList);
     ViewSetup::attachSearch(ui->categoriesList, _categoriesModel, ui->searchEdit);
@@ -157,6 +155,36 @@ void CertificatesPage::setCertificates(const QList<CertificateInfo> &certificate
 const CertificatesModel *CertificatesPage::certificatesModel() const
 {
     return _certificatesModel;
+}
+
+///
+/// \brief Retranslates the page when the language changes, keeping the selected folder and certificate.
+/// \param event Change event.
+///
+void CertificatesPage::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        if (!CertificateGenerator::isAvailable())
+            ui->generateButton->setToolTip(tr("This build has no encryption support"));
+        const int certificateRow = ui->certificatesView->currentIndex().row();
+        setCertificates(_certificates);
+        if (certificateRow > 0)
+            ViewSetup::selectRow(ui->certificatesView, certificateRow);
+        _certificatesModel->retranslate();
+        fitDetailsWidth();
+    }
+    QWidget::changeEvent(event);
+}
+
+///
+/// \brief Keeps the details panel at least as wide as its contents in the current language.
+///
+void CertificatesPage::fitDetailsWidth()
+{
+    // The details never scroll sideways, so the splitter must not squeeze them below their width.
+    ui->detailsPanelScroll->setMinimumWidth(ui->detailsPanelBody->minimumSizeHint().width()
+                                            + ui->detailsPanelScroll->verticalScrollBar()->sizeHint().width());
 }
 
 ///

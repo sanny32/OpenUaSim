@@ -145,6 +145,20 @@ void EndpointsPage::matchPolicyToMode(const QString &mode)
 }
 
 ///
+/// \brief Retranslates the page when the language changes.
+/// \param event Change event.
+///
+void EndpointsPage::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        restrictSecurityChoices();
+        _endpointsModel->retranslate();
+    }
+    QWidget::changeEvent(event);
+}
+
+///
 /// \brief Offers only unsecured endpoints in a build without encryption.
 ///
 void EndpointsPage::restrictSecurityChoices()

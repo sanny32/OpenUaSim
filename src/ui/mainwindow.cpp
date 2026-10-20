@@ -19,6 +19,7 @@
 
 #include "addnodedialog.h"
 #include "appicons.h"
+#include "applanguage.h"
 #include "apptheme.h"
 #include "data/serversnapshot.h"
 #include "logexport.h"
@@ -75,6 +76,7 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     setupActions();
     setupViewMenu();
     setupThemeMenu();
+    setupLanguageMenu();
 
     ui->eventLog->setLogModel(_logModel);
     ui->logPage->setLogModel(_logModel);
@@ -480,6 +482,67 @@ void MainWindow::selectTheme(QAction *action)
         _theme->setMode(AppTheme::Mode::Dark);
     else
         _theme->setMode(AppTheme::Mode::System);
+}
+
+///
+/// \brief Groups the language actions and checks the saved preference.
+///
+void MainWindow::setupLanguageMenu()
+{
+    auto *group = new QActionGroup(this);
+    const QList<QPair<QAction *, AppLanguage::Language>> actions = {
+        { ui->actionLanguageSystem, AppLanguage::Language::System },
+        { ui->actionLanguageEnglish, AppLanguage::Language::English },
+        { ui->actionLanguageRussian, AppLanguage::Language::Russian },
+    };
+    const AppLanguage::Language saved = AppLanguage::saved();
+    for (const auto &[action, language] : actions) {
+        action->setData(int(language));
+        action->setChecked(language == saved);
+        group->addAction(action);
+    }
+    connect(group, &QActionGroup::triggered, this, &MainWindow::selectLanguage);
+}
+
+///
+/// \brief Saves the chosen language and switches the interface to it at once.
+/// \param action Triggered language action.
+///
+void MainWindow::selectLanguage(QAction *action)
+{
+    const auto language = AppLanguage::Language(action->data().toInt());
+    AppLanguage::save(language);
+    AppLanguage::apply(*QCoreApplication::instance(), language);
+}
+
+///
+/// \brief Retranslates the window when the application language changes.
+/// \param event Change event.
+///
+void MainWindow::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange)
+        retranslate();
+    QMainWindow::changeEvent(event);
+}
+
+///
+/// \brief Reapplies the translated texts of the window; the pages retranslate themselves.
+///
+void MainWindow::retranslate()
+{
+    ui->retranslateUi(this);
+    const QList<QAction *> pageActions = _pageActions->actions();
+    for (QAction *action : pageActions)
+        action->setText(ui->tabWidget->tabText(action->data().toInt()));
+    _restartNote->setText(tr("Restart the server to apply the changes"));
+    if (_document)
+        updateWindowTitle();
+    else
+        setWindowTitle(QStringLiteral(APP_NAME));
+    updateStatusBarNote();
+    // The pages retranslate after this window, so texts computed from the server state come last.
+    QMetaObject::invokeMethod(this, &MainWindow::reloadSnapshot, Qt::QueuedConnection);
 }
 
 ///

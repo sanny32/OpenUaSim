@@ -343,6 +343,14 @@
     <property name="title">
      <string>&amp;View</string>
     </property>
+    <widget class="QMenu" name="menuLanguage">
+     <property name="title">
+      <string>&amp;Language</string>
+     </property>
+     <addaction name="actionLanguageSystem"/>
+     <addaction name="actionLanguageEnglish"/>
+     <addaction name="actionLanguageRussian"/>
+    </widget>
     <widget class="QMenu" name="menuTheme">
      <property name="title">
       <string>&amp;Theme</string>
@@ -355,6 +363,7 @@
     <addaction name="actionEventLog"/>
     <addaction name="separator"/>
     <addaction name="menuTheme"/>
+    <addaction name="menuLanguage"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -373,6 +382,30 @@
     <bool>false</bool>
    </property>
   </widget>
+  <action name="actionLanguageSystem">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;System</string>
+   </property>
+  </action>
+  <action name="actionLanguageEnglish">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string notr="true">English</string>
+   </property>
+  </action>
+  <action name="actionLanguageRussian">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string notr="true">Русский</string>
+   </property>
+  </action>
   <action name="actionThemeSystem">
    <property name="checkable">
     <bool>true</bool>

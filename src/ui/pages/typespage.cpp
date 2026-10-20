@@ -100,10 +100,33 @@ void TypesPage::showTreeNode(const QModelIndex &current)
     const QString typeId = current.data(ItemRoles::Id).toString();
     const TypeInfo type = _types.value(typeId);
     _subtypesModel->setItems(subtypesOf(typeId));
-    ui->subtypesTitle->setText(type.browseName.isEmpty()
-                                   ? tr("Subtype Definitions")
-                                   : tr("Subtype Definitions (%1)").arg(type.browseName));
+    _shownTypeName = type.browseName;
+    showSubtypesTitle();
     showProperties(typeId);
+}
+
+///
+/// \brief Titles the subtypes panel after the type selected in the tree.
+///
+void TypesPage::showSubtypesTitle()
+{
+    ui->subtypesTitle->setText(_shownTypeName.isEmpty() ? tr("Subtype Definitions")
+                                                        : tr("Subtype Definitions (%1)").arg(_shownTypeName));
+}
+
+///
+/// \brief Retranslates the page when the language changes, keeping the shown type.
+/// \param event Change event.
+///
+void TypesPage::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        showSubtypesTitle();
+        _subtypesModel->retranslate();
+        _referencesModel->retranslate();
+    }
+    QWidget::changeEvent(event);
 }
 
 ///

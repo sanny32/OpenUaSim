@@ -44,6 +44,17 @@ EventLogWidget::~EventLogWidget()
 }
 
 ///
+/// \brief Retranslates the panel when the language changes; the log page retranslates the shared model.
+/// \param event Change event.
+///
+void EventLogWidget::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange)
+        ui->retranslateUi(this);
+    QFrame::changeEvent(event);
+}
+
+///
 /// \brief Shows a log model; the panel does not take ownership.
 /// \param model Log to show.
 ///

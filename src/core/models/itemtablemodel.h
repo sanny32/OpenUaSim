@@ -50,6 +50,20 @@ public:
     }
 
     ///
+    /// \brief Makes attached views fetch the headers and cells again, e.g. after the language changed;
+    ///        the selection is kept.
+    ///
+    void retranslate()
+    {
+        const int columns = this->columnCount();
+        if (columns == 0)
+            return;
+        emit this->headerDataChanged(Qt::Horizontal, 0, columns - 1);
+        if (!_items.isEmpty())
+            emit this->dataChanged(this->index(0, 0), this->index(int(_items.size()) - 1, columns - 1));
+    }
+
+    ///
     /// \brief Returns all stored items.
     /// \return Items in row order.
     ///

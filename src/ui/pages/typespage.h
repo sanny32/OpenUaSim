@@ -55,8 +55,12 @@ public:
     ///
     const SubtypesModel *subtypesModel() const;
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     void showTreeNode(const QModelIndex &current);
+    void showSubtypesTitle();
     void showSubtype(const QModelIndex &current);
     void showProperties(const QString &typeId);
     QList<TypeInfo> subtypesOf(const QString &typeId) const;
@@ -66,4 +70,5 @@ private:
     SubtypesModel *_subtypesModel;
     ReferencesModel *_referencesModel;
     QHash<QString, TypeInfo> _types;
+    QString _shownTypeName;
 };

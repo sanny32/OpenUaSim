@@ -21,7 +21,7 @@ namespace {
 ///
 QString tr(const char *text)
 {
-    return QCoreApplication::translate("ListenerSettings", text);
+    return QCoreApplication::translate("ListenerSettingsBuilder", text);
 }
 
 ///

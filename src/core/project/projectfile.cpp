@@ -275,6 +275,8 @@ void addUser(QList<UserAccount> &users, const UserAccount &user)
 ///
 class NodeReader
 {
+    Q_DECLARE_TR_FUNCTIONS(NodeReader)
+
 public:
     bool read(const QJsonArray &array, const QString &path, QList<NodeDefinition> &nodes);
     QString error() const { return _error; }

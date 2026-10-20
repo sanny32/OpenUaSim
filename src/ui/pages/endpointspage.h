@@ -58,6 +58,9 @@ signals:
     ///
     void endpointsChangeRequested(const QList<EndpointInfo> &endpoints);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     void showEndpoint(const QModelIndex &current);
     void matchModeToPolicy(const QString &policy);

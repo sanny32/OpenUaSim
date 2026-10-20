@@ -30,6 +30,7 @@ ouasim_add_server_test(ouasim_tests_nodesets   test_nodesets.cpp)
 ouasim_add_server_test(ouasim_tests_certificate_store test_certificatestore.cpp)
 
 ouasim_add_ui_test(ouasim_tests_app_theme       test_apptheme.cpp)
+ouasim_add_ui_test(ouasim_tests_app_language    test_applanguage.cpp)
 ouasim_add_ui_test(ouasim_tests_widgets         test_widgets.cpp)
 ouasim_add_ui_test(ouasim_tests_pages           test_pages.cpp)
 ouasim_add_ui_test(ouasim_tests_mainwindow      test_mainwindow.cpp)

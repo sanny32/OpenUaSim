@@ -24,6 +24,8 @@ add_library(ouasim_ui STATIC
     appcolors.h
     appicons.cpp
     appicons.h
+    applanguage.cpp
+    applanguage.h
     application.cpp
     application.h
     apptheme.cpp
@@ -95,3 +97,25 @@ target_link_libraries(ouasim_ui PUBLIC
     Qt${QT_VERSION_MAJOR}::Widgets
 )
 target_link_libraries(ouasim_ui PRIVATE Qt${QT_VERSION_MAJOR}::Svg)
+
+set(OUASIM_TS_FILES "${PROJECT_SOURCE_DIR}/translations/openuasim_ru.ts")
+set(OUASIM_LUPDATE_OPTIONS -no-obsolete -locations none)
+if(Qt6_VERSION VERSION_GREATER_EQUAL 6.7)
+    qt_add_translations(ouasim_ui
+        TS_FILES ${OUASIM_TS_FILES}
+        SOURCE_TARGETS ouasim_core ouasim_ui
+        RESOURCE_PREFIX /i18n
+        LUPDATE_OPTIONS ${OUASIM_LUPDATE_OPTIONS}
+    )
+else()
+    # SOURCE_TARGETS arrived in Qt 6.7; older versions take the sources to scan directly.
+    file(GLOB_RECURSE OUASIM_TRANSLATED_SOURCES CONFIGURE_DEPENDS
+        "${PROJECT_SOURCE_DIR}/core/*.cpp" "${PROJECT_SOURCE_DIR}/core/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/*.ui")
+    qt_add_translations(ouasim_ui
+        TS_FILES ${OUASIM_TS_FILES}
+        SOURCES ${OUASIM_TRANSLATED_SOURCES}
+        RESOURCE_PREFIX /i18n
+        LUPDATE_OPTIONS ${OUASIM_LUPDATE_OPTIONS}
+    )
+endif()

@@ -94,6 +94,20 @@ void SessionsPage::applyStateFilter(int filter)
 }
 
 ///
+/// \brief Retranslates the page when the language changes, keeping the shown session.
+/// \param event Change event.
+///
+void SessionsPage::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        showSession(ui->sessionsView->currentIndex());
+        _sessionsModel->retranslate();
+    }
+    QWidget::changeEvent(event);
+}
+
+///
 /// \brief Fills the properties panel from the selected session.
 /// \param current Selected table index.
 ///

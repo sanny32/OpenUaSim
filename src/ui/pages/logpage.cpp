@@ -74,6 +74,21 @@ const LogFilterProxyModel *LogPage::filterModel() const
 }
 
 ///
+/// \brief Retranslates the page when the language changes, keeping the shown entry.
+/// \param event Change event.
+///
+void LogPage::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        showEntry(ui->logView->currentIndex());
+        if (_model)
+            _model->retranslate();
+    }
+    QWidget::changeEvent(event);
+}
+
+///
 /// \brief Applies the level and category check boxes to the filter.
 ///
 void LogPage::applyFilters()

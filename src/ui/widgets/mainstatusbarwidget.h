@@ -53,6 +53,12 @@ public:
     ///
     QString trailingText() const;
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
+    void showRunning();
+
     Ui::MainStatusBarWidget *ui;
+    bool _running = false;
 };

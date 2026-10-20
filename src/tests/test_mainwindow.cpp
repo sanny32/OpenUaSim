@@ -29,6 +29,7 @@
 #include <QTreeView>
 
 #include "addnodedialog.h"
+#include "applanguage.h"
 #include "apppalette.h"
 #include "appstyle.h"
 #include "apptheme.h"
@@ -91,6 +92,7 @@ private slots:
     void duplicatesAndPastesNodes();
     void deletesSelectedNodes();
     void renamesNodeFromDialog();
+    void switchesLanguageWithoutRestart();
     void appliesUsersFromDialog();
     void appliesServerSettingsFromDialog();
     void refusedVariableChangeShowsMessage();
@@ -103,6 +105,7 @@ private slots:
     void importsAndExportsModels();
     void removesModelAfterConfirmation();
     void exportsNamespaceAndLog();
+    void panelsFitTheDefaultWindow_data();
     void panelsFitTheDefaultWindow();
 };
 
@@ -533,6 +536,34 @@ void TestMainWindow::renamesNodeFromDialog()
     QCOMPARE(ProjectNodes::find(controller.project().nodes, motor)->browseName, QStringLiteral("Drive"));
 }
 
+void TestMainWindow::switchesLanguageWithoutRestart()
+{
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    MainWindow window;
+    window.setController(&controller);
+    window.show();
+    QVERIFY(child<ObjectsPage>(window, "objectsPage")->selectNode(QStringLiteral("ns=1;s=Motor_01")));
+    auto *variablesTitle = child<QLabel>(window, "variablesTitle");
+    auto *tabs = child<QTabWidget>(window, "tabWidget");
+    auto *running = child<StatusIndicator>(window, "serverStatusIndicator");
+    QCOMPARE(variablesTitle->text(), QStringLiteral("Variables in 'Motor_01'"));
+
+    child<QAction>(window, "actionLanguageRussian")->trigger();
+    QCOMPARE(AppLanguage::saved(), AppLanguage::Language::Russian);
+    QTRY_COMPARE(child<QMenu>(window, "menuFile")->title(), QStringLiteral("&Файл"));
+    QTRY_COMPARE(variablesTitle->text(), QStringLiteral("Переменные «Motor_01»"));
+    QCOMPARE(tabs->tabText(tabs->indexOf(child<ObjectsPage>(window, "objectsPage"))), QStringLiteral("Объекты"));
+    QTRY_COMPARE(running->text(), QStringLiteral("Остановлен"));
+    QVERIFY(child<QAction>(window, "actionLanguageRussian")->isChecked());
+
+    child<QAction>(window, "actionLanguageEnglish")->trigger();
+    QTRY_COMPARE(child<QMenu>(window, "menuFile")->title(), QStringLiteral("&File"));
+    QTRY_COMPARE(variablesTitle->text(), QStringLiteral("Variables in 'Motor_01'"));
+    QTRY_COMPARE(running->text(), QStringLiteral("Stopped"));
+    QCOMPARE(AppLanguage::saved(), AppLanguage::Language::English);
+}
+
 void TestMainWindow::appliesUsersFromDialog()
 {
     ServerController controller;
@@ -787,8 +818,18 @@ void TestMainWindow::exportsNamespaceAndLog()
     box->close();
 }
 
+void TestMainWindow::panelsFitTheDefaultWindow_data()
+{
+    QTest::addColumn<int>("language");
+    QTest::newRow("English") << int(AppLanguage::Language::English);
+    QTest::newRow("Russian") << int(AppLanguage::Language::Russian);
+}
+
 void TestMainWindow::panelsFitTheDefaultWindow()
 {
+    QFETCH(int, language);
+    AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language(language));
+    QCoreApplication::processEvents();
     const QFont windowsFont(QStringLiteral("Segoe UI"), 9);
     if (!QFontDatabase::families().contains(windowsFont.family()))
         QSKIP("Needs the Segoe UI font the default window size was designed for");
@@ -826,6 +867,7 @@ void TestMainWindow::panelsFitTheDefaultWindow()
 
     QApplication::setFont(previousFont);
     QApplication::setStyle(previousStyle);
+    AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language::English);
     QVERIFY2(overflowing.isEmpty(), qPrintable(overflowing.join(QStringLiteral("; "))));
 }
 
