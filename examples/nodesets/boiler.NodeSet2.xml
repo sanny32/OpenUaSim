@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UANodeSet xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>urn:openuasim:examples:boiler</Uri>
+  </NamespaceUris>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="UInt32">i=7</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="DateTime">i=13</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+  </Aliases>
+  <UAObject NodeId="ns=1;i=1000" BrowseName="1:Boiler">
+    <DisplayName>Boiler</DisplayName>
+    <Description>Gas-fired hot water boiler</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1001" BrowseName="1:Manufacturer" DataType="String" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Manufacturer</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:String>Example Heating Ltd.</uax:String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1002" BrowseName="1:SerialNumber" DataType="String" ParentNodeId="ns=1;i=1000">
+    <DisplayName>SerialNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:String>BH-2026-0042</uax:String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1003" BrowseName="1:WaterTemperature" DataType="Double" ParentNodeId="ns=1;i=1000">
+    <DisplayName>WaterTemperature</DisplayName>
+    <Description>Outlet water temperature, °C</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Double>72.4</uax:Double>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1004" BrowseName="1:TemperatureSetpoint" DataType="Double" AccessLevel="3" UserAccessLevel="3" ParentNodeId="ns=1;i=1000">
+    <DisplayName>TemperatureSetpoint</DisplayName>
+    <Description>Target outlet water temperature, °C</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Double>75</uax:Double>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1005" BrowseName="1:Pressure" DataType="Double" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Pressure</DisplayName>
+    <Description>Water circuit pressure, bar</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Double>1.8</uax:Double>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1006" BrowseName="1:BurnerOn" DataType="Boolean" AccessLevel="3" UserAccessLevel="3" ParentNodeId="ns=1;i=1000">
+    <DisplayName>BurnerOn</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Boolean>true</uax:Boolean>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1007" BrowseName="1:BurnerPower" DataType="Int32" ParentNodeId="ns=1;i=1000">
+    <DisplayName>BurnerPower</DisplayName>
+    <Description>Modulation level, %</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Int32>65</uax:Int32>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1008" BrowseName="1:OperatingHours" DataType="UInt32" ParentNodeId="ns=1;i=1000">
+    <DisplayName>OperatingHours</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:UInt32>12840</uax:UInt32>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1009" BrowseName="1:LastMaintenance" DataType="DateTime" ParentNodeId="ns=1;i=1000">
+    <DisplayName>LastMaintenance</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:DateTime>2026-03-15T09:30:00Z</uax:DateTime>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1010" BrowseName="1:TemperatureLog" DataType="Double" ValueRank="1" ArrayDimensions="0" ParentNodeId="ns=1;i=1000">
+    <DisplayName>TemperatureLog</DisplayName>
+    <Description>Hourly outlet temperatures, °C</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:ListOfDouble>
+        <uax:Double>68.1</uax:Double>
+        <uax:Double>70.3</uax:Double>
+        <uax:Double>71.9</uax:Double>
+        <uax:Double>72.4</uax:Double>
+      </uax:ListOfDouble>
+    </Value>
+  </UAVariable>
+</UANodeSet>

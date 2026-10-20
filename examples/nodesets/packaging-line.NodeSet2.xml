@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UANodeSet xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>urn:openuasim:examples:packaging-line</Uri>
+  </NamespaceUris>
+  <Aliases>
+    <Alias Alias="UInt32">i=7</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="Argument">i=296</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+  </Aliases>
+  <UADataType NodeId="ns=1;i=3000" BrowseName="1:ConveyorStateEnumeration">
+    <DisplayName>ConveyorStateEnumeration</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=3001</Reference>
+    </References>
+    <Definition Name="1:ConveyorStateEnumeration">
+      <Field Name="Stopped" Value="0" />
+      <Field Name="Running" Value="1" />
+      <Field Name="Faulted" Value="2" />
+    </Definition>
+  </UADataType>
+  <UAVariable NodeId="ns=1;i=3001" BrowseName="EnumStrings" DataType="LocalizedText" ValueRank="1" ArrayDimensions="3" ParentNodeId="ns=1;i=3000">
+    <DisplayName>EnumStrings</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=3000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:ListOfLocalizedText>
+        <uax:LocalizedText>
+          <uax:Text>Stopped</uax:Text>
+        </uax:LocalizedText>
+        <uax:LocalizedText>
+          <uax:Text>Running</uax:Text>
+        </uax:LocalizedText>
+        <uax:LocalizedText>
+          <uax:Text>Faulted</uax:Text>
+        </uax:LocalizedText>
+      </uax:ListOfLocalizedText>
+    </Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:ConveyorType">
+    <DisplayName>ConveyorType</DisplayName>
+    <Description>Belt conveyor driven by a single motor</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=1001" BrowseName="1:Speed" DataType="Double" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Speed</DisplayName>
+    <Description>Belt speed, m/s</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1002" BrowseName="1:State" DataType="ns=1;i=3000" ParentNodeId="ns=1;i=1000">
+    <DisplayName>State</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1003" BrowseName="1:ItemCount" DataType="UInt32" AccessLevel="3" UserAccessLevel="3" ParentNodeId="ns=1;i=1000">
+    <DisplayName>ItemCount</DisplayName>
+    <Description>Items passed since the last reset</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAMethod NodeId="ns=1;i=1004" BrowseName="1:Start" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Start</DisplayName>
+    <Description>Starts the belt motor</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=1005" BrowseName="1:Stop" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Stop</DisplayName>
+    <Description>Stops the belt motor</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=1006" BrowseName="1:SetSpeed" ParentNodeId="ns=1;i=1000">
+    <DisplayName>SetSpeed</DisplayName>
+    <Description>Changes the belt speed</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1007</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAVariable NodeId="ns=1;i=1007" BrowseName="InputArguments" DataType="Argument" ValueRank="1" ArrayDimensions="1" ParentNodeId="ns=1;i=1006">
+    <DisplayName>InputArguments</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1006</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value>
+      <uax:ListOfExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId>
+            <uax:Identifier>i=297</uax:Identifier>
+          </uax:TypeId>
+          <uax:Body>
+            <uax:Argument>
+              <uax:Name>Speed</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>i=11</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:Description>
+                <uax:Text>Belt speed, m/s</uax:Text>
+              </uax:Description>
+            </uax:Argument>
+          </uax:Body>
+        </uax:ExtensionObject>
+      </uax:ListOfExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5000" BrowseName="1:PackagingLine">
+    <DisplayName>PackagingLine</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5100" BrowseName="1:InfeedConveyor" ParentNodeId="ns=1;i=5000">
+    <DisplayName>InfeedConveyor</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5101" BrowseName="1:Speed" DataType="Double" ParentNodeId="ns=1;i=5100">
+    <DisplayName>Speed</DisplayName>
+    <Description>Belt speed, m/s</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5100</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Double>0.8</uax:Double>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5102" BrowseName="1:State" DataType="ns=1;i=3000" ParentNodeId="ns=1;i=5100">
+    <DisplayName>State</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5100</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Int32>1</uax:Int32>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5103" BrowseName="1:ItemCount" DataType="UInt32" AccessLevel="3" UserAccessLevel="3" ParentNodeId="ns=1;i=5100">
+    <DisplayName>ItemCount</DisplayName>
+    <Description>Items passed since the last reset</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5100</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:UInt32>15230</uax:UInt32>
+    </Value>
+  </UAVariable>
+  <UAMethod NodeId="ns=1;i=5104" BrowseName="1:Start" ParentNodeId="ns=1;i=5100" MethodDeclarationId="ns=1;i=1004">
+    <DisplayName>Start</DisplayName>
+    <Description>Starts the belt motor</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5100</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=5105" BrowseName="1:Stop" ParentNodeId="ns=1;i=5100" MethodDeclarationId="ns=1;i=1005">
+    <DisplayName>Stop</DisplayName>
+    <Description>Stops the belt motor</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5100</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=5106" BrowseName="1:SetSpeed" ParentNodeId="ns=1;i=5100" MethodDeclarationId="ns=1;i=1006">
+    <DisplayName>SetSpeed</DisplayName>
+    <Description>Changes the belt speed</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5100</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5107</Reference>
+    </References>
+  </UAMethod>
+  <UAVariable NodeId="ns=1;i=5107" BrowseName="InputArguments" DataType="Argument" ValueRank="1" ArrayDimensions="1" ParentNodeId="ns=1;i=5106">
+    <DisplayName>InputArguments</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5106</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:ListOfExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId>
+            <uax:Identifier>i=297</uax:Identifier>
+          </uax:TypeId>
+          <uax:Body>
+            <uax:Argument>
+              <uax:Name>Speed</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>i=11</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:Description>
+                <uax:Text>Belt speed, m/s</uax:Text>
+              </uax:Description>
+            </uax:Argument>
+          </uax:Body>
+        </uax:ExtensionObject>
+      </uax:ListOfExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5200" BrowseName="1:OutfeedConveyor" ParentNodeId="ns=1;i=5000">
+    <DisplayName>OutfeedConveyor</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5201" BrowseName="1:Speed" DataType="Double" ParentNodeId="ns=1;i=5200">
+    <DisplayName>Speed</DisplayName>
+    <Description>Belt speed, m/s</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5200</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Double>0</uax:Double>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5202" BrowseName="1:State" DataType="ns=1;i=3000" ParentNodeId="ns=1;i=5200">
+    <DisplayName>State</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5200</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Int32>2</uax:Int32>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5203" BrowseName="1:ItemCount" DataType="UInt32" AccessLevel="3" UserAccessLevel="3" ParentNodeId="ns=1;i=5200">
+    <DisplayName>ItemCount</DisplayName>
+    <Description>Items passed since the last reset</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5200</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:UInt32>15187</uax:UInt32>
+    </Value>
+  </UAVariable>
+  <UAMethod NodeId="ns=1;i=5204" BrowseName="1:Start" ParentNodeId="ns=1;i=5200" MethodDeclarationId="ns=1;i=1004">
+    <DisplayName>Start</DisplayName>
+    <Description>Starts the belt motor</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5200</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=5205" BrowseName="1:Stop" ParentNodeId="ns=1;i=5200" MethodDeclarationId="ns=1;i=1005">
+    <DisplayName>Stop</DisplayName>
+    <Description>Stops the belt motor</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5200</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=5206" BrowseName="1:SetSpeed" ParentNodeId="ns=1;i=5200" MethodDeclarationId="ns=1;i=1006">
+    <DisplayName>SetSpeed</DisplayName>
+    <Description>Changes the belt speed</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5200</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5207</Reference>
+    </References>
+  </UAMethod>
+  <UAVariable NodeId="ns=1;i=5207" BrowseName="InputArguments" DataType="Argument" ValueRank="1" ArrayDimensions="1" ParentNodeId="ns=1;i=5206">
+    <DisplayName>InputArguments</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5206</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:ListOfExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId>
+            <uax:Identifier>i=297</uax:Identifier>
+          </uax:TypeId>
+          <uax:Body>
+            <uax:Argument>
+              <uax:Name>Speed</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>i=11</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:Description>
+                <uax:Text>Belt speed, m/s</uax:Text>
+              </uax:Description>
+            </uax:Argument>
+          </uax:Body>
+        </uax:ExtensionObject>
+      </uax:ListOfExtensionObject>
+    </Value>
+  </UAVariable>
+</UANodeSet>

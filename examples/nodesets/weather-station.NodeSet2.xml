@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UANodeSet xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>urn:openuasim:examples:weather-station</Uri>
+  </NamespaceUris>
+  <Aliases>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="DateTime">i=13</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasEncoding">i=38</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+    <Alias Alias="MeasuredBy">ns=1;i=4000</Alias>
+  </Aliases>
+  <UAReferenceType NodeId="ns=1;i=4000" BrowseName="1:MeasuredBy">
+    <DisplayName>MeasuredBy</DisplayName>
+    <Description>Links a measured value to the sensor that produces it</Description>
+    <InverseName>Measures</InverseName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+    </References>
+  </UAReferenceType>
+  <UADataType NodeId="ns=1;i=3000" BrowseName="1:WeatherReading">
+    <DisplayName>WeatherReading</DisplayName>
+    <Description>One sample of all station measurements</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
+      <Reference ReferenceType="HasEncoding">ns=1;i=3001</Reference>
+      <Reference ReferenceType="HasEncoding">ns=1;i=3002</Reference>
+    </References>
+    <Definition Name="1:WeatherReading">
+      <Field Name="Temperature" DataType="Double" />
+      <Field Name="Humidity" DataType="Double" />
+      <Field Name="WindSpeed" DataType="Double" />
+      <Field Name="Timestamp" DataType="DateTime" />
+    </Definition>
+  </UADataType>
+  <UAObject NodeId="ns=1;i=3001" BrowseName="Default Binary" SymbolicName="DefaultBinary">
+    <DisplayName>Default Binary</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=3000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=3002" BrowseName="Default XML" SymbolicName="DefaultXml">
+    <DisplayName>Default XML</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=3000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5000" BrowseName="1:WeatherStation">
+    <DisplayName>WeatherStation</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5001" BrowseName="1:Location" DataType="String" ParentNodeId="ns=1;i=5000">
+    <DisplayName>Location</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:String>Rooftop, building B</uax:String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5002" BrowseName="1:CurrentReading" DataType="ns=1;i=3000" ParentNodeId="ns=1;i=5000">
+    <DisplayName>CurrentReading</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:ExtensionObject>
+        <uax:TypeId>
+          <uax:Identifier>ns=1;i=3002</uax:Identifier>
+        </uax:TypeId>
+        <uax:Body>
+          <WeatherReading xmlns="urn:openuasim:examples:weather-station">
+            <Temperature>14.2</Temperature>
+            <Humidity>67.5</Humidity>
+            <WindSpeed>3.4</WindSpeed>
+            <Timestamp>2026-10-20T08:00:00Z</Timestamp>
+          </WeatherReading>
+        </uax:Body>
+      </uax:ExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5100" BrowseName="1:Sensors" ParentNodeId="ns=1;i=5000">
+    <DisplayName>Sensors</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5101" BrowseName="1:Thermohygrometer" ParentNodeId="ns=1;i=5100">
+    <DisplayName>Thermohygrometer</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5100</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="MeasuredBy" IsForward="false">ns=1;i=5201</Reference>
+      <Reference ReferenceType="MeasuredBy" IsForward="false">ns=1;i=5202</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5102" BrowseName="1:Anemometer" ParentNodeId="ns=1;i=5100">
+    <DisplayName>Anemometer</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5100</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="MeasuredBy" IsForward="false">ns=1;i=5203</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5200" BrowseName="1:Measurements" ParentNodeId="ns=1;i=5000">
+    <DisplayName>Measurements</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5201" BrowseName="1:AirTemperature" DataType="Double" ParentNodeId="ns=1;i=5200">
+    <DisplayName>AirTemperature</DisplayName>
+    <Description>Air temperature, °C</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5200</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="MeasuredBy">ns=1;i=5101</Reference>
+    </References>
+    <Value>
+      <uax:Double>14.2</uax:Double>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5202" BrowseName="1:RelativeHumidity" DataType="Double" ParentNodeId="ns=1;i=5200">
+    <DisplayName>RelativeHumidity</DisplayName>
+    <Description>Relative humidity, %</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5200</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="MeasuredBy">ns=1;i=5101</Reference>
+    </References>
+    <Value>
+      <uax:Double>67.5</uax:Double>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5203" BrowseName="1:WindSpeed" DataType="Double" ParentNodeId="ns=1;i=5200">
+    <DisplayName>WindSpeed</DisplayName>
+    <Description>Wind speed, m/s</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5200</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="MeasuredBy">ns=1;i=5102</Reference>
+    </References>
+    <Value>
+      <uax:Double>3.4</uax:Double>
+    </Value>
+  </UAVariable>
+</UANodeSet>

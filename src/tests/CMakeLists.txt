@@ -28,6 +28,8 @@ ouasim_add_server_test(ouasim_tests_snapshot_builder test_snapshotbuilder.cpp)
 ouasim_add_server_test(ouasim_tests_server_controller test_servercontroller.cpp)
 ouasim_add_test(ouasim_tests_project_document  test_projectdocument.cpp)
 ouasim_add_server_test(ouasim_tests_nodesets   test_nodesets.cpp)
+target_compile_definitions(ouasim_tests_nodesets PRIVATE
+    OUASIM_EXAMPLE_NODESETS_DIR="${PROJECT_SOURCE_DIR}/../examples/nodesets")
 ouasim_add_server_test(ouasim_tests_certificate_store test_certificatestore.cpp)
 
 ouasim_add_ui_test(ouasim_tests_app_theme       test_apptheme.cpp)

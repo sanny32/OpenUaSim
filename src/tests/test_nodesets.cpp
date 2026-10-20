@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <QBuffer>
+#include <QDir>
 #include <QFile>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -69,6 +70,8 @@ private slots:
     void exportRefusesStandardNamespace();
     void exportReportsUnknownNamespace();
     void exportReportsUnwritablePath();
+    void examplesLoadCleanly_data();
+    void examplesLoadCleanly();
 
 private:
     QTemporaryDir _directory;
@@ -338,6 +341,32 @@ void TestNodeSets::exportReportsUnwritablePath()
     QString error;
     QVERIFY(!controller.exportNodeSet(_directory.filePath(QStringLiteral("no/such/dir/x.xml")), &error));
     QVERIFY(!error.isEmpty());
+}
+
+void TestNodeSets::examplesLoadCleanly_data()
+{
+    QTest::addColumn<QString>("fileName");
+    const QDir examples(QStringLiteral(OUASIM_EXAMPLE_NODESETS_DIR));
+    if (!examples.exists())
+        QSKIP("The example NodeSets are not part of this source tree");
+    const QFileInfoList files = examples.entryInfoList({ QStringLiteral("*.NodeSet2.xml") }, QDir::Files);
+    QVERIFY(!files.isEmpty());
+    for (const QFileInfo &file : files)
+        QTest::newRow(qPrintable(file.fileName())) << file.absoluteFilePath();
+}
+
+void TestNodeSets::examplesLoadCleanly()
+{
+    QFETCH(QString, fileName);
+    ServerController controller;
+    controller.setProject(DefaultProject::create());
+    const qsizetype logBefore = controller.log().size();
+
+    QString error;
+    QVERIFY2(controller.importNodeSet(fileName, &error), qPrintable(error));
+    const QList<LogEntry> &log = controller.log();
+    for (qsizetype i = logBefore; i < log.size(); ++i)
+        QVERIFY2(log.at(i).level == LogEntry::Level::Info, qPrintable(log.at(i).message));
 }
 
 QTEST_GUILESS_MAIN(TestNodeSets)

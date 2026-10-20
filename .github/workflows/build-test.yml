@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'examples/nodesets/**'
       - '.github/workflows/build-test.yml'
       - '!**/*.md'
 
