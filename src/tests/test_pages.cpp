@@ -26,6 +26,7 @@
 #include <QTextBlock>
 #include <QTextLayout>
 #include <QToolButton>
+#include <QToolTip>
 #include <QTest>
 #include <QTreeView>
 
@@ -178,6 +179,7 @@ private slots:
     void certificateDetailsUseWholePanel();
     void certificateExpandButtonsFollowAvailableSpace();
     void certificateExpandButtonCoversSubpixelOverflow();
+    void certificateTruncatedValueTooltip();
     void certificateLongValues_data();
     void certificateLongValues();
     void sessionsPage();
@@ -1077,6 +1079,43 @@ void TestPages::certificateExpandButtonCoversSubpixelOverflow()
     QVERIFY(dialog);
     QCOMPARE(child<QPlainTextEdit>(*dialog, "valueEdit")->toPlainText(), subject);
     closeCertificateValue(dialog);
+}
+
+///
+/// \brief Shows the complete value as a tooltip only while its preview is truncated.
+///
+void TestPages::certificateTruncatedValueTooltip()
+{
+    CertificateInfo certificate = _snapshot.certificates.first();
+    certificate.category = CertificateInfo::Category::Trusted;
+    certificate.subject = QStringLiteral("CN=<Server> & Co\nO=Example");
+    CertificatesPage page;
+    page.setCertificates({ certificate });
+    page.resize(1300, 600);
+    page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+    auto *view = child<QTableWidget>(page, "detailsView");
+    view->horizontalHeader()->setStretchLastSection(false);
+    view->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
+    const QModelIndex index = view->model()->index(certificateFieldRow(page, "Subject"), 1);
+    const auto hover = [&] {
+        view->scrollTo(index);
+        QCoreApplication::processEvents();
+        const QPoint pos = view->visualRect(index).center();
+        QHelpEvent event(QEvent::ToolTip, pos, view->viewport()->mapToGlobal(pos));
+        QCoreApplication::sendEvent(view->viewport(), &event);
+    };
+
+    view->setColumnWidth(1, 60);
+    hover();
+    QTRY_VERIFY(QToolTip::isVisible());
+    QVERIFY(QToolTip::text().contains(certificate.subject.toHtmlEscaped()));
+
+    certificate.subject = QStringLiteral("CN=Server");
+    page.setCertificates({ certificate });
+    view->setColumnWidth(1, 600);
+    hover();
+    QTRY_VERIFY(!QToolTip::isVisible());
 }
 
 ///

@@ -6,11 +6,14 @@
 /// \brief Implements expand buttons for truncated field values.
 ///
 
+#include <QAbstractItemView>
 #include <QApplication>
 #include <QFontMetricsF>
+#include <QHelpEvent>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QStyleOptionToolButton>
+#include <QToolTip>
 
 #include "appicons.h"
 #include "valuepreviewdelegate.h"
@@ -78,6 +81,26 @@ bool ValuePreviewDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
         }
     }
     return ItemDelegate::editorEvent(event, model, option, index);
+}
+
+///
+/// \brief Shows the complete value as a tooltip while its preview is truncated.
+/// \param event Help event.
+/// \param view View containing the field.
+/// \param option Cell geometry and state.
+/// \param index Field value index.
+/// \return Whether the event was handled.
+///
+bool ValuePreviewDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view,
+                                     const QStyleOptionViewItem &option, const QModelIndex &index)
+{
+    if (event->type() != QEvent::ToolTip || !needsExpansion(option, index))
+        return ItemDelegate::helpEvent(event, view, option, index);
+    // Rich text makes long values wrap instead of producing a screen-wide tooltip.
+    const QString text = QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
+                             .arg(index.data(Qt::UserRole).toString().toHtmlEscaped());
+    QToolTip::showText(event->globalPos(), text, view->viewport(), option.rect);
+    return true;
 }
 
 ///

@@ -32,6 +32,17 @@ public:
     ///
     void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 
+    ///
+    /// \brief Shows the complete value as a tooltip while its preview is truncated.
+    /// \param event Help event.
+    /// \param view View containing the field.
+    /// \param option Cell geometry and state.
+    /// \param index Field value index.
+    /// \return Whether the event was handled.
+    ///
+    bool helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
+                   const QModelIndex &index) override;
+
 signals:
     ///
     /// \brief Requests a viewer for the complete field value.
