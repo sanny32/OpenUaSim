@@ -7,6 +7,7 @@
 ///
 
 #include <QApplication>
+#include <QFontMetricsF>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QStyleOptionToolButton>
@@ -96,8 +97,10 @@ bool ValuePreviewDelegate::needsExpansion(const QStyleOptionViewItem &option, co
         return false;
     const QStyle *style = option.widget ? option.widget->style() : QApplication::style();
     const QRect text = style->subElementRect(QStyle::SE_ItemViewItemText, &styled, option.widget);
-    const int margin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, nullptr, option.widget) + 1;
-    return value != styled.text || styled.fontMetrics.horizontalAdvance(styled.text) > text.width() - 2 * margin;
+    const int margin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, &styled, option.widget) + 1;
+    // The style elides by fractional width; a rounded advance misses overflows below half a pixel.
+    return value != styled.text
+           || QFontMetricsF(styled.font).horizontalAdvance(styled.text) > text.width() - 2 * margin;
 }
 
 ///

@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 OpenUaSim contributors
 // SPDX-License-Identifier: MIT
 
+#include <cmath>
+
 #include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
@@ -18,6 +20,7 @@
 #include <QSpinBox>
 #include <QSplitter>
 #include <QStandardItemModel>
+#include <QStyleOptionViewItem>
 #include <QTableView>
 #include <QTableWidget>
 #include <QTextBlock>
@@ -174,6 +177,7 @@ private slots:
     void certificateDetailsUseWholePanel_data();
     void certificateDetailsUseWholePanel();
     void certificateExpandButtonsFollowAvailableSpace();
+    void certificateExpandButtonCoversSubpixelOverflow();
     void certificateLongValues_data();
     void certificateLongValues();
     void sessionsPage();
@@ -1015,6 +1019,64 @@ void TestPages::certificateExpandButtonsFollowAvailableSpace()
         QCOMPARE(child<QPlainTextEdit>(*keyboardDialog, "valueEdit")->toPlainText(), certificate.serialNumber);
         closeCertificateValue(keyboardDialog);
     }
+}
+
+///
+/// \brief Offers expansion when the style elides a value that overflows by less than half a pixel.
+///
+void TestPages::certificateExpandButtonCoversSubpixelOverflow()
+{
+    CertificatesPage page;
+    page.resize(1300, 600);
+    page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+    auto *view = child<QTableWidget>(page, "detailsView");
+    QFont font = view->font();
+    font.setPointSizeF(9.37);
+    font.setHintingPreference(QFont::PreferNoHinting);
+    view->setFont(font);
+    QString subject;
+    qreal width = 0;
+    for (int length = 1; length < 64 && subject.isEmpty(); ++length) {
+        const QString candidate = QStringLiteral("CN=OpenUaSim@") + QString(length, QLatin1Char('A' + length % 26));
+        width = QFontMetricsF(view->font()).horizontalAdvance(candidate);
+        const qreal fraction = width - std::floor(width);
+        if (fraction > 0.05 && fraction < 0.45)
+            subject = candidate;
+    }
+    if (subject.isEmpty())
+        QSKIP("The font has no fractional advances to overflow by a subpixel");
+
+    CertificateInfo certificate = _snapshot.certificates.first();
+    certificate.category = CertificateInfo::Category::Trusted;
+    certificate.subject = subject;
+    page.setCertificates({ certificate });
+    view->horizontalHeader()->setStretchLastSection(false);
+    view->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
+    view->setColumnWidth(1, 600);
+    const QModelIndex index = view->model()->index(certificateFieldRow(page, "Subject"), 1);
+    view->scrollTo(index);
+    QCoreApplication::processEvents();
+
+    QStyleOptionViewItem option;
+    option.initFrom(view);
+    option.rect = view->visualRect(index);
+    option.text = subject;
+    option.features = QStyleOptionViewItem::HasDisplay;
+    option.widget = view;
+    const QRect textRect = view->style()->subElementRect(QStyle::SE_ItemViewItemText, &option, view);
+    const int margin = view->style()->pixelMetric(QStyle::PM_FocusFrameHMargin, &option, view) + 1;
+    const int available = textRect.width() - 2 * margin;
+    view->setColumnWidth(1, view->columnWidth(1) - available + int(std::floor(width)));
+    view->scrollTo(index);
+    QCoreApplication::processEvents();
+
+    const QRect rect = view->visualRect(index);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(rect.right() - 12, rect.center().y()));
+    auto *dialog = page.findChild<ValueDialog *>();
+    QVERIFY(dialog);
+    QCOMPARE(child<QPlainTextEdit>(*dialog, "valueEdit")->toPlainText(), subject);
+    closeCertificateValue(dialog);
 }
 
 ///
