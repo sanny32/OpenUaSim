@@ -55,6 +55,7 @@ private slots:
     void itemTableModelAppendsWithLimit();
     void variablesModelUpdatesValues();
     void variablesModelShowsArrays();
+    void variablesModelShowsModelDataTypeNames();
     void variablesModelShowsAlarmState();
     void subscriptionsModel();
     void tableModelsHaveNoChildren();
@@ -157,6 +158,19 @@ void TestTableModels::variablesModelShowsArrays()
     model.setItems({ levels });
     QCOMPARE(model.index(0, VariablesModel::ColDataType).data().toString(), QStringLiteral("Double[2]"));
     QCOMPARE(model.index(0, VariablesModel::ColValue).data().toString(), QStringLiteral("[1.5, 2]"));
+}
+
+void TestTableModels::variablesModelShowsModelDataTypeNames()
+{
+    VariableInfo mode = variable(QStringLiteral("a.Mode"), 1);
+    mode.dataType = QStringLiteral("Int32");
+    mode.dataTypeName = QStringLiteral("TankMode");
+    VariableInfo modes = mode;
+    modes.arrayLength = 3;
+    VariablesModel model;
+    model.setItems({ mode, modes });
+    QCOMPARE(model.index(0, VariablesModel::ColDataType).data().toString(), QStringLiteral("TankMode"));
+    QCOMPARE(model.index(1, VariablesModel::ColDataType).data().toString(), QStringLiteral("TankMode[3]"));
 }
 
 void TestTableModels::variablesModelShowsAlarmState()

@@ -287,7 +287,7 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
 bool ServerController::updateModelVariable(const VariableInfo &variable, QString *error)
 {
     const QUaBaseDataVariable *served = ModelVariables::find(*_server.uaServer(), variable.nodeId);
-    if (!served || !ModelVariables::isEditable(*served)) {
+    if (!served || !ModelVariables::isEditable(*_server.uaServer(), *served)) {
         if (error)
             *error = tr("'%1' is not a variable").arg(variable.nodeId);
         return false;

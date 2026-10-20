@@ -95,6 +95,7 @@ private slots:
     void examplesLoadCleanly_data();
     void examplesLoadCleanly();
     void modelVariableOfUnsupportedTypeIsReadOnly();
+    void modelEnumerationIsEditedAsInt32();
     void updateModelVariableKeepsSettings();
     void updateModelVariableReplacesSettings();
     void updateModelVariableRejectsInvalidValue();
@@ -414,6 +415,31 @@ void TestNodeSets::modelVariableOfUnsupportedTypeIsReadOnly()
     QVERIFY(!controller.updateVariable(recipe, &error));
     QVERIFY(error.contains(recipe.nodeId));
     QVERIFY(controller.project().modelVariables.isEmpty());
+}
+
+void TestNodeSets::modelEnumerationIsEditedAsInt32()
+{
+    ServerController controller;
+    controller.setProject(tankProject());
+    VariableInfo mode = modelVariable(controller, QStringLiteral("Mode"));
+    QCOMPARE(mode.dataType, QStringLiteral("Int32"));
+    QCOMPARE(mode.dataTypeName, QStringLiteral("TankMode"));
+    QCOMPARE(mode.shownDataType(), QStringLiteral("TankMode"));
+    QVERIFY(!mode.readOnly);
+    QCOMPARE(modelVariable(controller, QStringLiteral("Recipe")).shownDataType(), QStringLiteral("NodeId"));
+    QVERIFY(modelVariable(controller, QStringLiteral("Level")).dataTypeName.isEmpty());
+
+    mode.initialValue = QStringLiteral("2");
+    QString error;
+    QVERIFY2(controller.updateVariable(mode, &error), qPrintable(error));
+    QCOMPARE(controller.project().modelVariables.first().variable.dataType, QStringLiteral("Int32"));
+
+    QVERIFY(controller.start());
+    UaTestClient client;
+    QCOMPARE(client.connect(controller.server().endpointUrl()), UA_STATUSCODE_GOOD);
+    QVariant value;
+    QCOMPARE(client.readValue(mode.nodeId, value), UA_STATUSCODE_GOOD);
+    QCOMPARE(value.toInt(), 2);
 }
 
 void TestNodeSets::updateModelVariableKeepsSettings()

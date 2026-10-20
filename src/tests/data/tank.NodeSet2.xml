@@ -9,8 +9,20 @@
     <Alias Alias="NodeId">i=17</Alias>
     <Alias Alias="Organizes">i=35</Alias>
     <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
     <Alias Alias="HasComponent">i=47</Alias>
   </Aliases>
+  <UADataType NodeId="ns=1;i=3000" BrowseName="1:TankMode">
+    <DisplayName>TankMode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+    </References>
+    <Definition Name="1:TankMode">
+      <Field Name="Idle" Value="0" />
+      <Field Name="Filling" Value="1" />
+      <Field Name="Draining" Value="2" />
+    </Definition>
+  </UADataType>
   <UAObject NodeId="ns=1;i=1000" BrowseName="1:Tank">
     <DisplayName>Tank</DisplayName>
     <References>
@@ -26,6 +38,16 @@
     </References>
     <Value>
       <uax:Double>40</uax:Double>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1003" BrowseName="1:Mode" DataType="ns=1;i=3000" AccessLevel="3" UserAccessLevel="3">
+    <DisplayName>Mode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Int32>1</uax:Int32>
     </Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=1002" BrowseName="1:Recipe" DataType="NodeId" AccessLevel="1" UserAccessLevel="1">

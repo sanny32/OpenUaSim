@@ -31,16 +31,34 @@ QUaBaseDataVariable *find(QUaServer &server, const QString &nodeId);
 /// \param server Server holding the models.
 /// \param variable Variable of an imported model.
 /// \return Settings with the namespace URI, the identifier within it, the browse name, data type, array
-///         length and access of the variable, Good quality and an invalid initial value.
+///         length and access of the variable, Good quality and an invalid initial value; the data type is the
+///         built-in one its values are encoded with.
 ///
 ModelVariable describe(const QUaServer &server, const QUaBaseDataVariable &variable);
 
 ///
-/// \brief Tells whether the simulation can drive a model variable.
+/// \brief Returns the built-in data type the values of a model variable are encoded with.
+/// \param server Server holding the model.
 /// \param variable Variable of an imported model.
-/// \return True for a scalar or one-dimensional array of a supported built-in data type.
+/// \return Name such as "Double", "Int32" for an enumeration, or the data type node id for other types.
 ///
-bool isEditable(const QUaBaseDataVariable &variable);
+QString valueDataType(const QUaServer &server, const QUaBaseDataVariable &variable);
+
+///
+/// \brief Returns the name of a data type a model defines.
+/// \param server Server holding the model.
+/// \param variable Variable of an imported model.
+/// \return Browse name of the data type, e.g. "ConveyorStateEnumeration"; empty for a built-in type.
+///
+QString dataTypeName(const QUaServer &server, const QUaBaseDataVariable &variable);
+
+///
+/// \brief Tells whether the simulation can drive a model variable.
+/// \param server Server holding the model.
+/// \param variable Variable of an imported model.
+/// \return True for a scalar or one-dimensional array of a supported built-in data type or of an enumeration.
+///
+bool isEditable(const QUaServer &server, const QUaBaseDataVariable &variable);
 
 ///
 /// \brief Finds the stored settings of a model variable.

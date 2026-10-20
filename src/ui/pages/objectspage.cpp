@@ -288,7 +288,9 @@ void ObjectsPage::showVariable(const QModelIndex &current)
     ui->nodeIdEdit->setText(variable.nodeId);
     ui->displayNameEdit->setText(variable.displayName);
     ui->iconCombo->setCurrentIndex(ui->iconCombo->findData(variable.icon));
-    ui->dataTypeCombo->setCurrentText(variable.dataType);
+    const int dataTypeIndex = ui->dataTypeCombo->findText(variable.shownDataType());
+    ui->dataTypeCombo->setCurrentIndex(dataTypeIndex);
+    ui->dataTypeCombo->setPlaceholderText(dataTypeIndex < 0 ? variable.shownDataType() : QString());
     ui->arrayLengthSpin->setValue(variable.arrayLength);
     ui->accessCombo->setCurrentText(variable.access);
     ui->initialValueEdit->setText(Formatting::value(variable.initialValue));

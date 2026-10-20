@@ -54,8 +54,9 @@ QVariant VariablesModel::data(const QModelIndex &index, int role) const
         break;
     case ColDataType:
         if (role == Qt::DisplayRole)
-            return variable.arrayLength > 0 ? QStringLiteral("%1[%2]").arg(variable.dataType).arg(variable.arrayLength)
-                                            : variable.dataType;
+            return variable.arrayLength > 0
+                ? QStringLiteral("%1[%2]").arg(variable.shownDataType()).arg(variable.arrayLength)
+                : variable.shownDataType();
         break;
     case ColQuality:
         if (role == Qt::DisplayRole) return qualityText(variable.quality);

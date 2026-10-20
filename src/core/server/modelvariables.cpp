@@ -77,7 +77,8 @@ QUaBaseDataVariable *find(QUaServer &server, const QString &nodeId)
 /// \param server Server holding the models.
 /// \param variable Variable of an imported model.
 /// \return Settings with the namespace URI, the identifier within it, the browse name, data type, array
-///         length and access of the variable, Good quality and an invalid initial value.
+///         length and access of the variable, Good quality and an invalid initial value; the data type is the
+///         built-in one its values are encoded with.
 ///
 ModelVariable describe(const QUaServer &server, const QUaBaseDataVariable &variable)
 {
@@ -89,7 +90,7 @@ ModelVariable describe(const QUaServer &server, const QUaBaseDataVariable &varia
     definition.nodeId = identifierOf(nodeId);
     definition.browseName = variable.browseName().name();
     definition.icon = QStringLiteral("signal");
-    definition.dataType = ImportedNodes::dataTypeName(variable.dataTypeNodeId());
+    definition.dataType = valueDataType(server, variable);
     const QVariant value = variable.value();
     definition.arrayLength = ValueCast::isArray(value) ? int(value.toList().size()) : 0;
     definition.access = accessText(variable);
@@ -98,17 +99,49 @@ ModelVariable describe(const QUaServer &server, const QUaBaseDataVariable &varia
 }
 
 ///
-/// \brief Tells whether the simulation can drive a model variable.
+/// \brief Returns the built-in data type the values of a model variable are encoded with.
+/// \param server Server holding the model.
 /// \param variable Variable of an imported model.
-/// \return True for a scalar or one-dimensional array of a supported built-in data type.
+/// \return Name such as "Double", "Int32" for an enumeration, or the data type node id for other types.
 ///
-bool isEditable(const QUaBaseDataVariable &variable)
+QString valueDataType(const QUaServer &server, const QUaBaseDataVariable &variable)
+{
+    const QString dataTypeId = variable.dataTypeNodeId();
+    const QString name = ImportedNodes::dataTypeName(dataTypeId);
+    if (name != dataTypeId)
+        return name;
+    const bool enumeration = server.isSubtypeOf(QUaNodeId(dataTypeId), QUaNodeId(0, quint32(UA_NS0ID_ENUMERATION)));
+    return enumeration ? QStringLiteral("Int32") : name;
+}
+
+///
+/// \brief Returns the name of a data type a model defines.
+/// \param server Server holding the model.
+/// \param variable Variable of an imported model.
+/// \return Browse name of the data type, e.g. "ConveyorStateEnumeration"; empty for a built-in type.
+///
+QString dataTypeName(const QUaServer &server, const QUaBaseDataVariable &variable)
+{
+    const QString dataTypeId = variable.dataTypeNodeId();
+    if (ImportedNodes::dataTypeName(dataTypeId) != dataTypeId)
+        return {};
+    const QString name = server.browseName(QUaNodeId(dataTypeId)).name();
+    return name.isEmpty() ? dataTypeId : name;
+}
+
+///
+/// \brief Tells whether the simulation can drive a model variable.
+/// \param server Server holding the model.
+/// \param variable Variable of an imported model.
+/// \return True for a scalar or one-dimensional array of a supported built-in data type or of an enumeration.
+///
+bool isEditable(const QUaServer &server, const QUaBaseDataVariable &variable)
 {
     const qint32 rank = variable.valueRank();
     if (rank != UA_VALUERANK_SCALAR && rank != UA_VALUERANK_ONE_DIMENSION)
         return false;
     const QVariant value = variable.value();
-    return ValueCast::isSupported(ImportedNodes::dataTypeName(variable.dataTypeNodeId()))
+    return ValueCast::isSupported(valueDataType(server, variable))
         && (!ValueCast::isArray(value) || value.toList().size() <= kMaxArrayLength);
 }
 
@@ -155,9 +188,10 @@ QList<NodeDefinition> resolve(const QList<ModelVariable> &variables, QUaServer &
             problem = tr("no imported model has the namespace");
         else if (!variable)
             problem = tr("the model has no such variable");
-        else if (!isEditable(*variable))
+        else if (!isEditable(server, *variable))
             problem = tr("the simulation cannot drive a %1 variable")
-                          .arg(ImportedNodes::dataTypeName(variable->dataTypeNodeId()));
+                          .arg(dataTypeName(server, *variable).isEmpty() ? valueDataType(server, *variable)
+                                                                        : dataTypeName(server, *variable));
         if (!problem.isEmpty()) {
             if (problems)
                 problems->append(QStringLiteral("%1: %2").arg(path, problem));

@@ -135,8 +135,9 @@ VariableInfo variableInfo(const QUaServer &server, const QUaBaseDataVariable &va
         info.quality = AddressSpace::qualityOf(variable);
         info.configuredQuality = info.quality;
     }
+    info.dataTypeName = ModelVariables::dataTypeName(server, variable);
     info.fromModel = true;
-    info.readOnly = !ModelVariables::isEditable(variable);
+    info.readOnly = !ModelVariables::isEditable(server, variable);
     return info;
 }
 

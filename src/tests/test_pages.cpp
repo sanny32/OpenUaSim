@@ -193,6 +193,7 @@ private slots:
     void namespacesPageRemovesImportedModels();
     void objectsPageShowsImportedVariablesReadOnly();
     void objectsPageLocksModelVariableStructure();
+    void objectsPageShowsDataTypeOutsideTheList();
 
 private:
     ServerSnapshot _snapshot;
@@ -1394,6 +1395,29 @@ void TestPages::objectsPageLocksModelVariableStructure()
     page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
     QVERIFY(child<QLineEdit>(page, "displayNameEdit")->isEnabled());
     QVERIFY(child<QComboBox>(page, "dataTypeCombo")->isEnabled());
+}
+
+void TestPages::objectsPageShowsDataTypeOutsideTheList()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    auto *dataType = child<QComboBox>(page, "dataTypeCombo");
+    QCOMPARE(dataType->currentText(), QStringLiteral("Double"));
+
+    QHash<QString, QList<VariableInfo>> variables = _snapshot.variables;
+    for (QList<VariableInfo> &list : variables) {
+        for (VariableInfo &variable : list) {
+            variable.dataType = QStringLiteral("Int32");
+            variable.dataTypeName = QStringLiteral("TankMode");
+        }
+    }
+    page.setAddressSpace(_snapshot.addressSpace, variables);
+    QCOMPARE(dataType->currentIndex(), -1);
+    QCOMPARE(dataType->placeholderText(), QStringLiteral("TankMode"));
+
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    QCOMPARE(dataType->currentText(), QStringLiteral("Double"));
+    QVERIFY(dataType->placeholderText().isEmpty());
 }
 
 QTEST_MAIN(TestPages)

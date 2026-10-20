@@ -108,6 +108,9 @@ struct VariableInfo
     QVariant value;
     /// \brief Built-in data type name; of the elements for an array.
     QString dataType;
+    /// \brief Name of a data type a model defines, e.g. an enumeration whose values dataType encodes; empty for
+    ///        a built-in type.
+    QString dataTypeName;
     /// \brief Number of elements of an array variable; 0 for a scalar.
     int arrayLength = 0;
     /// \brief Access level text: "Read", "Write" or "Read/Write".
@@ -128,4 +131,10 @@ struct VariableInfo
     AlarmSettings alarm;
     /// \brief Active alarm state, e.g. "High" or "Active"; empty while the alarm is inactive or absent.
     QString alarmState;
+
+    ///
+    /// \brief Returns the data type name to show.
+    /// \return The name a model gives the data type, or the built-in type name.
+    ///
+    QString shownDataType() const { return dataTypeName.isEmpty() ? dataType : dataTypeName; }
 };
