@@ -202,7 +202,9 @@ void TestTypeInstances::editingDeclaredVariableKeepsSettings()
     const VariableInfo shown = variable(controller, kDiagnostics, kTemperature);
     QCOMPARE(shown.value.toDouble(), 60.0);
     QVERIFY(shown.fromModel);
-    const TreeNode *pump = findTreeNode(controller.snapshot().addressSpace, kPump);
+    const ServerSnapshot snapshot = controller.snapshot();
+    const TreeNode *pump = findTreeNode(snapshot.addressSpace, kPump);
+    QVERIFY(pump);
     QCOMPARE(pump->children.size(), 3);
 
     temperature = shown;
