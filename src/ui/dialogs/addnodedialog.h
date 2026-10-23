@@ -3,25 +3,27 @@
 
 ///
 /// \file addnodedialog.h
-/// \brief Declares the dialog that describes a new folder, object or variable.
+/// \brief Declares the dialog that describes a new folder, object, variable or method.
 ///
 
 #pragma once
 
 #include <QDialog>
+#include <QHash>
 #include <QList>
 #include <QSet>
 #include <QString>
 
 #include "data/projectconfig.h"
+#include "data/typeinfo.h"
 
 namespace Ui {
 class AddNodeDialog;
 }
 
 ///
-/// \brief Asks for the parent, kind, browse name, node id and, for variables, data type, access and icon of
-///        a new node; for methods, their action.
+/// \brief Asks for the parent, kind, type, browse name, node id and, for variables, data type, access and icon
+///        of a new node; for methods, their action.
 ///
 class AddNodeDialog : public QDialog
 {
@@ -40,6 +42,13 @@ public:
     /// \brief Destroys the dialog.
     ///
     ~AddNodeDialog() override;
+
+    ///
+    /// \brief Offers the types of the server for the new node.
+    /// \param types Types keyed by server node id, as TypeCatalog::types() returns them.
+    /// \param namespaces Namespace URIs of the server; the position of a URI is its index.
+    ///
+    void setTypes(const QHash<QString, TypeInfo> &types, const QStringList &namespaces);
 
     ///
     /// \brief Returns the chosen parent.
@@ -61,10 +70,13 @@ public:
 
 private:
     void fillParentCombo(const QList<NodeDefinition> &nodes, const QString &path);
+    void fillTypeCombo();
     void updateKindFields();
     void validate();
 
     Ui::AddNodeDialog *ui;
     QList<NodeDefinition> _nodes;
     QSet<QString> _usedIds;
+    QHash<QString, TypeInfo> _types;
+    QStringList _namespaces;
 };

@@ -244,6 +244,10 @@ QJsonObject nodeToJson(const NodeDefinition &node)
         { QStringLiteral("nodeId"), node.nodeId },
         { QStringLiteral("icon"), node.icon },
     };
+    if (!node.typeDefinition.isEmpty() && node.kind != NodeDefinition::Kind::Method)
+        json.insert(QStringLiteral("typeDefinition"), node.typeDefinition);
+    if (node.declared)
+        json.insert(QStringLiteral("declared"), true);
     if (node.kind == NodeDefinition::Kind::Variable) {
         json.insert(QStringLiteral("dataType"), node.dataType);
         json.insert(QStringLiteral("access"), node.access);
@@ -449,6 +453,9 @@ bool NodeReader::readNode(const QJsonObject &json, const QString &path, NodeDefi
         _nodeIds.insert(node.nodeId);
     }
     node.icon = json.value(QStringLiteral("icon")).toString();
+    if (node.kind != NodeDefinition::Kind::Method)
+        node.typeDefinition = json.value(QStringLiteral("typeDefinition")).toString();
+    node.declared = json.value(QStringLiteral("declared")).toBool(false);
 
     if (node.kind == NodeDefinition::Kind::Variable)
         return readVariable(json, path, node);

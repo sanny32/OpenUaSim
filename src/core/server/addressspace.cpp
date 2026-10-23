@@ -6,6 +6,8 @@
 /// \brief Implements the project nodes built under the Objects folder of a QUaServer.
 ///
 
+#include <QRegularExpression>
+
 #include <QUaExclusiveLevelAlarm>
 #include <QUaOffNormalAlarm>
 #include <QUaServer>
@@ -13,12 +15,75 @@
 #include <algorithm>
 
 #include "addressspace.h"
+#include "importednodes.h"
 #include "project/alarmrules.h"
+#include "project/portablenodeid.h"
 #include "simulation/valuecast.h"
 
 namespace {
 
 constexpr quint16 kApplicationNamespace = 1;
+
+///
+/// \brief Returns the key under which a declared child of a node keeps its node id.
+/// \param parentId Server node id of the parent.
+/// \param browseName Browse name of the child, without namespace.
+/// \return Key for declaredChildId().
+///
+QString childKey(const QUaNodeId &parentId, const QString &browseName)
+{
+    return parentId.toXmlString() + QLatin1Char('/') + browseName;
+}
+
+///
+/// \brief Collects the node ids of the declared children a node keeps settings for, at every depth.
+/// \param node Instance definition.
+/// \param ids Receives the node ids keyed by childKey().
+///
+void collectDeclaredIds(const NodeDefinition &node, QHash<QString, QString> &ids)
+{
+    for (const NodeDefinition &child : node.children) {
+        if (!child.declared)
+            continue;
+        ids.insert(childKey(QUaNodeId(node.nodeId), child.browseName), child.nodeId);
+        collectDeclaredIds(child, ids);
+    }
+}
+
+///
+/// \brief Returns the node id of a child that instantiating a type adds.
+/// \param ids Node ids of children with settings, keyed by childKey(); copies of an instance keep theirs this way.
+/// \param parentId Server node id of the parent.
+/// \param browseName Browse name of the child.
+/// \return The stored node id, or one derived from the parent, e.g. "ns=1;s=Line.Motor.Speed".
+///
+QUaNodeId declaredChildId(const QHash<QString, QString> &ids, const QUaNodeId &parentId,
+                          const QUaQualifiedName &browseName)
+{
+    const QString stored = ids.value(childKey(parentId, browseName.name()));
+    if (!stored.isEmpty())
+        return QUaNodeId(stored);
+    static const QRegularExpression namespacePart(QStringLiteral("^ns=\\d+;(s=)?"));
+    const QString parent = parentId.toXmlString().remove(namespacePart);
+    return QUaNodeId(QStringLiteral("ns=%1;s=%2.%3").arg(kApplicationNamespace).arg(parent, browseName.name()));
+}
+
+///
+/// \brief Finds the child a type declares by its browse name.
+/// \param parent Instance or declared node.
+/// \param browseName Browse name without namespace.
+/// \return Child whose browse name is outside the application namespace, or null.
+///
+QUaNode *declaredChild(const QUaNode &parent, const QString &browseName)
+{
+    const QList<QUaNode *> children = parent.browseChildren();
+    for (QUaNode *child : children) {
+        const QUaQualifiedName name = child->browseName();
+        if (name.namespaceIndex() != kApplicationNamespace && name.name() == browseName)
+            return child;
+    }
+    return nullptr;
+}
 
 ///
 /// \brief Applies an access level text to a variable.
@@ -309,13 +374,15 @@ QUaNode *AddressSpace::buildNode(QUaNode *parent, const NodeDefinition &node, co
     QUaNode *created = nullptr;
     switch (node.kind) {
     case NodeDefinition::Kind::Folder:
-        created = parent->addFolderObject(browseName, nodeId);
+        created = node.typeDefinition.isEmpty() ? parent->addFolderObject(browseName, nodeId)
+                                                : addInstance(parent, node, path, problems);
         break;
     case NodeDefinition::Kind::Object:
-        created = parent->addBaseObject(browseName, nodeId);
+        created = node.typeDefinition.isEmpty() ? parent->addBaseObject(browseName, nodeId)
+                                                : addInstance(parent, node, path, problems);
         break;
     case NodeDefinition::Kind::Variable: {
-        QUaBaseDataVariable *variable = addVariable(parent, node);
+        QUaBaseDataVariable *variable = addVariable(parent, node, path, problems);
         if (variable && node.alarm.enabled)
             addAlarm(parent, *variable, node, path, problems);
         created = variable;
@@ -330,7 +397,9 @@ QUaNode *AddressSpace::buildNode(QUaNode *parent, const NodeDefinition &node, co
     ++_nodeCount;
     for (const NodeDefinition &child : node.children) {
         const QString childPath = path + QLatin1Char('/') + child.browseName;
-        if (child.kind == NodeDefinition::Kind::Method)
+        if (child.declared)
+            attachDeclared(*created, child, childPath, problems);
+        else if (child.kind == NodeDefinition::Kind::Method)
             addMethod(created, child, node.children, childPath, problems);
         else
             buildNode(created, child, childPath, problems);
@@ -528,19 +597,102 @@ QString AddressSpace::checkNode(QUaNode *parent, const NodeDefinition &node) con
         return tr("browse name '%1' is used by a sibling").arg(node.browseName);
     if (node.kind == NodeDefinition::Kind::Variable && !ValueCast::isSupported(node.dataType))
         return tr("unsupported data type '%1'").arg(node.dataType);
+    if (!node.typeDefinition.isEmpty() && PortableNodeId::toServer(node.typeDefinition, _server->namespaces()).isEmpty())
+        return tr("type '%1' is not loaded").arg(node.typeDefinition);
     return {};
 }
 
 ///
-/// \brief Creates a variable with its data type, access level and initial value.
+/// \brief Adds an instance of the type of a node; the children the type declares get node ids below the node's.
+/// \param parent Server node receiving the instance.
+/// \param node Folder, object or variable definition with a loaded type, already checked.
+/// \param path Slash-separated browse path for problem messages.
+/// \param problems Receives why the instance was not added.
+/// \return Instance, or null when the type cannot be instantiated or makes no node of the definition's kind.
+///
+QUaNode *AddressSpace::addInstance(QUaNode *parent, const NodeDefinition &node, const QString &path,
+                                   QStringList &problems)
+{
+    QHash<QString, QString> childIds;
+    collectDeclaredIds(node, childIds);
+    _server->setChildNodeIdCallback([&childIds](const QUaNodeId &parentId, const QUaQualifiedName &browseName) {
+        return declaredChildId(childIds, parentId, browseName);
+    });
+    const QUaNodeId typeId(PortableNodeId::toServer(node.typeDefinition, _server->namespaces()));
+    QUaNode *instance = parent->addInstance(QUaQualifiedName(kApplicationNamespace, node.browseName), typeId,
+                                            QUaNodeId(node.nodeId));
+    _server->setChildNodeIdCallback(QUaChildNodeIdCallback());
+
+    const bool fits = node.kind == NodeDefinition::Kind::Variable
+        ? qobject_cast<QUaBaseDataVariable *>(instance) != nullptr
+        : qobject_cast<QUaBaseObject *>(instance) != nullptr;
+    if (!fits) {
+        delete instance;
+        problems.append(QStringLiteral("%1: %2").arg(path, tr("type '%1' cannot be instantiated as this node")
+                                                               .arg(node.typeDefinition)));
+        return nullptr;
+    }
+    return instance;
+}
+
+///
+/// \brief Applies the settings a project keeps for a node that the type of an ancestor declares.
+/// \param parent Built instance or declared node holding the node.
+/// \param node Declared folder, object or variable; a container passes the settings on to its declared children.
+/// \param path Slash-separated browse path for problem messages.
+/// \param problems Receives why settings were skipped: the type declares no such node or the simulation cannot
+///        drive it.
+///
+void AddressSpace::attachDeclared(QUaNode &parent, const NodeDefinition &node, const QString &path,
+                                  QStringList &problems)
+{
+    QUaNode *declared = declaredChild(parent, node.browseName);
+    if (!declared || declared->nodeId() != QUaNodeId(node.nodeId)) {
+        problems.append(QStringLiteral("%1: %2").arg(path, tr("the type declares no such node")));
+        return;
+    }
+    if (node.kind != NodeDefinition::Kind::Variable) {
+        for (const NodeDefinition &child : node.children) {
+            if (child.declared)
+                attachDeclared(*declared, child, path + QLatin1Char('/') + child.browseName, problems);
+        }
+        return;
+    }
+    auto *variable = qobject_cast<QUaBaseDataVariable *>(declared);
+    if (!variable || !ValueCast::isSupported(node.dataType)) {
+        problems.append(QStringLiteral("%1: %2").arg(path, tr("the simulation cannot drive this node")));
+        return;
+    }
+    registerVariable(variable, node);
+    if (node.alarm.enabled)
+        addAlarm(&parent, *variable, node, path, problems);
+}
+
+///
+/// \brief Creates a variable, of its type when it has one, with its data type, access level and initial value.
 /// \param parent Server node receiving the variable.
 /// \param node Variable definition, already checked.
-/// \return Created variable, or null when the server refused it.
+/// \param path Slash-separated browse path for problem messages.
+/// \param problems Receives why the variable was not created.
+/// \return Created variable, or null when the server refused it or its type takes no values of its data type.
 ///
-QUaBaseDataVariable *AddressSpace::addVariable(QUaNode *parent, const NodeDefinition &node)
+QUaBaseDataVariable *AddressSpace::addVariable(QUaNode *parent, const NodeDefinition &node, const QString &path,
+                                               QStringList &problems)
 {
-    QUaBaseDataVariable *variable =
-        parent->addBaseDataVariable(QUaQualifiedName(kApplicationNamespace, node.browseName), QUaNodeId(node.nodeId));
+    QUaBaseDataVariable *variable = nullptr;
+    if (node.typeDefinition.isEmpty()) {
+        variable = parent->addBaseDataVariable(QUaQualifiedName(kApplicationNamespace, node.browseName),
+                                               QUaNodeId(node.nodeId));
+    } else {
+        variable = qobject_cast<QUaBaseDataVariable *>(addInstance(parent, node, path, problems));
+        const QUaNodeId dataTypeId(ImportedNodes::dataTypeNodeId(node.dataType));
+        if (variable && !_server->isSubtypeOf(dataTypeId, QUaNodeId(variable->dataTypeNodeId()))) {
+            problems.append(QStringLiteral("%1: %2").arg(path, tr("type '%1' takes no %2 values")
+                                                                   .arg(node.typeDefinition, node.dataType)));
+            delete variable;
+            return nullptr;
+        }
+    }
     if (!variable)
         return nullptr;
     if (node.arrayLength > 0) {

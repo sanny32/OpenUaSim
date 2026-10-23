@@ -20,6 +20,10 @@
 namespace {
 
 const QString kFolderType = QStringLiteral("i=61");
+const QString kBaseObjectType = QStringLiteral("i=58");
+const QString kBaseDataVariableType = QStringLiteral("i=63");
+const QString kDataItemType = QStringLiteral("i=2365");
+const QString kBaseEventType = QStringLiteral("i=2041");
 
 ///
 /// \brief A hierarchy of the type system, walked down from its root type.
@@ -159,6 +163,22 @@ QString TypeReader::referenceName(const QUaNodeId &referenceTypeId)
 }
 
 ///
+/// \brief Tells whether a type is another type or derives from it.
+/// \param types Types keyed by node id.
+/// \param typeId Type to check.
+/// \param superTypeId Possible supertype.
+/// \return True when the supertype chain of typeId reaches superTypeId.
+///
+bool derivesFrom(const QHash<QString, TypeInfo> &types, const QString &typeId, const QString &superTypeId)
+{
+    for (QString id = typeId; !id.isEmpty(); id = types.value(id).baseTypeId) {
+        if (id == superTypeId)
+            return true;
+    }
+    return false;
+}
+
+///
 /// \brief Describes a type for the navigation tree.
 /// \param info Type to describe.
 /// \return Tree node without children.
@@ -278,6 +298,45 @@ QList<TreeNode> tree(const QHash<QString, TypeInfo> &types, bool allStandardType
         root.children.append(node);
     }
     return { root };
+}
+
+///
+/// rief Lists the types a new node of a kind can be an instance of.
+/// \param types Types keyed by node id, as types() returns them.
+/// \param kind Folder, object or variable; methods have no type.
+/// eturn The default type first (FolderType, BaseObjectType or BaseDataVariableType), then its concrete subtypes
+///         sorted by name: those of imported models and, for variables, the standard data item types. Event types
+///         and, for objects, folder types are left out.
+///
+QList<TypeInfo> instanceTypes(const QHash<QString, TypeInfo> &types, NodeDefinition::Kind kind)
+{
+    QString rootId;
+    switch (kind) {
+    case NodeDefinition::Kind::Folder:   rootId = kFolderType; break;
+    case NodeDefinition::Kind::Object:   rootId = kBaseObjectType; break;
+    case NodeDefinition::Kind::Variable: rootId = kBaseDataVariableType; break;
+    case NodeDefinition::Kind::Method:   return {};
+    }
+    if (!types.contains(rootId))
+        return {};
+
+    QList<TypeInfo> subtypes;
+    for (const TypeInfo &type : types) {
+        if (type.isAbstract || type.nodeId == rootId || !derivesFrom(types, type.nodeId, rootId))
+            continue;
+        if (derivesFrom(types, type.nodeId, kBaseEventType)
+            || (kind == NodeDefinition::Kind::Object && derivesFrom(types, type.nodeId, kFolderType)))
+            continue;
+        const bool standard = !type.nodeId.startsWith(QLatin1String("ns="));
+        if (standard && !(kind == NodeDefinition::Kind::Variable && derivesFrom(types, type.nodeId, kDataItemType)))
+            continue;
+        subtypes.append(type);
+    }
+    std::sort(subtypes.begin(), subtypes.end(), [](const TypeInfo &a, const TypeInfo &b) {
+        return a.browseName.compare(b.browseName, Qt::CaseInsensitive) < 0;
+    });
+    subtypes.prepend(types.value(rootId));
+    return subtypes;
 }
 
 }

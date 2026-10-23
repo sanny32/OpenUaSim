@@ -109,6 +109,10 @@ void MainWindow::setSnapshot(const ServerSnapshot &snapshot)
     ui->objectsPage->setAddressSpace(snapshot.addressSpace, snapshot.variables);
     ui->typesPage->setTypes(snapshot.types);
     ui->namespacesPage->setNamespaces(snapshot.namespaces);
+    _types = snapshot.types;
+    _namespaces.clear();
+    for (const NamespaceInfo &info : snapshot.namespaces)
+        _namespaces.append(info.uri);
     ui->endpointsPage->setEndpoints(snapshot.endpoints);
     ui->certificatesPage->setCertificates(snapshot.certificates);
     ui->sessionsPage->setSessions(snapshot.sessions);
@@ -683,6 +687,7 @@ void MainWindow::showAddNodeDialog()
         return;
     const NodeDefinition *selected = targetContainer();
     auto *dialog = new AddNodeDialog(_controller->project().nodes, selected ? selected->nodeId : QString(), this);
+    dialog->setTypes(_types, _namespaces);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     connect(dialog, &QDialog::accepted, this, &MainWindow::addNodeFromDialog);
     dialog->open();
@@ -707,7 +712,8 @@ void MainWindow::addNodeFromDialog()
 
 ///
 /// \brief Returns the project folder or object that new and pasted nodes go to.
-/// \return Selected folder or object, the owner of a selected variable or method, or null for the top level.
+/// \return Selected folder or object, the owner of a selected variable or method, or null for the top level; a node
+///         that a type declares is replaced by the project node holding it.
 ///
 const NodeDefinition *MainWindow::targetContainer() const
 {
@@ -715,6 +721,8 @@ const NodeDefinition *MainWindow::targetContainer() const
     const NodeDefinition *selected = ProjectNodes::find(nodes, ui->objectsPage->currentNodeId());
     if (selected && (selected->kind == NodeDefinition::Kind::Variable || selected->kind == NodeDefinition::Kind::Method))
         selected = ProjectNodes::find(nodes, ui->objectsPage->currentContainerId());
+    while (selected && selected->declared)
+        selected = ProjectNodes::find(nodes, ProjectNodes::parentId(nodes, selected->nodeId));
     return selected;
 }
 
@@ -1240,12 +1248,13 @@ void MainWindow::updateWindowTitle()
 }
 
 ///
-/// \brief Enables Delete Node only for nodes of the project.
+/// \brief Enables the node actions only for nodes of the project that no type declares.
 ///
 void MainWindow::updateNodeActions()
 {
-    const bool hasNode =
-        _controller && ProjectNodes::find(_controller->project().nodes, ui->objectsPage->currentNodeId());
+    const NodeDefinition *node =
+        _controller ? ProjectNodes::find(_controller->project().nodes, ui->objectsPage->currentNodeId()) : nullptr;
+    const bool hasNode = node && !node->declared;
     ui->actionRenameNode->setEnabled(hasNode);
     ui->actionDuplicateNode->setEnabled(hasNode);
     ui->actionCopyNode->setEnabled(hasNode);

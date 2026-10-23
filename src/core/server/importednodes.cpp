@@ -15,7 +15,26 @@
 
 namespace {
 
+constexpr quint16 kApplicationNamespace = 1;
 constexpr quint16 kFirstImportedNamespace = 2;
+
+///
+/// \brief Returns the built-in data types the simulation writes.
+/// \return Names keyed by their numeric node id in namespace 0 (OPC UA Part 6, 5.1.2).
+///
+const QHash<QString, QString> &builtInDataTypes()
+{
+    static const QHash<QString, QString> names {
+        { QStringLiteral("i=1"), QStringLiteral("Boolean") },  { QStringLiteral("i=2"), QStringLiteral("SByte") },
+        { QStringLiteral("i=3"), QStringLiteral("Byte") },     { QStringLiteral("i=4"), QStringLiteral("Int16") },
+        { QStringLiteral("i=5"), QStringLiteral("UInt16") },   { QStringLiteral("i=6"), QStringLiteral("Int32") },
+        { QStringLiteral("i=7"), QStringLiteral("UInt32") },   { QStringLiteral("i=8"), QStringLiteral("Int64") },
+        { QStringLiteral("i=9"), QStringLiteral("UInt64") },   { QStringLiteral("i=10"), QStringLiteral("Float") },
+        { QStringLiteral("i=11"), QStringLiteral("Double") },  { QStringLiteral("i=12"), QStringLiteral("String") },
+        { QStringLiteral("i=13"), QStringLiteral("DateTime") },
+    };
+    return names;
+}
 
 ///
 /// \brief Describes the nodes of imported models, with the settings the project keeps for their variables.
@@ -26,6 +45,8 @@ public:
     ModelNodeCollector(const QUaServer &server, const QList<NodeDefinition> &settings,
                        const AddressSpace &addressSpace);
     TreeNode containerNode(const QUaBaseObject &node, QHash<QString, QList<VariableInfo>> &variables) const;
+    void addChildren(const QUaBaseObject &node, bool declaredOnly, TreeNode &result,
+                     QHash<QString, QList<VariableInfo>> &variables) const;
 
 private:
     const QUaServer &_server;
@@ -62,10 +83,25 @@ TreeNode ModelNodeCollector::containerNode(const QUaBaseObject &node,
     result.icon = QStringLiteral("folder");
     result.id = node.nodeId();
     result.kind = qobject_cast<const QUaFolderObject *>(&node) ? TreeNode::Kind::Folder : TreeNode::Kind::Object;
+    addChildren(node, false, result, variables);
+    return result;
+}
 
+///
+/// \brief Describes the children of a folder or object and records its variables after those listed already.
+/// \param node Server folder or object.
+/// \param declaredOnly Whether only children outside the application namespace, which a type declares, are added.
+/// \param result Tree node of the folder or object receiving the children.
+/// \param variables Receives the variables keyed by the node id of their owner.
+///
+void ModelNodeCollector::addChildren(const QUaBaseObject &node, bool declaredOnly, TreeNode &result,
+                                     QHash<QString, QList<VariableInfo>> &variables) const
+{
     QList<VariableInfo> owned;
     const QList<QUaNode *> children = node.browseChildren();
     for (const QUaNode *child : children) {
+        if (declaredOnly && child->browseName().namespaceIndex() == kApplicationNamespace)
+            continue;
         if (const auto *variable = qobject_cast<const QUaBaseDataVariable *>(child)) {
             owned.append(ImportedNodes::variableInfo(_server, *variable, _settings.value(variable->nodeId()),
                                                      _addressSpace));
@@ -80,8 +116,7 @@ TreeNode ModelNodeCollector::containerNode(const QUaBaseObject &node,
         }
     }
     if (!owned.isEmpty())
-        variables.insert(result.id, owned);
-    return result;
+        variables[result.id] += owned;
 }
 
 }
@@ -107,6 +142,21 @@ void collect(const QUaServer &server, const QList<NodeDefinition> &settings, con
         if (const auto *object = qobject_cast<const QUaBaseObject *>(root))
             tree.append(collector.containerNode(*object, variables));
     }
+}
+
+///
+/// \brief Describes the folders, objects and variables that the type of a project instance declares.
+/// \param server Server holding the instance.
+/// \param settings Settings the project keeps for declared variables, with their server node ids.
+/// \param addressSpace Built nodes providing the live state of variables with settings.
+/// \param instance Built project folder or object of a type.
+/// \param node Tree node of the instance; receives the declared children after its own.
+/// \param variables Receives the declared variables keyed by the node id of their owner, after the listed ones.
+///
+void collectDeclared(const QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
+                     const QUaBaseObject &instance, TreeNode &node, QHash<QString, QList<VariableInfo>> &variables)
+{
+    ModelNodeCollector(server, settings, addressSpace).addChildren(instance, true, node, variables);
 }
 
 ///
@@ -149,20 +199,20 @@ VariableInfo variableInfo(const QUaServer &server, const QUaBaseDataVariable &va
 ///
 QString dataTypeName(const QString &dataTypeNodeId)
 {
-    // Numeric ids of the built-in types in namespace 0 (OPC UA Part 6, 5.1.2).
-    static const QHash<QString, QString> names {
-        { QStringLiteral("i=1"), QStringLiteral("Boolean") },  { QStringLiteral("i=2"), QStringLiteral("SByte") },
-        { QStringLiteral("i=3"), QStringLiteral("Byte") },     { QStringLiteral("i=4"), QStringLiteral("Int16") },
-        { QStringLiteral("i=5"), QStringLiteral("UInt16") },   { QStringLiteral("i=6"), QStringLiteral("Int32") },
-        { QStringLiteral("i=7"), QStringLiteral("UInt32") },   { QStringLiteral("i=8"), QStringLiteral("Int64") },
-        { QStringLiteral("i=9"), QStringLiteral("UInt64") },   { QStringLiteral("i=10"), QStringLiteral("Float") },
-        { QStringLiteral("i=11"), QStringLiteral("Double") },  { QStringLiteral("i=12"), QStringLiteral("String") },
-        { QStringLiteral("i=13"), QStringLiteral("DateTime") },
-    };
     QString id = dataTypeNodeId;
     if (id.startsWith(QLatin1String("ns=0;")))
         id.remove(0, 5);
-    return names.value(id, dataTypeNodeId);
+    return builtInDataTypes().value(id, dataTypeNodeId);
+}
+
+///
+/// \brief Returns the node id of a built-in data type.
+/// \param name Name such as "Double".
+/// \return Node id such as "i=11", or empty for other names.
+///
+QString dataTypeNodeId(const QString &name)
+{
+    return builtInDataTypes().key(name);
 }
 
 }

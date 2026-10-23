@@ -376,6 +376,7 @@ signals:
 
 private:
     bool updateModelVariable(const VariableInfo &variable, QString *error);
+    bool updateDeclaredVariable(const VariableInfo &variable, QString *error);
     static bool applyVariableEdits(const VariableInfo &variable, NodeDefinition &node, QString *error);
     void applyLiveSettings(const NodeDefinition &node, bool valueEdited);
     VariableInfo variableInfo(const NodeDefinition &node) const;

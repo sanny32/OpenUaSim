@@ -44,6 +44,9 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 - Import NodeSet2 companion models, browse their objects and variables on the
   Objects page, and remove them again from the Namespaces page. Export the
   project nodes, or any other served namespace, as NodeSet2.
+- Add instances of the object types of imported models and of standard
+  variable types such as AnalogItemType: the type adds its mandatory children,
+  whose variables are simulated and alarmed like any other.
 - Inspect the standard types in use, the namespace array, active and closed
   sessions with their subscriptions, and the server log filtered by level and
   category; export the filtered log to CSV.

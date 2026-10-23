@@ -56,6 +56,8 @@ add_library(ouasim_core STATIC
     project/alarmrules.h
     project/defaultproject.cpp
     project/defaultproject.h
+    project/portablenodeid.cpp
+    project/portablenodeid.h
     project/projectdocument.cpp
     project/projectdocument.h
     project/projectfile.cpp
@@ -71,6 +73,8 @@ add_library(ouasim_core STATIC
 
     server/addressspace.cpp
     server/addressspace.h
+    server/declarednodes.cpp
+    server/declarednodes.h
     server/historystore.cpp
     server/historystore.h
     server/importednodes.cpp

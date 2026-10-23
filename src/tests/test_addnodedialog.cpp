@@ -45,6 +45,43 @@ QList<NodeDefinition> sampleTree()
              node(Kind::Object, QStringLiteral("Pump"), kPump) };
 }
 
+TypeInfo type(const QString &name, const QString &nodeId, const QString &baseTypeId, bool isAbstract = false)
+{
+    TypeInfo info;
+    info.browseName = name;
+    info.nodeId = nodeId;
+    info.baseTypeId = baseTypeId;
+    info.isAbstract = isAbstract;
+    return info;
+}
+
+QHash<QString, TypeInfo> sampleTypes()
+{
+    const QList<TypeInfo> types {
+        type(QStringLiteral("BaseObjectType"), QStringLiteral("i=58"), QString()),
+        type(QStringLiteral("FolderType"), QStringLiteral("i=61"), QStringLiteral("i=58")),
+        type(QStringLiteral("BaseVariableType"), QStringLiteral("i=62"), QString(), true),
+        type(QStringLiteral("BaseDataVariableType"), QStringLiteral("i=63"), QStringLiteral("i=62")),
+        type(QStringLiteral("PumpType"), QStringLiteral("ns=2;i=1000"), QStringLiteral("i=58")),
+        type(QStringLiteral("MachineType"), QStringLiteral("ns=2;i=2000"), QStringLiteral("i=58"), true),
+    };
+    QHash<QString, TypeInfo> result;
+    for (const TypeInfo &info : types)
+        result.insert(info.nodeId, info);
+    return result;
+}
+
+const QStringList kNamespaces { QStringLiteral("http://opcfoundation.org/UA/"), QStringLiteral("urn:app"),
+                                QStringLiteral("urn:pump") };
+
+QStringList itemTexts(const QComboBox &combo)
+{
+    QStringList texts;
+    for (int i = 0; i < combo.count(); ++i)
+        texts.append(combo.itemText(i));
+    return texts;
+}
+
 bool okEnabled(const AddNodeDialog &dialog)
 {
     return child<QDialogButtonBox>(dialog, "buttonBox")->button(QDialogButtonBox::Ok)->isEnabled();
@@ -67,6 +104,9 @@ private slots:
     void describesVariable();
     void describesFolderWithoutVariableFields();
     void describesMethod();
+    void offersTypesOfTheKind();
+    void describesTypedObject();
+    void withoutTypesKeepsStandardType();
 };
 
 void TestAddNodeDialog::showsParentAndStartsInvalid()
@@ -203,6 +243,45 @@ void TestAddNodeDialog::describesMethod()
     const NodeDefinition node = dialog.node();
     QCOMPARE(node.kind, NodeDefinition::Kind::Method);
     QCOMPARE(node.method, NodeDefinition::MethodAction::SetValue);
+}
+
+void TestAddNodeDialog::offersTypesOfTheKind()
+{
+    AddNodeDialog dialog(sampleTree(), QString());
+    dialog.setTypes(sampleTypes(), kNamespaces);
+    auto *types = child<QComboBox>(dialog, "typeCombo");
+    QCOMPARE(itemTexts(*types), QStringList({ QStringLiteral("FolderType") }));
+    QVERIFY(!types->isEnabled());
+
+    child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(1);
+    QCOMPARE(itemTexts(*types), QStringList({ QStringLiteral("BaseObjectType"), QStringLiteral("PumpType") }));
+    QVERIFY(types->isEnabled());
+
+    child<QComboBox>(dialog, "kindCombo")->setCurrentText(QStringLiteral("Method"));
+    QCOMPARE(types->count(), 0);
+    QVERIFY(!types->isEnabled());
+}
+
+void TestAddNodeDialog::describesTypedObject()
+{
+    AddNodeDialog dialog(sampleTree(), kPump);
+    dialog.setTypes(sampleTypes(), kNamespaces);
+    child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(1);
+    child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("Motor"));
+    QVERIFY(dialog.node().typeDefinition.isEmpty());
+
+    child<QComboBox>(dialog, "typeCombo")->setCurrentText(QStringLiteral("PumpType"));
+    QCOMPARE(dialog.node().typeDefinition, QStringLiteral("nsu=urn:pump;i=1000"));
+}
+
+void TestAddNodeDialog::withoutTypesKeepsStandardType()
+{
+    AddNodeDialog dialog(sampleTree(), kPump);
+    child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(1);
+    child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("Motor"));
+    QVERIFY(!child<QComboBox>(dialog, "typeCombo")->isEnabled());
+    QVERIFY(dialog.node().typeDefinition.isEmpty());
+    QVERIFY(okEnabled(dialog));
 }
 
 QTEST_MAIN(TestAddNodeDialog)

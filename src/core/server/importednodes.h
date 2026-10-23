@@ -17,6 +17,7 @@
 
 class AddressSpace;
 class QUaBaseDataVariable;
+class QUaBaseObject;
 class QUaServer;
 
 namespace ImportedNodes {
@@ -31,6 +32,18 @@ namespace ImportedNodes {
 ///
 void collect(const QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
              QList<TreeNode> &tree, QHash<QString, QList<VariableInfo>> &variables);
+
+///
+/// \brief Describes the folders, objects and variables that the type of a project instance declares.
+/// \param server Server holding the instance.
+/// \param settings Settings the project keeps for declared variables, with their server node ids.
+/// \param addressSpace Built nodes providing the live state of variables with settings.
+/// \param instance Built project folder or object of a type.
+/// \param node Tree node of the instance; receives the declared children after its own.
+/// \param variables Receives the declared variables keyed by the node id of their owner, after the listed ones.
+///
+void collectDeclared(const QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
+                     const QUaBaseObject &instance, TreeNode &node, QHash<QString, QList<VariableInfo>> &variables);
 
 ///
 /// \brief Describes a variable of an imported model.
@@ -49,5 +62,12 @@ VariableInfo variableInfo(const QUaServer &server, const QUaBaseDataVariable &va
 /// \return Name such as "Double", or the node id for other types.
 ///
 QString dataTypeName(const QString &dataTypeNodeId);
+
+///
+/// \brief Returns the node id of a built-in data type.
+/// \param name Name such as "Double".
+/// \return Node id such as "i=11", or empty for other names.
+///
+QString dataTypeNodeId(const QString &name);
 
 }

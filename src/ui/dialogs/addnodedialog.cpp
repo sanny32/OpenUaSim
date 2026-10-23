@@ -3,7 +3,7 @@
 
 ///
 /// \file addnodedialog.cpp
-/// \brief Implements the dialog that describes a new folder, object or variable.
+/// \brief Implements the dialog that describes a new folder, object, variable or method.
 ///
 
 #include <QPushButton>
@@ -11,7 +11,9 @@
 
 #include "addnodedialog.h"
 #include "appicons.h"
+#include "project/portablenodeid.h"
 #include "project/projectnodes.h"
+#include "server/typecatalog.h"
 #include "simulation/valuecast.h"
 #include "ui_addnodedialog.h"
 #include "viewsetup.h"
@@ -68,6 +70,18 @@ AddNodeDialog::~AddNodeDialog()
 }
 
 ///
+/// \brief Offers the types of the server for the new node.
+/// \param types Types keyed by server node id, as TypeCatalog::types() returns them.
+/// \param namespaces Namespace URIs of the server; the position of a URI is its index.
+///
+void AddNodeDialog::setTypes(const QHash<QString, TypeInfo> &types, const QStringList &namespaces)
+{
+    _types = types;
+    _namespaces = namespaces;
+    fillTypeCombo();
+}
+
+///
 /// \brief Returns the chosen parent.
 /// \return Folder or object id; empty for the top level.
 ///
@@ -86,6 +100,8 @@ NodeDefinition AddNodeDialog::node() const
     node.kind = NodeDefinition::Kind(ui->kindCombo->currentIndex());
     node.browseName = ui->browseNameEdit->text().trimmed();
     node.nodeId = ui->nodeIdEdit->text().trimmed();
+    if (node.kind != NodeDefinition::Kind::Method)
+        node.typeDefinition = ui->typeCombo->currentData().toString();
     if (node.kind == NodeDefinition::Kind::Variable) {
         node.dataType = ui->dataTypeCombo->currentText();
         node.access = ui->accessCombo->currentText();
@@ -126,7 +142,7 @@ QString AddNodeDialog::problem() const
 void AddNodeDialog::fillParentCombo(const QList<NodeDefinition> &nodes, const QString &path)
 {
     for (const NodeDefinition &node : nodes) {
-        if (node.kind != NodeDefinition::Kind::Folder && node.kind != NodeDefinition::Kind::Object)
+        if (node.declared || (node.kind != NodeDefinition::Kind::Folder && node.kind != NodeDefinition::Kind::Object))
             continue;
         const QString nodePath = path + QStringLiteral(" / ") + node.browseName;
         ui->parentCombo->addItem(AppIcons::icon(QStringLiteral("folder")), nodePath, node.nodeId);
@@ -135,10 +151,26 @@ void AddNodeDialog::fillParentCombo(const QList<NodeDefinition> &nodes, const QS
 }
 
 ///
+/// \brief Lists the types of the chosen kind; the first, standard one leaves the type definition empty.
+///
+void AddNodeDialog::fillTypeCombo()
+{
+    ui->typeCombo->clear();
+    const QList<TypeInfo> types = TypeCatalog::instanceTypes(_types, NodeDefinition::Kind(ui->kindCombo->currentIndex()));
+    for (qsizetype index = 0; index < types.size(); ++index) {
+        const TypeInfo &type = types.at(index);
+        ui->typeCombo->addItem(type.browseName,
+                               index == 0 ? QString() : PortableNodeId::fromServer(type.nodeId, _namespaces));
+    }
+    ui->typeCombo->setEnabled(types.size() > 1);
+}
+
+///
 /// \brief Enables the data type, access and icon fields for variables and the action for methods only.
 ///
 void AddNodeDialog::updateKindFields()
 {
+    fillTypeCombo();
     const auto kind = NodeDefinition::Kind(ui->kindCombo->currentIndex());
     const bool variable = kind == NodeDefinition::Kind::Variable;
     ui->dataTypeCombo->setEnabled(variable);

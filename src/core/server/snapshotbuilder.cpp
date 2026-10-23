@@ -11,6 +11,7 @@
 #include <QUaServer>
 
 #include "addressspace.h"
+#include "declarednodes.h"
 #include "importednodes.h"
 #include "listenersettings.h"
 #include "modelvariables.h"
@@ -80,8 +81,10 @@ TreeNode treeNode(const NodeDefinition &node)
     result.icon = iconOf(node);
     result.id = node.nodeId;
     result.kind = treeKind(node.kind);
-    for (const NodeDefinition &child : node.children)
-        result.children.append(treeNode(child));
+    for (const NodeDefinition &child : node.children) {
+        if (!child.declared)
+            result.children.append(treeNode(child));
+    }
     return result;
 }
 
@@ -119,7 +122,7 @@ void collectVariables(const QList<NodeDefinition> &nodes, const AddressSpace &ad
             continue;
         QList<VariableInfo> variables;
         for (const NodeDefinition &child : node.children) {
-            if (child.kind == NodeDefinition::Kind::Variable)
+            if (child.kind == NodeDefinition::Kind::Variable && !child.declared)
                 variables.append(SnapshotBuilder::variableInfo(child, addressSpace));
         }
         if (!variables.isEmpty())
@@ -271,6 +274,8 @@ ServerSnapshot build(const ProjectConfig &project, const SimServer &server, cons
     snapshot.status = status(project, server, addressSpace, now);
     snapshot.addressSpace = addressSpaceTree(project.nodes);
     snapshot.variables = variables(project.nodes, addressSpace);
+    DeclaredNodes::collect(*server.uaServer(), project.nodes, addressSpace, snapshot.addressSpace.first().children,
+                           snapshot.variables);
     ImportedNodes::collect(*server.uaServer(), ModelVariables::resolve(project.modelVariables, *server.uaServer()),
                            addressSpace, snapshot.addressSpace.first().children, snapshot.variables);
     snapshot.types = TypeCatalog::types(*server.uaServer());

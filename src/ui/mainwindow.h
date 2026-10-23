@@ -8,10 +8,12 @@
 
 #pragma once
 
+#include <QHash>
 #include <QMainWindow>
 #include <QStringList>
 
 #include "data/certificateinfo.h"
+#include "data/typeinfo.h"
 #include "data/variableinfo.h"
 
 namespace Ui {
@@ -228,6 +230,8 @@ private:
     QStringList _pendingDeleteIds;
     VariableInfo _pendingAlarmVariable;
     QString _copiedNodeId;
+    QHash<QString, TypeInfo> _types;
+    QStringList _namespaces;
     QString _pendingRenameId;
     QString _pendingModelFile;
     QString _pendingCertificate;

@@ -12,6 +12,7 @@
 
 #include <algorithm>
 
+#include "declarednodes.h"
 #include "formatting.h"
 #include "importednodes.h"
 #include "listenersettings.h"
@@ -255,8 +256,10 @@ QString ServerController::copyNode(const QString &nodeId, const QString &parentI
 bool ServerController::updateVariable(const VariableInfo &variable, QString *error)
 {
     const NodeDefinition *existing = ProjectNodes::find(_project.nodes, variable.nodeId);
-    if (!existing)
+    if (!existing && ModelVariables::find(*_server.uaServer(), variable.nodeId))
         return updateModelVariable(variable, error);
+    if (!existing)
+        return updateDeclaredVariable(variable, error);
     const bool structural = existing->browseName != variable.displayName || existing->dataType != variable.dataType
         || existing->arrayLength != variable.arrayLength || existing->alarm != variable.alarm;
 
@@ -331,6 +334,44 @@ bool ServerController::updateModelVariable(const VariableInfo &variable, QString
 }
 
 ///
+/// \brief Keeps the first settings of a variable that the type of a project instance declares and rebuilds the
+///        address space, which applies them.
+/// \param variable Server node id with the new icon, access, configured quality, historizing, simulation, alarm
+///        and, when valid, initial value; the type keeps defining the name, data type and array length.
+/// \param error Receives the reason on failure; may be null.
+/// \return False for a node that no project instance declares, a variable the simulation cannot drive, or
+///         refused settings.
+///
+bool ServerController::updateDeclaredVariable(const VariableInfo &variable, QString *error)
+{
+    QUaServer &server = *_server.uaServer();
+    const auto *served = server.nodeById<QUaBaseDataVariable>(QUaNodeId(variable.nodeId));
+    if (!served || !ModelVariables::isEditable(server, *served)) {
+        if (error)
+            *error = tr("'%1' is not a variable").arg(variable.nodeId);
+        return false;
+    }
+    NodeDefinition settings = ModelVariables::describe(server, *served).variable;
+    settings.nodeId = variable.nodeId;
+    if (!applyVariableEdits(variable, settings, error))
+        return false;
+    if (const QString problem = AlarmRules::problem(settings.alarm, settings.dataType, settings.arrayLength);
+        !problem.isEmpty()) {
+        if (error)
+            *error = problem;
+        return false;
+    }
+    if (!DeclaredNodes::keep(_project.nodes, *served, settings)) {
+        if (error)
+            *error = tr("'%1' is not a variable").arg(variable.nodeId);
+        return false;
+    }
+    emit projectEdited();
+    rebuildNodes();
+    return true;
+}
+
+///
 /// \brief Copies the edited icon, access, quality, historizing, simulation, alarm and initial value of a variable.
 /// \param variable Edited properties; a valid initial value, typed text or a value, replaces the stored one.
 /// \param node Definition receiving the edits; its data type parses the initial value.
@@ -381,7 +422,10 @@ void ServerController::applyLiveSettings(const NodeDefinition &node, bool valueE
 ///
 VariableInfo ServerController::variableInfo(const NodeDefinition &node) const
 {
-    if (const QUaBaseDataVariable *model = ModelVariables::find(*_server.uaServer(), node.nodeId))
+    const QUaBaseDataVariable *model = node.declared
+        ? _server.uaServer()->nodeById<QUaBaseDataVariable>(QUaNodeId(node.nodeId))
+        : ModelVariables::find(*_server.uaServer(), node.nodeId);
+    if (model)
         return ImportedNodes::variableInfo(*_server.uaServer(), *model, &node, _addressSpace);
     return SnapshotBuilder::variableInfo(node, _addressSpace);
 }

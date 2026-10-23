@@ -103,6 +103,10 @@
         <source>The node id &apos;%1&apos; is already used.</source>
         <translation>Идентификатор узла «%1» уже занят.</translation>
     </message>
+    <message>
+        <source>T&amp;ype</source>
+        <translation>Т&amp;ип</translation>
+    </message>
 </context>
 <context>
     <name>AddressSpace</name>
@@ -173,6 +177,26 @@
     <message>
         <source>the server has no such variable</source>
         <translation>на сервере нет такой переменной</translation>
+    </message>
+    <message>
+        <source>type &apos;%1&apos; is not loaded</source>
+        <translation>тип «%1» не загружен</translation>
+    </message>
+    <message>
+        <source>type &apos;%1&apos; cannot be instantiated as this node</source>
+        <translation>тип «%1» нельзя использовать для этого узла</translation>
+    </message>
+    <message>
+        <source>the type declares no such node</source>
+        <translation>тип не объявляет такой узел</translation>
+    </message>
+    <message>
+        <source>the simulation cannot drive this node</source>
+        <translation>симуляция не может управлять этим узлом</translation>
+    </message>
+    <message>
+        <source>type &apos;%1&apos; takes no %2 values</source>
+        <translation>тип «%1» не принимает значения %2</translation>
     </message>
 </context>
 <context>

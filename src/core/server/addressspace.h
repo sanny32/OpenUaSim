@@ -198,7 +198,10 @@ private:
     QString setVariableFromText(const QString &methodId, const QList<NodeDefinition> &variables,
                                 const QString &name, const QString &text);
     QString checkNode(QUaNode *parent, const NodeDefinition &node) const;
-    QUaBaseDataVariable *addVariable(QUaNode *parent, const NodeDefinition &node);
+    QUaNode *addInstance(QUaNode *parent, const NodeDefinition &node, const QString &path, QStringList &problems);
+    void attachDeclared(QUaNode &parent, const NodeDefinition &node, const QString &path, QStringList &problems);
+    QUaBaseDataVariable *addVariable(QUaNode *parent, const NodeDefinition &node, const QString &path,
+                                     QStringList &problems);
     void registerVariable(QUaBaseDataVariable *variable, const NodeDefinition &node);
     void handleValueChanged(const QVariant &value, const bool &networkChange);
 

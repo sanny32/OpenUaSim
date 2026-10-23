@@ -11,6 +11,7 @@
 #include <QHash>
 #include <QList>
 
+#include "data/projectconfig.h"
 #include "data/treenode.h"
 #include "data/typeinfo.h"
 
@@ -41,5 +42,15 @@ bool isRelevant(const TypeInfo &type);
 /// \return One "Types" root holding a hierarchy per root type, siblings sorted by name, with FolderType current.
 ///
 QList<TreeNode> tree(const QHash<QString, TypeInfo> &types, bool allStandardTypes);
+
+///
+/// \brief Lists the types a new node of a kind can be an instance of.
+/// \param types Types keyed by node id, as types() returns them.
+/// \param kind Folder, object or variable; methods have no type.
+/// \return The default type first (FolderType, BaseObjectType or BaseDataVariableType), then its concrete subtypes
+///         sorted by name: those of imported models and, for variables, the standard data item types. Event types
+///         and, for objects, folder types are left out.
+///
+QList<TypeInfo> instanceTypes(const QHash<QString, TypeInfo> &types, NodeDefinition::Kind kind);
 
 }

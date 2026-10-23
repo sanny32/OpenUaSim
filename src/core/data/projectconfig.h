@@ -42,6 +42,13 @@ struct NodeDefinition
     QString nodeId;
     /// \brief Resource name of the icon shown in the address space tree.
     QString icon;
+    /// \brief ObjectType or VariableType to instantiate, its namespace named by URI as PortableNodeId writes it,
+    ///        e.g. "nsu=urn:machines;i=1001" or "i=2368"; empty for FolderType, BaseObjectType or
+    ///        BaseDataVariableType. Methods have none.
+    QString typeDefinition;
+    /// \brief Whether the node only keeps the settings of a node that the type of an ancestor declares; the type
+    ///        defines its browse name, data type and children.
+    bool declared = false;
     /// \brief Built-in data type name; variables only.
     QString dataType = QStringLiteral("Double");
     /// \brief Access level text: "Read", "Write" or "Read/Write"; variables only.

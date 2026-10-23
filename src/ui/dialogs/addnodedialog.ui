@@ -69,6 +69,19 @@
       </widget>
      </item>
      <item row="2" column="0">
+      <widget class="QLabel" name="typeLabel">
+       <property name="text">
+        <string>T&amp;ype</string>
+       </property>
+       <property name="buddy">
+        <cstring>typeCombo</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="typeCombo"/>
+     </item>
+     <item row="3" column="0">
       <widget class="QLabel" name="browseNameLabel">
        <property name="text">
         <string>&amp;Browse Name</string>
@@ -78,10 +91,10 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
+     <item row="3" column="1">
       <widget class="QLineEdit" name="browseNameEdit"/>
      </item>
-     <item row="3" column="0">
+     <item row="4" column="0">
       <widget class="QLabel" name="nodeIdLabel">
        <property name="text">
         <string>&amp;NodeId</string>
@@ -91,14 +104,14 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="1">
+     <item row="4" column="1">
       <widget class="QLineEdit" name="nodeIdEdit">
        <property name="placeholderText">
         <string>Generated from the browse path</string>
        </property>
       </widget>
      </item>
-     <item row="4" column="0">
+     <item row="5" column="0">
       <widget class="QLabel" name="dataTypeLabel">
        <property name="text">
         <string>&amp;Data Type</string>
@@ -108,10 +121,10 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
+     <item row="5" column="1">
       <widget class="QComboBox" name="dataTypeCombo"/>
      </item>
-     <item row="5" column="0">
+     <item row="6" column="0">
       <widget class="QLabel" name="accessLabel">
        <property name="text">
         <string>&amp;Access</string>
@@ -121,7 +134,7 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="1">
+     <item row="6" column="1">
       <widget class="QComboBox" name="accessCombo">
        <property name="currentIndex">
         <number>2</number>
@@ -143,7 +156,7 @@
        </item>
       </widget>
      </item>
-     <item row="6" column="0">
+     <item row="7" column="0">
       <widget class="QLabel" name="iconLabel">
        <property name="text">
         <string>&amp;Icon</string>
@@ -153,10 +166,10 @@
        </property>
       </widget>
      </item>
-     <item row="6" column="1">
+     <item row="7" column="1">
       <widget class="QComboBox" name="iconCombo"/>
      </item>
-     <item row="7" column="0">
+     <item row="8" column="0">
       <widget class="QLabel" name="actionLabel">
        <property name="text">
         <string>Ac&amp;tion</string>
@@ -166,7 +179,7 @@
        </property>
       </widget>
      </item>
-     <item row="7" column="1">
+     <item row="8" column="1">
       <widget class="QComboBox" name="actionCombo">
        <item>
         <property name="text">
