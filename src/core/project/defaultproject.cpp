@@ -76,18 +76,13 @@ NodeDefinition flag(const QString &device, const QString &name, const QString &i
 QList<EndpointInfo> allEndpoints()
 {
     QList<EndpointInfo> endpoints;
-    const QStringList modes = ListenerSettingsBuilder::securityModeNames();
-    for (const QString &policy : ListenerSettingsBuilder::securityPolicyNames()) {
-        for (const QString &mode : modes) {
-            if (!ListenerSettingsBuilder::securityPairs(policy, mode))
-                continue;
-            EndpointInfo endpoint;
-            endpoint.protocol = QStringLiteral("opc.tcp");
-            endpoint.hostname = QStringLiteral("localhost");
-            endpoint.securityPolicy = policy;
-            endpoint.securityMode = mode;
-            endpoints.append(endpoint);
-        }
+    for (const auto &pair : ListenerSettingsBuilder::allowedSecurityPairs()) {
+        EndpointInfo endpoint;
+        endpoint.protocol = QStringLiteral("opc.tcp");
+        endpoint.hostname = QStringLiteral("localhost");
+        endpoint.securityPolicy = pair.first;
+        endpoint.securityMode = pair.second;
+        endpoints.append(endpoint);
     }
     return endpoints;
 }

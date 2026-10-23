@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QList>
+#include <QPair>
 #include <QString>
 #include <QStringList>
 
@@ -64,6 +65,12 @@ QStringList securityModeNames();
 /// \return True when both are "None" or neither is.
 ///
 bool securityPairs(const QString &policy, const QString &mode);
+
+///
+/// \brief Returns every security policy and mode pair OPC UA allows.
+/// \return Pairs of policy and mode, ordered by policy, then by mode, starting with ("None", "None").
+///
+QList<QPair<QString, QString>> allowedSecurityPairs();
 
 ///
 /// \brief Tells whether an enabled endpoint needs a server certificate.

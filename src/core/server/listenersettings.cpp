@@ -94,6 +94,23 @@ bool securityPairs(const QString &policy, const QString &mode)
 }
 
 ///
+/// \brief Returns every security policy and mode pair OPC UA allows.
+/// \return Pairs of policy and mode, ordered by policy, then by mode, starting with ("None", "None").
+///
+QList<QPair<QString, QString>> allowedSecurityPairs()
+{
+    QList<QPair<QString, QString>> pairs;
+    const QStringList modes = securityModeNames();
+    for (const QString &policy : securityPolicyNames()) {
+        for (const QString &mode : modes) {
+            if (securityPairs(policy, mode))
+                pairs.append({ policy, mode });
+        }
+    }
+    return pairs;
+}
+
+///
 /// \brief Tells whether an enabled endpoint needs a server certificate.
 /// \param endpoints Configured endpoints.
 /// \return True when an enabled endpoint uses a security policy other than "None".

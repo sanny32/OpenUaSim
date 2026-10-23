@@ -132,6 +132,37 @@ void closeCertificateValue(ValueDialog *dialog)
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
 }
 
+using SecurityPair = QPair<QString, QString>;
+
+///
+/// \brief Builds an endpoint that only sets its security pair.
+/// \param policy Security policy name.
+/// \param mode Message security mode name.
+/// \return Endpoint with defaults elsewhere.
+///
+EndpointInfo securedEndpoint(const QString &policy, const QString &mode)
+{
+    EndpointInfo endpoint;
+    endpoint.securityPolicy = policy;
+    endpoint.securityMode = mode;
+    return endpoint;
+}
+
+///
+/// \brief Clicks Add on an endpoints page showing the given endpoints.
+/// \param endpoints Endpoints configured before the addition.
+/// \return Security pair of the added endpoint.
+///
+SecurityPair addedSecurityPair(const QList<EndpointInfo> &endpoints)
+{
+    EndpointsPage page;
+    page.setEndpoints(endpoints);
+    QSignalSpy requested(&page, &EndpointsPage::endpointsChangeRequested);
+    child<QPushButton>(page, "addEndpointButton")->click();
+    const EndpointInfo added = requested.last().first().value<QList<EndpointInfo>>().last();
+    return { added.securityPolicy, added.securityMode };
+}
+
 }
 
 class TestPages : public QObject
@@ -164,6 +195,8 @@ private slots:
     void endpointsPage();
     void endpointsPageAppliesEdits();
     void endpointsPageAddsAndRemoves();
+    void endpointsPageAddsNextSecurityPair();
+    void endpointsPageDisablesAddWhenEveryPairIsUsed();
     void endpointsPageRevertsAndKeepsRow();
     void endpointsPageOffersSecurityOfTheBuild();
     void endpointsPageKeepsPolicyAndModePaired();
@@ -672,7 +705,6 @@ void TestPages::endpointsPageAddsAndRemoves()
     QCOMPARE(added.size(), _snapshot.endpoints.size() + 1);
     QCOMPARE(added.last().hostname, _snapshot.endpoints.first().hostname);
     QCOMPARE(added.last().port, _snapshot.endpoints.first().port);
-    QCOMPARE(added.last().securityMode, QStringLiteral("None"));
 
     ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 1);
     child<QPushButton>(page, "removeEndpointButton")->click();
@@ -682,6 +714,47 @@ void TestPages::endpointsPageAddsAndRemoves()
 
     page.setEndpoints({});
     QVERIFY(!child<QPushButton>(page, "removeEndpointButton")->isEnabled());
+}
+
+void TestPages::endpointsPageAddsNextSecurityPair()
+{
+    const QString none = QStringLiteral("None");
+    const QString sign = QStringLiteral("Sign");
+    const QString encrypt = QStringLiteral("Sign & Encrypt");
+    const QString basic128 = QStringLiteral("Basic128Rsa15");
+    const QString basic256 = QStringLiteral("Basic256");
+
+    QCOMPARE(addedSecurityPair({}), SecurityPair(none, none));
+#ifdef OUASIM_HAVE_ENCRYPTION
+    QCOMPARE(addedSecurityPair({ securedEndpoint(none, none) }), SecurityPair(basic128, sign));
+    QCOMPARE(addedSecurityPair({ securedEndpoint(basic256, sign), securedEndpoint(basic128, encrypt) }),
+             SecurityPair(basic256, encrypt));
+    QCOMPARE(addedSecurityPair({ securedEndpoint(basic128, sign),
+                                 securedEndpoint(QStringLiteral("Aes256_Sha256_RsaPss"), encrypt) }),
+             SecurityPair(none, none));
+#endif
+}
+
+void TestPages::endpointsPageDisablesAddWhenEveryPairIsUsed()
+{
+    EndpointsPage page;
+    auto *add = child<QPushButton>(page, "addEndpointButton");
+    page.setEndpoints({});
+    QVERIFY(add->isEnabled());
+
+#ifdef OUASIM_HAVE_ENCRYPTION
+    QList<EndpointInfo> endpoints = DefaultProject::create().endpoints;
+#else
+    QList<EndpointInfo> endpoints = { securedEndpoint(QStringLiteral("None"), QStringLiteral("None")) };
+#endif
+    page.setEndpoints(endpoints);
+    QVERIFY(!add->isEnabled());
+
+    endpoints.last().securityMode = endpoints.last().securityPolicy == QLatin1String("None")
+                                        ? QStringLiteral("Sign")
+                                        : QStringLiteral("None");
+    page.setEndpoints(endpoints);
+    QVERIFY(add->isEnabled());
 }
 
 void TestPages::endpointsPageRevertsAndKeepsRow()

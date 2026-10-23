@@ -38,6 +38,7 @@ private slots:
     void rejectsUnknownMode();
     void securityPairs_data();
     void securityPairs();
+    void listsAllowedSecurityPairs();
     void rejectsMismatchedPolicyAndMode();
     void usesSecurityOfEnabledEndpoints();
 };
@@ -149,6 +150,17 @@ void TestListenerSettings::securityPairs()
     QFETCH(QString, mode);
     QFETCH(bool, pairs);
     QCOMPARE(ListenerSettingsBuilder::securityPairs(policy, mode), pairs);
+}
+
+void TestListenerSettings::listsAllowedSecurityPairs()
+{
+    const QList<QPair<QString, QString>> pairs = ListenerSettingsBuilder::allowedSecurityPairs();
+    QCOMPARE(pairs.size(), 1 + (ListenerSettingsBuilder::securityPolicyNames().size() - 1) * 2);
+    QCOMPARE(pairs.first(), qMakePair(QStringLiteral("None"), QStringLiteral("None")));
+    QCOMPARE(pairs.at(1), qMakePair(QStringLiteral("Basic128Rsa15"), QStringLiteral("Sign")));
+    QCOMPARE(pairs.last(), qMakePair(QStringLiteral("Aes256_Sha256_RsaPss"), QStringLiteral("Sign & Encrypt")));
+    for (const auto &pair : pairs)
+        QVERIFY(ListenerSettingsBuilder::securityPairs(pair.first, pair.second));
 }
 
 void TestListenerSettings::rejectsMismatchedPolicyAndMode()

@@ -697,14 +697,15 @@ void TestMainWindow::endpointChangesShowRestartNote()
 
 void TestMainWindow::refusedEndpointChangeShowsMessage()
 {
+    ProjectConfig project = TestProject::create();
+    project.endpoints.append(project.endpoints.first());
+    project.endpoints.last().hostname = QStringLiteral("127.0.0.1");
     ServerController controller;
-    controller.setProject(TestProject::create());
+    controller.setProject(project);
     MainWindow window;
     window.setController(&controller);
 
     auto *endpoints = child<EndpointsPage>(window, "endpointsPage");
-    child<QPushButton>(*endpoints, "addEndpointButton")->click();
-    QCOMPARE(controller.project().endpoints.size(), 2);
     ViewSetup::selectRow(child<QTableView>(*endpoints, "endpointsView"), 1);
     child<QSpinBox>(*endpoints, "portSpin")->setValue(4999);
     child<QPushButton>(*endpoints, "applyButton")->click();

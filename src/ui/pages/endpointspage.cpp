@@ -9,6 +9,8 @@
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 
+#include <algorithm>
+
 #include "endpointsmodel.h"
 #include "endpointspage.h"
 #include "server/listenersettings.h"
@@ -32,6 +34,67 @@ void disableAllButNone(QComboBox *combo, const QString &toolTip)
         item->setEnabled(false);
         item->setToolTip(toolTip);
     }
+}
+
+using SecurityPair = QPair<QString, QString>;
+
+///
+/// \brief Returns the security pairs this build can serve.
+/// \return Every pair OPC UA allows, or only ("None", "None") without encryption support.
+///
+QList<SecurityPair> offeredSecurityPairs()
+{
+#ifdef OUASIM_HAVE_ENCRYPTION
+    return ListenerSettingsBuilder::allowedSecurityPairs();
+#else
+    return { { QStringLiteral("None"), QStringLiteral("None") } };
+#endif
+}
+
+///
+/// \brief Returns the security pairs of the endpoints.
+/// \param endpoints Configured endpoints.
+/// \return Pairs in endpoint order.
+///
+QList<SecurityPair> usedSecurityPairs(const QList<EndpointInfo> &endpoints)
+{
+    QList<SecurityPair> used;
+    for (const EndpointInfo &endpoint : endpoints)
+        used.append({ endpoint.securityPolicy, endpoint.securityMode });
+    return used;
+}
+
+///
+/// \brief Tells whether the endpoints already cover every security pair this build can serve.
+/// \param endpoints Configured endpoints.
+/// \return True when no pair is left for a new endpoint.
+///
+bool everySecurityPairUsed(const QList<EndpointInfo> &endpoints)
+{
+    const QList<SecurityPair> used = usedSecurityPairs(endpoints);
+    const QList<SecurityPair> offered = offeredSecurityPairs();
+    return std::all_of(offered.cbegin(), offered.cend(),
+                       [&used](const SecurityPair &pair) { return used.contains(pair); });
+}
+
+///
+/// \brief Picks the security pair for a new endpoint: the first one after the last endpoint's pair
+///        that no endpoint uses yet, wrapping around the list.
+/// \param endpoints Configured endpoints.
+/// \return Policy and mode; the pair right after the last endpoint's one when every pair is taken.
+///
+SecurityPair nextSecurityPair(const QList<EndpointInfo> &endpoints)
+{
+    const QList<SecurityPair> pairs = offeredSecurityPairs();
+    const QList<SecurityPair> used = usedSecurityPairs(endpoints);
+
+    const int last = used.isEmpty() ? -1 : int(pairs.indexOf(used.last()));
+    for (int step = 1; step <= pairs.size(); ++step) {
+        const SecurityPair &candidate = pairs.at((last + step) % pairs.size());
+        if (!used.contains(candidate))
+            return candidate;
+    }
+    return pairs.at((last + 1) % pairs.size());
 }
 
 }
@@ -86,6 +149,7 @@ void EndpointsPage::setEndpoints(const QList<EndpointInfo> &endpoints)
     _endpointsModel->setItems(endpoints);
     ViewSetup::selectRow(ui->endpointsView, qMin(previous, int(endpoints.size()) - 1));
     ui->removeEndpointButton->setEnabled(!endpoints.isEmpty());
+    ui->addEndpointButton->setEnabled(!everySecurityPairUsed(endpoints));
 }
 
 ///
@@ -224,7 +288,7 @@ void EndpointsPage::revertEndpoint()
 }
 
 ///
-/// \brief Asks to add an unsecured endpoint on the port the others use.
+/// \brief Asks to add an endpoint on the port the others use, with the next unused security pair.
 ///
 void EndpointsPage::addEndpoint()
 {
@@ -233,8 +297,9 @@ void EndpointsPage::addEndpoint()
     endpoint.protocol = QStringLiteral("opc.tcp");
     endpoint.hostname = endpoints.isEmpty() ? QStringLiteral("localhost") : endpoints.first().hostname;
     endpoint.port = endpoints.isEmpty() ? endpoint.port : endpoints.first().port;
-    endpoint.securityPolicy = QStringLiteral("None");
-    endpoint.securityMode = QStringLiteral("None");
+    const SecurityPair security = nextSecurityPair(endpoints);
+    endpoint.securityPolicy = security.first;
+    endpoint.securityMode = security.second;
     endpoints.append(endpoint);
     emit endpointsChangeRequested(endpoints);
 }
