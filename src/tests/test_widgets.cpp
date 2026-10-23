@@ -98,7 +98,7 @@ private slots:
     void configureTable();
     void fitColumnsWhenFilledFitsOnce();
     void fitColumnsWhenFilledCapsLongValues();
-    void fitColumnsWhenFilledLeavesNoScrollBar();
+    void fitColumnsWhenFilledScrollsToLastColumn();
     void growColumnWithContentsNeverShrinks();
     void growColumnWithContentsKeepsWiderUserWidth();
     void fillVariableIconComboListsResolvableIcons();
@@ -537,21 +537,23 @@ void TestWidgets::fitColumnsWhenFilledCapsLongValues()
     QVERIFY(view.horizontalHeader()->sectionSize(0) > 100);
 }
 
-void TestWidgets::fitColumnsWhenFilledLeavesNoScrollBar()
+void TestWidgets::fitColumnsWhenFilledScrollsToLastColumn()
 {
-    QStandardItemModel model(0, 3);
-    model.appendRow({ new QStandardItem(QString(40, QLatin1Char('x'))), new QStandardItem(QString(40, QLatin1Char('y'))),
-                      new QStandardItem(QStringLiteral("3A:5F:7C:9D:12:34:56:78:9A:BC")) });
+    QStandardItemModel model(0, 2);
+    model.appendRow({ new QStandardItem(QStringLiteral("x")), new QStandardItem(QString(120, QLatin1Char('y'))) });
     QTableView view;
     view.setModel(&model);
     ViewSetup::configureTable(&view);
     view.verticalHeader()->hide();
-    view.resize(900, 200);
+    view.resize(300, 200);
     view.show();
     QVERIFY(QTest::qWaitForWindowExposed(&view));
     ViewSetup::fitColumnsWhenFilled(&view);
-    const int fitted = view.horizontalHeader()->sectionSize(0) + view.horizontalHeader()->sectionSize(1);
-    view.resize(fitted + 80, 200);
+
+    QVERIFY(view.horizontalHeader()->sectionSize(1) >= static_cast<const QAbstractItemView &>(view).sizeHintForColumn(1));
+    QTRY_VERIFY(view.horizontalScrollBar()->maximum() > 0);
+
+    view.resize(view.horizontalHeader()->length() + 200, 200);
     QTRY_COMPARE(view.horizontalHeader()->length(), view.viewport()->width());
     QCOMPARE(view.horizontalScrollBar()->maximum(), 0);
 }

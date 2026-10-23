@@ -128,8 +128,8 @@ QSortFilterProxyModel *createSearchProxy(QAbstractItemView *view, QAbstractItemM
 }
 
 ///
-/// \brief Sizes every column but the stretched last one to its contents, capped so one long value
-///        cannot push the others out of view.
+/// \brief Sizes the columns to their contents, capped but for the last one so one long value cannot
+///        push the others out of view.
 /// \param view Table view to size.
 ///
 void fitColumnsToContents(QTableView *view)
@@ -143,8 +143,8 @@ void fitColumnsToContents(QTableView *view)
         if (header->sectionSize(column) > kMaxFittedColumnWidth)
             header->resizeSection(column, kMaxFittedColumnWidth);
     }
-    // The stretched last section never shrinks below its own width, which would overflow into a scroll bar.
-    header->resizeSection(last, header->minimumSectionSize());
+    // The stretched last section never shrinks below this width, so contents that do not fit scroll.
+    view->resizeColumnToContents(last);
 }
 
 ///

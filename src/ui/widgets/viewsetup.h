@@ -38,7 +38,7 @@ void configureTable(QTableView *view);
 
 ///
 /// \brief Fits the columns to their contents the first time the view's model has rows, then leaves
-///        the widths to the user.
+///        the widths to the user; the table scrolls horizontally when the last column does not fit.
 /// \param view Table view whose model is already set.
 ///
 void fitColumnsWhenFilled(QTableView *view);
