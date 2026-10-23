@@ -279,6 +279,13 @@ void TestPages::statusPage()
     QCOMPARE(child<QLabel>(page, "clientsValue")->text(), QStringLiteral("1"));
     QCOMPARE(child<QLabel>(page, "securityModesValue")->text(), QStringLiteral("None, Sign, Sign & Encrypt"));
     QVERIFY(!page.findChild<QWidget *>(QStringLiteral("statisticsPanel")));
+
+    const QList<QLabel *> labels = page.findChildren<QLabel *>();
+    for (const QLabel *label : labels) {
+        if (label->objectName().endsWith(QLatin1String("Value")))
+            QVERIFY2(label->textInteractionFlags() & Qt::TextSelectableByMouse,
+                     qPrintable(label->objectName()));
+    }
 }
 
 void TestPages::objectsPageStartsOnCurrentVariable()

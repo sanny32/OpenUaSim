@@ -211,6 +211,9 @@
              </item>
              <item row="2" column="1">
               <widget class="QLabel" name="primaryEndpointValue">
+               <property name="textInteractionFlags">
+                <set>Qt::TextSelectableByMouse</set>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -265,6 +268,9 @@
              </item>
              <item row="4" column="1">
               <widget class="QLabel" name="applicationUriValue">
+               <property name="textInteractionFlags">
+                <set>Qt::TextSelectableByMouse</set>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -319,6 +325,9 @@
              </item>
              <item row="6" column="1">
               <widget class="QLabel" name="startTimeValue">
+               <property name="textInteractionFlags">
+                <set>Qt::TextSelectableByMouse</set>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -373,6 +382,9 @@
              </item>
              <item row="8" column="1">
               <widget class="QLabel" name="uptimeValue">
+               <property name="textInteractionFlags">
+                <set>Qt::TextSelectableByMouse</set>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -427,6 +439,9 @@
              </item>
              <item row="10" column="1">
               <widget class="QLabel" name="securityModesValue">
+               <property name="textInteractionFlags">
+                <set>Qt::TextSelectableByMouse</set>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -481,6 +496,9 @@
              </item>
              <item row="12" column="1">
               <widget class="QLabel" name="totalNodesValue">
+               <property name="textInteractionFlags">
+                <set>Qt::TextSelectableByMouse</set>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -535,6 +553,9 @@
              </item>
              <item row="14" column="1">
               <widget class="QLabel" name="namespacesValue">
+               <property name="textInteractionFlags">
+                <set>Qt::TextSelectableByMouse</set>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -589,6 +610,9 @@
              </item>
              <item row="16" column="1">
               <widget class="QLabel" name="clientsValue">
+               <property name="textInteractionFlags">
+                <set>Qt::TextSelectableByMouse</set>
+               </property>
                <property name="text">
                 <string/>
                </property>
