@@ -2337,14 +2337,6 @@
         <translation>IsAbstract</translation>
     </message>
     <message>
-        <source>false</source>
-        <translation>false</translation>
-    </message>
-    <message>
-        <source>true</source>
-        <translation>true</translation>
-    </message>
-    <message>
         <source>Description</source>
         <translation>Описание</translation>
     </message>

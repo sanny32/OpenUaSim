@@ -450,7 +450,10 @@
                  <number>4</number>
                 </property>
                 <item>
-                 <widget class="QLineEdit" name="browseNameEdit">
+                 <widget class="ElidedLineEdit" name="browseNameEdit">
+                  <property name="readOnly">
+                   <bool>true</bool>
+                  </property>
 </widget>
                 </item>
                 <item>
@@ -475,7 +478,7 @@
                  <number>4</number>
                 </property>
                 <item>
-                 <widget class="QLineEdit" name="nodeIdEdit">
+                 <widget class="ElidedLineEdit" name="nodeIdEdit">
                   <property name="readOnly">
                    <bool>true</bool>
                   </property>
@@ -498,7 +501,10 @@
                </widget>
               </item>
               <item row="2" column="1">
-               <widget class="QComboBox" name="baseTypeCombo">
+               <widget class="ElidedLineEdit" name="baseTypeEdit">
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
 </widget>
               </item>
               <item row="3" column="0">
@@ -509,17 +515,10 @@
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QComboBox" name="isAbstractCombo">
-                <item>
-                 <property name="text">
-                  <string>false</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>true</string>
-                 </property>
-                </item>
+               <widget class="QLineEdit" name="isAbstractEdit">
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
                </widget>
               </item>
               <item row="4" column="0">
@@ -531,6 +530,9 @@
               </item>
               <item row="4" column="1">
                <widget class="QPlainTextEdit" name="descriptionEdit">
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
                 <property name="tabChangesFocus">
                  <bool>true</bool>
                 </property>
@@ -608,6 +610,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ElidedLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>elidedlineedit.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

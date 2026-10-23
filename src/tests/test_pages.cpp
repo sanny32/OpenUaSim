@@ -677,16 +677,20 @@ void TestPages::typesPage()
     QCOMPARE(page.subtypesModel()->rowCount(), 3);
     QCOMPARE(child<QLabel>(page, "subtypesTitle")->text(), QStringLiteral("Subtype Definitions (DeviceType)"));
     QCOMPARE(text(page, "browseNameEdit"), QStringLiteral("DeviceType"));
-    QCOMPARE(child<QComboBox>(page, "baseTypeCombo")->currentText(), QStringLiteral("BaseObjectType"));
-    QCOMPARE(child<QComboBox>(page, "isAbstractCombo")->currentText(), QStringLiteral("false"));
+    QCOMPARE(text(page, "baseTypeEdit"), QStringLiteral("BaseObjectType"));
+    QCOMPARE(text(page, "isAbstractEdit"), QStringLiteral("false"));
     QCOMPARE(child<QTableView>(page, "referencesView")->model()->rowCount(), 4);
 
     ViewSetup::selectRow(child<QTableView>(page, "subtypesView"), 0);
     QCOMPARE(text(page, "browseNameEdit"), QStringLiteral("MotorType"));
-    QCOMPARE(child<QComboBox>(page, "baseTypeCombo")->currentText(), QStringLiteral("DeviceType"));
+    QCOMPARE(text(page, "baseTypeEdit"), QStringLiteral("DeviceType"));
 
     QVERIFY(ViewSetup::selectById(child<QTreeView>(page, "typesTree"), QStringLiteral("i=58")));
-    QCOMPARE(child<QComboBox>(page, "isAbstractCombo")->currentText(), QStringLiteral("true"));
+    QCOMPARE(text(page, "isAbstractEdit"), QStringLiteral("true"));
+    QVERIFY(text(page, "baseTypeEdit").isEmpty());
+    for (const char *name : { "browseNameEdit", "nodeIdEdit", "baseTypeEdit", "isAbstractEdit" })
+        QVERIFY2(child<QLineEdit>(page, name)->isReadOnly(), name);
+    QVERIFY(child<QPlainTextEdit>(page, "descriptionEdit")->isReadOnly());
     QCOMPARE(page.subtypesModel()->rowCount(), 2);
 
     auto *tree = child<QTreeView>(page, "typesTree");

@@ -73,13 +73,6 @@ TypesPage::~TypesPage()
 void TypesPage::setTypes(const QHash<QString, TypeInfo> &types)
 {
     _types = types;
-
-    QStringList names;
-    for (const TypeInfo &type : types)
-        names.append(type.browseName);
-    names.sort();
-    ui->baseTypeCombo->clear();
-    ui->baseTypeCombo->addItems(names);
     showTree();
 }
 
@@ -161,6 +154,8 @@ void TypesPage::showProperties(const QString &typeId)
     if (!known) {
         ui->browseNameEdit->clear();
         ui->nodeIdEdit->clear();
+        ui->baseTypeEdit->clear();
+        ui->isAbstractEdit->clear();
         ui->descriptionEdit->clear();
         _referencesModel->clear();
         return;
@@ -168,8 +163,8 @@ void TypesPage::showProperties(const QString &typeId)
 
     ui->browseNameEdit->setText(found->browseName);
     ui->nodeIdEdit->setText(found->nodeId);
-    ui->baseTypeCombo->setCurrentText(_types.value(found->baseTypeId).browseName);
-    ui->isAbstractCombo->setCurrentIndex(found->isAbstract ? 1 : 0);
+    ui->baseTypeEdit->setText(_types.value(found->baseTypeId).browseName);
+    ui->isAbstractEdit->setText(found->isAbstract ? QStringLiteral("true") : QStringLiteral("false"));
     ui->descriptionEdit->setPlainText(found->description);
     _referencesModel->setItems(found->references);
 }
