@@ -36,6 +36,12 @@ public:
     UaTestClient &operator=(const UaTestClient &) = delete;
 
     ///
+    /// \brief Sets the name the following sessions are created with.
+    /// \param name Session name.
+    ///
+    void setSessionName(const QString &name);
+
+    ///
     /// \brief Opens an anonymous session.
     /// \param url Endpoint URL.
     /// \return Service result.

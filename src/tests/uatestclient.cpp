@@ -69,6 +69,17 @@ UaTestClient::~UaTestClient()
 }
 
 ///
+/// \brief Sets the name the following sessions are created with.
+/// \param name Session name.
+///
+void UaTestClient::setSessionName(const QString &name)
+{
+    UA_ClientConfig *config = UA_Client_getConfig(_client);
+    UA_String_clear(&config->sessionName);
+    config->sessionName = UA_STRING_ALLOC(name.toUtf8().constData());
+}
+
+///
 /// \brief Opens an anonymous session.
 /// \param url Endpoint URL.
 /// \return Service result.

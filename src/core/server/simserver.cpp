@@ -42,7 +42,7 @@ SessionInfo sessionInfo(const QUaSession *session, const QString &endpointUrl)
 {
     SessionInfo info;
     info.sessionId = session->sessionId();
-    info.name = session->applicationName();
+    info.name = session->sessionName();
     info.client = session->productUri().isEmpty() ? session->applicationName() : session->productUri();
     info.user = session->isAnonymous() ? QObject::tr("Anonymous") : session->userName();
     info.active = true;
@@ -51,7 +51,7 @@ SessionInfo sessionInfo(const QUaSession *session, const QString &endpointUrl)
     info.applicationUri = session->applicationUri();
     info.endpointUrl = session->endpointUrl().isEmpty() ? endpointUrl : session->endpointUrl();
     info.securityMode = securityModeName(session->securityMode());
-    info.userIdentity = session->isAnonymous() ? QStringLiteral("Anonymous") : QStringLiteral("UserName");
+    info.userIdentity = session->isAnonymous() ? QStringLiteral("Anonymous") : QStringLiteral("Username");
     return info;
 }
 

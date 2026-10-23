@@ -29,6 +29,7 @@
 #include "apppalette.h"
 #include "appstyle.h"
 #include "data/serverstatus.h"
+#include "elidedlineedit.h"
 #include "eventlogwidget.h"
 #include "itemdelegate.h"
 #include "itemroles.h"
@@ -105,6 +106,8 @@ private slots:
     void fitColumnsWhenFilledCapsLongValues();
     void fitColumnsWhenFilledScrollsToLastColumn();
     void elidedCellShowsFullTextTooltip();
+    void elidedLineEditElidesUnfocusedText();
+    void elidedLineEditShowsShortTextPlainly();
     void growColumnWithContentsNeverShrinks();
     void growColumnWithContentsKeepsWiderUserWidth();
     void fillVariableIconComboListsResolvableIcons();
@@ -648,6 +651,56 @@ void TestWidgets::elidedCellShowsFullTextTooltip()
     QTRY_COMPARE(QToolTip::text(), QStringLiteral("Own tooltip"));
 
     hover(1);
+    QTRY_VERIFY(!QToolTip::isVisible());
+}
+
+void TestWidgets::elidedLineEditElidesUnfocusedText()
+{
+    const QString id = QStringLiteral("ns=1;g=12dabdf1-380d-69ed-b34b-f40fc26c1a7e");
+    QWidget window;
+    auto *edit = new ElidedLineEdit(&window);
+    auto *other = new QLineEdit(&window);
+    edit->setReadOnly(true);
+    edit->setGeometry(0, 0, 120, 24);
+    other->setGeometry(0, 30, 120, 24);
+    edit->setText(id);
+    QCOMPARE(edit->cursorPosition(), 0);
+    QVERIFY(edit->isElided());
+
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    other->setFocus();
+    const QImage unfocused = edit->grab().toImage();
+
+    const QPoint pos = edit->rect().center();
+    QHelpEvent hover(QEvent::ToolTip, pos, edit->mapToGlobal(pos));
+    QCoreApplication::sendEvent(edit, &hover);
+    QTRY_VERIFY(QToolTip::isVisible());
+    QCOMPARE(QToolTip::text(), id);
+    QToolTip::hideText();
+
+    edit->setFocus();
+    QTRY_VERIFY(edit->hasFocus());
+    QVERIFY(edit->grab().toImage() != unfocused);
+}
+
+void TestWidgets::elidedLineEditShowsShortTextPlainly()
+{
+    ElidedLineEdit edit;
+    edit.resize(300, 24);
+    edit.setText(QStringLiteral("ns=1;i=1"));
+    QVERIFY(!edit.isElided());
+    QLineEdit plain;
+    plain.resize(300, 24);
+    plain.setText(edit.text());
+    plain.setCursorPosition(0);
+    QCOMPARE(edit.grab().toImage(), plain.grab().toImage());
+
+    edit.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&edit));
+    const QPoint pos = edit.rect().center();
+    QHelpEvent hover(QEvent::ToolTip, pos, edit.mapToGlobal(pos));
+    QCoreApplication::sendEvent(&edit, &hover);
     QTRY_VERIFY(!QToolTip::isVisible());
 }
 

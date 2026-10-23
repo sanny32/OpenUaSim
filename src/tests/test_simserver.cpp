@@ -244,7 +244,7 @@ void TestSimServer::acceptsConfiguredUser()
              UA_STATUSCODE_GOOD);
     QTRY_COMPARE(server.clientCount(), 1);
     QCOMPARE(server.sessions().first().user, QStringLiteral("operator"));
-    QCOMPARE(server.sessions().first().userIdentity, QStringLiteral("UserName"));
+    QCOMPARE(server.sessions().first().userIdentity, QStringLiteral("Username"));
 
     UaTestClient engineer;
     QCOMPARE(engineer.connectUsername(server.endpointUrl(), QStringLiteral("engineer"), QStringLiteral("other")),
@@ -281,10 +281,12 @@ void TestSimServer::sessionDescribesSecurityAndEndpoint()
     SimServer server;
     QVERIFY(server.start(project(_port)));
     UaTestClient client;
+    client.setSessionName(QStringLiteral("Explorer@HOST/1234-abcd"));
     QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
     QTRY_COMPARE(server.clientCount(), 1);
 
     const SessionInfo session = server.sessions().first();
+    QCOMPARE(session.name, QStringLiteral("Explorer@HOST/1234-abcd"));
     QCOMPARE(session.securityMode, QStringLiteral("None"));
     QCOMPARE(session.userIdentity, QStringLiteral("Anonymous"));
     QVERIFY(session.endpointUrl.startsWith(QStringLiteral("opc.tcp://")));

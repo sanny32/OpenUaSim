@@ -6,6 +6,7 @@
 /// \brief Implements the client sessions page.
 ///
 
+#include <QCoreApplication>
 #include <QSortFilterProxyModel>
 
 #include "appicons.h"
@@ -21,6 +22,32 @@ namespace {
 /// \brief Entries of the state filter combo box, in item order.
 ///
 enum StateFilter { AllSessions, ActiveSessions, ClosedSessions };
+
+///
+/// \brief Security modes and user identities a session reports, marked for translation.
+///
+const char *const kTranslatedValues[] = {
+    QT_TRANSLATE_NOOP("SessionsPage", "None"),
+    QT_TRANSLATE_NOOP("SessionsPage", "Sign"),
+    QT_TRANSLATE_NOOP("SessionsPage", "Sign & Encrypt"),
+    QT_TRANSLATE_NOOP("SessionsPage", "Anonymous"),
+    QT_TRANSLATE_NOOP("SessionsPage", "Username"),
+    QT_TRANSLATE_NOOP("SessionsPage", "Certificate"),
+};
+
+///
+/// \brief Translates a security mode or user identity reported by a session.
+/// \param value Untranslated value.
+/// \return Translated value, or the value itself when it is not a known one.
+///
+QString translatedValue(const QString &value)
+{
+    for (const char *source : kTranslatedValues) {
+        if (value == QLatin1String(source))
+            return QCoreApplication::translate("SessionsPage", source);
+    }
+    return value;
+}
 
 }
 
@@ -152,8 +179,8 @@ void SessionsPage::showSessionDetails(const SessionInfo &session)
     ui->sessionNameEdit->setText(session.name);
     ui->applicationUriEdit->setText(session.applicationUri);
     ui->endpointUrlEdit->setText(session.endpointUrl);
-    ui->securityModeCombo->setCurrentText(session.securityMode);
-    ui->userIdentityCombo->setCurrentText(session.userIdentity);
+    ui->securityModeEdit->setText(translatedValue(session.securityMode));
+    ui->userIdentityEdit->setText(translatedValue(session.userIdentity));
     ui->stateIndicator->setStatus(session.active ? StatusKind::Good : StatusKind::Inactive,
                                   SessionsModel::stateText(session.active));
     ui->createdEdit->setText(Formatting::dateTime(session.created));

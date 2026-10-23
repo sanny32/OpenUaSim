@@ -33,6 +33,7 @@
 
 #include "certificatesmodel.h"
 #include "certificatespage.h"
+#include "elidedlineedit.h"
 #include "endpointsmodel.h"
 #include "endpointspage.h"
 #include "formatting.h"
@@ -1337,6 +1338,7 @@ void TestPages::sessionsPage()
 
     QCOMPARE(page.sessionsModel()->rowCount(), _snapshot.sessions.size());
     QCOMPARE(text(page, "sessionIdEdit"), QStringLiteral("ns=1;i=12345"));
+    QCOMPARE(child<ElidedLineEdit>(page, "sessionIdEdit")->cursorPosition(), 0);
     QCOMPARE(child<StatusIndicator>(page, "stateIndicator")->status(), StatusKind::Good);
     QCOMPARE(text(page, "subscriptionsEdit"), QStringLiteral("3"));
 
@@ -1344,7 +1346,9 @@ void TestPages::sessionsPage()
     ViewSetup::selectRow(view, 1);
     QCOMPARE(text(page, "sessionIdEdit"), QStringLiteral("ns=1;i=12344"));
     QCOMPARE(child<StatusIndicator>(page, "stateIndicator")->status(), StatusKind::Inactive);
-    QCOMPARE(child<QComboBox>(page, "userIdentityCombo")->currentText(), QStringLiteral("Username"));
+    QCOMPARE(text(page, "userIdentityEdit"), QStringLiteral("Username"));
+    QVERIFY(child<QLineEdit>(page, "securityModeEdit")->isReadOnly());
+    QVERIFY(child<QLineEdit>(page, "userIdentityEdit")->isReadOnly());
 }
 
 void TestPages::sessionsPageRequestsSubscriptions()

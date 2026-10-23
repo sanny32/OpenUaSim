@@ -72,6 +72,8 @@ add_library(ouasim_ui STATIC
     style/appstyle.cpp
     style/appstyle.h
 
+    widgets/elidedlineedit.cpp
+    widgets/elidedlineedit.h
     widgets/eventlogwidget.cpp
     widgets/eventlogwidget.h
     widgets/itemdelegate.cpp
