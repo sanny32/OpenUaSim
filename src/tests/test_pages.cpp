@@ -195,6 +195,7 @@ private slots:
     void objectsPageReportsCurrentNode();
     void typesPage();
     void typesPageShowsAllStandardTypesOnRequest();
+    void typesPageIgnoresSearchInSubtypes();
     void namespacesPage();
     void endpointsPage();
     void endpointsPageAppliesEdits();
@@ -690,8 +691,15 @@ void TestPages::typesPage()
 
     auto *tree = child<QTreeView>(page, "typesTree");
     tree->setCurrentIndex(tree->model()->index(0, 0));
-    QCOMPARE(page.subtypesModel()->rowCount(), 0);
+    QCOMPARE(page.subtypesModel()->rowCount(), 2);
+    QCOMPARE(page.subtypesModel()->item(0).browseName, QStringLiteral("BaseObjectType"));
+    QCOMPARE(page.subtypesModel()->item(1).browseName, QStringLiteral("BaseVariableType"));
+    QCOMPARE(child<QLabel>(page, "subtypesTitle")->text(), QStringLiteral("Subtype Definitions (Types)"));
     QVERIFY(!child<QWidget>(page, "propertiesHost")->isEnabled());
+
+    tree->setCurrentIndex({});
+    QCOMPARE(page.subtypesModel()->rowCount(), 0);
+    QCOMPARE(child<QLabel>(page, "subtypesTitle")->text(), QStringLiteral("Subtype Definitions"));
 }
 
 void TestPages::typesPageShowsAllStandardTypesOnRequest()
@@ -708,12 +716,34 @@ void TestPages::typesPageShowsAllStandardTypesOnRequest()
     auto *tree = child<QTreeView>(page, "typesTree");
     QVERIFY(!ViewSetup::selectById(tree, serverStatus.nodeId));
 
+    QVERIFY(ViewSetup::selectById(tree, QStringLiteral("i=63")));
+    QCOMPARE(page.subtypesModel()->rowCount(), 0);
+
     child<QCheckBox>(page, "allTypesCheck")->setChecked(true);
+    QVERIFY(ViewSetup::selectById(tree, QStringLiteral("i=63")));
+    QCOMPARE(page.subtypesModel()->rowCount(), 1);
+    QCOMPARE(page.subtypesModel()->item(0).nodeId, serverStatus.nodeId);
     QVERIFY(ViewSetup::selectById(tree, serverStatus.nodeId));
     QCOMPARE(text(page, "browseNameEdit"), QStringLiteral("ServerStatusType"));
 
     child<QCheckBox>(page, "allTypesCheck")->setChecked(false);
     QVERIFY(!ViewSetup::selectById(tree, serverStatus.nodeId));
+}
+
+void TestPages::typesPageIgnoresSearchInSubtypes()
+{
+    TypesPage page;
+    page.setTypes(_snapshot.types);
+    auto *tree = child<QTreeView>(page, "typesTree");
+    QVERIFY(ViewSetup::selectById(tree, QStringLiteral("ns=2;i=1000")));
+    QCOMPARE(page.subtypesModel()->rowCount(), 3);
+
+    child<QLineEdit>(page, "searchEdit")->setText(QStringLiteral("Motor"));
+    QVERIFY(ViewSetup::selectById(tree, QStringLiteral("ns=2;i=1001")));
+    QCOMPARE(page.subtypesModel()->rowCount(), 0);
+    QVERIFY(ViewSetup::selectById(tree, QStringLiteral("ns=2;i=1000")));
+    QCOMPARE(tree->model()->rowCount(tree->currentIndex()), 1);
+    QCOMPARE(page.subtypesModel()->rowCount(), 3);
 }
 
 void TestPages::namespacesPage()

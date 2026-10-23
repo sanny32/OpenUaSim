@@ -8,6 +8,8 @@
 
 #include <algorithm>
 
+#include <QAbstractProxyModel>
+
 #include "itemroles.h"
 #include "referencesmodel.h"
 #include "server/typecatalog.h"
@@ -100,15 +102,15 @@ const SubtypesModel *TypesPage::subtypesModel() const
 }
 
 ///
-/// \brief Lists the subtypes of the selected type and shows its properties.
+/// \brief Lists the subtypes of the selected type, or the root types for the Types folder, and shows
+///        the type's properties.
 /// \param current Selected tree index.
 ///
 void TypesPage::showTreeNode(const QModelIndex &current)
 {
     const QString typeId = current.data(ItemRoles::Id).toString();
-    const TypeInfo type = _types.value(typeId);
-    _subtypesModel->setItems(subtypesOf(typeId));
-    _shownTypeName = type.browseName;
+    _subtypesModel->setItems(subtypesOf(current));
+    _shownTypeName = typeId.isEmpty() ? current.data().toString() : _types.value(typeId).browseName;
     showSubtypesTitle();
     showProperties(typeId);
 }
@@ -173,17 +175,20 @@ void TypesPage::showProperties(const QString &typeId)
 }
 
 ///
-/// \brief Collects the direct subtypes of a type.
-/// \param typeId Supertype node id.
+/// \brief Collects the subtypes a tree node shows, so the table follows the standard types filter
+///        but not the search.
+/// \param node Tree index of a type or of the Types folder; invalid collects none.
 /// \return Subtypes ordered by browse name.
 ///
-QList<TypeInfo> TypesPage::subtypesOf(const QString &typeId) const
+QList<TypeInfo> TypesPage::subtypesOf(const QModelIndex &node) const
 {
+    const auto *proxy = qobject_cast<const QAbstractProxyModel *>(node.model());
+    const QModelIndex source = proxy ? proxy->mapToSource(node) : node;
     QList<TypeInfo> subtypes;
-    for (const TypeInfo &type : _types) {
-        if (!typeId.isEmpty() && type.baseTypeId == typeId)
-            subtypes.append(type);
-    }
+    if (!source.isValid())
+        return subtypes;
+    for (int row = 0; row < _treeModel->rowCount(source); ++row)
+        subtypes.append(_types.value(_treeModel->index(row, 0, source).data(ItemRoles::Id).toString()));
     std::sort(subtypes.begin(), subtypes.end(), [](const TypeInfo &a, const TypeInfo &b) {
         return a.browseName < b.browseName;
     });

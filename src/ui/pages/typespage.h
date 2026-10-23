@@ -63,7 +63,7 @@ private:
     void showSubtypesTitle();
     void showSubtype(const QModelIndex &current);
     void showProperties(const QString &typeId);
-    QList<TypeInfo> subtypesOf(const QString &typeId) const;
+    QList<TypeInfo> subtypesOf(const QModelIndex &node) const;
 
     Ui::TypesPage *ui;
     TreeModel *_treeModel;
