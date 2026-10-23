@@ -79,6 +79,7 @@ private slots:
     void eventLogFollowsTab();
     void eventLogGetsItsShareOnFirstShow();
     void pagesDoNotBlockTheEventLog();
+    void pagesKeepSidePaneWidths_data();
     void pagesKeepSidePaneWidths();
     void statusBarNoteFollowsTab();
     void themeButtonHiddenWithoutTheme();
@@ -926,37 +927,49 @@ void TestMainWindow::panelsFitTheDefaultWindow()
 }
 
 ///
-/// \brief Grows the window on every page with panes and expects only the panes between the side ones,
-///        or the first of two, to take the extra width.
+/// \brief Covers every page that has resizable panes.
+///
+void TestMainWindow::pagesKeepSidePaneWidths_data()
+{
+    QTest::addColumn<QString>("pageName");
+    QTest::newRow("Objects") << QStringLiteral("objectsPage");
+    QTest::newRow("Types") << QStringLiteral("typesPage");
+    QTest::newRow("Namespaces") << QStringLiteral("namespacesPage");
+    QTest::newRow("Endpoints") << QStringLiteral("endpointsPage");
+    QTest::newRow("Certificates") << QStringLiteral("certificatesPage");
+    QTest::newRow("Sessions") << QStringLiteral("sessionsPage");
+    QTest::newRow("Log") << QStringLiteral("logPage");
+}
+
+///
+/// \brief Checks that only the middle panes, or the first of two, absorb extra window width.
 ///
 void TestMainWindow::pagesKeepSidePaneWidths()
 {
+    QFETCH(QString, pageName);
+
     MainWindow window;
     window.setSnapshot(MockData::snapshot());
     window.resize(1333, 842);
+    auto *tabs = child<QTabWidget>(window, "tabWidget");
+    auto *page = window.findChild<QWidget *>(pageName);
+    QVERIFY(page);
+    tabs->setCurrentWidget(page);
     window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
-    auto *tabs = child<QTabWidget>(window, "tabWidget");
 
-    int checked = 0;
-    for (int tab = 0; tab < tabs->count(); ++tab) {
-        tabs->setCurrentIndex(tab);
-        auto *splitter = tabs->widget(tab)->findChild<QSplitter *>(QStringLiteral("splitter"));
-        if (!splitter)
-            continue;
-        ++checked;
-        window.resize(1333, 842);
-        QCoreApplication::processEvents();
-        const QList<int> initial = splitter->sizes();
-        window.resize(1900, 1000);
-        QTRY_VERIFY(splitter->sizes() != initial);
-        const QList<int> grown = splitter->sizes();
-        const QByteArray name = tabs->tabText(tab).toUtf8();
-        QVERIFY2(grown.last() == initial.last(), name.constData());
-        if (grown.size() > 2)
-            QVERIFY2(grown.first() == initial.first(), name.constData());
-    }
-    QCOMPARE(checked, 7);
+    auto *splitter = child<QSplitter>(*page, "splitter");
+    QCoreApplication::processEvents();
+    const QList<int> initial = splitter->sizes();
+    window.resize(1900, 1000);
+    QTRY_VERIFY(splitter->sizes() != initial);
+    const QList<int> grown = splitter->sizes();
+    QCOMPARE(grown.last(), initial.last());
+    if (grown.size() > 2)
+        QCOMPARE(grown.first(), initial.first());
+
+    window.resize(1333, 842);
+    QTRY_COMPARE(splitter->sizes(), initial);
 }
 
 QTEST_MAIN(TestMainWindow)
