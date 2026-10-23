@@ -40,6 +40,8 @@ private slots:
     void hidesCategories();
     void combinesLevelAndCategoryFilters();
     void ignoresRedundantChanges();
+    void searchesAllColumnsIgnoringCase();
+    void combinesSearchWithLevelFilter();
     void resolvesEntries();
     void acceptsForeignSourceModels();
 
@@ -57,6 +59,7 @@ void TestLogFilterProxyModel::init()
         entry(LogEntry::Level::Info, LogEntry::Category::DataChanges, QStringLiteral("value")),
     });
     _filter.setSourceModel(&_model);
+    _filter.setFilterFixedString(QString());
     for (auto level : { LogEntry::Level::Info, LogEntry::Level::Warning, LogEntry::Level::Error })
         _filter.setLevelVisible(level, true);
     for (auto category : { LogEntry::Category::Server, LogEntry::Category::Session,
@@ -104,6 +107,30 @@ void TestLogFilterProxyModel::ignoresRedundantChanges()
     _filter.setCategoryVisible(LogEntry::Category::Server, true);
     QCOMPARE(layout.count(), 0);
     QCOMPARE(_filter.rowCount(), 4);
+}
+
+void TestLogFilterProxyModel::searchesAllColumnsIgnoringCase()
+{
+    _filter.setFilterFixedString(QStringLiteral("SLO"));
+    QCOMPARE(messages(_filter), QStringList({ QStringLiteral("slow") }));
+
+    _filter.setFilterFixedString(LogModel::levelText(LogEntry::Level::Error).toLower());
+    QCOMPARE(messages(_filter), QStringList({ QStringLiteral("denied") }));
+
+    _filter.setFilterFixedString(QStringLiteral("missing"));
+    QCOMPARE(_filter.rowCount(), 0);
+
+    _filter.setFilterFixedString(QString());
+    QCOMPARE(_filter.rowCount(), 4);
+}
+
+void TestLogFilterProxyModel::combinesSearchWithLevelFilter()
+{
+    _filter.setFilterFixedString(QStringLiteral("ed"));
+    QCOMPARE(messages(_filter), QStringList({ QStringLiteral("started"), QStringLiteral("denied") }));
+
+    _filter.setLevelVisible(LogEntry::Level::Info, false);
+    QCOMPARE(messages(_filter), QStringList({ QStringLiteral("denied") }));
 }
 
 void TestLogFilterProxyModel::resolvesEntries()

@@ -36,8 +36,4 @@ struct LogEntry
     QString message;
     /// \brief Component name.
     QString source;
-    /// \brief Thread name.
-    QString thread;
-    /// \brief Numeric event identifier.
-    int eventId = 0;
 };

@@ -47,7 +47,7 @@ public:
 
     ///
     /// \brief Returns the filter between the log model and the table.
-    /// \return Level and category filter.
+    /// \return Level, category and search filter.
     ///
     const LogFilterProxyModel *filterModel() const;
 

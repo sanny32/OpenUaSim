@@ -727,14 +727,6 @@
         <translation>Источник</translation>
     </message>
     <message>
-        <source>Thread</source>
-        <translation>Поток</translation>
-    </message>
-    <message>
-        <source>Event ID</source>
-        <translation>Код события</translation>
-    </message>
-    <message>
         <source>Message</source>
         <translation>Сообщение</translation>
     </message>
@@ -777,10 +769,6 @@
 <context>
     <name>LogPage</name>
     <message>
-        <source>Log Filters</source>
-        <translation>Фильтры журнала</translation>
-    </message>
-    <message>
         <source>Info</source>
         <translation>Информация</translation>
     </message>
@@ -793,6 +781,10 @@
         <translation>Ошибка</translation>
     </message>
     <message>
+        <source>Server</source>
+        <translation>Сервер</translation>
+    </message>
+    <message>
         <source>Security</source>
         <translation>Безопасность</translation>
     </message>
@@ -803,6 +795,18 @@
     <message>
         <source>Data Changes</source>
         <translation>Изменения данных</translation>
+    </message>
+    <message>
+        <source>Categories</source>
+        <translation>Категории</translation>
+    </message>
+    <message>
+        <source>Search log...</source>
+        <translation>Поиск в журнале...</translation>
+    </message>
+    <message>
+        <source>Auto-scroll</source>
+        <translation>Автопрокрутка</translation>
     </message>
     <message>
         <source>Connection and Server Log</source>
@@ -831,18 +835,6 @@
     <message>
         <source>Source</source>
         <translation>Источник</translation>
-    </message>
-    <message>
-        <source>Thread</source>
-        <translation>Поток</translation>
-    </message>
-    <message>
-        <source>Event ID</source>
-        <translation>Код события</translation>
-    </message>
-    <message>
-        <source>Log Actions</source>
-        <translation>Действия с журналом</translation>
     </message>
     <message>
         <source>Clear Log</source>

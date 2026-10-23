@@ -6,6 +6,8 @@
 /// \brief Implements the server log page.
 ///
 
+#include <QMenu>
+
 #include "appicons.h"
 #include "formatting.h"
 #include "logfilterproxymodel.h"
@@ -27,17 +29,25 @@ LogPage::LogPage(QWidget *parent)
     ViewSetup::splitByStretch(ui->splitter);
     ui->clearLogButton->setIcon(AppIcons::icon(QStringLiteral("trash")));
     ui->exportLogButton->setIcon(AppIcons::icon(QStringLiteral("download")));
+    ui->searchEdit->addAction(AppIcons::icon(QStringLiteral("search")), QLineEdit::LeadingPosition);
+
+    auto *categoryMenu = new QMenu(ui->categoryButton);
+    categoryMenu->addActions({ ui->serverAction, ui->securityAction, ui->sessionsAction,
+                               ui->dataChangesAction });
+    ui->categoryButton->setMenu(categoryMenu);
 
     ViewSetup::configureTable(ui->logView);
     ui->logView->setModel(_filter);
 
-    for (QCheckBox *check : { ui->infoCheck, ui->warningCheck, ui->errorCheck,
-                              ui->securityCheck, ui->sessionsCheck, ui->dataChangesCheck })
+    for (QCheckBox *check : { ui->infoCheck, ui->warningCheck, ui->errorCheck })
         connect(check, &QCheckBox::toggled, this, &LogPage::applyFilters);
+    for (QAction *action : categoryMenu->actions())
+        connect(action, &QAction::toggled, this, &LogPage::applyFilters);
+    connect(ui->searchEdit, &QLineEdit::textChanged, _filter, &LogFilterProxyModel::setFilterFixedString);
     connect(ui->logView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &LogPage::showEntry);
-    connect(ui->clearLogButton, &QPushButton::clicked, this, &LogPage::clearLog);
-    connect(ui->exportLogButton, &QPushButton::clicked, this, &LogPage::requestExport);
+    connect(ui->clearLogButton, &QToolButton::clicked, this, &LogPage::clearLog);
+    connect(ui->exportLogButton, &QToolButton::clicked, this, &LogPage::requestExport);
     connect(_filter, &LogFilterProxyModel::rowsInserted, this, &LogPage::scrollIfEnabled);
     connect(_filter, &LogFilterProxyModel::modelReset, this, &LogPage::refreshDetails);
 }
@@ -66,7 +76,7 @@ void LogPage::setLogModel(LogModel *model)
 
 ///
 /// \brief Returns the filter between the log model and the table.
-/// \return Level and category filter.
+/// \return Level, category and search filter.
 ///
 const LogFilterProxyModel *LogPage::filterModel() const
 {
@@ -89,16 +99,17 @@ void LogPage::changeEvent(QEvent *event)
 }
 
 ///
-/// \brief Applies the level and category check boxes to the filter.
+/// \brief Applies the level check boxes and the category menu to the filter.
 ///
 void LogPage::applyFilters()
 {
     _filter->setLevelVisible(LogEntry::Level::Info, ui->infoCheck->isChecked());
     _filter->setLevelVisible(LogEntry::Level::Warning, ui->warningCheck->isChecked());
     _filter->setLevelVisible(LogEntry::Level::Error, ui->errorCheck->isChecked());
-    _filter->setCategoryVisible(LogEntry::Category::Security, ui->securityCheck->isChecked());
-    _filter->setCategoryVisible(LogEntry::Category::Session, ui->sessionsCheck->isChecked());
-    _filter->setCategoryVisible(LogEntry::Category::DataChanges, ui->dataChangesCheck->isChecked());
+    _filter->setCategoryVisible(LogEntry::Category::Server, ui->serverAction->isChecked());
+    _filter->setCategoryVisible(LogEntry::Category::Security, ui->securityAction->isChecked());
+    _filter->setCategoryVisible(LogEntry::Category::Session, ui->sessionsAction->isChecked());
+    _filter->setCategoryVisible(LogEntry::Category::DataChanges, ui->dataChangesAction->isChecked());
 }
 
 ///
@@ -111,8 +122,7 @@ void LogPage::showEntry(const QModelIndex &current)
     ui->detailsHost->setEnabled(entry != nullptr);
     if (!entry) {
         ui->levelIndicator->setStatus(StatusKind::None, QString());
-        for (QLineEdit *edit : { ui->timeEdit, ui->categoryEdit, ui->sourceEdit,
-                                 ui->threadEdit, ui->eventIdEdit })
+        for (QLineEdit *edit : { ui->timeEdit, ui->categoryEdit, ui->sourceEdit })
             edit->clear();
         ui->messageEdit->clear();
         return;
@@ -122,8 +132,6 @@ void LogPage::showEntry(const QModelIndex &current)
     ui->categoryEdit->setText(LogModel::categoryText(entry->category));
     ui->messageEdit->setPlainText(entry->message);
     ui->sourceEdit->setText(entry->source);
-    ui->threadEdit->setText(entry->thread);
-    ui->eventIdEdit->setText(QString::number(entry->eventId));
 }
 
 ///
@@ -147,7 +155,7 @@ void LogPage::clearLog()
 }
 
 ///
-/// \brief Asks to save the entries the level and category filters let through.
+/// \brief Asks to save the entries the level, category and search filters let through.
 ///
 void LogPage::requestExport()
 {

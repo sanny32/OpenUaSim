@@ -18,7 +18,7 @@ namespace LogExport {
 ///
 /// \brief Formats log entries as CSV with a header row.
 /// \param entries Entries to format, in output order.
-/// \return CSV text with the columns Time, Level, Category, Source, Thread, Event ID and Message.
+/// \return CSV text with the columns Time, Level, Category, Source and Message.
 ///
 QString toCsv(const QList<LogEntry> &entries);
 

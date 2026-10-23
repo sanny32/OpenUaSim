@@ -7,7 +7,6 @@
 ///
 
 #include <QMetaEnum>
-#include <QThread>
 
 #include <QUaServer>
 
@@ -31,16 +30,6 @@ LogEntry::Category category(QUaLogCategory category)
     default:
         return LogEntry::Category::Server;
     }
-}
-
-///
-/// \brief Returns the name of the thread logging right now.
-/// \return Object name of the current thread, or "main" when it has none.
-///
-QString currentThreadName()
-{
-    const QString name = QThread::currentThread()->objectName();
-    return name.isEmpty() ? QStringLiteral("main") : name;
 }
 
 }
@@ -77,8 +66,6 @@ std::optional<LogEntry> fromQUaLog(const QUaLog &log)
     entry.category = category(log.category);
     entry.message = QString::fromUtf8(log.message);
     entry.source = QString::fromLatin1(QMetaEnum::fromType<QUaLogCategory>().valueToKey(int(log.category)));
-    entry.thread = currentThreadName();
-    entry.eventId = int(log.category);
     return entry;
 }
 
@@ -97,7 +84,6 @@ LogEntry entry(LogEntry::Level level, LogEntry::Category category, const QString
     result.category = category;
     result.message = message;
     result.source = QStringLiteral("OpenUaSim");
-    result.thread = currentThreadName();
     return result;
 }
 

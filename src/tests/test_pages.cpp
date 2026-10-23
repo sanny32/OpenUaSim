@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
+#include <QMenu>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScrollArea>
@@ -223,6 +224,8 @@ private slots:
     void sessionsPageRequestsSubscriptions();
     void sessionsPageFiltersByState();
     void logPageFilters();
+    void logPageCategoryMenu();
+    void logPageSearch();
     void logPageSelectsFirstEntryWhenFilledLater();
     void logPageDetailsAndClear();
     void logPageExportsVisibleEntries();
@@ -1398,12 +1401,51 @@ void TestPages::logPageFilters()
 
     child<QCheckBox>(page, "infoCheck")->setChecked(false);
     QCOMPARE(page.filterModel()->rowCount(), 2);
-    child<QCheckBox>(page, "securityCheck")->setChecked(false);
+    child<QAction>(page, "securityAction")->setChecked(false);
     QCOMPARE(page.filterModel()->rowCount(), 1);
 
     child<QCheckBox>(page, "infoCheck")->setChecked(true);
-    child<QCheckBox>(page, "securityCheck")->setChecked(true);
+    child<QAction>(page, "securityAction")->setChecked(true);
     QCOMPARE(page.filterModel()->rowCount(), total);
+
+    child<QAction>(page, "serverAction")->setChecked(false);
+    QCOMPARE(page.filterModel()->rowCount(), total - 3);
+    child<QAction>(page, "serverAction")->setChecked(true);
+    QCOMPARE(page.filterModel()->rowCount(), total);
+}
+
+void TestPages::logPageCategoryMenu()
+{
+    LogPage page;
+    const QMenu *menu = child<QPushButton>(page, "categoryButton")->menu();
+    QVERIFY(menu);
+    QCOMPARE(menu->actions(), QList<QAction *>({ child<QAction>(page, "serverAction"),
+                                                 child<QAction>(page, "securityAction"),
+                                                 child<QAction>(page, "sessionsAction"),
+                                                 child<QAction>(page, "dataChangesAction") }));
+    for (const QAction *action : menu->actions())
+        QVERIFY(action->isCheckable() && action->isChecked());
+}
+
+void TestPages::logPageSearch()
+{
+    LogModel model;
+    model.setItems(_snapshot.log);
+    LogPage page;
+    page.setLogModel(&model);
+    auto *search = child<QLineEdit>(page, "searchEdit");
+
+    search->setText(QStringLiteral("MOTOR_01"));
+    QCOMPARE(page.filterModel()->rowCount(), 3);
+    QCOMPARE(text(page, "timeEdit"), QStringLiteral("2024-05-23 14:31:27.104"));
+
+    child<QAction>(page, "dataChangesAction")->setChecked(false);
+    QCOMPARE(page.filterModel()->rowCount(), 0);
+    QVERIFY(!child<QWidget>(page, "detailsHost")->isEnabled());
+
+    child<QAction>(page, "dataChangesAction")->setChecked(true);
+    search->clear();
+    QCOMPARE(page.filterModel()->rowCount(), model.rowCount());
 }
 
 void TestPages::logPageSelectsFirstEntryWhenFilledLater()
@@ -1415,7 +1457,7 @@ void TestPages::logPageSelectsFirstEntryWhenFilledLater()
 
     model.setItems(_snapshot.log);
     QCOMPARE(child<QTableView>(page, "logView")->currentIndex().row(), 0);
-    QCOMPARE(text(page, "eventIdEdit"), QStringLiteral("1000"));
+    QCOMPARE(text(page, "timeEdit"), QStringLiteral("2024-05-23 14:31:20.004"));
 }
 
 void TestPages::logPageDetailsAndClear()
@@ -1426,10 +1468,10 @@ void TestPages::logPageDetailsAndClear()
     page.setLogModel(&model);
 
     QCOMPARE(text(page, "timeEdit"), QStringLiteral("2024-05-23 14:31:20.004"));
-    QCOMPARE(text(page, "eventIdEdit"), QStringLiteral("1000"));
+    QCOMPARE(text(page, "sourceEdit"), QStringLiteral("OpenUaSim"));
     QCOMPARE(child<StatusIndicator>(page, "levelIndicator")->text(), QStringLiteral("INFO"));
 
-    child<QPushButton>(page, "clearLogButton")->click();
+    child<QToolButton>(page, "clearLogButton")->click();
     QCOMPARE(model.rowCount(), 0);
     QVERIFY(text(page, "timeEdit").isEmpty());
     QVERIFY(!child<QWidget>(page, "detailsHost")->isEnabled());
@@ -1444,7 +1486,7 @@ void TestPages::logPageExportsVisibleEntries()
     child<QCheckBox>(page, "infoCheck")->setChecked(false);
     QSignalSpy requested(&page, &LogPage::exportRequested);
 
-    child<QPushButton>(page, "exportLogButton")->click();
+    child<QToolButton>(page, "exportLogButton")->click();
     QCOMPARE(requested.count(), 1);
     const auto entries = requested.at(0).at(0).value<QList<LogEntry>>();
     QCOMPARE(entries.size(), page.filterModel()->rowCount());

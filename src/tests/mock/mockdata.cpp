@@ -469,14 +469,12 @@ QList<SessionInfo> sessions()
 /// \param level Severity.
 /// \param category Producing subsystem.
 /// \param message Message text.
-/// \param eventId Event identifier.
-/// \return Log entry produced by the server main thread.
+/// \return Log entry produced by the simulator.
 ///
 LogEntry entry(const QString &time, LogEntry::Level level, LogEntry::Category category,
-               const QString &message, int eventId)
+               const QString &message)
 {
-    return { at(time), level, category, message, QStringLiteral("OpenUaSim"),
-             QStringLiteral("MainThread"), eventId };
+    return { at(time), level, category, message, QStringLiteral("OpenUaSim") };
 }
 
 ///
@@ -489,31 +487,31 @@ QList<LogEntry> log()
     using Category = LogEntry::Category;
     return {
         entry(QStringLiteral("14:31:20.004"), Level::Info, Category::Server,
-              QStringLiteral("Server started. Endpoint: %1").arg(kLocalEndpoint), 1000),
+              QStringLiteral("Server started. Endpoint: %1").arg(kLocalEndpoint)),
         entry(QStringLiteral("14:31:25.123"), Level::Info, Category::Session,
-              QStringLiteral("Client connected: opc.tcp://127.0.0.1:49732"), 1001),
+              QStringLiteral("Client connected: opc.tcp://127.0.0.1:49732")),
         entry(QStringLiteral("14:31:25.456"), Level::Info, Category::Session,
-              QStringLiteral("Session created (SessionId: ns=1;i=12345)"), 1002),
+              QStringLiteral("Session created (SessionId: ns=1;i=12345)")),
         entry(QStringLiteral("14:31:26.018"), Level::Info, Category::Security,
-              QStringLiteral("Secure channel opened (SecurityPolicy: Basic256Sha256)"), 1003),
+              QStringLiteral("Secure channel opened (SecurityPolicy: Basic256Sha256)")),
         entry(QStringLiteral("14:31:26.521"), Level::Info, Category::Session,
-              QStringLiteral("User 'Anonymous' authenticated"), 1004),
+              QStringLiteral("User 'Anonymous' authenticated")),
         entry(QStringLiteral("14:31:27.104"), Level::Info, Category::DataChanges,
-              QStringLiteral("Monitored item created: ns=2;s=Motor_01.Speed"), 1005),
+              QStringLiteral("Monitored item created: ns=2;s=Motor_01.Speed")),
         entry(QStringLiteral("14:31:28.710"), Level::Warning, Category::Server,
-              QStringLiteral("Slow client detected (publishing interval: 1000 ms)"), 1006),
+              QStringLiteral("Slow client detected (publishing interval: 1000 ms)")),
         entry(QStringLiteral("14:31:29.332"), Level::Info, Category::DataChanges,
-              QStringLiteral("Value updated: ns=2;s=Motor_01.Speed = 1 487.6"), 1007),
+              QStringLiteral("Value updated: ns=2;s=Motor_01.Speed = 1 487.6")),
         entry(QStringLiteral("14:31:31.405"), Level::Info, Category::DataChanges,
-              QStringLiteral("Value updated: ns=2;s=Motor_01.Temperature = 46.2"), 1008),
+              QStringLiteral("Value updated: ns=2;s=Motor_01.Temperature = 46.2")),
         entry(QStringLiteral("14:31:35.872"), Level::Info, Category::Session,
-              QStringLiteral("Client disconnected: opc.tcp://127.0.0.1:49732"), 1009),
+              QStringLiteral("Client disconnected: opc.tcp://127.0.0.1:49732")),
         entry(QStringLiteral("14:31:35.873"), Level::Info, Category::Session,
-              QStringLiteral("Session closed (SessionId: ns=1;i=12344)"), 1010),
+              QStringLiteral("Session closed (SessionId: ns=1;i=12344)")),
         entry(QStringLiteral("14:31:40.112"), Level::Error, Category::Security,
-              QStringLiteral("Invalid user token in request (BadUserAccessDenied)"), 1011),
+              QStringLiteral("Invalid user token in request (BadUserAccessDenied)")),
         entry(QStringLiteral("14:31:42.998"), Level::Info, Category::Server,
-              QStringLiteral("Listening for connections on %1").arg(kLocalEndpoint), 1012),
+              QStringLiteral("Listening for connections on %1").arg(kLocalEndpoint)),
     };
 }
 

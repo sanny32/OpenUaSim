@@ -29,202 +29,6 @@
      <property name="handleWidth">
       <number>8</number>
      </property>
-     <widget class="QFrame" name="filtersPanel">
-      <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
-      </property>
-      <property name="panel" stdset="0">
-       <bool>true</bool>
-      </property>
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>25</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>175</width>
-        <height>0</height>
-       </size>
-      </property>
-      <layout class="QVBoxLayout" name="filtersPanelLayout">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-       <property name="leftMargin">
-        <number>1</number>
-       </property>
-       <property name="topMargin">
-        <number>1</number>
-       </property>
-       <property name="rightMargin">
-        <number>1</number>
-       </property>
-       <property name="bottomMargin">
-        <number>1</number>
-       </property>
-       <item>
-        <layout class="QHBoxLayout" name="filtersPanelHeaderLayout">
-         <property name="leftMargin">
-          <number>12</number>
-         </property>
-         <property name="topMargin">
-          <number>5</number>
-         </property>
-         <property name="rightMargin">
-          <number>12</number>
-         </property>
-         <property name="bottomMargin">
-          <number>5</number>
-         </property>
-         <item>
-          <widget class="QLabel" name="filtersTitle">
-           <property name="font">
-            <font>
-             <pointsize>11</pointsize>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>Log Filters</string>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>22</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QFrame" name="filtersPanelSeparator">
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>1</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>1</height>
-          </size>
-         </property>
-         <property name="separator" stdset="0">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QScrollArea" name="filtersPanelScroll">
-         <property name="frameShape">
-          <enum>QFrame::NoFrame</enum>
-         </property>
-         <property name="widgetResizable">
-          <bool>true</bool>
-         </property>
-         <property name="horizontalScrollBarPolicy">
-          <enum>Qt::ScrollBarAlwaysOff</enum>
-         </property>
-         <property name="panelBody" stdset="0">
-          <bool>true</bool>
-         </property>
-         <widget class="QWidget" name="filtersPanelBody">
-          <layout class="QVBoxLayout" name="filtersPanelBodyLayout">
-           <property name="spacing">
-            <number>8</number>
-           </property>
-           <property name="leftMargin">
-            <number>10</number>
-           </property>
-           <property name="topMargin">
-            <number>6</number>
-           </property>
-           <property name="rightMargin">
-            <number>10</number>
-           </property>
-           <property name="bottomMargin">
-            <number>10</number>
-           </property>
-           <item>
-            <widget class="QCheckBox" name="infoCheck">
-             <property name="text">
-              <string>Info</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="warningCheck">
-             <property name="text">
-              <string>Warning</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="errorCheck">
-             <property name="text">
-              <string>Error</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="securityCheck">
-             <property name="text">
-              <string>Security</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="sessionsCheck">
-             <property name="text">
-              <string>Sessions</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="dataChangesCheck">
-             <property name="text">
-              <string>Data Changes</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="spacer8">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </widget>
-        </widget>
-       </item>
-      </layout>
-     </widget>
      <widget class="QFrame" name="logPanel">
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
@@ -330,6 +134,87 @@
            <number>10</number>
           </property>
           <item>
+           <layout class="QHBoxLayout" name="filterBarLayout">
+            <property name="spacing">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="infoCheck">
+              <property name="text">
+               <string>Info</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="warningCheck">
+              <property name="text">
+               <string>Warning</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="errorCheck">
+              <property name="text">
+               <string>Error</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="categoryButton">
+              <property name="text">
+               <string>Categories</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="searchEdit">
+              <property name="placeholderText">
+               <string>Search log...</string>
+              </property>
+              <property name="clearButtonEnabled">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="autoScrollCheck">
+              <property name="toolTip">
+               <string>Auto-scroll to new entries</string>
+              </property>
+              <property name="text">
+               <string>Auto-scroll</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="clearLogButton">
+              <property name="toolTip">
+               <string>Clear Log</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="exportLogButton">
+              <property name="toolTip">
+               <string>Export Log...</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
            <widget class="QTableView" name="logView">
             <property name="editTriggers">
              <set>QAbstractItemView::NoEditTriggers</set>
@@ -365,424 +250,207 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="rightColumn">
+     <widget class="QFrame" name="detailsPanel">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="panel" stdset="0">
+       <bool>true</bool>
+      </property>
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>40</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
-      <layout class="QVBoxLayout" name="rightColumnLayout">
+      <layout class="QVBoxLayout" name="detailsPanelLayout">
        <property name="spacing">
-        <number>8</number>
+        <number>0</number>
        </property>
        <property name="leftMargin">
-        <number>0</number>
+        <number>1</number>
        </property>
        <property name="topMargin">
-        <number>0</number>
+        <number>1</number>
        </property>
        <property name="rightMargin">
-        <number>0</number>
+        <number>1</number>
        </property>
        <property name="bottomMargin">
-        <number>0</number>
+        <number>1</number>
        </property>
        <item>
-        <widget class="QFrame" name="detailsPanel">
+        <layout class="QHBoxLayout" name="detailsPanelHeaderLayout">
+         <property name="leftMargin">
+          <number>12</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>12</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="detailsTitle">
+           <property name="font">
+            <font>
+             <pointsize>11</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Log Entry Details</string>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>22</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QFrame" name="detailsPanelSeparator">
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>
          </property>
-         <property name="panel" stdset="0">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>1</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>1</height>
+          </size>
+         </property>
+         <property name="separator" stdset="0">
           <bool>true</bool>
          </property>
-         <layout class="QVBoxLayout" name="detailsPanelLayout">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <property name="leftMargin">
-           <number>1</number>
-          </property>
-          <property name="topMargin">
-           <number>1</number>
-          </property>
-          <property name="rightMargin">
-           <number>1</number>
-          </property>
-          <property name="bottomMargin">
-           <number>1</number>
-          </property>
-          <item>
-           <layout class="QHBoxLayout" name="detailsPanelHeaderLayout">
-            <property name="leftMargin">
-             <number>12</number>
-            </property>
-            <property name="topMargin">
-             <number>5</number>
-            </property>
-            <property name="rightMargin">
-             <number>12</number>
-            </property>
-            <property name="bottomMargin">
-             <number>5</number>
-            </property>
-            <item>
-             <widget class="QLabel" name="detailsTitle">
-              <property name="font">
-               <font>
-                <pointsize>11</pointsize>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string>Log Entry Details</string>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>22</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="QFrame" name="detailsPanelSeparator">
-            <property name="frameShape">
-             <enum>QFrame::StyledPanel</enum>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>1</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>1</height>
-             </size>
-            </property>
-            <property name="separator" stdset="0">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QScrollArea" name="detailsPanelScroll">
-            <property name="frameShape">
-             <enum>QFrame::NoFrame</enum>
-            </property>
-            <property name="widgetResizable">
-             <bool>true</bool>
-            </property>
-            <property name="horizontalScrollBarPolicy">
-             <enum>Qt::ScrollBarAlwaysOff</enum>
-            </property>
-            <property name="panelBody" stdset="0">
-             <bool>true</bool>
-            </property>
-            <widget class="QWidget" name="detailsPanelBody">
-             <layout class="QVBoxLayout" name="detailsPanelBodyLayout">
-              <property name="spacing">
-               <number>8</number>
-              </property>
-              <property name="leftMargin">
-               <number>10</number>
-              </property>
-              <property name="topMargin">
-               <number>6</number>
-              </property>
-              <property name="rightMargin">
-               <number>10</number>
-              </property>
-              <property name="bottomMargin">
-               <number>10</number>
-              </property>
-              <item>
-               <widget class="QWidget" name="detailsHost">
-                <layout class="QGridLayout" name="detailsForm" columnstretch="0,1">
-                 <property name="horizontalSpacing">
-                  <number>13</number>
-                 </property>
-                 <property name="verticalSpacing">
-                  <number>5</number>
-                 </property>
-                 <item row="0" column="0">
-                  <widget class="QLabel" name="timeLabel">
-                   <property name="text">
-                    <string>Time</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="1">
-                  <widget class="QLineEdit" name="timeEdit">
-                   <property name="readOnly">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="0">
-                  <widget class="QLabel" name="levelLabel">
-                   <property name="text">
-                    <string>Level</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="1">
-                  <widget class="StatusIndicator" name="levelIndicator" native="true">
-</widget>
-                 </item>
-                 <item row="2" column="0">
-                  <widget class="QLabel" name="categoryLabel">
-                   <property name="text">
-                    <string>Category</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="1">
-                  <widget class="QLineEdit" name="categoryEdit">
-                   <property name="readOnly">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="3" column="0">
-                  <widget class="QLabel" name="messageLabel">
-                   <property name="text">
-                    <string>Message</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="3" column="1">
-                  <widget class="QPlainTextEdit" name="messageEdit">
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>78</height>
-                    </size>
-                   </property>
-                   <property name="tabChangesFocus">
-                    <bool>true</bool>
-                   </property>
-                   <property name="readOnly">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="4" column="0">
-                  <widget class="QLabel" name="sourceLabel">
-                   <property name="text">
-                    <string>Source</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="4" column="1">
-                  <widget class="QLineEdit" name="sourceEdit">
-                   <property name="readOnly">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="5" column="0">
-                  <widget class="QLabel" name="threadLabel">
-                   <property name="text">
-                    <string>Thread</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="5" column="1">
-                  <widget class="QLineEdit" name="threadEdit">
-                   <property name="readOnly">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="6" column="0">
-                  <widget class="QLabel" name="eventIdLabel">
-                   <property name="text">
-                    <string>Event ID</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="6" column="1">
-                  <widget class="QLineEdit" name="eventIdEdit">
-                   <property name="readOnly">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </widget>
-          </item>
-         </layout>
         </widget>
        </item>
        <item>
-        <widget class="QFrame" name="actionsPanel">
+        <widget class="QScrollArea" name="detailsPanelScroll">
          <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
+          <enum>QFrame::NoFrame</enum>
          </property>
-         <property name="panel" stdset="0">
+         <property name="widgetResizable">
           <bool>true</bool>
          </property>
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
+         <property name="horizontalScrollBarPolicy">
+          <enum>Qt::ScrollBarAlwaysOff</enum>
          </property>
-         <layout class="QVBoxLayout" name="actionsPanelLayout">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <property name="leftMargin">
-           <number>1</number>
-          </property>
-          <property name="topMargin">
-           <number>1</number>
-          </property>
-          <property name="rightMargin">
-           <number>1</number>
-          </property>
-          <property name="bottomMargin">
-           <number>1</number>
-          </property>
-          <item>
-           <layout class="QHBoxLayout" name="actionsPanelHeaderLayout">
-            <property name="leftMargin">
-             <number>12</number>
-            </property>
-            <property name="topMargin">
-             <number>5</number>
-            </property>
-            <property name="rightMargin">
-             <number>12</number>
-            </property>
-            <property name="bottomMargin">
-             <number>5</number>
-            </property>
-            <item>
-             <widget class="QLabel" name="actionsTitle">
-              <property name="font">
-               <font>
-                <pointsize>11</pointsize>
-                <bold>true</bold>
-               </font>
+         <property name="panelBody" stdset="0">
+          <bool>true</bool>
+         </property>
+         <widget class="QWidget" name="detailsPanelBody">
+          <layout class="QVBoxLayout" name="detailsPanelBodyLayout">
+           <property name="spacing">
+            <number>8</number>
+           </property>
+           <property name="leftMargin">
+            <number>10</number>
+           </property>
+           <property name="topMargin">
+            <number>6</number>
+           </property>
+           <property name="rightMargin">
+            <number>10</number>
+           </property>
+           <property name="bottomMargin">
+            <number>10</number>
+           </property>
+           <item>
+            <widget class="QWidget" name="detailsHost">
+             <layout class="QGridLayout" name="detailsForm" rowstretch="0,0,0,0,0,1" columnstretch="0,1">
+              <property name="horizontalSpacing">
+               <number>13</number>
               </property>
-              <property name="text">
-               <string>Log Actions</string>
+              <property name="verticalSpacing">
+               <number>5</number>
               </property>
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>22</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="QFrame" name="actionsPanelSeparator">
-            <property name="frameShape">
-             <enum>QFrame::StyledPanel</enum>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>1</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>1</height>
-             </size>
-            </property>
-            <property name="separator" stdset="0">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QScrollArea" name="actionsPanelScroll">
-            <property name="frameShape">
-             <enum>QFrame::NoFrame</enum>
-            </property>
-            <property name="widgetResizable">
-             <bool>true</bool>
-            </property>
-            <property name="horizontalScrollBarPolicy">
-             <enum>Qt::ScrollBarAlwaysOff</enum>
-            </property>
-            <property name="panelBody" stdset="0">
-             <bool>true</bool>
-            </property>
-            <widget class="QWidget" name="actionsPanelBody">
-             <layout class="QVBoxLayout" name="actionsPanelBodyLayout">
-              <property name="spacing">
-               <number>8</number>
-              </property>
-              <property name="leftMargin">
-               <number>10</number>
-              </property>
-              <property name="topMargin">
-               <number>6</number>
-              </property>
-              <property name="rightMargin">
-               <number>10</number>
-              </property>
-              <property name="bottomMargin">
-               <number>10</number>
-              </property>
-              <item>
-               <widget class="QPushButton" name="clearLogButton">
+              <item row="0" column="0">
+               <widget class="QLabel" name="timeLabel">
                 <property name="text">
-                 <string>Clear Log</string>
+                 <string>Time</string>
                 </property>
-                <property name="toolbar" stdset="0">
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="timeEdit">
+                <property name="readOnly">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
-              <item>
-               <widget class="QPushButton" name="exportLogButton">
+              <item row="1" column="0">
+               <widget class="QLabel" name="levelLabel">
                 <property name="text">
-                 <string>Export Log...</string>
+                 <string>Level</string>
                 </property>
-                <property name="toolbar" stdset="0">
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="StatusIndicator" name="levelIndicator" native="true">
+</widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="categoryLabel">
+                <property name="text">
+                 <string>Category</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLineEdit" name="categoryEdit">
+                <property name="readOnly">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
-              <item>
-               <widget class="QCheckBox" name="autoScrollCheck">
+              <item row="3" column="0">
+               <widget class="QLabel" name="sourceLabel">
                 <property name="text">
-                 <string>Auto-scroll to new entries</string>
+                 <string>Source</string>
                 </property>
-                <property name="checked">
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget class="QLineEdit" name="sourceEdit">
+                <property name="readOnly">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
-              <item>
-               <spacer name="spacer7">
-                <property name="orientation">
-                 <enum>Qt::Vertical</enum>
+              <item row="4" column="0" colspan="2">
+               <widget class="QLabel" name="messageLabel">
+                <property name="text">
+                 <string>Message</string>
                 </property>
-               </spacer>
+               </widget>
+              </item>
+              <item row="5" column="0" colspan="2">
+               <widget class="QPlainTextEdit" name="messageEdit">
+                <property name="tabChangesFocus">
+                 <bool>true</bool>
+                </property>
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
+               </widget>
               </item>
              </layout>
             </widget>
-           </widget>
-          </item>
-         </layout>
+           </item>
+          </layout>
+         </widget>
         </widget>
        </item>
       </layout>
@@ -790,6 +458,50 @@
     </widget>
    </item>
   </layout>
+  <action name="serverAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Server</string>
+   </property>
+  </action>
+  <action name="securityAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Security</string>
+   </property>
+  </action>
+  <action name="sessionsAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Sessions</string>
+   </property>
+  </action>
+  <action name="dataChangesAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Data Changes</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

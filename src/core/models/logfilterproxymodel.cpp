@@ -3,7 +3,7 @@
 
 ///
 /// \file logfilterproxymodel.cpp
-/// \brief Implements the level and category filter over LogModel.
+/// \brief Implements the level, category and text filter over LogModel.
 ///
 
 #include "logfilterproxymodel.h"
@@ -16,6 +16,8 @@
 LogFilterProxyModel::LogFilterProxyModel(QObject *parent)
     : QSortFilterProxyModel(parent)
 {
+    setFilterCaseSensitivity(Qt::CaseInsensitive);
+    setFilterKeyColumn(-1);
 }
 
 ///
@@ -88,14 +90,15 @@ const LogEntry *LogFilterProxyModel::entry(const QModelIndex &index) const
 }
 
 ///
-/// \brief Accepts a row when both its level and its category are visible.
+/// \brief Accepts a row when its level and category are visible and its text matches the search.
 /// \param sourceRow Row in the source model.
 /// \param sourceParent Parent in the source model.
 /// \return True to show the row.
 ///
 bool LogFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
 {
-    Q_UNUSED(sourceParent)
+    if (!QSortFilterProxyModel::filterAcceptsRow(sourceRow, sourceParent))
+        return false;
     const LogModel *model = logModel();
     if (!model)
         return true;

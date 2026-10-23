@@ -3,7 +3,7 @@
 
 ///
 /// \file logfilterproxymodel.h
-/// \brief Declares the level and category filter over LogModel.
+/// \brief Declares the level, category and text filter over LogModel.
 ///
 
 #pragma once
@@ -16,9 +16,11 @@
 class LogModel;
 
 ///
-/// \brief Hides LogModel rows whose level or category is switched off.
+/// \brief Hides LogModel rows whose level or category is switched off or whose text
+///        does not match the search string.
 ///
-/// Every level and category is visible until switched off.
+/// Every level and category is visible until switched off. The search string, set with
+/// setFilterFixedString(), is matched case-insensitively against every column.
 ///
 class LogFilterProxyModel : public QSortFilterProxyModel
 {

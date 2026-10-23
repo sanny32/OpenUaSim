@@ -85,7 +85,6 @@ void TestLogMapper::keepsMessageAndTime()
     const std::optional<LogEntry> entry = LogMapper::fromQUaLog(log);
     QCOMPARE(entry->message, QStringLiteral("Connection opened"));
     QCOMPARE(entry->time, log.timestamp);
-    QVERIFY(!entry->thread.isEmpty());
 }
 
 void TestLogMapper::buildsOwnEntries()

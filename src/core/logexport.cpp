@@ -52,7 +52,7 @@ QString csvRecord(const QStringList &fields)
 ///
 /// \brief Formats log entries as CSV with a header row.
 /// \param entries Entries to format, in output order.
-/// \return CSV text with the columns Time, Level, Category, Source, Thread, Event ID and Message.
+/// \return CSV text with the columns Time, Level, Category, Source and Message.
 ///
 QString toCsv(const QList<LogEntry> &entries)
 {
@@ -61,8 +61,6 @@ QString toCsv(const QList<LogEntry> &entries)
         QCoreApplication::translate("LogExport", "Level"),
         QCoreApplication::translate("LogExport", "Category"),
         QCoreApplication::translate("LogExport", "Source"),
-        QCoreApplication::translate("LogExport", "Thread"),
-        QCoreApplication::translate("LogExport", "Event ID"),
         QCoreApplication::translate("LogExport", "Message"),
     });
     for (const LogEntry &entry : entries) {
@@ -71,8 +69,6 @@ QString toCsv(const QList<LogEntry> &entries)
             LogModel::levelText(entry.level),
             LogModel::categoryText(entry.category),
             entry.source,
-            entry.thread,
-            QString::number(entry.eventId),
             entry.message,
         });
     }

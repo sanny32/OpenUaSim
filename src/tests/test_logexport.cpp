@@ -18,8 +18,6 @@ LogEntry entry(const QString &message)
     result.category = LogEntry::Category::Session;
     result.message = message;
     result.source = QStringLiteral("Server");
-    result.thread = QStringLiteral("main");
-    result.eventId = 42;
     return result;
 }
 
@@ -51,7 +49,7 @@ private:
 void TestLogExport::writesHeaderForEmptyLog()
 {
     QCOMPARE(records(LogExport::toCsv({})),
-             QStringList { QStringLiteral("Time,Level,Category,Source,Thread,Event ID,Message") });
+             QStringList { QStringLiteral("Time,Level,Category,Source,Message") });
 }
 
 void TestLogExport::writesEntryFields()
@@ -59,14 +57,14 @@ void TestLogExport::writesEntryFields()
     const LogEntry logged = entry(QStringLiteral("Session opened"));
     const QStringList lines = records(LogExport::toCsv({ logged }));
     QCOMPARE(lines.size(), 2);
-    QCOMPARE(lines.at(1), QStringLiteral("%1,WARNING,Session,Server,main,42,Session opened")
+    QCOMPARE(lines.at(1), QStringLiteral("%1,WARNING,Session,Server,Session opened")
                               .arg(Formatting::preciseDateTime(logged.time)));
 }
 
 void TestLogExport::quotesSpecialCharacters()
 {
     const QString csv = LogExport::toCsv({ entry(QStringLiteral("a, \"b\"\nc")) });
-    QVERIFY(csv.endsWith(QStringLiteral(",42,\"a, \"\"b\"\"\nc\"\r\n")));
+    QVERIFY(csv.endsWith(QStringLiteral(",Server,\"a, \"\"b\"\"\nc\"\r\n")));
 }
 
 void TestLogExport::writesUtf8FileWithByteOrderMark()
