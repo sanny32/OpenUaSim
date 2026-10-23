@@ -630,6 +630,14 @@
         <translation>Принимать учётные записи из меню Сервер → Учётные записи.</translation>
     </message>
     <message>
+        <source>Edit the user accounts that username/password endpoints accept.</source>
+        <translation>Изменить учётные записи, которые принимают конечные точки со входом по имени и паролю.</translation>
+    </message>
+    <message>
+        <source>Users...</source>
+        <translation>Учётные записи...</translation>
+    </message>
+    <message>
         <source>Trusted Clients Only</source>
         <translation>Только доверенные клиенты</translation>
     </message>

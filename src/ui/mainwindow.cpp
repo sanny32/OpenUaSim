@@ -158,6 +158,7 @@ void MainWindow::setController(ServerController *controller)
     connect(ui->namespacesPage, &NamespacesPage::exportRequested, this, &MainWindow::exportNamespace);
     connect(ui->namespacesPage, &NamespacesPage::modelRemovalRequested, this, &MainWindow::confirmRemoveModel);
     connect(ui->endpointsPage, &EndpointsPage::endpointsChangeRequested, this, &MainWindow::applyEndpoints);
+    connect(ui->endpointsPage, &EndpointsPage::usersEditRequested, this, &MainWindow::showUsersDialog);
     connect(controller, &ServerController::endpointsChanged, this, &MainWindow::reloadEndpoints);
     connect(controller, &ServerController::restartRequiredChanged, this, &MainWindow::updateRestartNote);
 

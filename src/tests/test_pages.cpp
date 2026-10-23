@@ -169,6 +169,7 @@ private slots:
     void endpointsPageKeepsPolicyAndModePaired();
     void endpointsPageShowsStoredMismatch();
     void endpointsPageFitsEveryEndpoint();
+    void endpointsPageRequestsUsers();
     void certificatesPage();
     void certificatesPageRequestsActions();
     void certificatesPageOwnFolderActions();
@@ -778,6 +779,15 @@ void TestPages::endpointsPageFitsEveryEndpoint()
     for (int column = 0; column < EndpointsModel::ColEnabled; ++column)
         QVERIFY2(table->horizontalHeader()->sectionSize(column) >= view->sizeHintForColumn(column),
                  qPrintable(QStringLiteral("column %1").arg(column)));
+}
+
+void TestPages::endpointsPageRequestsUsers()
+{
+    EndpointsPage page;
+    page.setEndpoints(_snapshot.endpoints);
+    QSignalSpy requested(&page, &EndpointsPage::usersEditRequested);
+    child<QPushButton>(page, "usersButton")->click();
+    QCOMPARE(requested.count(), 1);
 }
 
 void TestPages::certificatesPage()

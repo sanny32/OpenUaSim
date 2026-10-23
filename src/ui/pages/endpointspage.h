@@ -58,6 +58,11 @@ signals:
     ///
     void endpointsChangeRequested(const QList<EndpointInfo> &endpoints);
 
+    ///
+    /// \brief Asks to edit the user accounts that username/password endpoints accept.
+    ///
+    void usersEditRequested();
+
 protected:
     void changeEvent(QEvent *event) override;
 

@@ -450,14 +450,44 @@
                </widget>
               </item>
               <item row="5" column="1">
-               <widget class="QCheckBox" name="usernamePasswordCheck">
-                <property name="toolTip">
-                 <string>Accept the logins listed under Server → User Accounts.</string>
+               <layout class="QHBoxLayout" name="usernamePasswordLayout">
+                <property name="spacing">
+                 <number>8</number>
                 </property>
-                <property name="text">
-                 <string>Enabled</string>
-                </property>
-               </widget>
+                <item>
+                 <widget class="QCheckBox" name="usernamePasswordCheck">
+                  <property name="toolTip">
+                   <string>Accept the logins listed under Server → User Accounts.</string>
+                  </property>
+                  <property name="text">
+                   <string>Enabled</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="usernamePasswordSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="usersButton">
+                  <property name="toolTip">
+                   <string>Edit the user accounts that username/password endpoints accept.</string>
+                  </property>
+                  <property name="text">
+                   <string>Users...</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
               </item>
               <item row="6" column="0">
                <widget class="QLabel" name="trustedClientsOnlyLabel">

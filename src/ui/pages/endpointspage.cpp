@@ -65,6 +65,7 @@ EndpointsPage::EndpointsPage(QWidget *parent)
     connect(ui->revertButton, &QPushButton::clicked, this, &EndpointsPage::revertEndpoint);
     connect(ui->addEndpointButton, &QPushButton::clicked, this, &EndpointsPage::addEndpoint);
     connect(ui->removeEndpointButton, &QPushButton::clicked, this, &EndpointsPage::removeEndpoint);
+    connect(ui->usersButton, &QPushButton::clicked, this, &EndpointsPage::usersEditRequested);
 }
 
 ///

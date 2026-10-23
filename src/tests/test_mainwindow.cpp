@@ -99,6 +99,7 @@ private slots:
     void switchesLanguageWithoutRestart();
     void configuresAlarmFromDialog();
     void appliesUsersFromDialog();
+    void endpointsPageOpensUsersDialog();
     void appliesServerSettingsFromDialog();
     void refusedVariableChangeShowsMessage();
     void endpointChangesShowRestartNote();
@@ -612,6 +613,22 @@ void TestMainWindow::appliesUsersFromDialog()
 
     QCOMPARE(controller.project().users.size(), 1);
     QCOMPARE(controller.project().users.first().username, QStringLiteral("operator"));
+}
+
+void TestMainWindow::endpointsPageOpensUsersDialog()
+{
+    ProjectConfig project = TestProject::create();
+    project.users = { { QStringLiteral("operator"), QStringLiteral("secret") } };
+    ServerController controller;
+    controller.setProject(project);
+    MainWindow window;
+    window.setController(&controller);
+
+    child<QPushButton>(window, "usersButton")->click();
+    auto *dialog = window.findChild<UsersDialog *>();
+    QVERIFY(dialog);
+    QCOMPARE(dialog->users().size(), 1);
+    QCOMPARE(dialog->users().first().username, QStringLiteral("operator"));
 }
 
 void TestMainWindow::appliesServerSettingsFromDialog()
