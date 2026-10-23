@@ -9,8 +9,9 @@
 #pragma once
 
 #include <QDialog>
+#include <QList>
 #include <QSet>
-#include <QStringList>
+#include <QString>
 
 #include "data/projectconfig.h"
 
@@ -19,8 +20,8 @@ class AddNodeDialog;
 }
 
 ///
-/// \brief Asks for the kind, browse name, node id and, for variables, data type, access and icon of a new node;
-///        for methods, their action.
+/// \brief Asks for the parent, kind, browse name, node id and, for variables, data type, access and icon of
+///        a new node; for methods, their action.
 ///
 class AddNodeDialog : public QDialog
 {
@@ -29,18 +30,22 @@ class AddNodeDialog : public QDialog
 public:
     ///
     /// \brief Builds the dialog.
-    /// \param parentName Display name of the node that receives the new node.
-    /// \param siblingNames Browse names already used below that node.
-    /// \param usedIds Node ids already used in the project.
+    /// \param nodes Project node tree whose folders and objects are offered as parents.
+    /// \param parentId Folder or object selected first; empty or unknown selects the top level.
     /// \param parent Parent widget.
     ///
-    AddNodeDialog(const QString &parentName, const QStringList &siblingNames, const QSet<QString> &usedIds,
-                  QWidget *parent = nullptr);
+    AddNodeDialog(const QList<NodeDefinition> &nodes, const QString &parentId, QWidget *parent = nullptr);
 
     ///
     /// \brief Destroys the dialog.
     ///
     ~AddNodeDialog() override;
+
+    ///
+    /// \brief Returns the chosen parent.
+    /// \return Folder or object id; empty for the top level.
+    ///
+    QString parentId() const;
 
     ///
     /// \brief Returns the described node.
@@ -55,10 +60,11 @@ public:
     QString problem() const;
 
 private:
+    void fillParentCombo(const QList<NodeDefinition> &nodes, const QString &path);
     void updateKindFields();
     void validate();
 
     Ui::AddNodeDialog *ui;
-    QStringList _siblingNames;
+    QList<NodeDefinition> _nodes;
     QSet<QString> _usedIds;
 };

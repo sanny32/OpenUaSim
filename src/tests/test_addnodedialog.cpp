@@ -21,6 +21,30 @@ T *child(const QWidget &parent, const char *name)
     return found;
 }
 
+NodeDefinition node(NodeDefinition::Kind kind, const QString &name, const QString &nodeId,
+                    const QList<NodeDefinition> &children = {})
+{
+    NodeDefinition result;
+    result.kind = kind;
+    result.browseName = name;
+    result.nodeId = nodeId;
+    result.children = children;
+    return result;
+}
+
+const QString kTank = QStringLiteral("ns=1;s=Line.Tank");
+const QString kPump = QStringLiteral("ns=1;s=Pump");
+
+QList<NodeDefinition> sampleTree()
+{
+    using Kind = NodeDefinition::Kind;
+    const NodeDefinition tank = node(Kind::Object, QStringLiteral("Tank"), kTank,
+                                     { node(Kind::Variable, QStringLiteral("Level"), QStringLiteral("ns=1;s=Used")),
+                                       node(Kind::Method, QStringLiteral("Reset"), QStringLiteral("ns=1;s=Line.Tank.Reset")) });
+    return { node(Kind::Folder, QStringLiteral("Line"), QStringLiteral("ns=1;s=Line"), { tank }),
+             node(Kind::Object, QStringLiteral("Pump"), kPump) };
+}
+
 bool okEnabled(const AddNodeDialog &dialog)
 {
     return child<QDialogButtonBox>(dialog, "buttonBox")->button(QDialogButtonBox::Ok)->isEnabled();
@@ -34,6 +58,10 @@ class TestAddNodeDialog : public QObject
 
 private slots:
     void showsParentAndStartsInvalid();
+    void offersOnlyContainersAsParents();
+    void unknownParentSelectsTopLevel();
+    void siblingCheckFollowsParent();
+    void methodNeedsContainer();
     void validatesInput_data();
     void validatesInput();
     void describesVariable();
@@ -43,10 +71,57 @@ private slots:
 
 void TestAddNodeDialog::showsParentAndStartsInvalid()
 {
-    AddNodeDialog dialog(QStringLiteral("Tank_01"), {}, {});
-    QCOMPARE(child<QLabel>(dialog, "parentValue")->text(), QStringLiteral("Tank_01"));
+    AddNodeDialog dialog(sampleTree(), kTank);
+    QCOMPARE(child<QComboBox>(dialog, "parentCombo")->currentText(), QStringLiteral("Objects / Line / Tank"));
+    QCOMPARE(dialog.parentId(), kTank);
     QVERIFY(!okEnabled(dialog));
     QCOMPARE(dialog.problem(), QStringLiteral("Enter a browse name."));
+}
+
+void TestAddNodeDialog::offersOnlyContainersAsParents()
+{
+    AddNodeDialog dialog(sampleTree(), QString());
+    auto *parents = child<QComboBox>(dialog, "parentCombo");
+    QStringList labels;
+    for (int i = 0; i < parents->count(); ++i)
+        labels.append(parents->itemText(i));
+    QCOMPARE(labels, QStringList({ QStringLiteral("Objects"), QStringLiteral("Objects / Line"),
+                                   QStringLiteral("Objects / Line / Tank"), QStringLiteral("Objects / Pump") }));
+    QVERIFY(parents->itemData(0).toString().isEmpty());
+    QCOMPARE(parents->itemData(3).toString(), kPump);
+}
+
+void TestAddNodeDialog::unknownParentSelectsTopLevel()
+{
+    AddNodeDialog dialog(sampleTree(), QStringLiteral("ns=1;s=Line.Tank.Reset"));
+    QCOMPARE(child<QComboBox>(dialog, "parentCombo")->currentIndex(), 0);
+    QVERIFY(dialog.parentId().isEmpty());
+}
+
+void TestAddNodeDialog::siblingCheckFollowsParent()
+{
+    AddNodeDialog dialog(sampleTree(), kTank);
+    child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("Level"));
+    QVERIFY(!okEnabled(dialog));
+
+    auto *parents = child<QComboBox>(dialog, "parentCombo");
+    parents->setCurrentIndex(parents->findData(kPump));
+    QVERIFY(dialog.problem().isEmpty());
+    QVERIFY(okEnabled(dialog));
+    QCOMPARE(dialog.parentId(), kPump);
+}
+
+void TestAddNodeDialog::methodNeedsContainer()
+{
+    AddNodeDialog dialog(sampleTree(), QString());
+    child<QComboBox>(dialog, "kindCombo")->setCurrentText(QStringLiteral("Method"));
+    child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("Start"));
+    QCOMPARE(dialog.problem(), QStringLiteral("Choose a folder or object for the method."));
+    QVERIFY(!okEnabled(dialog));
+
+    auto *parents = child<QComboBox>(dialog, "parentCombo");
+    parents->setCurrentIndex(parents->findData(kPump));
+    QVERIFY(okEnabled(dialog));
 }
 
 void TestAddNodeDialog::validatesInput_data()
@@ -70,7 +145,7 @@ void TestAddNodeDialog::validatesInput()
     QFETCH(QString, nodeId);
     QFETCH(QString, problem);
 
-    AddNodeDialog dialog(QStringLiteral("Tank_01"), { QStringLiteral("Level") }, { QStringLiteral("ns=1;s=Used") });
+    AddNodeDialog dialog(sampleTree(), kTank);
     child<QLineEdit>(dialog, "browseNameEdit")->setText(name);
     child<QLineEdit>(dialog, "nodeIdEdit")->setText(nodeId);
     QCOMPARE(dialog.problem(), problem);
@@ -80,7 +155,7 @@ void TestAddNodeDialog::validatesInput()
 
 void TestAddNodeDialog::describesVariable()
 {
-    AddNodeDialog dialog(QStringLiteral("Tank_01"), {}, {});
+    AddNodeDialog dialog(sampleTree(), kTank);
     child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(2);
     child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral(" Outlet "));
     child<QComboBox>(dialog, "dataTypeCombo")->setCurrentText(QStringLiteral("UInt16"));
@@ -101,7 +176,7 @@ void TestAddNodeDialog::describesVariable()
 
 void TestAddNodeDialog::describesFolderWithoutVariableFields()
 {
-    AddNodeDialog dialog(QStringLiteral("Objects"), {}, {});
+    AddNodeDialog dialog(sampleTree(), QString());
     QVERIFY(!child<QComboBox>(dialog, "dataTypeCombo")->isEnabled());
     QVERIFY(!child<QComboBox>(dialog, "iconCombo")->isEnabled());
     child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(1);
@@ -117,7 +192,7 @@ void TestAddNodeDialog::describesFolderWithoutVariableFields()
 
 void TestAddNodeDialog::describesMethod()
 {
-    AddNodeDialog dialog(QStringLiteral("Motor_01"), {}, {});
+    AddNodeDialog dialog(sampleTree(), kPump);
     child<QComboBox>(dialog, "kindCombo")->setCurrentText(QStringLiteral("Method"));
     child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("SetValue"));
     auto *action = child<QComboBox>(dialog, "actionCombo");

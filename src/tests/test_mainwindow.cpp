@@ -411,7 +411,7 @@ void TestMainWindow::addNodeThroughDialog()
     child<QAction>(window, "actionAddNode")->trigger();
     auto *dialog = window.findChild<AddNodeDialog *>();
     QVERIFY(dialog);
-    QCOMPARE(child<QLabel>(*dialog, "parentValue")->text(), QStringLiteral("Tank_01"));
+    QCOMPARE(dialog->parentId(), QStringLiteral("ns=1;s=Tank_01"));
     child<QComboBox>(*dialog, "kindCombo")->setCurrentIndex(2);
     child<QLineEdit>(*dialog, "browseNameEdit")->setText(QStringLiteral("Outlet"));
     dialog->accept();

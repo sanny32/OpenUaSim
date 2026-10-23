@@ -224,7 +224,6 @@ private:
     ProjectDocument *_document = nullptr;
     QTimer *_statusTimer;
     QLabel *_restartNote;
-    QString _pendingParentId;
     QStringList _pendingDeleteIds;
     VariableInfo _pendingAlarmVariable;
     QString _copiedNodeId;

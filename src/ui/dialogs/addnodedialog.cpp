@@ -10,6 +10,8 @@
 #include <QRegularExpression>
 
 #include "addnodedialog.h"
+#include "appicons.h"
+#include "project/projectnodes.h"
 #include "simulation/valuecast.h"
 #include "ui_addnodedialog.h"
 #include "viewsetup.h"
@@ -31,24 +33,26 @@ bool isNodeIdNotation(const QString &nodeId)
 
 ///
 /// \brief Builds the dialog.
-/// \param parentName Display name of the node that receives the new node.
-/// \param siblingNames Browse names already used below that node.
-/// \param usedIds Node ids already used in the project.
+/// \param nodes Project node tree whose folders and objects are offered as parents.
+/// \param parentId Folder or object selected first; empty or unknown selects the top level.
 /// \param parent Parent widget.
 ///
-AddNodeDialog::AddNodeDialog(const QString &parentName, const QStringList &siblingNames,
-                             const QSet<QString> &usedIds, QWidget *parent)
+AddNodeDialog::AddNodeDialog(const QList<NodeDefinition> &nodes, const QString &parentId, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::AddNodeDialog)
-    , _siblingNames(siblingNames)
-    , _usedIds(usedIds)
+    , _nodes(nodes)
+    , _usedIds(ProjectNodes::nodeIds(nodes))
 {
     ui->setupUi(this);
-    ui->parentValue->setText(parentName);
+    const QString objects = tr("Objects");
+    ui->parentCombo->addItem(AppIcons::icon(QStringLiteral("folder")), objects, QString());
+    fillParentCombo(nodes, objects);
+    ui->parentCombo->setCurrentIndex(qMax(0, ui->parentCombo->findData(parentId)));
     ui->dataTypeCombo->addItems(ValueCast::dataTypes());
     ui->dataTypeCombo->setCurrentText(QStringLiteral("Double"));
     ViewSetup::fillVariableIconCombo(ui->iconCombo);
 
+    connect(ui->parentCombo, &QComboBox::currentIndexChanged, this, &AddNodeDialog::validate);
     connect(ui->kindCombo, &QComboBox::currentIndexChanged, this, &AddNodeDialog::updateKindFields);
     connect(ui->browseNameEdit, &QLineEdit::textChanged, this, &AddNodeDialog::validate);
     connect(ui->nodeIdEdit, &QLineEdit::textChanged, this, &AddNodeDialog::validate);
@@ -61,6 +65,15 @@ AddNodeDialog::AddNodeDialog(const QString &parentName, const QStringList &sibli
 AddNodeDialog::~AddNodeDialog()
 {
     delete ui;
+}
+
+///
+/// \brief Returns the chosen parent.
+/// \return Folder or object id; empty for the top level.
+///
+QString AddNodeDialog::parentId() const
+{
+    return ui->parentCombo->currentData().toString();
 }
 
 ///
@@ -94,13 +107,31 @@ QString AddNodeDialog::problem() const
     const QString nodeId = ui->nodeIdEdit->text().trimmed();
     if (name.isEmpty())
         return tr("Enter a browse name.");
-    if (_siblingNames.contains(name))
+    if (NodeDefinition::Kind(ui->kindCombo->currentIndex()) == NodeDefinition::Kind::Method && parentId().isEmpty())
+        return tr("Choose a folder or object for the method.");
+    if (ProjectNodes::childNames(_nodes, parentId()).contains(name))
         return tr("A sibling is already named '%1'.").arg(name);
     if (!nodeId.isEmpty() && !isNodeIdNotation(nodeId))
         return tr("'%1' is not a node id such as ns=1;s=Name.").arg(nodeId);
     if (_usedIds.contains(nodeId))
         return tr("The node id '%1' is already used.").arg(nodeId);
     return {};
+}
+
+///
+/// \brief Adds the folders and objects of a tree to the parent combo, labelled by their browse path.
+/// \param nodes Nodes of one tree level.
+/// \param path Browse path of the level; paths tell apart equally named containers on different branches.
+///
+void AddNodeDialog::fillParentCombo(const QList<NodeDefinition> &nodes, const QString &path)
+{
+    for (const NodeDefinition &node : nodes) {
+        if (node.kind != NodeDefinition::Kind::Folder && node.kind != NodeDefinition::Kind::Object)
+            continue;
+        const QString nodePath = path + QStringLiteral(" / ") + node.browseName;
+        ui->parentCombo->addItem(AppIcons::icon(QStringLiteral("folder")), nodePath, node.nodeId);
+        fillParentCombo(node.children, nodePath);
+    }
 }
 
 ///

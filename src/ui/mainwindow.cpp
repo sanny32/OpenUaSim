@@ -672,13 +672,8 @@ void MainWindow::showAddNodeDialog()
 {
     if (!_controller)
         return;
-    const QList<NodeDefinition> &nodes = _controller->project().nodes;
     const NodeDefinition *selected = targetContainer();
-    _pendingParentId = selected ? selected->nodeId : QString();
-
-    auto *dialog = new AddNodeDialog(selected ? selected->browseName : tr("Objects"),
-                                     ProjectNodes::childNames(nodes, _pendingParentId),
-                                     ProjectNodes::nodeIds(nodes), this);
+    auto *dialog = new AddNodeDialog(_controller->project().nodes, selected ? selected->nodeId : QString(), this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     connect(dialog, &QDialog::accepted, this, &MainWindow::addNodeFromDialog);
     dialog->open();
@@ -693,7 +688,7 @@ void MainWindow::addNodeFromDialog()
     if (!dialog || !_controller)
         return;
     QString error;
-    const QString nodeId = _controller->addNode(_pendingParentId, dialog->node(), &error);
+    const QString nodeId = _controller->addNode(dialog->parentId(), dialog->node(), &error);
     if (nodeId.isEmpty()) {
         showError(tr("Node not added"), error);
         return;

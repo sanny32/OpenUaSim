@@ -8,8 +8,8 @@
         <translation>Добавить узел</translation>
     </message>
     <message>
-        <source>Parent</source>
-        <translation>Родитель</translation>
+        <source>&amp;Parent</source>
+        <translation>&amp;Родитель</translation>
     </message>
     <message>
         <source>&amp;Kind</source>
@@ -80,8 +80,16 @@
         <translation>Задать переменную: SetValue(name, value)</translation>
     </message>
     <message>
+        <source>Objects</source>
+        <translation>Объекты</translation>
+    </message>
+    <message>
         <source>Enter a browse name.</source>
         <translation>Введите имя узла.</translation>
+    </message>
+    <message>
+        <source>Choose a folder or object for the method.</source>
+        <translation>Выберите папку или объект для метода.</translation>
     </message>
     <message>
         <source>A sibling is already named &apos;%1&apos;.</source>
