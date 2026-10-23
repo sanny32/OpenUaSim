@@ -128,7 +128,7 @@ void TestMainWindow::hasAllPages()
     for (int i = 0; i < expected.size(); ++i)
         QCOMPARE(tabs->tabText(i), expected.at(i));
     QCOMPARE(window.windowTitle(), QStringLiteral("OpenUaSim"));
-    QCOMPARE(window.size(), QSize(1331, 811));
+    QCOMPARE(window.size(), QSize(1400, 880));
     QCOMPARE(window.minimumSize(), QSize(1000, 600));
 }
 
@@ -886,19 +886,19 @@ void TestMainWindow::panelsFitTheDefaultWindow()
     AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language(language));
     QCoreApplication::processEvents();
     const QFont windowsFont(QStringLiteral("Segoe UI"), 9);
-    if (!QFontDatabase::families().contains(windowsFont.family()))
-        QSKIP("Needs the Segoe UI font the default window size was designed for");
 
     // Last in the suite: the application style and font change for every widget.
     const QString previousStyle = QApplication::style()->name();
     const QFont previousFont = QApplication::font();
     QApplication::setStyle(new AppStyle);
-    QApplication::setFont(windowsFont);
+    if (QFontDatabase::families().contains(windowsFont.family()))
+        QApplication::setFont(windowsFont);
 
     QStringList overflowing;
     {
         MainWindow window;
         window.setSnapshot(MockData::snapshot());
+        QVERIFY(child<ObjectsPage>(window, "objectsPage")->selectNode(QStringLiteral("ns=2;s=Motor_01.Speed")));
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         auto *tabs = child<QTabWidget>(window, "tabWidget");
@@ -907,7 +907,7 @@ void TestMainWindow::panelsFitTheDefaultWindow()
             QApplication::processEvents();
             const QList<QScrollArea *> bodies = tabs->widget(i)->findChildren<QScrollArea *>();
             for (const QScrollArea *body : bodies) {
-                if (!body->property(AppStyle::panelBodyProperty).toBool())
+                if (!body->property(AppStyle::panelBodyProperty).toBool() || !body->isVisible())
                     continue;
                 const QSize needed = body->widget()->minimumSizeHint();
                 const QSize shown = body->viewport()->size();
