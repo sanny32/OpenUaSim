@@ -34,6 +34,9 @@
    </property>
    <item>
     <layout class="QHBoxLayout" name="headerLayout">
+     <property name="spacing">
+      <number>4</number>
+     </property>
      <property name="leftMargin">
       <number>12</number>
      </property>
@@ -74,8 +77,43 @@
      </item>
      <item>
       <widget class="QToolButton" name="clearButton">
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
        <property name="toolTip">
         <string>Clear Log</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QFrame" name="closeSeparator">
+       <property name="minimumSize">
+        <size>
+         <width>1</width>
+         <height>16</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>1</width>
+         <height>16</height>
+        </size>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::StyledPanel</enum>
+       </property>
+       <property name="separator" stdset="0">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="closeButton">
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+       <property name="toolTip">
+        <string>Close</string>
        </property>
       </widget>
      </item>

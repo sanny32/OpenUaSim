@@ -680,6 +680,10 @@
         <source>Clear Log</source>
         <translation>Очистить журнал</translation>
     </message>
+    <message>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
 </context>
 <context>
     <name>ListenerSettingsBuilder</name>

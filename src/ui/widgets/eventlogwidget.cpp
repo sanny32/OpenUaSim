@@ -7,6 +7,7 @@
 ///
 
 #include <QHeaderView>
+#include <QScrollBar>
 
 #include "appicons.h"
 #include "eventlogwidget.h"
@@ -30,11 +31,13 @@ EventLogWidget::EventLogWidget(QWidget *parent)
 {
     ui->setupUi(this);
     ui->clearButton->setIcon(AppIcons::icon(QStringLiteral("trash")));
+    ui->closeButton->setIcon(AppIcons::icon(QStringLiteral("x")));
     ViewSetup::configureTable(ui->logView);
     // A short strip under the pages: compact rows fit more entries than the delegate's default.
     ui->logView->verticalHeader()->setMinimumSectionSize(kCompactRowHeight);
     ui->logView->verticalHeader()->setDefaultSectionSize(kCompactRowHeight);
     connect(ui->clearButton, &QToolButton::clicked, this, &EventLogWidget::clearLog);
+    connect(ui->closeButton, &QToolButton::clicked, this, &EventLogWidget::closeRequested);
 }
 
 ///
@@ -67,7 +70,8 @@ void EventLogWidget::setLogModel(LogModel *model)
     ui->logView->hideColumn(LogModel::ColCategory);
     ui->logView->setColumnWidth(LogModel::ColTime, 170);
     ui->logView->setColumnWidth(LogModel::ColLevel, 110);
-    connect(model, &LogModel::rowsInserted, this, &EventLogWidget::scrollToBottom);
+    connect(model, &LogModel::rowsAboutToBeInserted, this, &EventLogWidget::rememberScrollPosition);
+    connect(model, &LogModel::rowsInserted, this, &EventLogWidget::followNewRows);
     connect(model, &LogModel::modelReset, this, &EventLogWidget::scrollToBottom);
     scrollToBottom();
 }
@@ -104,7 +108,25 @@ void EventLogWidget::clearLog()
 }
 
 ///
-/// \brief Keeps the newest entry in view.
+/// \brief Notes whether the newest entry is in view before rows arrive.
+///
+void EventLogWidget::rememberScrollPosition()
+{
+    const QScrollBar *bar = ui->logView->verticalScrollBar();
+    _followNewRows = bar->value() >= bar->maximum();
+}
+
+///
+/// \brief Scrolls to arrived rows unless the user scrolled up to read older entries.
+///
+void EventLogWidget::followNewRows()
+{
+    if (_followNewRows)
+        scrollToBottom();
+}
+
+///
+/// \brief Brings the newest entry into view.
 ///
 void EventLogWidget::scrollToBottom()
 {

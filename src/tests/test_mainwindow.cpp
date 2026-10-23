@@ -300,6 +300,11 @@ void TestMainWindow::eventLogActionTogglesPanel()
     action->setChecked(true);
     QVERIFY(eventLog->isVisible());
 
+    eventLog->findChild<QToolButton *>(QStringLiteral("closeButton"))->click();
+    QVERIFY(!eventLog->isVisible());
+    QVERIFY(!action->isChecked());
+    action->setChecked(true);
+
     tabs->setCurrentWidget(child<QWidget>(window, "logPage"));
     QVERIFY(!eventLog->isVisible());
     QVERIFY(!action->isEnabled());

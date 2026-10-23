@@ -20,6 +20,7 @@
 
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSignalSpy>
 #include <QSplitter>
 #include <QStyleFactory>
 #include <QTabBar>
@@ -84,6 +85,9 @@ private slots:
     void delegateRaisesRowHeight();
     void mainStatusBar();
     void eventLogShowsAndClears();
+    void eventLogFollowsNewRowsAtBottom();
+    void eventLogKeepsPositionWhenScrolledUp();
+    void eventLogCloseButtonRequestsClose();
     void appStylePanelsAndSeparators();
     void appStyleAccentButton();
     void appStyleSelectedTab();
@@ -205,8 +209,60 @@ void TestWidgets::eventLogShowsAndClears()
     QVERIFY(view->isColumnHidden(LogModel::ColCategory));
 
     auto *clear = widget.findChild<QToolButton *>(QStringLiteral("clearButton"));
-    QVERIFY(!clear->icon().isNull());    clear->click();
+    QVERIFY(!clear->icon().isNull());
+    clear->click();
     QCOMPARE(model.rowCount(), 0);
+}
+
+void TestWidgets::eventLogFollowsNewRowsAtBottom()
+{
+    LogModel model;
+    model.setItems(QList<LogEntry>(30));
+    EventLogWidget widget;
+    widget.setLogModel(&model);
+    widget.resize(600, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+    const QScrollBar *bar = widget.findChild<QTableView *>()->verticalScrollBar();
+    QVERIFY(bar->maximum() > 0);
+    QCOMPARE(bar->value(), bar->maximum());
+
+    model.appendItems(QList<LogEntry>(5));
+    QApplication::processEvents();
+    QCOMPARE(bar->value(), bar->maximum());
+}
+
+void TestWidgets::eventLogKeepsPositionWhenScrolledUp()
+{
+    LogModel model;
+    model.setItems(QList<LogEntry>(30));
+    EventLogWidget widget;
+    widget.setLogModel(&model);
+    widget.resize(600, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+    QScrollBar *bar = widget.findChild<QTableView *>()->verticalScrollBar();
+    bar->setValue(0);
+
+    model.appendItems(QList<LogEntry>(5));
+    QApplication::processEvents();
+    QCOMPARE(bar->value(), 0);
+
+    bar->setValue(bar->maximum());
+    model.appendItems(QList<LogEntry>(5));
+    QApplication::processEvents();
+    QCOMPARE(bar->value(), bar->maximum());
+}
+
+void TestWidgets::eventLogCloseButtonRequestsClose()
+{
+    EventLogWidget widget;
+    QSignalSpy closed(&widget, &EventLogWidget::closeRequested);
+    auto *close = widget.findChild<QToolButton *>(QStringLiteral("closeButton"));
+    QVERIFY(!close->icon().isNull());
+
+    close->click();
+    QCOMPARE(closed.count(), 1);
 }
 
 void TestWidgets::appStylePanelsAndSeparators()

@@ -163,6 +163,7 @@ private:
     void selectTheme(QAction *action);
     void handleTabChange(int index);
     void updateEventLogVisibility();
+    void hideEventLog();
     void updateStatusBarNote();
     void applyStatus(const ServerStatus &status);
     void refreshStatus();

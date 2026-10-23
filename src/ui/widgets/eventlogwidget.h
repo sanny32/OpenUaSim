@@ -54,13 +54,22 @@ public:
     ///
     int heightForWholeRows(int height) const;
 
+signals:
+    ///
+    /// \brief Asks to hide the panel.
+    ///
+    void closeRequested();
+
 protected:
     void changeEvent(QEvent *event) override;
 
 private:
     void clearLog();
+    void rememberScrollPosition();
+    void followNewRows();
     void scrollToBottom();
 
     Ui::EventLogWidget *ui;
     LogModel *_model = nullptr;
+    bool _followNewRows = true;
 };

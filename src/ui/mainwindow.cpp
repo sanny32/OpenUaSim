@@ -402,6 +402,7 @@ void MainWindow::setupActions()
     for (QAction *action : nodeActions.mid(1))
         action->setEnabled(false);
     connect(ui->actionEventLog, &QAction::toggled, this, &MainWindow::updateEventLogVisibility);
+    connect(ui->eventLog, &EventLogWidget::closeRequested, this, &MainWindow::hideEventLog);
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
     connect(ui->actionAbout, &QAction::triggered, this, &MainWindow::showAbout);
     connect(ui->actionAboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
@@ -570,6 +571,14 @@ void MainWindow::updateEventLogVisibility()
     const bool onLogPage = ui->tabWidget->currentWidget() == ui->logPage;
     ui->actionEventLog->setEnabled(!onLogPage);
     ui->eventLog->setVisible(ui->actionEventLog->isChecked() && !onLogPage);
+}
+
+///
+/// \brief Switches the event log off through its menu action so the menu stays in sync.
+///
+void MainWindow::hideEventLog()
+{
+    ui->actionEventLog->setChecked(false);
 }
 
 ///

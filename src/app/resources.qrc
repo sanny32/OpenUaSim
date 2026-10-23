@@ -29,6 +29,7 @@
         <file alias="icons/trash.svg">res/icons/trash.svg</file>
         <file alias="icons/upload.svg">res/icons/upload.svg</file>
         <file alias="icons/user.svg">res/icons/user.svg</file>
+        <file alias="icons/x.svg">res/icons/x.svg</file>
         <file alias="icons/zap.svg">res/icons/zap.svg</file>
     </qresource>
 </RCC>
