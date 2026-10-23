@@ -301,10 +301,10 @@ QList<TreeNode> tree(const QHash<QString, TypeInfo> &types, bool allStandardType
 }
 
 ///
-/// rief Lists the types a new node of a kind can be an instance of.
+/// \brief Lists the types a new node of a kind can be an instance of.
 /// \param types Types keyed by node id, as types() returns them.
 /// \param kind Folder, object or variable; methods have no type.
-/// eturn The default type first (FolderType, BaseObjectType or BaseDataVariableType), then its concrete subtypes
+/// \return The default type first (FolderType, BaseObjectType or BaseDataVariableType), then its concrete subtypes
 ///         sorted by name: those of imported models and, for variables, the standard data item types. Event types
 ///         and, for objects, folder types are left out.
 ///
