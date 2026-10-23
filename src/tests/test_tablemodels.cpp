@@ -263,6 +263,13 @@ void TestTableModels::variablesModelQuality_data()
     QTest::newRow("uncertain") << VariableInfo::Quality::Uncertain << QStringLiteral("Uncertain")
                                << StatusKind::Warning;
     QTest::newRow("bad") << VariableInfo::Quality::Bad << QStringLiteral("Bad") << StatusKind::Error;
+    QTest::newRow("good local override") << VariableInfo::Quality::GoodLocalOverride
+                                         << QStringLiteral("Good (local override)") << StatusKind::Good;
+    QTest::newRow("uncertain last usable value") << VariableInfo::Quality::UncertainLastUsableValue
+                                                 << QStringLiteral("Uncertain (last usable value)")
+                                                 << StatusKind::Warning;
+    QTest::newRow("bad sensor failure") << VariableInfo::Quality::BadSensorFailure
+                                        << QStringLiteral("Bad (sensor failure)") << StatusKind::Error;
 }
 
 void TestTableModels::variablesModelQuality()

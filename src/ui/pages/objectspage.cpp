@@ -265,7 +265,7 @@ void ObjectsPage::retranslate()
             index, SignalGenerator::displayName(SimulationFunction(ui->simulationCombo->itemData(index).toInt())));
     for (int index = 0; index < ui->qualityCombo->count(); ++index)
         ui->qualityCombo->setItemText(
-            index, VariablesModel::qualityText(VariableInfo::Quality(ui->qualityCombo->itemData(index).toInt())));
+            index, VariablesModel::qualityText(VariableInfo::Quality(ui->qualityCombo->itemData(index).toUInt())));
     _variablesModel->retranslate();
 }
 
@@ -294,7 +294,7 @@ void ObjectsPage::showVariable(const QModelIndex &current)
     ui->arrayLengthSpin->setValue(variable.arrayLength);
     ui->accessCombo->setCurrentText(variable.access);
     ui->initialValueEdit->setText(Formatting::value(variable.initialValue));
-    ui->qualityCombo->setCurrentIndex(ui->qualityCombo->findData(int(variable.configuredQuality)));
+    ui->qualityCombo->setCurrentIndex(ui->qualityCombo->findData(quint32(variable.configuredQuality)));
     ui->simulationCombo->setCurrentIndex(
         ui->simulationCombo->findData(int(variable.simulation.function)));
     ui->intervalSpin->setValue(variable.simulation.intervalMs);
@@ -318,8 +318,8 @@ void ObjectsPage::fillCombos()
     ui->dataTypeCombo->addItems(ValueCast::dataTypes());
     for (SimulationFunction function : SignalGenerator::functions())
         ui->simulationCombo->addItem(SignalGenerator::displayName(function), int(function));
-    for (auto quality : { VariableInfo::Quality::Good, VariableInfo::Quality::Uncertain, VariableInfo::Quality::Bad })
-        ui->qualityCombo->addItem(VariablesModel::qualityText(quality), int(quality));
+    for (VariableInfo::Quality quality : VariableInfo::qualities())
+        ui->qualityCombo->addItem(VariablesModel::qualityText(quality), quint32(quality));
 }
 
 ///
@@ -392,7 +392,7 @@ VariableInfo ObjectsPage::editedVariable() const
     variable.arrayLength = ui->arrayLengthSpin->value();
     variable.access = ui->accessCombo->currentText();
     variable.initialValue = ui->initialValueEdit->isModified() ? QVariant(ui->initialValueEdit->text()) : QVariant();
-    variable.configuredQuality = VariableInfo::Quality(ui->qualityCombo->currentData().toInt());
+    variable.configuredQuality = VariableInfo::Quality(ui->qualityCombo->currentData().toUInt());
     variable.simulation.function = SimulationFunction(ui->simulationCombo->currentData().toInt());
     const int unit = ui->intervalUnitCombo->currentIndex() == kSecondsUnit ? kMillisecondsPerSecond : 1;
     variable.simulation.intervalMs = int(qMin<qint64>(qint64(ui->intervalSpin->value()) * unit,

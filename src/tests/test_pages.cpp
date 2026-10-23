@@ -473,17 +473,18 @@ void TestPages::objectsPageEditsInitialValueAndQuality()
     auto *initialValue = child<QLineEdit>(page, "initialValueEdit");
     auto *quality = child<QComboBox>(page, "qualityCombo");
     QCOMPARE(initialValue->text(), Formatting::value(1000.0));
+    QCOMPARE(quality->count(), VariableInfo::qualities().size());
     QCOMPARE(quality->currentText(), QStringLiteral("Uncertain"));
 
     initialValue->selectAll();
     QTest::keyClicks(initialValue, QStringLiteral("1500"));
-    quality->setCurrentText(QStringLiteral("Bad"));
+    quality->setCurrentText(QStringLiteral("Bad (sensor failure)"));
     child<QPushButton>(page, "applyButton")->click();
 
     QCOMPARE(requested.count(), 1);
     const VariableInfo variable = requested.first().first().value<VariableInfo>();
     QCOMPARE(variable.initialValue, QVariant(QStringLiteral("1500")));
-    QCOMPARE(variable.configuredQuality, VariableInfo::Quality::Bad);
+    QCOMPARE(variable.configuredQuality, VariableInfo::Quality::BadSensorFailure);
 
     child<QPushButton>(page, "revertButton")->click();
     QCOMPARE(initialValue->text(), Formatting::value(1000.0));

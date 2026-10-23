@@ -69,6 +69,8 @@ private slots:
     void raisesOffNormalAlarmFromStart();
     void skipsAlarmWithTakenName();
     void clientReadsBadQuality();
+    void clientReadsSpecificQuality();
+    void mapsStatusCodesToQualities();
 };
 
 void TestAddressSpace::buildsDefaultProject()
@@ -258,6 +260,9 @@ void TestAddressSpace::appliesConfiguredQuality()
     QVERIFY(space.setValue(level.nodeId, 3.0));
     QCOMPARE(space.quality(level.nodeId), VariableInfo::Quality::Bad);
 
+    QVERIFY(space.setQuality(level.nodeId, VariableInfo::Quality::UncertainSensorNotAccurate));
+    QCOMPARE(space.quality(level.nodeId), VariableInfo::Quality::UncertainSensorNotAccurate);
+
     QVERIFY(space.setQuality(level.nodeId, VariableInfo::Quality::Good));
     QVERIFY(space.setValue(level.nodeId, 4.0));
     QCOMPARE(space.quality(level.nodeId), VariableInfo::Quality::Good);
@@ -438,6 +443,38 @@ void TestAddressSpace::clientReadsBadQuality()
     QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
     QVariant value;
     QCOMPARE(client.readValue(broken.nodeId, value), UA_STATUSCODE_BAD);
+}
+
+void TestAddressSpace::clientReadsSpecificQuality()
+{
+    ProjectConfig project = serverProject(TestPort::freePort());
+    NodeDefinition failed = variable(QStringLiteral("Failed"), QStringLiteral("Double"));
+    failed.quality = VariableInfo::Quality::BadSensorFailure;
+    NodeDefinition stale = variable(QStringLiteral("Stale"), QStringLiteral("Double"));
+    stale.quality = VariableInfo::Quality::UncertainLastUsableValue;
+    project.nodes = { folder(QStringLiteral("Test"), { failed, stale }) };
+
+    SimServer server;
+    AddressSpace space(server.uaServer());
+    QVERIFY(space.build(project.nodes).isEmpty());
+    QVERIFY(server.start(project));
+
+    UaTestClient client;
+    QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
+    QVariant value;
+    QCOMPARE(client.readValue(failed.nodeId, value), UA_STATUSCODE_BADSENSORFAILURE);
+    QCOMPARE(client.readValue(stale.nodeId, value), UA_STATUSCODE_UNCERTAINLASTUSABLEVALUE);
+}
+
+void TestAddressSpace::mapsStatusCodesToQualities()
+{
+    QCOMPARE(VariableInfo::qualityOf(UA_STATUSCODE_GOOD), VariableInfo::Quality::Good);
+    QCOMPARE(VariableInfo::qualityOf(UA_STATUSCODE_BADDEVICEFAILURE), VariableInfo::Quality::BadDeviceFailure);
+    QCOMPARE(VariableInfo::qualityOf(UA_STATUSCODE_UNCERTAINSUBSTITUTEVALUE | 0x0400),
+             VariableInfo::Quality::UncertainSubstituteValue);
+    QCOMPARE(VariableInfo::qualityOf(UA_STATUSCODE_UNCERTAINSENSORCALIBRATION), VariableInfo::Quality::Uncertain);
+    QCOMPARE(VariableInfo::qualityOf(UA_STATUSCODE_BADTIMEOUT), VariableInfo::Quality::Bad);
+    QCOMPARE(VariableInfo::qualityOf(UA_STATUSCODE_GOODCLAMPED), VariableInfo::Quality::Good);
 }
 
 QTEST_GUILESS_MAIN(TestAddressSpace)

@@ -108,14 +108,14 @@ public:
     ///
     /// \brief Returns the quality of a variable's value.
     /// \param nodeId Variable node id.
-    /// \return Good, Uncertain or Bad, from the severity of the status code; Bad for an unknown variable.
+    /// \return The quality of the status code; Bad for an unknown variable.
     ///
     VariableInfo::Quality quality(const QString &nodeId) const;
 
     ///
     /// \brief Returns the quality of any server variable's value.
     /// \param variable Variable to inspect.
-    /// \return Good, Uncertain or Bad, from the severity of its status code.
+    /// \return The quality of its status code; the generic one of its severity for an unlisted code.
     ///
     static VariableInfo::Quality qualityOf(const QUaBaseVariable &variable);
 
@@ -138,7 +138,7 @@ public:
     ///
     /// \brief Changes the quality reported with the current and every later value of a variable.
     /// \param nodeId Variable node id.
-    /// \param quality Good, Uncertain or Bad.
+    /// \param quality Quality to report.
     /// \return False for an unknown variable.
     ///
     bool setQuality(const QString &nodeId, VariableInfo::Quality quality);

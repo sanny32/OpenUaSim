@@ -70,6 +70,7 @@ private slots:
     void preservesEveryDataTypeValue_data();
     void preservesEveryDataTypeValue();
     void preservesQuality();
+    void preservesEveryQuality();
     void preservesSimulationValues();
     void preservesMethods();
     void preservesAlarms();
@@ -177,6 +178,26 @@ void TestProjectFile::preservesQuality()
     const ProjectFile::LoadResult result = ProjectFile::fromJson(json);
     QVERIFY2(result.ok(), qPrintable(result.error));
     QCOMPARE(result.project.nodes.first().quality, VariableInfo::Quality::Uncertain);
+}
+
+void TestProjectFile::preservesEveryQuality()
+{
+    ProjectConfig project;
+    for (VariableInfo::Quality quality : VariableInfo::qualities()) {
+        NodeDefinition node;
+        node.kind = NodeDefinition::Kind::Variable;
+        node.browseName = QStringLiteral("Value%1").arg(project.nodes.size());
+        node.quality = quality;
+        project.nodes.append(node);
+    }
+
+    const QByteArray json = ProjectFile::toJson(project);
+    QVERIFY(json.contains("\"bad_sensor_failure\""));
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(json);
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.project.nodes.size(), project.nodes.size());
+    for (qsizetype index = 0; index < project.nodes.size(); ++index)
+        QCOMPARE(result.project.nodes.at(index).quality, project.nodes.at(index).quality);
 }
 
 void TestProjectFile::preservesSimulationValues()

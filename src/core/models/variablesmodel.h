@@ -74,7 +74,7 @@ public:
     ///
     /// \brief Returns the display text of a quality.
     /// \param quality Quality to describe.
-    /// \return "Good", "Uncertain" or "Bad".
+    /// \return Severity, followed by the reason of a specific status code, e.g. "Bad (sensor failure)".
     ///
     static QString qualityText(VariableInfo::Quality quality);
 

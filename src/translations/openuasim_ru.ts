@@ -2389,6 +2389,66 @@
         <translation>Плохое</translation>
     </message>
     <message>
+        <source>Good (local override)</source>
+        <translation>Хорошее (локальная подмена)</translation>
+    </message>
+    <message>
+        <source>Uncertain (no communication, last usable value)</source>
+        <translation>Неопределённое (нет связи, последнее пригодное значение)</translation>
+    </message>
+    <message>
+        <source>Uncertain (last usable value)</source>
+        <translation>Неопределённое (последнее пригодное значение)</translation>
+    </message>
+    <message>
+        <source>Uncertain (substitute value)</source>
+        <translation>Неопределённое (замещающее значение)</translation>
+    </message>
+    <message>
+        <source>Uncertain (initial value)</source>
+        <translation>Неопределённое (начальное значение)</translation>
+    </message>
+    <message>
+        <source>Uncertain (sensor not accurate)</source>
+        <translation>Неопределённое (неточный датчик)</translation>
+    </message>
+    <message>
+        <source>Uncertain (engineering units exceeded)</source>
+        <translation>Неопределённое (выход за пределы шкалы)</translation>
+    </message>
+    <message>
+        <source>Uncertain (sub-normal)</source>
+        <translation>Неопределённое (ниже нормы)</translation>
+    </message>
+    <message>
+        <source>Bad (configuration error)</source>
+        <translation>Плохое (ошибка конфигурации)</translation>
+    </message>
+    <message>
+        <source>Bad (not connected)</source>
+        <translation>Плохое (не подключено)</translation>
+    </message>
+    <message>
+        <source>Bad (device failure)</source>
+        <translation>Плохое (отказ устройства)</translation>
+    </message>
+    <message>
+        <source>Bad (sensor failure)</source>
+        <translation>Плохое (отказ датчика)</translation>
+    </message>
+    <message>
+        <source>Bad (out of service)</source>
+        <translation>Плохое (выведено из работы)</translation>
+    </message>
+    <message>
+        <source>Bad (no communication)</source>
+        <translation>Плохое (нет связи)</translation>
+    </message>
+    <message>
+        <source>Bad (waiting for initial data)</source>
+        <translation>Плохое (ожидание начальных данных)</translation>
+    </message>
+    <message>
         <source>Normal</source>
         <translation>Норма</translation>
     </message>

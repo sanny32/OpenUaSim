@@ -90,14 +90,30 @@ bool kindFromKey(const QString &key, NodeDefinition::Kind &kind)
 ///
 /// \brief Returns the stored key of a value quality.
 /// \param quality Quality to name.
-/// \return "good", "uncertain" or "bad".
+/// \return Snake-case name of the status code, e.g. "good" or "bad_sensor_failure".
 ///
 QString qualityKey(VariableInfo::Quality quality)
 {
+    using Q = VariableInfo::Quality;
     switch (quality) {
-    case VariableInfo::Quality::Good:      return QStringLiteral("good");
-    case VariableInfo::Quality::Uncertain: return QStringLiteral("uncertain");
-    case VariableInfo::Quality::Bad:       return QStringLiteral("bad");
+    case Q::Good:                                    return QStringLiteral("good");
+    case Q::GoodLocalOverride:                       return QStringLiteral("good_local_override");
+    case Q::Uncertain:                               return QStringLiteral("uncertain");
+    case Q::UncertainNoCommunicationLastUsableValue: return QStringLiteral("uncertain_no_communication_last_usable_value");
+    case Q::UncertainLastUsableValue:                return QStringLiteral("uncertain_last_usable_value");
+    case Q::UncertainSubstituteValue:                return QStringLiteral("uncertain_substitute_value");
+    case Q::UncertainInitialValue:                   return QStringLiteral("uncertain_initial_value");
+    case Q::UncertainSensorNotAccurate:              return QStringLiteral("uncertain_sensor_not_accurate");
+    case Q::UncertainEngineeringUnitsExceeded:       return QStringLiteral("uncertain_engineering_units_exceeded");
+    case Q::UncertainSubNormal:                      return QStringLiteral("uncertain_sub_normal");
+    case Q::Bad:                                     return QStringLiteral("bad");
+    case Q::BadConfigurationError:                   return QStringLiteral("bad_configuration_error");
+    case Q::BadNotConnected:                         return QStringLiteral("bad_not_connected");
+    case Q::BadDeviceFailure:                        return QStringLiteral("bad_device_failure");
+    case Q::BadSensorFailure:                        return QStringLiteral("bad_sensor_failure");
+    case Q::BadOutOfService:                         return QStringLiteral("bad_out_of_service");
+    case Q::BadNoCommunication:                      return QStringLiteral("bad_no_communication");
+    case Q::BadWaitingForInitialData:                return QStringLiteral("bad_waiting_for_initial_data");
     }
     return {};
 }
@@ -110,8 +126,7 @@ QString qualityKey(VariableInfo::Quality quality)
 ///
 bool qualityFromKey(const QString &key, VariableInfo::Quality &quality)
 {
-    for (VariableInfo::Quality candidate : { VariableInfo::Quality::Good, VariableInfo::Quality::Uncertain,
-                                             VariableInfo::Quality::Bad }) {
+    for (VariableInfo::Quality candidate : VariableInfo::qualities()) {
         if (qualityKey(candidate) == key) {
             quality = candidate;
             return true;

@@ -129,14 +129,30 @@ void VariablesModel::updateValues(const QHash<QString, QVariant> &values)
 ///
 /// \brief Returns the display text of a quality.
 /// \param quality Quality to describe.
-/// \return "Good", "Uncertain" or "Bad".
+/// \return Severity, followed by the reason of a specific status code, e.g. "Bad (sensor failure)".
 ///
 QString VariablesModel::qualityText(VariableInfo::Quality quality)
 {
+    using Q = VariableInfo::Quality;
     switch (quality) {
-    case VariableInfo::Quality::Good:      return tr("Good");
-    case VariableInfo::Quality::Uncertain: return tr("Uncertain");
-    case VariableInfo::Quality::Bad:       return tr("Bad");
+    case Q::Good:                                    return tr("Good");
+    case Q::GoodLocalOverride:                       return tr("Good (local override)");
+    case Q::Uncertain:                               return tr("Uncertain");
+    case Q::UncertainNoCommunicationLastUsableValue: return tr("Uncertain (no communication, last usable value)");
+    case Q::UncertainLastUsableValue:                return tr("Uncertain (last usable value)");
+    case Q::UncertainSubstituteValue:                return tr("Uncertain (substitute value)");
+    case Q::UncertainInitialValue:                   return tr("Uncertain (initial value)");
+    case Q::UncertainSensorNotAccurate:              return tr("Uncertain (sensor not accurate)");
+    case Q::UncertainEngineeringUnitsExceeded:       return tr("Uncertain (engineering units exceeded)");
+    case Q::UncertainSubNormal:                      return tr("Uncertain (sub-normal)");
+    case Q::Bad:                                     return tr("Bad");
+    case Q::BadConfigurationError:                   return tr("Bad (configuration error)");
+    case Q::BadNotConnected:                         return tr("Bad (not connected)");
+    case Q::BadDeviceFailure:                        return tr("Bad (device failure)");
+    case Q::BadSensorFailure:                        return tr("Bad (sensor failure)");
+    case Q::BadOutOfService:                         return tr("Bad (out of service)");
+    case Q::BadNoCommunication:                      return tr("Bad (no communication)");
+    case Q::BadWaitingForInitialData:                return tr("Bad (waiting for initial data)");
     }
     return {};
 }
@@ -148,10 +164,10 @@ QString VariablesModel::qualityText(VariableInfo::Quality quality)
 ///
 StatusKind VariablesModel::qualityStatus(VariableInfo::Quality quality)
 {
-    switch (quality) {
+    switch (VariableInfo::severityOf(quint32(quality))) {
     case VariableInfo::Quality::Good:      return StatusKind::Good;
     case VariableInfo::Quality::Uncertain: return StatusKind::Warning;
-    case VariableInfo::Quality::Bad:       return StatusKind::Error;
+    default:                               return StatusKind::Error;
     }
     return StatusKind::None;
 }

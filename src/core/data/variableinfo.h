@@ -94,9 +94,80 @@ struct AlarmSettings
 struct VariableInfo
 {
     ///
-    /// \brief OPC UA value quality.
+    /// \brief OPC UA value quality; each value is the StatusCode the server reports (OPC UA Part 8, 7.3).
     ///
-    enum class Quality { Good, Uncertain, Bad };
+    enum class Quality : quint32 {
+        Good = 0x00000000,
+        GoodLocalOverride = 0x00960000,
+        Uncertain = 0x40000000,
+        UncertainNoCommunicationLastUsableValue = 0x408F0000,
+        UncertainLastUsableValue = 0x40900000,
+        UncertainSubstituteValue = 0x40910000,
+        UncertainInitialValue = 0x40920000,
+        UncertainSensorNotAccurate = 0x40930000,
+        UncertainEngineeringUnitsExceeded = 0x40940000,
+        UncertainSubNormal = 0x40950000,
+        Bad = 0x80000000,
+        BadConfigurationError = 0x80890000,
+        BadNotConnected = 0x808A0000,
+        BadDeviceFailure = 0x808B0000,
+        BadSensorFailure = 0x808C0000,
+        BadOutOfService = 0x808D0000,
+        BadNoCommunication = 0x80310000,
+        BadWaitingForInitialData = 0x80320000,
+    };
+
+    ///
+    /// \brief Lists every quality, grouped by severity.
+    /// \return Qualities in display order.
+    ///
+    static QList<Quality> qualities()
+    {
+        return { Quality::Good,
+                 Quality::GoodLocalOverride,
+                 Quality::Uncertain,
+                 Quality::UncertainNoCommunicationLastUsableValue,
+                 Quality::UncertainLastUsableValue,
+                 Quality::UncertainSubstituteValue,
+                 Quality::UncertainInitialValue,
+                 Quality::UncertainSensorNotAccurate,
+                 Quality::UncertainEngineeringUnitsExceeded,
+                 Quality::UncertainSubNormal,
+                 Quality::Bad,
+                 Quality::BadConfigurationError,
+                 Quality::BadNotConnected,
+                 Quality::BadDeviceFailure,
+                 Quality::BadSensorFailure,
+                 Quality::BadOutOfService,
+                 Quality::BadNoCommunication,
+                 Quality::BadWaitingForInitialData };
+    }
+
+    ///
+    /// \brief Returns the generic quality of a status code's severity.
+    /// \param statusCode OPC UA StatusCode.
+    /// \return Good, Uncertain or Bad.
+    ///
+    static Quality severityOf(quint32 statusCode)
+    {
+        // Bits 30-31 of a StatusCode hold its severity (OPC UA Part 4, 7.39).
+        switch (statusCode >> 30) {
+        case 0:  return Quality::Good;
+        case 1:  return Quality::Uncertain;
+        default: return Quality::Bad;
+        }
+    }
+
+    ///
+    /// \brief Returns the quality a status code is reported with.
+    /// \param statusCode OPC UA StatusCode; its info bits are ignored.
+    /// \return The listed quality of that code, or the generic one of its severity.
+    ///
+    static Quality qualityOf(quint32 statusCode)
+    {
+        const auto code = Quality(statusCode & 0xFFFF0000u);
+        return qualities().contains(code) ? code : severityOf(statusCode);
+    }
 
     /// \brief String form of the node identifier.
     QString nodeId;

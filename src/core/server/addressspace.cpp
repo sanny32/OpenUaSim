@@ -31,19 +31,23 @@ void applyAccess(QUaBaseDataVariable *variable, const QString &access)
     variable->setWriteAccess(access != QLatin1String("Read"));
 }
 
+static_assert(quint32(VariableInfo::Quality::GoodLocalOverride) == UA_STATUSCODE_GOODLOCALOVERRIDE);
+static_assert(quint32(VariableInfo::Quality::UncertainNoCommunicationLastUsableValue)
+              == UA_STATUSCODE_UNCERTAINNOCOMMUNICATIONLASTUSABLEVALUE);
+static_assert(quint32(VariableInfo::Quality::UncertainSubNormal) == UA_STATUSCODE_UNCERTAINSUBNORMAL);
+static_assert(quint32(VariableInfo::Quality::BadConfigurationError) == UA_STATUSCODE_BADCONFIGURATIONERROR);
+static_assert(quint32(VariableInfo::Quality::BadOutOfService) == UA_STATUSCODE_BADOUTOFSERVICE);
+static_assert(quint32(VariableInfo::Quality::BadNoCommunication) == UA_STATUSCODE_BADNOCOMMUNICATION);
+static_assert(quint32(VariableInfo::Quality::BadWaitingForInitialData) == UA_STATUSCODE_BADWAITINGFORINITIALDATA);
+
 ///
 /// \brief Returns the status code a quality is reported with.
-/// \param quality Good, Uncertain or Bad.
-/// \return Generic status code of that severity.
+/// \param quality Quality to report.
+/// \return The status code the quality stands for.
 ///
 QUaStatusCode statusCodeOf(VariableInfo::Quality quality)
 {
-    switch (quality) {
-    case VariableInfo::Quality::Good:      return QUaStatusCode(UA_STATUSCODE_GOOD);
-    case VariableInfo::Quality::Uncertain: return QUaStatusCode(UA_STATUSCODE_UNCERTAIN);
-    case VariableInfo::Quality::Bad:       return QUaStatusCode(UA_STATUSCODE_BAD);
-    }
-    return QUaStatusCode(UA_STATUSCODE_BAD);
+    return QUaStatusCode(UA_StatusCode(quality));
 }
 
 ///
@@ -193,7 +197,7 @@ QVariant AddressSpace::value(const QString &nodeId) const
 ///
 /// \brief Returns the quality of a variable's value.
 /// \param nodeId Variable node id.
-/// \return Good, Uncertain or Bad, from the severity of the status code; Bad for an unknown variable.
+/// \return The quality of the status code; Bad for an unknown variable.
 ///
 VariableInfo::Quality AddressSpace::quality(const QString &nodeId) const
 {
@@ -204,16 +208,11 @@ VariableInfo::Quality AddressSpace::quality(const QString &nodeId) const
 ///
 /// \brief Returns the quality of any server variable's value.
 /// \param variable Variable to inspect.
-/// \return Good, Uncertain or Bad, from the severity of its status code.
+/// \return The quality of its status code; the generic one of its severity for an unlisted code.
 ///
 VariableInfo::Quality AddressSpace::qualityOf(const QUaBaseVariable &variable)
 {
-    // Bits 30-31 of a StatusCode hold its severity (OPC UA Part 4, 7.39).
-    switch (UA_StatusCode(variable.statusCode()) >> 30) {
-    case 0:  return VariableInfo::Quality::Good;
-    case 1:  return VariableInfo::Quality::Uncertain;
-    default: return VariableInfo::Quality::Bad;
-    }
+    return VariableInfo::qualityOf(UA_StatusCode(variable.statusCode()));
 }
 
 ///
@@ -249,7 +248,7 @@ bool AddressSpace::setAccess(const QString &nodeId, const QString &access)
 ///
 /// \brief Changes the quality reported with the current and every later value of a variable.
 /// \param nodeId Variable node id.
-/// \param quality Good, Uncertain or Bad.
+/// \param quality Quality to report.
 /// \return False for an unknown variable.
 ///
 bool AddressSpace::setQuality(const QString &nodeId, VariableInfo::Quality quality)
