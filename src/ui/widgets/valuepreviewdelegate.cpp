@@ -8,12 +8,10 @@
 
 #include <QAbstractItemView>
 #include <QApplication>
-#include <QFontMetricsF>
 #include <QHelpEvent>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QStyleOptionToolButton>
-#include <QToolTip>
 
 #include "appicons.h"
 #include "valuepreviewdelegate.h"
@@ -96,10 +94,7 @@ bool ValuePreviewDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view,
 {
     if (event->type() != QEvent::ToolTip || !needsExpansion(option, index))
         return ItemDelegate::helpEvent(event, view, option, index);
-    // Rich text makes long values wrap instead of producing a screen-wide tooltip.
-    const QString text = QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
-                             .arg(index.data(Qt::UserRole).toString().toHtmlEscaped());
-    QToolTip::showText(event->globalPos(), text, view->viewport(), option.rect);
+    showTextTip(event, view, option.rect, index.data(Qt::UserRole).toString());
     return true;
 }
 
@@ -118,12 +113,7 @@ bool ValuePreviewDelegate::needsExpansion(const QStyleOptionViewItem &option, co
     const QString value = index.data(Qt::UserRole).toString();
     if (value.isEmpty())
         return false;
-    const QStyle *style = option.widget ? option.widget->style() : QApplication::style();
-    const QRect text = style->subElementRect(QStyle::SE_ItemViewItemText, &styled, option.widget);
-    const int margin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, &styled, option.widget) + 1;
-    // The style elides by fractional width; a rounded advance misses overflows below half a pixel.
-    return value != styled.text
-           || QFontMetricsF(styled.font).horizontalAdvance(styled.text) > text.width() - 2 * margin;
+    return value != styled.text || textOverflows(styled);
 }
 
 ///

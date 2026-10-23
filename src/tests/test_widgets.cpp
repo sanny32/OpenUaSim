@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <QCheckBox>
+#include <QHelpEvent>
 #include <QClipboard>
 #include <QComboBox>
 #include <QHeaderView>
@@ -99,6 +100,7 @@ private slots:
     void fitColumnsWhenFilledFitsOnce();
     void fitColumnsWhenFilledCapsLongValues();
     void fitColumnsWhenFilledScrollsToLastColumn();
+    void elidedCellShowsFullTextTooltip();
     void growColumnWithContentsNeverShrinks();
     void growColumnWithContentsKeepsWiderUserWidth();
     void fillVariableIconComboListsResolvableIcons();
@@ -556,6 +558,40 @@ void TestWidgets::fitColumnsWhenFilledScrollsToLastColumn()
     view.resize(view.horizontalHeader()->length() + 200, 200);
     QTRY_COMPARE(view.horizontalHeader()->length(), view.viewport()->width());
     QCOMPARE(view.horizontalScrollBar()->maximum(), 0);
+}
+
+void TestWidgets::elidedCellShowsFullTextTooltip()
+{
+    const QString message = QStringLiteral("Could not add SecurityPolicy#EccNistP256 with error <BadInternalError>");
+    QStandardItemModel model(0, 3);
+    auto *own = new QStandardItem(message);
+    own->setToolTip(QStringLiteral("Own tooltip"));
+    model.appendRow({ new QStandardItem(message), new QStandardItem(QStringLiteral("x")), own });
+    QTableView view;
+    view.setModel(&model);
+    ViewSetup::configureTable(&view);
+    view.horizontalHeader()->setStretchLastSection(false);
+    view.setColumnWidth(0, 60);
+    view.setColumnWidth(1, 60);
+    view.setColumnWidth(2, 60);
+    view.resize(400, 200);
+    view.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&view));
+    const auto hover = [&view](int column) {
+        const QPoint pos = view.visualRect(view.model()->index(0, column)).center();
+        QHelpEvent event(QEvent::ToolTip, pos, view.viewport()->mapToGlobal(pos));
+        QCoreApplication::sendEvent(view.viewport(), &event);
+    };
+
+    hover(0);
+    QTRY_VERIFY(QToolTip::isVisible());
+    QVERIFY(QToolTip::text().contains(message.toHtmlEscaped()));
+
+    hover(2);
+    QTRY_COMPARE(QToolTip::text(), QStringLiteral("Own tooltip"));
+
+    hover(1);
+    QTRY_VERIFY(!QToolTip::isVisible());
 }
 
 void TestWidgets::growColumnWithContentsNeverShrinks()

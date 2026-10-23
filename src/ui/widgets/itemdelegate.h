@@ -33,6 +33,19 @@ public:
     ///
     QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 
+    ///
+    /// \brief Shows the complete text as a tooltip while the cell elides it and the model gives no tooltip.
+    /// \param event Help event.
+    /// \param view View containing the cell.
+    /// \param option Cell geometry and state.
+    /// \param index Cell index.
+    /// \return Whether the event was handled.
+    ///
+    bool helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
+                   const QModelIndex &index) override;
+
 protected:
     void initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const override;
+    bool textOverflows(const QStyleOptionViewItem &styled) const;
+    static void showTextTip(const QHelpEvent *event, QAbstractItemView *view, const QRect &cell, const QString &text);
 };
