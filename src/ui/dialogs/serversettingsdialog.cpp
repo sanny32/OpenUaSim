@@ -23,9 +23,13 @@ ServerSettingsDialog::ServerSettingsDialog(const ServerSettings &settings, QWidg
 {
     ui->setupUi(this);
     ui->maxSessionsSpin->setMaximum(kMaxSessionLimit);
+    ui->historyMaxValuesSpin->setMaximum(kMaxHistoryValues);
+    ui->historyMaxAgeSpin->setMaximum(kMaxHistoryAgeMinutes);
     ui->applicationNameEdit->setText(settings.applicationName);
     ui->applicationUriEdit->setText(settings.applicationUri);
     ui->maxSessionsSpin->setValue(settings.maxSessions);
+    ui->historyMaxValuesSpin->setValue(settings.history.maxValues);
+    ui->historyMaxAgeSpin->setValue(settings.history.maxAgeMinutes);
 
     connect(ui->applicationNameEdit, &QLineEdit::textChanged, this, &ServerSettingsDialog::validate);
     connect(ui->applicationUriEdit, &QLineEdit::textChanged, this, &ServerSettingsDialog::validate);
@@ -47,7 +51,7 @@ ServerSettingsDialog::~ServerSettingsDialog()
 ServerSettings ServerSettingsDialog::settings() const
 {
     return { ui->applicationNameEdit->text().trimmed(), ui->applicationUriEdit->text().trimmed(),
-             ui->maxSessionsSpin->value() };
+             ui->maxSessionsSpin->value(), { ui->historyMaxValuesSpin->value(), ui->historyMaxAgeSpin->value() } };
 }
 
 ///

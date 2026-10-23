@@ -1605,6 +1605,14 @@
         <source>Raise an OPC UA alarm when the value crosses limits or leaves its normal value</source>
         <translation>Формировать аларм OPC UA при выходе значения за пороги или из нормального состояния</translation>
     </message>
+    <message>
+        <source>Historizing</source>
+        <translation>Архивирование</translation>
+    </message>
+    <message>
+        <source>Keep the recent values in memory for clients that read the history; Server Settings limit how many</source>
+        <translation>Хранить последние значения в памяти для клиентов, читающих историю; сколько — задают настройки сервера</translation>
+    </message>
 </context>
 <context>
     <name>ProjectDocument</name>
@@ -1825,6 +1833,34 @@
         <source>A running server applies the changes on restart.</source>
         <translation>Работающий сервер применит изменения после перезапуска.</translation>
     </message>
+    <message>
+        <source>&amp;History Size</source>
+        <translation>Размер &amp;истории</translation>
+    </message>
+    <message>
+        <source>Values kept per historizing variable; the oldest are dropped first</source>
+        <translation>Сколько значений хранить для каждой архивируемой переменной; первыми удаляются самые старые</translation>
+    </message>
+    <message>
+        <source> values</source>
+        <translation> значений</translation>
+    </message>
+    <message>
+        <source>History &amp;Retention</source>
+        <translation>&amp;Срок хранения истории</translation>
+    </message>
+    <message>
+        <source>Drop values older than this, counted from the newest value of the variable</source>
+        <translation>Удалять значения старше этого срока, отсчитывая от последнего значения переменной</translation>
+    </message>
+    <message>
+        <source>Unlimited</source>
+        <translation>Без ограничения</translation>
+    </message>
+    <message>
+        <source> min</source>
+        <translation> мин</translation>
+    </message>
 </context>
 <context>
     <name>ServerSettingsRules</name>
@@ -1839,6 +1875,14 @@
     <message>
         <source>The session limit must be between 1 and %1</source>
         <translation>Предел сеансов должен быть от 1 до %1</translation>
+    </message>
+    <message>
+        <source>The history must keep between 1 and %1 values</source>
+        <translation>История должна хранить от 1 до %1 значений</translation>
+    </message>
+    <message>
+        <source>The history retention must be between 0 and %1 minutes</source>
+        <translation>Срок хранения истории должен быть от 0 до %1 минут</translation>
     </message>
 </context>
 <context>

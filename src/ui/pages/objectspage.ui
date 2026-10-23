@@ -542,23 +542,46 @@
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QComboBox" name="accessCombo">
+               <layout class="QHBoxLayout" name="accessLayout">
+                <property name="spacing">
+                 <number>8</number>
+                </property>
                 <item>
-                 <property name="text">
-                  <string>Read</string>
-                 </property>
+                 <widget class="QComboBox" name="accessCombo">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                    <horstretch>1</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <item>
+                   <property name="text">
+                    <string>Read</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Write</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Read/Write</string>
+                   </property>
+                  </item>
+                 </widget>
                 </item>
                 <item>
-                 <property name="text">
-                  <string>Write</string>
-                 </property>
+                 <widget class="QCheckBox" name="historizingCheck">
+                  <property name="text">
+                   <string>Historizing</string>
+                  </property>
+                  <property name="toolTip">
+                   <string>Keep the recent values in memory for clients that read the history; Server Settings limit how many</string>
+                  </property>
+                 </widget>
                 </item>
-                <item>
-                 <property name="text">
-                  <string>Read/Write</string>
-                 </property>
-                </item>
-               </widget>
+               </layout>
               </item>
               <item row="4" column="0">
                <widget class="QLabel" name="initialValueLabel">

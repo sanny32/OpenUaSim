@@ -62,6 +62,7 @@ private slots:
     void updateVariableReportsRefusal();
     void updateVariableAppliesInitialValueAndQuality();
     void updateVariableRejectsInvalidInitialValue();
+    void updateVariableTogglesHistorizing();
     void alarmChangesAreLoggedAndAnnounced();
     void renameNodeRebuilds();
     void setServerSettingsRequiresRestartWhileRunning();
@@ -313,6 +314,45 @@ void TestServerController::updateVariableRejectsInvalidInitialValue()
     QCOMPARE(ProjectNodes::find(controller.project().nodes, nodeId)->dataType, QStringLiteral("Double"));
 }
 
+void TestServerController::updateVariableTogglesHistorizing()
+{
+    ServerController controller;
+    controller.setProject(project());
+    QVERIFY(controller.start());
+    QSignalSpy structure(&controller, &ServerController::projectChanged);
+    QSignalSpy changed(&controller, &ServerController::variableChanged);
+    const QString nodeId = QStringLiteral("ns=1;s=Tank_01.Level");
+
+    VariableInfo level = SnapshotBuilder::variableInfo(*ProjectNodes::find(controller.project().nodes, nodeId),
+                                                       controller.addressSpace());
+    QVERIFY(level.historizing);
+    level.simulation.function = SimulationFunction::None;
+    level.historizing = false;
+    QVERIFY(controller.updateVariable(level));
+    QCOMPARE(structure.count(), 0);
+    QVERIFY(!ProjectNodes::find(controller.project().nodes, nodeId)->historizing);
+    QVERIFY(!changed.last().first().value<VariableInfo>().historizing);
+    QTest::qWait(5);
+    QVERIFY(controller.addressSpace().setValue(nodeId, 61.0));
+
+    level.historizing = true;
+    QVERIFY(controller.updateVariable(level));
+    QVERIFY(ProjectNodes::find(controller.project().nodes, nodeId)->historizing);
+    QVERIFY(changed.last().first().value<VariableInfo>().historizing);
+    QTest::qWait(5);
+    QVERIFY(controller.addressSpace().setValue(nodeId, 62.0));
+    QTest::qWait(5);
+    QVERIFY(controller.addressSpace().setValue(nodeId, 63.0));
+
+    UaTestClient client;
+    QCOMPARE(client.connect(controller.server().endpointUrl()), UA_STATUSCODE_GOOD);
+    QVariantList history;
+    QCOMPARE(client.readHistory(nodeId, history), UA_STATUSCODE_GOOD);
+    QVERIFY(history.size() >= 2);
+    QVERIFY(!history.contains(61.0));
+    QCOMPARE(history.mid(history.size() - 2), QVariantList({ 62.0, 63.0 }));
+}
+
 void TestServerController::alarmChangesAreLoggedAndAnnounced()
 {
     ServerController controller;
@@ -393,12 +433,24 @@ void TestServerController::setServerSettingsRejectsInvalidValues_data()
     QTest::addColumn<QString>("name");
     QTest::addColumn<QString>("uri");
     QTest::addColumn<int>("maxSessions");
+    QTest::addColumn<int>("historyValues");
+    QTest::addColumn<int>("historyMinutes");
     QTest::addColumn<QString>("error");
 
-    QTest::newRow("name") << " " << "urn:x" << 1 << "The application name is empty";
-    QTest::newRow("uri") << "Sim" << "" << 1 << "The application URI is empty";
-    QTest::newRow("zero sessions") << "Sim" << "urn:x" << 0 << "The session limit must be between 1 and 65535";
-    QTest::newRow("too many") << "Sim" << "urn:x" << 65536 << "The session limit must be between 1 and 65535";
+    QTest::newRow("name") << " " << "urn:x" << 1 << 1 << 0 << "The application name is empty";
+    QTest::newRow("uri") << "Sim" << "" << 1 << 1 << 0 << "The application URI is empty";
+    QTest::newRow("zero sessions") << "Sim" << "urn:x" << 0 << 1 << 0
+                                   << "The session limit must be between 1 and 65535";
+    QTest::newRow("too many") << "Sim" << "urn:x" << 65536 << 1 << 0
+                              << "The session limit must be between 1 and 65535";
+    QTest::newRow("no history") << "Sim" << "urn:x" << 1 << 0 << 0
+                                << "The history must keep between 1 and 1000000 values";
+    QTest::newRow("too much history") << "Sim" << "urn:x" << 1 << kMaxHistoryValues + 1 << 0
+                                      << "The history must keep between 1 and 1000000 values";
+    QTest::newRow("negative retention") << "Sim" << "urn:x" << 1 << 1 << -1
+                                        << "The history retention must be between 0 and 10080 minutes";
+    QTest::newRow("long retention") << "Sim" << "urn:x" << 1 << 1 << kMaxHistoryAgeMinutes + 1
+                                    << "The history retention must be between 0 and 10080 minutes";
 }
 
 void TestServerController::setServerSettingsRejectsInvalidValues()
@@ -406,13 +458,15 @@ void TestServerController::setServerSettingsRejectsInvalidValues()
     QFETCH(QString, name);
     QFETCH(QString, uri);
     QFETCH(int, maxSessions);
+    QFETCH(int, historyValues);
+    QFETCH(int, historyMinutes);
     QFETCH(QString, error);
 
     ServerController controller;
     controller.setProject(project());
     QSignalSpy edited(&controller, &ServerController::projectEdited);
     QString actual;
-    QVERIFY(!controller.setServerSettings({ name, uri, maxSessions }, &actual));
+    QVERIFY(!controller.setServerSettings({ name, uri, maxSessions, { historyValues, historyMinutes } }, &actual));
     QCOMPARE(actual, error);
     QCOMPARE(edited.count(), 0);
     QCOMPARE(controller.project().server.applicationName, QStringLiteral("OpenUaSim"));

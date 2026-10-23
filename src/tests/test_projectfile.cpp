@@ -70,6 +70,7 @@ private slots:
     void preservesEveryDataTypeValue_data();
     void preservesEveryDataTypeValue();
     void preservesQuality();
+    void preservesHistorizingAndHistoryLimits();
     void preservesEveryQuality();
     void preservesSimulationValues();
     void preservesMethods();
@@ -302,6 +303,29 @@ void TestProjectFile::movesFormat1EndpointLoginsToUsers()
     QVERIFY(!saved.value(QStringLiteral("endpoints")).toArray().first().toObject().contains(QStringLiteral("username")));
 }
 
+void TestProjectFile::preservesHistorizingAndHistoryLimits()
+{
+    NodeDefinition recorded;
+    recorded.kind = NodeDefinition::Kind::Variable;
+    recorded.browseName = QStringLiteral("Recorded");
+    recorded.historizing = true;
+    NodeDefinition plain = recorded;
+    plain.browseName = QStringLiteral("Plain");
+    plain.historizing = false;
+    ProjectConfig project;
+    project.nodes = { recorded, plain };
+    project.server.history = { 5000, 30 };
+
+    const QByteArray json = ProjectFile::toJson(project);
+    QCOMPARE(json.count("\"historizing\""), 1);
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(json);
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QVERIFY(result.project.nodes.at(0).historizing);
+    QVERIFY(!result.project.nodes.at(1).historizing);
+    QCOMPARE(result.project.server.history.maxValues, 5000);
+    QCOMPARE(result.project.server.history.maxAgeMinutes, 30);
+}
+
 void TestProjectFile::emptyProjectRoundTrips()
 {
     const ProjectFile::LoadResult result = ProjectFile::fromJson(ProjectFile::toJson(ProjectConfig()));
@@ -335,6 +359,9 @@ void TestProjectFile::missingFieldsUseDefaults()
     QCOMPARE(variable.quality, VariableInfo::Quality::Good);
     QCOMPARE(variable.simulation.function, SimulationFunction::None);
     QCOMPARE(variable.simulation.intervalMs, 1000);
+    QVERIFY(!variable.historizing);
+    QCOMPARE(result.project.server.history.maxValues, HistoryLimits().maxValues);
+    QCOMPARE(result.project.server.history.maxAgeMinutes, 0);
 }
 
 void TestProjectFile::keepsTrustedClientsOnlyKey()

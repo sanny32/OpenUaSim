@@ -183,7 +183,7 @@ private slots:
     void objectsPageAppliesEditedProperties();
     void objectsPageRevertsEdits();
     void objectsPageEditsValueList();
-    void objectsPageEditsInitialValueAndQuality();
+    void objectsPageEditsInitialValueQualityAndHistorizing();
     void objectsPageKeepsSelectionOnReload();
     void objectsPageUpdatesOneVariable();
     void objectsPageUpdatesVariableIcon();
@@ -457,13 +457,14 @@ void TestPages::objectsPageEditsValueList()
     QCOMPARE(variable.simulation.values, QStringList({ QStringLiteral("1"), QStringLiteral("2"), QStringLiteral("3") }));
 }
 
-void TestPages::objectsPageEditsInitialValueAndQuality()
+void TestPages::objectsPageEditsInitialValueQualityAndHistorizing()
 {
     QHash<QString, QList<VariableInfo>> variables = _snapshot.variables;
     for (QList<VariableInfo> &list : variables) {
         for (VariableInfo &variable : list) {
             variable.initialValue = 1000.0;
             variable.configuredQuality = VariableInfo::Quality::Uncertain;
+            variable.historizing = true;
         }
     }
     ObjectsPage page;
@@ -475,20 +476,25 @@ void TestPages::objectsPageEditsInitialValueAndQuality()
     QCOMPARE(initialValue->text(), Formatting::value(1000.0));
     QCOMPARE(quality->count(), VariableInfo::qualities().size());
     QCOMPARE(quality->currentText(), QStringLiteral("Uncertain"));
+    auto *historizing = child<QCheckBox>(page, "historizingCheck");
+    QVERIFY(historizing->isChecked());
 
     initialValue->selectAll();
     QTest::keyClicks(initialValue, QStringLiteral("1500"));
     quality->setCurrentText(QStringLiteral("Bad (sensor failure)"));
+    historizing->setChecked(false);
     child<QPushButton>(page, "applyButton")->click();
 
     QCOMPARE(requested.count(), 1);
     const VariableInfo variable = requested.first().first().value<VariableInfo>();
     QCOMPARE(variable.initialValue, QVariant(QStringLiteral("1500")));
     QCOMPARE(variable.configuredQuality, VariableInfo::Quality::BadSensorFailure);
+    QVERIFY(!variable.historizing);
 
     child<QPushButton>(page, "revertButton")->click();
     QCOMPARE(initialValue->text(), Formatting::value(1000.0));
     QCOMPARE(quality->currentText(), QStringLiteral("Uncertain"));
+    QVERIFY(historizing->isChecked());
 }
 
 void TestPages::objectsPageRevertsEdits()

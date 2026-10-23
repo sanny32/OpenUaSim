@@ -31,6 +31,17 @@ void applyAccess(QUaBaseDataVariable *variable, const QString &access)
     variable->setWriteAccess(access != QLatin1String("Read"));
 }
 
+///
+/// \brief Starts or stops recording the values of a variable and lets clients read the history while it records.
+/// \param variable Variable to change.
+/// \param historizing Whether to record.
+///
+void applyHistorizing(QUaBaseDataVariable *variable, bool historizing)
+{
+    variable->setHistorizing(historizing);
+    variable->setReadHistoryAccess(historizing);
+}
+
 static_assert(quint32(VariableInfo::Quality::GoodLocalOverride) == UA_STATUSCODE_GOODLOCALOVERRIDE);
 static_assert(quint32(VariableInfo::Quality::UncertainNoCommunicationLastUsableValue)
               == UA_STATUSCODE_UNCERTAINNOCOMMUNICATIONLASTUSABLEVALUE);
@@ -106,7 +117,7 @@ QStringList AddressSpace::build(const QList<NodeDefinition> &nodes)
 ///
 /// \brief Takes over variables of imported models, so they are set, simulated and alarmed like built ones.
 /// \param variables Variable definitions with the server node ids of model variables; the access, quality,
-///        alarm and a valid initial value are applied. Variables taken over before are skipped.
+///        historizing, alarm and a valid initial value are applied. Variables taken over before are skipped.
 /// \return Problems with variables that are not served.
 ///
 QStringList AddressSpace::attach(const QList<NodeDefinition> &variables)
@@ -258,6 +269,21 @@ bool AddressSpace::setQuality(const QString &nodeId, VariableInfo::Quality quali
         return false;
     _shapes[nodeId].quality = quality;
     variable->setStatusCode(statusCodeOf(quality));
+    return true;
+}
+
+///
+/// \brief Starts or stops recording the value history of a variable; recorded values are kept.
+/// \param nodeId Variable node id.
+/// \param historizing Whether to record and let clients read the history.
+/// \return False for an unknown variable.
+///
+bool AddressSpace::setHistorizing(const QString &nodeId, bool historizing)
+{
+    QUaBaseDataVariable *variable = _variables.value(nodeId);
+    if (!variable)
+        return false;
+    applyHistorizing(variable, historizing);
     return true;
 }
 
@@ -526,12 +552,14 @@ QUaBaseDataVariable *AddressSpace::addVariable(QUaNode *parent, const NodeDefini
 }
 
 ///
-/// \brief Applies the value, quality and access of a definition to a variable and serves it by node id.
+/// \brief Applies the historizing, value, quality and access of a definition to a variable and serves it by node id.
 /// \param variable Built or attached variable.
 /// \param node Variable definition; an invalid initial value keeps the current value.
 ///
 void AddressSpace::registerVariable(QUaBaseDataVariable *variable, const NodeDefinition &node)
 {
+    // Historizing first, so the history starts with the initial value.
+    applyHistorizing(variable, node.historizing);
     const VariableShape shape { node.dataType, node.arrayLength, node.quality };
     setTypedValue(variable, node.initialValue.isValid() ? node.initialValue : variable->value(), shape);
     applyAccess(variable, node.access);

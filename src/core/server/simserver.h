@@ -14,6 +14,7 @@
 #include "data/logentry.h"
 #include "data/projectconfig.h"
 #include "data/sessioninfo.h"
+#include "historystore.h"
 #include "pki/certificatestore.h"
 #include "sessiontracker.h"
 
@@ -62,8 +63,8 @@ public:
     void stop();
 
     ///
-    /// \brief Replaces the server with an empty one, dropping every node and namespace loaded into it.
-    ///        A running server is stopped first; the next start() serves the new one.
+    /// \brief Replaces the server with an empty one, dropping every node and namespace loaded into it and the value
+    ///        history. A running server is stopped first; the next start() serves the new one.
     ///
     void reset();
 
@@ -161,6 +162,7 @@ private:
     void handleCertificateRejected(const QByteArray &certificate, const QUaStatusCode &statusCode);
 #endif
 
+    HistoryStore _history;
     QUaServer *_server = nullptr;
     QTimer *_diagnosticsTimer;
     SessionTracker _sessions;

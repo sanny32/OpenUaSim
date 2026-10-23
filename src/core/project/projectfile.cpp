@@ -255,6 +255,8 @@ QJsonObject nodeToJson(const NodeDefinition &node)
         json.insert(QStringLiteral("simulation"), simulationToJson(node.simulation));
         if (node.alarm.enabled)
             json.insert(QStringLiteral("alarm"), alarmToJson(node.alarm));
+        if (node.historizing)
+            json.insert(QStringLiteral("historizing"), true);
     } else if (node.kind == NodeDefinition::Kind::Method) {
         json.insert(QStringLiteral("action"), methodKey(node.method));
     } else {
@@ -490,6 +492,8 @@ bool NodeReader::readVariable(const QJsonObject &json, const QString &path, Node
     if (!qualityFromKey(quality, node.quality))
         return fail(path, tr("unknown quality '%1'").arg(quality));
 
+    node.historizing = json.value(QStringLiteral("historizing")).toBool(false);
+
     const QJsonObject simulation = json.value(QStringLiteral("simulation")).toObject();
     const QString function = simulation.value(QStringLiteral("function")).toString(QStringLiteral("none"));
     bool known = false;
@@ -577,6 +581,8 @@ QByteArray toJson(const ProjectConfig &project)
         { QStringLiteral("applicationName"), project.server.applicationName },
         { QStringLiteral("applicationUri"), project.server.applicationUri },
         { QStringLiteral("maxSessions"), project.server.maxSessions },
+        { QStringLiteral("historyMaxValues"), project.server.history.maxValues },
+        { QStringLiteral("historyMaxAgeMinutes"), project.server.history.maxAgeMinutes },
     };
 
     const QJsonObject root {
@@ -623,6 +629,9 @@ LoadResult fromJson(const QByteArray &json)
     project.server.applicationUri =
         server.value(QStringLiteral("applicationUri")).toString(project.server.applicationUri);
     project.server.maxSessions = server.value(QStringLiteral("maxSessions")).toInt(project.server.maxSessions);
+    HistoryLimits &history = project.server.history;
+    history.maxValues = server.value(QStringLiteral("historyMaxValues")).toInt(history.maxValues);
+    history.maxAgeMinutes = server.value(QStringLiteral("historyMaxAgeMinutes")).toInt(history.maxAgeMinutes);
 
     const QJsonArray users = root.value(QStringLiteral("users")).toArray();
     for (const QJsonValue &user : users)

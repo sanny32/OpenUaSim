@@ -360,7 +360,8 @@ NodeDefinition detachedCopy(const NodeDefinition &node, const QStringList &taken
 /// \brief Replaces the editable fields of a variable.
 /// \param nodes Node tree holding the variable.
 /// \param variable Variable with its node id and the new browse name, icon, data type, access,
-///        array length, initial value, quality, simulation and alarm; the initial value is converted to the data type.
+///        array length, initial value, quality, historizing, simulation and alarm; the initial value is converted
+///        to the data type.
 /// \param error Receives the reason on failure; may be null.
 /// \return False when the node is unknown or not a variable, the browse name is empty or used
 ///         by a sibling, the data type is unsupported, the array length is outside 0..kMaxArrayLength, or
@@ -397,6 +398,7 @@ bool updateVariable(QList<NodeDefinition> &nodes, const NodeDefinition &variable
     existing->dataType = variable.dataType;
     existing->access = variable.access;
     existing->quality = variable.quality;
+    existing->historizing = variable.historizing;
     existing->simulation = variable.simulation;
     return true;
 }

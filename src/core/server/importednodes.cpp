@@ -134,6 +134,7 @@ VariableInfo variableInfo(const QUaServer &server, const QUaBaseDataVariable &va
         info.access = model.access;
         info.quality = AddressSpace::qualityOf(variable);
         info.configuredQuality = info.quality;
+        info.historizing = model.historizing;
     }
     info.dataTypeName = ModelVariables::dataTypeName(server, variable);
     info.fromModel = true;

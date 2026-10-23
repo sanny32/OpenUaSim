@@ -30,7 +30,7 @@ QString nodeId(const QString &path)
 /// \param intervalMs Update interval.
 /// \param amplitude Peak deviation.
 /// \param offset Centre value.
-/// \return Read/write variable starting at the offset.
+/// \return Read/write historizing variable starting at the offset.
 ///
 NodeDefinition analog(const QString &device, const QString &name, const QString &icon,
                       SimulationFunction function, int intervalMs, double amplitude, double offset)
@@ -46,6 +46,7 @@ NodeDefinition analog(const QString &device, const QString &name, const QString 
     node.simulation.intervalMs = intervalMs;
     node.simulation.amplitude = amplitude;
     node.simulation.offset = offset;
+    node.historizing = true;
     return node;
 }
 
@@ -55,7 +56,7 @@ NodeDefinition analog(const QString &device, const QString &name, const QString 
 /// \param name Browse name.
 /// \param icon Icon resource name.
 /// \param value Initial value.
-/// \return Read/write variable.
+/// \return Read/write historizing variable.
 ///
 NodeDefinition flag(const QString &device, const QString &name, const QString &icon, bool value)
 {
@@ -66,6 +67,7 @@ NodeDefinition flag(const QString &device, const QString &name, const QString &i
     node.icon = icon;
     node.dataType = QStringLiteral("Boolean");
     node.initialValue = value;
+    node.historizing = true;
     return node;
 }
 

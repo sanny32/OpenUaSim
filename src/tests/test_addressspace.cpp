@@ -71,6 +71,8 @@ private slots:
     void clientReadsBadQuality();
     void clientReadsSpecificQuality();
     void mapsStatusCodesToQualities();
+    void clientReadsHistoryWithinLimits();
+    void setHistorizingStopsAndResumesRecording();
 };
 
 void TestAddressSpace::buildsDefaultProject()
@@ -475,6 +477,68 @@ void TestAddressSpace::mapsStatusCodesToQualities()
     QCOMPARE(VariableInfo::qualityOf(UA_STATUSCODE_UNCERTAINSENSORCALIBRATION), VariableInfo::Quality::Uncertain);
     QCOMPARE(VariableInfo::qualityOf(UA_STATUSCODE_BADTIMEOUT), VariableInfo::Quality::Bad);
     QCOMPARE(VariableInfo::qualityOf(UA_STATUSCODE_GOODCLAMPED), VariableInfo::Quality::Good);
+}
+
+void TestAddressSpace::clientReadsHistoryWithinLimits()
+{
+    ProjectConfig project = serverProject(TestPort::freePort());
+    project.server.history.maxValues = 3;
+    NodeDefinition recorded = variable(QStringLiteral("Recorded"), QStringLiteral("Double"));
+    recorded.historizing = true;
+    recorded.initialValue = 1.0;
+    const NodeDefinition plain = variable(QStringLiteral("Plain"), QStringLiteral("Double"));
+    project.nodes = { folder(QStringLiteral("Test"), { recorded, plain }) };
+
+    SimServer server;
+    AddressSpace space(server.uaServer());
+    QVERIFY(space.build(project.nodes).isEmpty());
+    QVERIFY(server.start(project));
+
+    UaTestClient client;
+    QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
+    QVariantList history;
+    QCOMPARE(client.readHistory(recorded.nodeId, history), UA_STATUSCODE_GOOD);
+    QCOMPARE(history, QVariantList({ QVariant(1.0) }));
+
+    for (double value : { 2.0, 3.0, 4.0, 5.0 }) {
+        QTest::qWait(5);
+        QVERIFY(space.setValue(recorded.nodeId, value));
+        QVERIFY(space.setValue(plain.nodeId, value));
+    }
+    QCOMPARE(client.readHistory(recorded.nodeId, history), UA_STATUSCODE_GOOD);
+    QCOMPARE(history, QVariantList({ 3.0, 4.0, 5.0 }));
+
+    client.readHistory(plain.nodeId, history);
+    QVERIFY(history.isEmpty());
+}
+
+void TestAddressSpace::setHistorizingStopsAndResumesRecording()
+{
+    ProjectConfig project = serverProject(TestPort::freePort());
+    NodeDefinition level = variable(QStringLiteral("Level"), QStringLiteral("Double"));
+    level.initialValue = 1.0;
+    project.nodes = { folder(QStringLiteral("Test"), { level }) };
+
+    SimServer server;
+    AddressSpace space(server.uaServer());
+    QVERIFY(space.build(project.nodes).isEmpty());
+    QVERIFY(server.start(project));
+    QVERIFY(!space.setHistorizing(QStringLiteral("ns=1;s=None"), true));
+
+    QVERIFY(space.setHistorizing(level.nodeId, true));
+    QVERIFY(space.setValue(level.nodeId, 2.0));
+    QTest::qWait(5);
+    QVERIFY(space.setHistorizing(level.nodeId, false));
+    QVERIFY(space.setValue(level.nodeId, 3.0));
+    QTest::qWait(5);
+    QVERIFY(space.setHistorizing(level.nodeId, true));
+    QVERIFY(space.setValue(level.nodeId, 4.0));
+
+    UaTestClient client;
+    QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
+    QVariantList history;
+    QCOMPARE(client.readHistory(level.nodeId, history), UA_STATUSCODE_GOOD);
+    QCOMPARE(history, QVariantList({ 2.0, 4.0 }));
 }
 
 QTEST_GUILESS_MAIN(TestAddressSpace)

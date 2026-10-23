@@ -202,6 +202,8 @@ struct VariableInfo
     AlarmSettings alarm;
     /// \brief Active alarm state, e.g. "High" or "Active"; empty while the alarm is inactive or absent.
     QString alarmState;
+    /// \brief Whether the server records the value history.
+    bool historizing = false;
 
     ///
     /// \brief Returns the data type name to show.

@@ -22,6 +22,28 @@
 
 #include "uatestclient.h"
 
+namespace {
+
+///
+/// \brief Appends the values of one HistoryRead page to a list.
+/// \param data HistoryData of the page.
+/// \param context QVariantList receiving the values.
+/// \return True to read the next page.
+///
+UA_Boolean appendHistoryValues(UA_Client *, const UA_NodeId *, UA_Boolean, const UA_ExtensionObject *data,
+                               void *context)
+{
+    if (data->encoding != UA_EXTENSIONOBJECT_DECODED || data->content.decoded.type != &UA_TYPES[UA_TYPES_HISTORYDATA])
+        return false;
+    auto *values = static_cast<QVariantList *>(context);
+    const auto *history = static_cast<const UA_HistoryData *>(data->content.decoded.data);
+    for (size_t index = 0; index < history->dataValuesSize; ++index)
+        values->append(QUaTypesConverter::uaVariantToQVariant(history->dataValues[index].value));
+    return true;
+}
+
+}
+
 ///
 /// \brief Creates a client that logs only warnings and errors.
 ///
@@ -213,6 +235,26 @@ UA_StatusCode UaTestClient::monitorValue(const QString &nodeId)
         status = item.statusCode;
         UA_NodeId_clear(&id);
     });
+    return status;
+}
+
+///
+/// \brief Reads every recorded value of a node with HistoryRead, following continuation points.
+/// \param nodeId Node id in XML notation.
+/// \param values Receives the values, oldest first.
+/// \return Status of the history read.
+///
+UA_StatusCode UaTestClient::readHistory(const QString &nodeId, QVariantList &values)
+{
+    values.clear();
+    UA_NodeId id = QUaNodeId(nodeId).toUaNodeId();
+    const UA_DateTime end = UA_DateTime_now() + UA_DATETIME_SEC * 3600;
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
+    runInWorker([&] {
+        status = UA_Client_HistoryRead_raw(_client, &id, appendHistoryValues, UA_DATETIME_UNIX_EPOCH, end,
+                                           UA_STRING_NULL, false, 0, UA_TIMESTAMPSTORETURN_SOURCE, &values);
+    });
+    UA_NodeId_clear(&id);
     return status;
 }
 

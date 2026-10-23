@@ -60,6 +60,55 @@
        </property>
       </widget>
      </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="historyMaxValuesLabel">
+       <property name="text">
+        <string>&amp;History Size</string>
+       </property>
+       <property name="buddy">
+        <cstring>historyMaxValuesSpin</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QSpinBox" name="historyMaxValuesSpin">
+       <property name="toolTip">
+        <string>Values kept per historizing variable; the oldest are dropped first</string>
+       </property>
+       <property name="suffix">
+        <string> values</string>
+       </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="historyMaxAgeLabel">
+       <property name="text">
+        <string>History &amp;Retention</string>
+       </property>
+       <property name="buddy">
+        <cstring>historyMaxAgeSpin</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QSpinBox" name="historyMaxAgeSpin">
+       <property name="toolTip">
+        <string>Drop values older than this, counted from the newest value of the variable</string>
+       </property>
+       <property name="specialValueText">
+        <string>Unlimited</string>
+       </property>
+       <property name="suffix">
+        <string> min</string>
+       </property>
+       <property name="minimum">
+        <number>0</number>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>

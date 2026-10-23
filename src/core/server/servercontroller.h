@@ -83,7 +83,7 @@ public:
 
     ///
     /// \brief Applies edited variable properties.
-    /// \param variable Node id with the new display name, icon, data type, access, configured quality and
+    /// \param variable Node id with the new display name, icon, data type, access, configured quality, historizing and
     ///        simulation; a valid initial value, typed text or a value, replaces the stored one. An imported
     ///        model variable keeps the name, data type and array length of its model.
     /// \param error Receives the reason on failure; may be null.
@@ -104,9 +104,9 @@ public:
 
     ///
     /// \brief Replaces the server description; a running server applies it on the next restart.
-    /// \param settings New application name, application URI and session limit.
+    /// \param settings New application name, application URI, session limit and history limits.
     /// \param error Receives the reason on failure; may be null.
-    /// \return False when the name or URI is empty or the session limit is outside 1..65535.
+    /// \return False when ServerSettingsRules::problem() refuses the settings.
     ///
     bool setServerSettings(const ServerSettings &settings, QString *error = nullptr);
 

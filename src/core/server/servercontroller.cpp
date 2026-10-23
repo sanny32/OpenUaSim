@@ -245,7 +245,7 @@ QString ServerController::copyNode(const QString &nodeId, const QString &parentI
 
 ///
 /// \brief Applies edited variable properties.
-/// \param variable Node id with the new display name, icon, data type, access, configured quality and
+/// \param variable Node id with the new display name, icon, data type, access, configured quality, historizing and
 ///        simulation; a valid initial value, typed text or a value, replaces the stored one.
 /// \param error Receives the reason on failure; may be null.
 /// \return False when the change was refused, e.g. for text that is no value of the data type. A new
@@ -278,8 +278,8 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
 
 ///
 /// \brief Applies edited properties of an imported model variable and keeps them in the project.
-/// \param variable Server node id with the new icon, access, configured quality, simulation, alarm and, when
-///        valid, initial value; the model keeps defining the name, data type and array length.
+/// \param variable Server node id with the new icon, access, configured quality, historizing, simulation, alarm
+///        and, when valid, initial value; the model keeps defining the name, data type and array length.
 /// \param error Receives the reason on failure; may be null.
 /// \return False for a node that is no model variable the simulation can drive, or for refused settings. A new
 ///         alarm rebuilds the address space; other changes apply to the live variable.
@@ -331,7 +331,7 @@ bool ServerController::updateModelVariable(const VariableInfo &variable, QString
 }
 
 ///
-/// \brief Copies the edited icon, access, quality, simulation, alarm and initial value of a variable.
+/// \brief Copies the edited icon, access, quality, historizing, simulation, alarm and initial value of a variable.
 /// \param variable Edited properties; a valid initial value, typed text or a value, replaces the stored one.
 /// \param node Definition receiving the edits; its data type parses the initial value.
 /// \param error Receives the reason on failure; may be null.
@@ -343,6 +343,7 @@ bool ServerController::applyVariableEdits(const VariableInfo &variable, NodeDefi
     node.alarm = variable.alarm;
     node.access = variable.access;
     node.quality = variable.configuredQuality;
+    node.historizing = variable.historizing;
     node.simulation = variable.simulation;
     if (!variable.initialValue.isValid())
         return true;
@@ -357,7 +358,8 @@ bool ServerController::applyVariableEdits(const VariableInfo &variable, NodeDefi
 }
 
 ///
-/// \brief Applies the access, quality and simulation of a served variable without rebuilding the address space.
+/// \brief Applies the access, quality, historizing and simulation of a served variable without rebuilding the
+///        address space.
 /// \param node Stored definition with the server node id.
 /// \param valueEdited Whether the initial value changed and becomes the current value.
 ///
@@ -365,6 +367,7 @@ void ServerController::applyLiveSettings(const NodeDefinition &node, bool valueE
 {
     _addressSpace.setAccess(node.nodeId, node.access);
     _addressSpace.setQuality(node.nodeId, node.quality);
+    _addressSpace.setHistorizing(node.nodeId, node.historizing);
     if (valueEdited)
         _addressSpace.setValue(node.nodeId, node.initialValue);
     _engine.updateVariable({ node.nodeId, node.dataType, node.simulation, node.arrayLength });
@@ -401,9 +404,9 @@ bool ServerController::renameNode(const QString &nodeId, const QString &browseNa
 
 ///
 /// \brief Replaces the server description; a running server applies it on the next restart.
-/// \param settings New application name, application URI and session limit.
+/// \param settings New application name, application URI, session limit and history limits.
 /// \param error Receives the reason on failure; may be null.
-/// \return False when the name or URI is empty or the session limit is outside 1..65535.
+/// \return False when ServerSettingsRules::problem() refuses the settings.
 ///
 bool ServerController::setServerSettings(const ServerSettings &settings, QString *error)
 {

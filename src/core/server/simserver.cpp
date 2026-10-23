@@ -146,22 +146,24 @@ SimServer::~SimServer()
 }
 
 ///
-/// \brief Replaces the server with an empty one, dropping every node and namespace loaded into it.
-///        A running server is stopped first; the next start() serves the new one.
+/// \brief Replaces the server with an empty one, dropping every node and namespace loaded into it and the value
+///        history. A running server is stopped first; the next start() serves the new one.
 ///
 void SimServer::reset()
 {
     stop();
     releaseServer();
+    _history.clear();
     createServer();
 }
 
 ///
-/// \brief Creates the QUaServer and forwards its log, session and certificate events.
+/// \brief Creates the QUaServer on the value history and forwards its log, session and certificate events.
 ///
 void SimServer::createServer()
 {
     _server = new QUaServer(this);
+    _server->setHistorizer(_history);
     connect(_server, &QUaServer::logMessage, this, &SimServer::handleLog);
     connect(_server, &QUaServer::clientConnected, this, &SimServer::handleClientConnected);
     connect(_server, &QUaServer::clientDisconnected, this, &SimServer::handleClientDisconnected);
@@ -304,6 +306,7 @@ bool SimServer::configure(const ProjectConfig &project, const ListenerSettings &
     _server->setProductName(QStringLiteral(APP_NAME));
     _server->setSoftwareVersion(QStringLiteral(APP_VERSION));
     _server->setMaxSessions(quint16(qBound(1, project.server.maxSessions, kMaxSessionLimit)));
+    _history.setLimits(project.server.history);
     _server->setHostname(listener.hostname);
     _server->setPort(listener.port);
     _server->setAnonymousLoginAllowed(listener.anonymousAllowed);

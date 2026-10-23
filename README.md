@@ -27,6 +27,9 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
   High and HighHigh limits on numbers, off-normal alarms on Booleans. Clients
   receive the alarm events and acknowledge them; the Objects page shows the
   alarm state and the log records every activation.
+- Mark variables as Historizing to let clients read their recent values with
+  HistoryRead. The history lives in memory; **Server → Server Settings** sets
+  how many values each variable keeps and, optionally, for how many minutes.
 - Serve `opc.tcp` endpoints with a choice of security policy and mode, and accept
   anonymous logins or the username/password logins listed in **Server → User
   Accounts**. Set the application name, URI and

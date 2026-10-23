@@ -56,6 +56,8 @@ struct NodeDefinition
     SimulationSettings simulation;
     /// \brief Alarm raised from the value; variables only.
     AlarmSettings alarm;
+    /// \brief Whether the server records the values for clients to read with HistoryRead; variables only.
+    bool historizing = false;
     /// \brief Action of a method; methods only.
     MethodAction method = MethodAction::Reset;
     /// \brief Child nodes; folders and objects only.
@@ -91,6 +93,24 @@ constexpr int kMaxArrayLength = 1000;
 /// \brief Largest session limit the server takes; QUaServer stores it as a 16-bit count.
 constexpr int kMaxSessionLimit = 65535;
 
+/// \brief Largest number of values the history keeps per variable.
+constexpr int kMaxHistoryValues = 1000000;
+
+/// \brief Longest time the history keeps a value, one week.
+constexpr int kMaxHistoryAgeMinutes = 7 * 24 * 60;
+
+///
+/// \brief How much of the value history of historizing variables the server keeps in memory.
+///
+struct HistoryLimits
+{
+    /// \brief Values kept per variable, the oldest dropped first; bounds the memory whatever the update rate.
+    int maxValues = 1000;
+    /// \brief Minutes a value is kept, counted back from the newest value of its variable; 0 keeps values until
+    ///        maxValues drops them.
+    int maxAgeMinutes = 0;
+};
+
 ///
 /// \brief Server description shared by every endpoint.
 ///
@@ -102,6 +122,8 @@ struct ServerSettings
     QString applicationUri = QStringLiteral("urn:openuasim:server");
     /// \brief Maximum number of concurrent sessions.
     int maxSessions = 100;
+    /// \brief Value history kept for historizing variables.
+    HistoryLimits history;
 };
 
 ///

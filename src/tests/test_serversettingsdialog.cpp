@@ -37,14 +37,17 @@ private slots:
     void returnsTrimmedSettings();
     void refusesEmptyFields();
     void limitsSessionCount();
+    void editsHistoryLimits();
 };
 
 void TestServerSettingsDialog::showsSettings()
 {
-    ServerSettingsDialog dialog({ QStringLiteral("Sim"), QStringLiteral("urn:sim"), 12 });
+    ServerSettingsDialog dialog({ QStringLiteral("Sim"), QStringLiteral("urn:sim"), 12, { 500, 15 } });
     QCOMPARE(child<QLineEdit>(dialog, "applicationNameEdit")->text(), QStringLiteral("Sim"));
     QCOMPARE(child<QLineEdit>(dialog, "applicationUriEdit")->text(), QStringLiteral("urn:sim"));
     QCOMPARE(child<QSpinBox>(dialog, "maxSessionsSpin")->value(), 12);
+    QCOMPARE(child<QSpinBox>(dialog, "historyMaxValuesSpin")->value(), 500);
+    QCOMPARE(child<QSpinBox>(dialog, "historyMaxAgeSpin")->value(), 15);
     QVERIFY(okButton(dialog)->isEnabled());
     QVERIFY(child<QLabel>(dialog, "problemLabel")->text().isEmpty());
 }
@@ -82,6 +85,25 @@ void TestServerSettingsDialog::limitsSessionCount()
     auto *sessions = child<QSpinBox>(dialog, "maxSessionsSpin");
     QCOMPARE(sessions->minimum(), 1);
     QCOMPARE(sessions->maximum(), kMaxSessionLimit);
+}
+
+void TestServerSettingsDialog::editsHistoryLimits()
+{
+    ServerSettingsDialog dialog(ServerSettings {});
+    auto *values = child<QSpinBox>(dialog, "historyMaxValuesSpin");
+    auto *age = child<QSpinBox>(dialog, "historyMaxAgeSpin");
+    QCOMPARE(values->minimum(), 1);
+    QCOMPARE(values->maximum(), kMaxHistoryValues);
+    QCOMPARE(age->minimum(), 0);
+    QCOMPARE(age->maximum(), kMaxHistoryAgeMinutes);
+    QCOMPARE(values->value(), HistoryLimits().maxValues);
+    QCOMPARE(age->text(), QStringLiteral("Unlimited"));
+
+    values->setValue(2500);
+    age->setValue(60);
+    const HistoryLimits history = dialog.settings().history;
+    QCOMPARE(history.maxValues, 2500);
+    QCOMPARE(history.maxAgeMinutes, 60);
 }
 
 QTEST_MAIN(TestServerSettingsDialog)

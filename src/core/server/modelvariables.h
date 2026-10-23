@@ -31,8 +31,8 @@ QUaBaseDataVariable *find(QUaServer &server, const QString &nodeId);
 /// \param server Server holding the models.
 /// \param variable Variable of an imported model.
 /// \return Settings with the namespace URI, the identifier within it, the browse name, data type, array
-///         length and access of the variable, Good quality and an invalid initial value; the data type is the
-///         built-in one its values are encoded with.
+///         length, access and historizing of the variable, Good quality and an invalid initial value; the data
+///         type is the built-in one its values are encoded with.
 ///
 ModelVariable describe(const QUaServer &server, const QUaBaseDataVariable &variable);
 

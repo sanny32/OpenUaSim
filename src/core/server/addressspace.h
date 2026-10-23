@@ -69,7 +69,7 @@ public:
     ///
     /// \brief Takes over variables of imported models, so they are set, simulated and alarmed like built ones.
     /// \param variables Variable definitions with the server node ids of model variables; the access, quality,
-    ///        alarm and a valid initial value are applied. Variables taken over before are skipped.
+    ///        historizing, alarm and a valid initial value are applied. Variables taken over before are skipped.
     /// \return Problems with variables that are not served.
     ///
     QStringList attach(const QList<NodeDefinition> &variables);
@@ -142,6 +142,14 @@ public:
     /// \return False for an unknown variable.
     ///
     bool setQuality(const QString &nodeId, VariableInfo::Quality quality);
+
+    ///
+    /// \brief Starts or stops recording the value history of a variable; recorded values are kept.
+    /// \param nodeId Variable node id.
+    /// \param historizing Whether to record and let clients read the history.
+    /// \return False for an unknown variable.
+    ///
+    bool setHistorizing(const QString &nodeId, bool historizing);
 
     ///
     /// \brief Returns the active state of a variable's alarm.

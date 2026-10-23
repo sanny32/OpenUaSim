@@ -295,6 +295,7 @@ void ObjectsPage::showVariable(const QModelIndex &current)
     ui->accessCombo->setCurrentText(variable.access);
     ui->initialValueEdit->setText(Formatting::value(variable.initialValue));
     ui->qualityCombo->setCurrentIndex(ui->qualityCombo->findData(quint32(variable.configuredQuality)));
+    ui->historizingCheck->setChecked(variable.historizing);
     ui->simulationCombo->setCurrentIndex(
         ui->simulationCombo->findData(int(variable.simulation.function)));
     ui->intervalSpin->setValue(variable.simulation.intervalMs);
@@ -393,6 +394,7 @@ VariableInfo ObjectsPage::editedVariable() const
     variable.access = ui->accessCombo->currentText();
     variable.initialValue = ui->initialValueEdit->isModified() ? QVariant(ui->initialValueEdit->text()) : QVariant();
     variable.configuredQuality = VariableInfo::Quality(ui->qualityCombo->currentData().toUInt());
+    variable.historizing = ui->historizingCheck->isChecked();
     variable.simulation.function = SimulationFunction(ui->simulationCombo->currentData().toInt());
     const int unit = ui->intervalUnitCombo->currentIndex() == kSecondsUnit ? kMillisecondsPerSecond : 1;
     variable.simulation.intervalMs = int(qMin<qint64>(qint64(ui->intervalSpin->value()) * unit,

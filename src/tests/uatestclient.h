@@ -101,6 +101,14 @@ public:
     ///
     UA_StatusCode monitorValue(const QString &nodeId);
 
+    ///
+    /// \brief Reads every recorded value of a node with HistoryRead, following continuation points.
+    /// \param nodeId Node id in XML notation.
+    /// \param values Receives the values, oldest first.
+    /// \return Status of the history read.
+    ///
+    UA_StatusCode readHistory(const QString &nodeId, QVariantList &values);
+
 private:
     void runInWorker(const std::function<void()> &job);
 
