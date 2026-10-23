@@ -83,13 +83,14 @@ public:
 
     ///
     /// \brief Applies edited variable properties.
-    /// \param variable Node id with the new display name, icon, data type, access, configured quality, historizing and
-    ///        simulation; a valid initial value, typed text or a value, replaces the stored one. An imported
-    ///        model variable keeps the name, data type and array length of its model.
+    /// \param variable Node id with the new display name, icon, data type, access, configured quality, historizing,
+    ///        simulation and edited property values; a valid initial value, typed text or a value, replaces the stored
+    ///        one. An imported model variable keeps the name, data type and array length of its model; a property of a
+    ///        variable takes only its value text, as initial value.
     /// \param error Receives the reason on failure; may be null.
-    /// \return False when the change was refused, e.g. for text that is no value of the data type. A new
-    ///         name, data type, array length or alarm rebuilds the address space; other changes apply to the live variable,
-    ///         and a new initial value becomes its current value.
+    /// \return False when the change was refused, e.g. for text that is no value of the data type. A new name, data
+    ///         type, array length, alarm or property value rebuilds the address space; other changes apply to the live
+    ///         variable, and a new initial value becomes its current value.
     ///
     bool updateVariable(const VariableInfo &variable, QString *error = nullptr);
 
@@ -377,7 +378,11 @@ signals:
 private:
     bool updateModelVariable(const VariableInfo &variable, QString *error);
     bool updateDeclaredVariable(const VariableInfo &variable, QString *error);
+    bool updateProperty(const VariableInfo &property, QString *error);
+    VariableInfo listedVariable(const QString &nodeId) const;
     static bool applyVariableEdits(const VariableInfo &variable, NodeDefinition &node, QString *error);
+    static bool applyPropertyEdits(const QList<PropertyInfo> &edited, QMap<QString, QString> &values,
+                                   QString *error);
     void applyLiveSettings(const NodeDefinition &node, bool valueEdited);
     VariableInfo variableInfo(const NodeDefinition &node) const;
     void rebuildNodes();

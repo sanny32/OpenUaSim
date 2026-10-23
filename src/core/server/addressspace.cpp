@@ -10,6 +10,7 @@
 
 #include <QUaExclusiveLevelAlarm>
 #include <QUaOffNormalAlarm>
+#include <QUaProperty>
 #include <QUaServer>
 
 #include <algorithm>
@@ -19,6 +20,7 @@
 #include "project/alarmrules.h"
 #include "project/portablenodeid.h"
 #include "simulation/valuecast.h"
+#include "variableproperties.h"
 
 namespace {
 
@@ -83,6 +85,22 @@ QUaNode *declaredChild(const QUaNode &parent, const QString &browseName)
             return child;
     }
     return nullptr;
+}
+
+///
+/// \brief Adds the data item properties that the types of an instance and of the variables below it declare.
+/// \param server Server holding the instance.
+/// \param node Built instance or a node below it.
+///
+void addDeclaredProperties(const QUaServer &server, QUaNode &node)
+{
+    if (auto *variable = qobject_cast<QUaBaseDataVariable *>(&node))
+        VariableProperties::addDeclared(server, *variable);
+    const QList<QUaNode *> children = node.browseChildren();
+    for (QUaNode *child : children) {
+        if (!qobject_cast<QUaProperty *>(child))
+            addDeclaredProperties(server, *child);
+    }
 }
 
 ///
@@ -196,7 +214,7 @@ QStringList AddressSpace::attach(const QList<NodeDefinition> &variables)
             problems.append(QStringLiteral("%1: %2").arg(node.nodeId, tr("the server has no such variable")));
             continue;
         }
-        registerVariable(variable, node);
+        registerVariable(variable, node, node.nodeId, problems);
         if (node.alarm.enabled)
             addAlarm(qobject_cast<QUaNode *>(variable->parent()), *variable, node, node.nodeId, problems);
     }
@@ -478,6 +496,28 @@ QString AddressSpace::alarmState(const QString &nodeId) const
 }
 
 ///
+/// \brief Returns the type of a built or attached variable.
+/// \param nodeId Variable node id.
+/// \return Browse name of its type definition, e.g. "AnalogItemType"; empty for an unknown variable.
+///
+QString AddressSpace::typeName(const QString &nodeId) const
+{
+    const QUaBaseDataVariable *variable = _variables.value(nodeId);
+    return variable ? variable->typeDefinitionBrowseName().name() : QString();
+}
+
+///
+/// \brief Returns the properties of a built or attached variable.
+/// \param nodeId Variable node id.
+/// \return Properties as VariableProperties::describe() lists them; none for an unknown variable.
+///
+QList<PropertyInfo> AddressSpace::properties(const QString &nodeId) const
+{
+    const QUaBaseDataVariable *variable = _variables.value(nodeId);
+    return variable ? VariableProperties::describe(*_server, *variable) : QList<PropertyInfo>();
+}
+
+///
 /// \brief Announces that an alarm became active or inactive.
 ///
 void AddressSpace::handleAlarmChanged()
@@ -632,6 +672,7 @@ QUaNode *AddressSpace::addInstance(QUaNode *parent, const NodeDefinition &node, 
                                                                .arg(node.typeDefinition)));
         return nullptr;
     }
+    addDeclaredProperties(*_server, *instance);
     return instance;
 }
 
@@ -663,7 +704,7 @@ void AddressSpace::attachDeclared(QUaNode &parent, const NodeDefinition &node, c
         problems.append(QStringLiteral("%1: %2").arg(path, tr("the simulation cannot drive this node")));
         return;
     }
-    registerVariable(variable, node);
+    registerVariable(variable, node, path, problems);
     if (node.alarm.enabled)
         addAlarm(&parent, *variable, node, path, problems);
 }
@@ -699,17 +740,24 @@ QUaBaseDataVariable *AddressSpace::addVariable(QUaNode *parent, const NodeDefini
         variable->setValueRank(1);
         variable->setArrayDimensions({ quint32(node.arrayLength) });
     }
-    registerVariable(variable, node);
+    registerVariable(variable, node, path, problems);
     return variable;
 }
 
 ///
-/// \brief Applies the historizing, value, quality and access of a definition to a variable and serves it by node id.
+/// \brief Applies the historizing, value, quality, access and properties of a definition to a variable and serves
+///        it by node id.
 /// \param variable Built or attached variable.
 /// \param node Variable definition; an invalid initial value keeps the current value.
+/// \param path Slash-separated browse path for problem messages.
+/// \param problems Receives why property values were skipped.
 ///
-void AddressSpace::registerVariable(QUaBaseDataVariable *variable, const NodeDefinition &node)
+void AddressSpace::registerVariable(QUaBaseDataVariable *variable, const NodeDefinition &node, const QString &path,
+                                    QStringList &problems)
 {
+    const QStringList propertyProblems = VariableProperties::apply(*_server, *variable, node.properties);
+    for (const QString &problem : propertyProblems)
+        problems.append(QStringLiteral("%1: %2").arg(path, problem));
     // Historizing first, so the history starts with the initial value.
     applyHistorizing(variable, node.historizing);
     const VariableShape shape { node.dataType, node.arrayLength, node.quality };

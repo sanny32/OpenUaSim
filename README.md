@@ -46,7 +46,10 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
   project nodes, or any other served namespace, as NodeSet2.
 - Add instances of the object types of imported models and of standard
   variable types such as AnalogItemType: the type adds its mandatory children,
-  whose variables are simulated and alarmed like any other.
+  whose variables are simulated and alarmed like any other. Variables of data
+  item types get the properties their type declares, such as the EURange,
+  EngineeringUnits and InstrumentRange of an analog item; the Objects page lists
+  them below their variable and edits their values.
 - Inspect the standard types in use, the namespace array, active and closed
   sessions with their subscriptions, and the server log filtered by level and
   category; export the filtered log to CSV.

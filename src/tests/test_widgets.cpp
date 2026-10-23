@@ -31,12 +31,15 @@
 #include "data/serverstatus.h"
 #include "elidedlineedit.h"
 #include "eventlogwidget.h"
+#include "formatting.h"
 #include "itemdelegate.h"
 #include "itemroles.h"
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
+#include "propertynodewidget.h"
 #include "statusindicator.h"
 #include "treemodel.h"
+#include "variablepropertieswidget.h"
 #include "viewsetup.h"
 
 namespace {
@@ -123,6 +126,11 @@ private slots:
     void attachSearchFilters();
     void attachTableSearchFiltersAllColumns();
     void bindCopyButtonCopies();
+    void variablePropertiesEditsVariable();
+    void variablePropertiesLocksReadOnlyAndModelVariables();
+    void propertyNodeEditsValue();
+    void propertyNodeEditsTextValue();
+    void propertyNodeLocksReadOnlyProperty();
 };
 
 void TestWidgets::statusIndicator()
@@ -957,6 +965,167 @@ void TestWidgets::bindCopyButtonCopies()
     QTRY_VERIFY(QToolTip::isVisible());
     QCOMPARE(QToolTip::text(), QStringLiteral("Copied"));
     QToolTip::hideText();
+}
+
+namespace {
+
+VariableInfo speedVariable()
+{
+    VariableInfo variable;
+    variable.nodeId = QStringLiteral("ns=1;s=Motor.Speed");
+    variable.displayName = QStringLiteral("Speed");
+    variable.icon = QStringLiteral("signal");
+    variable.dataType = QStringLiteral("Double");
+    variable.access = QStringLiteral("Read/Write");
+    variable.typeName = QStringLiteral("AnalogItemType");
+    variable.initialValue = 1.5;
+    variable.simulation.function = SimulationFunction::Sine;
+    return variable;
+}
+
+VariableInfo rangeProperty()
+{
+    VariableInfo property;
+    property.nodeId = QStringLiteral("ns=1;s=Motor.Speed.EURange");
+    property.displayName = QStringLiteral("EURange");
+    property.dataType = QStringLiteral("Range");
+    property.access = QStringLiteral("Read");
+    property.typeName = QStringLiteral("PropertyType");
+    property.initialValue = QStringLiteral("0; 100");
+    property.property = true;
+    property.fromModel = true;
+    return property;
+}
+
+template <typename T>
+T *named(const QWidget &parent, const char *name)
+{
+    T *widget = parent.findChild<T *>(QString::fromLatin1(name));
+    Q_ASSERT(widget);
+    return widget;
+}
+
+}
+
+void TestWidgets::variablePropertiesEditsVariable()
+{
+    VariablePropertiesWidget editor;
+    QVERIFY2(!named<QWidget>(editor, "propertiesActions")->isEnabled(), "an empty editor applies nothing");
+    editor.setVariable(speedVariable());
+    QCOMPARE(named<QLineEdit>(editor, "nodeIdEdit")->text(), QStringLiteral("ns=1;s=Motor.Speed"));
+    QCOMPARE(named<QLineEdit>(editor, "typeEdit")->text(), QStringLiteral("AnalogItemType"));
+    QCOMPARE(named<QLineEdit>(editor, "initialValueEdit")->text(), Formatting::value(1.5));
+
+    QSignalSpy applied(&editor, &VariablePropertiesWidget::applyRequested);
+    QSignalSpy alarm(&editor, &VariablePropertiesWidget::alarmEditRequested);
+    named<QLineEdit>(editor, "displayNameEdit")->setText(QStringLiteral(" Rpm "));
+    named<QPushButton>(editor, "applyButton")->click();
+    QCOMPARE(applied.count(), 1);
+    const VariableInfo edited = applied.first().first().value<VariableInfo>();
+    QCOMPARE(edited.displayName, QStringLiteral("Rpm"));
+    QVERIFY2(!edited.initialValue.isValid(), "an untouched initial value is kept");
+    named<QPushButton>(editor, "alarmButton")->click();
+    QCOMPARE(alarm.count(), 1);
+    QCOMPARE(alarm.first().first().value<VariableInfo>().displayName, QStringLiteral("Speed"));
+
+    named<QPushButton>(editor, "revertButton")->click();
+    QCOMPARE(named<QLineEdit>(editor, "displayNameEdit")->text(), QStringLiteral("Speed"));
+    editor.clear();
+    QVERIFY(named<QLineEdit>(editor, "nodeIdEdit")->text().isEmpty());
+    named<QPushButton>(editor, "applyButton")->click();
+    QCOMPARE(applied.count(), 1);
+}
+
+void TestWidgets::variablePropertiesLocksReadOnlyAndModelVariables()
+{
+    VariablePropertiesWidget editor;
+    VariableInfo variable = speedVariable();
+    variable.fromModel = true;
+    editor.setVariable(variable);
+    QVERIFY(named<QWidget>(editor, "propertiesHost")->isEnabled());
+    QVERIFY(!named<QWidget>(editor, "displayNameEdit")->isEnabled());
+    QVERIFY(!named<QWidget>(editor, "dataTypeCombo")->isEnabled());
+    QVERIFY(named<QWidget>(editor, "simulationCombo")->isEnabled());
+
+    variable.readOnly = true;
+    editor.setVariable(variable);
+    QVERIFY(!named<QWidget>(editor, "propertiesHost")->isEnabled());
+    QVERIFY(!named<QWidget>(editor, "propertiesActions")->isEnabled());
+}
+
+void TestWidgets::propertyNodeEditsValue()
+{
+    PropertyNodeWidget editor;
+    QVERIFY(!named<QWidget>(editor, "propertyNodeActions")->isEnabled());
+    editor.setNode(rangeProperty());
+    QCOMPARE(named<QLineEdit>(editor, "propertyNodeIdEdit")->text(), QStringLiteral("ns=1;s=Motor.Speed.EURange"));
+    QCOMPARE(named<QLineEdit>(editor, "propertyTypeEdit")->text(), QStringLiteral("PropertyType"));
+    QCOMPARE(named<QLineEdit>(editor, "propertyNameEdit")->text(), QStringLiteral("EURange"));
+    QCOMPARE(named<QLineEdit>(editor, "propertyDataTypeEdit")->text(), QStringLiteral("Range"));
+    QCOMPARE(named<QLineEdit>(editor, "propertyAccessEdit")->text(), QStringLiteral("Read"));
+    QVERIFY2(named<QLineEdit>(editor, "propertyValueEdit")->isHidden(), "a Range is edited as its limits");
+    auto *low = named<QLineEdit>(editor, "propertyLowEdit");
+    auto *high = named<QLineEdit>(editor, "propertyHighEdit");
+    QVERIFY(!low->isHidden());
+    QVERIFY(!high->isHidden());
+    QCOMPARE(low->text(), QStringLiteral("0"));
+    QCOMPARE(high->text(), QStringLiteral("100"));
+    QVERIFY(!low->isReadOnly());
+    for (const char *name : { "propertyNodeIdEdit", "propertyTypeEdit", "propertyNameEdit", "propertyDataTypeEdit",
+                              "propertyAccessEdit" })
+        QVERIFY2(named<QLineEdit>(editor, name)->isReadOnly(), name);
+
+    QSignalSpy applied(&editor, &PropertyNodeWidget::applyRequested);
+    named<QPushButton>(editor, "propertyApplyButton")->click();
+    QCOMPARE(applied.count(), 1);
+    QVERIFY2(!applied.first().first().value<VariableInfo>().initialValue.isValid(), "nothing typed, nothing set");
+
+    low->setText(QStringLiteral("-10.5"));
+    low->setModified(true);
+    named<QPushButton>(editor, "propertyApplyButton")->click();
+    QCOMPARE(applied.last().first().value<VariableInfo>().initialValue.toString(), QStringLiteral("-10.5; 100"));
+    QString point = QStringLiteral("1.5");
+    int position = 0;
+    QCOMPARE(low->validator()->validate(point, position), QValidator::Acceptable);
+
+    named<QPushButton>(editor, "propertyRevertButton")->click();
+    QCOMPARE(low->text(), QStringLiteral("0"));
+    QVERIFY(!low->isModified());
+}
+
+void TestWidgets::propertyNodeEditsTextValue()
+{
+    PropertyNodeWidget editor;
+    VariableInfo units = rangeProperty();
+    units.displayName = QStringLiteral("EngineeringUnits");
+    units.dataType = QStringLiteral("EUInformation");
+    units.initialValue = QStringLiteral("rpm");
+    editor.setNode(units);
+    QVERIFY(named<QLineEdit>(editor, "propertyLowEdit")->isHidden());
+    QVERIFY(named<QLineEdit>(editor, "propertyHighEdit")->isHidden());
+    auto *value = named<QLineEdit>(editor, "propertyValueEdit");
+    QVERIFY(!value->isHidden());
+    QCOMPARE(value->text(), QStringLiteral("rpm"));
+
+    QSignalSpy applied(&editor, &PropertyNodeWidget::applyRequested);
+    value->setText(QStringLiteral("Hz"));
+    value->setModified(true);
+    named<QPushButton>(editor, "propertyApplyButton")->click();
+    QCOMPARE(applied.count(), 1);
+    QCOMPARE(applied.first().first().value<VariableInfo>().initialValue.toString(), QStringLiteral("Hz"));
+}
+
+void TestWidgets::propertyNodeLocksReadOnlyProperty()
+{
+    PropertyNodeWidget editor;
+    VariableInfo property = rangeProperty();
+    property.readOnly = true;
+    editor.setNode(property);
+    QVERIFY(named<QLineEdit>(editor, "propertyLowEdit")->isReadOnly());
+    QVERIFY(named<QLineEdit>(editor, "propertyHighEdit")->isReadOnly());
+    QVERIFY(!named<QWidget>(editor, "propertyNodeActions")->isEnabled());
+    editor.clear();
+    QVERIFY(named<QLineEdit>(editor, "propertyNodeIdEdit")->text().isEmpty());
 }
 
 QTEST_MAIN(TestWidgets)

@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QList>
+#include <QMap>
 #include <QString>
 #include <QStringList>
 #include <QVariant>
@@ -65,6 +66,8 @@ struct NodeDefinition
     AlarmSettings alarm;
     /// \brief Whether the server records the values for clients to read with HistoryRead; variables only.
     bool historizing = false;
+    /// \brief Values of properties, e.g. the EURange of an analog item, as text keyed by browse name; variables only.
+    QMap<QString, QString> properties;
     /// \brief Action of a method; methods only.
     MethodAction method = MethodAction::Reset;
     /// \brief Child nodes; folders and objects only.

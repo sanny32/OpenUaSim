@@ -102,8 +102,9 @@ public:
 
 signals:
     ///
-    /// \brief Asks to apply edited properties of the shown variable.
-    /// \param variable Variable with the edited display name, icon, data type, access and simulation.
+    /// \brief Asks to apply edited properties of the shown variable, or the typed value of the shown property.
+    /// \param variable Variable with the edited display name, icon, data type, access and simulation, or a property
+    ///        with its typed value text as initial value.
     ///
     void variableChangeRequested(const VariableInfo &variable);
 
@@ -125,17 +126,11 @@ protected:
 private:
     void showVariablesTitle();
     void retranslate();
-    void fillCombos();
     void showTreeNode(const QModelIndex &current);
     void showContainer(const QString &containerId);
     void setNestedVariablesShown(bool shown);
     void showVariable(const QModelIndex &current);
     void clearProperties();
-    void applyProperties();
-    void requestAlarmEdit();
-    void revertProperties();
-    void updateSimulationFields();
-    VariableInfo editedVariable() const;
 
     Ui::ObjectsPage *ui;
     TreeModel *_treeModel;

@@ -29,18 +29,6 @@ QString tr(const char *text)
 }
 
 ///
-/// \brief Returns the access level text of a variable.
-/// \param variable Variable to describe.
-/// \return "Read", "Write" or "Read/Write".
-///
-QString accessText(const QUaBaseVariable &variable)
-{
-    if (variable.readAccess() && variable.writeAccess())
-        return QStringLiteral("Read/Write");
-    return variable.writeAccess() ? QStringLiteral("Write") : QStringLiteral("Read");
-}
-
-///
 /// \brief Returns a node id without its namespace index.
 /// \param nodeId Node id of any namespace.
 /// \return Identifier such as "i=1003".
@@ -57,6 +45,18 @@ QString identifierOf(QUaNodeId nodeId)
 }
 
 namespace ModelVariables {
+
+///
+/// \brief Returns the access level text of a variable.
+/// \param variable Variable to describe.
+/// \return "Read", "Write" or "Read/Write".
+///
+QString accessText(const QUaBaseVariable &variable)
+{
+    if (variable.readAccess() && variable.writeAccess())
+        return QStringLiteral("Read/Write");
+    return variable.writeAccess() ? QStringLiteral("Write") : QStringLiteral("Read");
+}
 
 ///
 /// \brief Returns the variable of an imported model that a server node id names.

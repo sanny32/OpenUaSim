@@ -11,17 +11,18 @@
 namespace {
 
 ///
-/// \brief Appends the variables of the folders and objects below a node.
+/// \brief Appends the variables of the folders, objects and variables below a node.
 /// \param node Node whose children are visited.
 /// \param path Path of the node relative to the listed container; empty for the container itself.
-/// \param variables Variables keyed by the node id of their folder or object.
+/// \param variables Variables keyed by the node id of their folder, object or variable.
 /// \param listing Receives the variables and their owner paths.
 ///
 void collectNested(const TreeNode &node, const QString &path,
                    const QHash<QString, QList<VariableInfo>> &variables, VariableListing::Listing &listing)
 {
     for (const TreeNode &child : node.children) {
-        if (child.kind != TreeNode::Kind::Folder && child.kind != TreeNode::Kind::Object)
+        if (child.kind != TreeNode::Kind::Folder && child.kind != TreeNode::Kind::Object
+            && child.kind != TreeNode::Kind::Variable)
             continue;
         const QString childPath = path.isEmpty() ? child.text : path + QLatin1Char('/') + child.text;
         const QList<VariableInfo> owned = variables.value(child.id);
@@ -55,9 +56,9 @@ const TreeNode *find(const QList<TreeNode> &nodes, const QString &id)
 
 ///
 /// \brief Collects the variables a folder or object lists.
-/// \param container Folder or object node.
-/// \param variables Variables keyed by the node id of their folder or object.
-/// \param nested Whether to include the variables of the folders and objects below the container.
+/// \param container Folder, object or variable node.
+/// \param variables Variables keyed by the node id of their folder, object or variable.
+/// \param nested Whether to include the variables of the folders, objects and variables below the container.
 /// \return Listed variables with the owner paths of the nested ones.
 ///
 Listing collect(const TreeNode &container, const QHash<QString, QList<VariableInfo>> &variables, bool nested)

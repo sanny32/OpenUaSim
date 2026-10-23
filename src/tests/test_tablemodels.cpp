@@ -103,6 +103,7 @@ private slots:
     void variableListingFindsNodes();
     void variableListingCollectsOwnVariables();
     void variableListingCollectsNestedVariables();
+    void variableListingCollectsChildrenOfVariables();
     void subscriptionsModel();
     void tableModelsHaveNoChildren();
     void variablesModel();
@@ -290,6 +291,25 @@ void TestTableModels::variableListingCollectsNestedVariables()
     const VariableListing::Listing motorListing = VariableListing::collect(*motor, lineVariables(), true);
     QCOMPARE(motorListing.variables.size(), 3);
     QCOMPARE(motorListing.locations.value(QStringLiteral("Gearbox.Oil")), QStringLiteral("Gearbox"));
+}
+
+void TestTableModels::variableListingCollectsChildrenOfVariables()
+{
+    TreeNode motor = lineTree().children.at(1);
+    motor.children.first().children = { treeNode(QStringLiteral("Speed.EURange"), TreeNode::Kind::Property) };
+    QHash<QString, QList<VariableInfo>> variables = lineVariables();
+    variables.insert(QStringLiteral("Motor.Speed"), { variable(QStringLiteral("Speed.EURange"), QStringLiteral("0; 100")) });
+
+    const VariableListing::Listing nested = VariableListing::collect(motor, variables, true);
+    QCOMPARE(nodeIds(nested.variables),
+             (QStringList { QStringLiteral("Motor.Speed"), QStringLiteral("Motor.Load"), QStringLiteral("Speed.EURange"),
+                            QStringLiteral("Gearbox.Oil") }));
+    QCOMPARE(nested.locations.value(QStringLiteral("Speed.EURange")), QStringLiteral("Motor.Speed"));
+    QCOMPARE(VariableListing::collect(motor, variables, false).variables.size(), 2);
+
+    const TreeNode *speed = VariableListing::find({ motor }, QStringLiteral("Motor.Speed"));
+    QCOMPARE(nodeIds(VariableListing::collect(*speed, variables, false).variables),
+             QStringList { QStringLiteral("Speed.EURange") });
 }
 
 void TestTableModels::subscriptionsModel()

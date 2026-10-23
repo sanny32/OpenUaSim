@@ -95,6 +95,8 @@ add_library(ouasim_core STATIC
     server/snapshotbuilder.h
     server/typecatalog.cpp
     server/typecatalog.h
+    server/variableproperties.cpp
+    server/variableproperties.h
 
     simulation/signalgenerator.cpp
     simulation/signalgenerator.h

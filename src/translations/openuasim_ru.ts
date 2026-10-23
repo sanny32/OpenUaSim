@@ -1510,136 +1510,8 @@
         <translation>Свойства</translation>
     </message>
     <message>
-        <source>NodeId</source>
-        <translation>NodeId</translation>
-    </message>
-    <message>
-        <source>Copy NodeId</source>
-        <translation>Копировать NodeId</translation>
-    </message>
-    <message>
-        <source>Display Name</source>
-        <translation>Отображаемое имя</translation>
-    </message>
-    <message>
-        <source>Icon</source>
-        <translation>Значок</translation>
-    </message>
-    <message>
-        <source>Data Type</source>
-        <translation>Тип данных</translation>
-    </message>
-    <message>
-        <source>Number of array elements; Scalar holds a single value</source>
-        <translation>Число элементов массива; «Скаляр» — одно значение</translation>
-    </message>
-    <message>
-        <source>Array Length</source>
-        <translation>Длина массива</translation>
-    </message>
-    <message>
-        <source>Scalar</source>
-        <translation>Скаляр</translation>
-    </message>
-    <message>
-        <source>[</source>
-        <translation>[</translation>
-    </message>
-    <message>
-        <source>]</source>
-        <translation>]</translation>
-    </message>
-    <message>
-        <source>Access</source>
-        <translation>Доступ</translation>
-    </message>
-    <message>
-        <source>Read</source>
-        <translation>Чтение</translation>
-    </message>
-    <message>
-        <source>Write</source>
-        <translation>Запись</translation>
-    </message>
-    <message>
-        <source>Read/Write</source>
-        <translation>Чтение/запись</translation>
-    </message>
-    <message>
-        <source>Initial Value</source>
-        <translation>Начальное значение</translation>
-    </message>
-    <message>
-        <source>Quality</source>
-        <translation>Качество</translation>
-    </message>
-    <message>
-        <source>Simulation</source>
-        <translation>Симуляция</translation>
-    </message>
-    <message>
-        <source>Update Interval</source>
-        <translation>Интервал обновления</translation>
-    </message>
-    <message>
-        <source>ms</source>
-        <translation>мс</translation>
-    </message>
-    <message>
-        <source>s</source>
-        <translation>с</translation>
-    </message>
-    <message>
-        <source>Amplitude</source>
-        <translation>Амплитуда</translation>
-    </message>
-    <message>
-        <source>Offset</source>
-        <translation>Смещение</translation>
-    </message>
-    <message>
-        <source>Period</source>
-        <translation>Период</translation>
-    </message>
-    <message>
-        <source> ms</source>
-        <translation> мс</translation>
-    </message>
-    <message>
-        <source>Values</source>
-        <translation>Значения</translation>
-    </message>
-    <message>
-        <source>Values separated by ;</source>
-        <translation>Значения через ;</translation>
-    </message>
-    <message>
-        <source>Revert</source>
-        <translation>Отменить</translation>
-    </message>
-    <message>
-        <source>Apply</source>
-        <translation>Применить</translation>
-    </message>
-    <message>
         <source>Variables in &apos;%1&apos;</source>
         <translation>Переменные «%1»</translation>
-    </message>
-    <message>
-        <source>Alarm...</source>
-        <translation>Аларм...</translation>
-    </message>
-    <message>
-        <source>Raise an OPC UA alarm when the value crosses limits or leaves its normal value</source>
-        <translation>Формировать аларм OPC UA при выходе значения за пороги или из нормального состояния</translation>
-    </message>
-    <message>
-        <source>Historizing</source>
-        <translation>Архивирование</translation>
-    </message>
-    <message>
-        <source>Keep the recent values in memory for clients that read the history; Server Settings limit how many</source>
-        <translation>Хранить последние значения в памяти для клиентов, читающих историю; сколько — задают настройки сервера</translation>
     </message>
 </context>
 <context>
@@ -1736,6 +1608,53 @@
     <message>
         <source>There is no node &apos;%1&apos;</source>
         <translation>Нет узла «%1»</translation>
+    </message>
+</context>
+<context>
+    <name>PropertyNodeWidget</name>
+    <message>
+        <source>NodeId</source>
+        <translation>NodeId</translation>
+    </message>
+    <message>
+        <source>Copy NodeId</source>
+        <translation>Копировать NodeId</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation>Тип</translation>
+    </message>
+    <message>
+        <source>Display Name</source>
+        <translation>Отображаемое имя</translation>
+    </message>
+    <message>
+        <source>Data Type</source>
+        <translation>Тип данных</translation>
+    </message>
+    <message>
+        <source>Access</source>
+        <translation>Доступ</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Значение</translation>
+    </message>
+    <message>
+        <source>Revert</source>
+        <translation>Отменить</translation>
+    </message>
+    <message>
+        <source>Apply</source>
+        <translation>Применить</translation>
+    </message>
+    <message>
+        <source>Low</source>
+        <translation>Нижний предел</translation>
+    </message>
+    <message>
+        <source>High</source>
+        <translation>Верхний предел</translation>
     </message>
 </context>
 <context>
@@ -1837,6 +1756,14 @@
     <message>
         <source>Model variable settings skipped: %1</source>
         <translation>Настройки переменной модели пропущены: %1</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is not a %2 value for &apos;%3&apos;</source>
+        <translation>«%1» — не значение типа %2 для «%3»</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is not a property of a variable</source>
+        <translation>«%1» — не свойство переменной</translation>
     </message>
 </context>
 <context>
@@ -2420,6 +2347,152 @@
     <message>
         <source>Copy</source>
         <translation>Копировать</translation>
+    </message>
+</context>
+<context>
+    <name>VariableProperties</name>
+    <message>
+        <source>the type declares no property &apos;%1&apos;</source>
+        <translation>тип не объявляет свойство «%1»</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is not a %2 value for &apos;%3&apos;</source>
+        <translation>«%1» — не значение типа %2 для «%3»</translation>
+    </message>
+</context>
+<context>
+    <name>VariablePropertiesWidget</name>
+    <message>
+        <source>NodeId</source>
+        <translation>NodeId</translation>
+    </message>
+    <message>
+        <source>Copy NodeId</source>
+        <translation>Копировать NodeId</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation>Тип</translation>
+    </message>
+    <message>
+        <source>Display Name</source>
+        <translation>Отображаемое имя</translation>
+    </message>
+    <message>
+        <source>Icon</source>
+        <translation>Значок</translation>
+    </message>
+    <message>
+        <source>Data Type</source>
+        <translation>Тип данных</translation>
+    </message>
+    <message>
+        <source>Number of array elements; Scalar holds a single value</source>
+        <translation>Число элементов массива; «Скаляр» — одно значение</translation>
+    </message>
+    <message>
+        <source>Array Length</source>
+        <translation>Длина массива</translation>
+    </message>
+    <message>
+        <source>Scalar</source>
+        <translation>Скаляр</translation>
+    </message>
+    <message>
+        <source>[</source>
+        <translation>[</translation>
+    </message>
+    <message>
+        <source>]</source>
+        <translation>]</translation>
+    </message>
+    <message>
+        <source>Access</source>
+        <translation>Доступ</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>Чтение</translation>
+    </message>
+    <message>
+        <source>Write</source>
+        <translation>Запись</translation>
+    </message>
+    <message>
+        <source>Read/Write</source>
+        <translation>Чтение/запись</translation>
+    </message>
+    <message>
+        <source>Historizing</source>
+        <translation>Архивирование</translation>
+    </message>
+    <message>
+        <source>Keep the recent values in memory for clients that read the history; Server Settings limit how many</source>
+        <translation>Хранить последние значения в памяти для клиентов, читающих историю; сколько — задают настройки сервера</translation>
+    </message>
+    <message>
+        <source>Initial Value</source>
+        <translation>Начальное значение</translation>
+    </message>
+    <message>
+        <source>Quality</source>
+        <translation>Качество</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Симуляция</translation>
+    </message>
+    <message>
+        <source>Update Interval</source>
+        <translation>Интервал обновления</translation>
+    </message>
+    <message>
+        <source>ms</source>
+        <translation>мс</translation>
+    </message>
+    <message>
+        <source>s</source>
+        <translation>с</translation>
+    </message>
+    <message>
+        <source>Amplitude</source>
+        <translation>Амплитуда</translation>
+    </message>
+    <message>
+        <source>Offset</source>
+        <translation>Смещение</translation>
+    </message>
+    <message>
+        <source>Period</source>
+        <translation>Период</translation>
+    </message>
+    <message>
+        <source> ms</source>
+        <translation> мс</translation>
+    </message>
+    <message>
+        <source>Values</source>
+        <translation>Значения</translation>
+    </message>
+    <message>
+        <source>Values separated by ;</source>
+        <translation>Значения через ;</translation>
+    </message>
+    <message>
+        <source>Alarm...</source>
+        <translation>Аларм...</translation>
+    </message>
+    <message>
+        <source>Raise an OPC UA alarm when the value crosses limits or leaves its normal value</source>
+        <translation>Формировать аларм OPC UA при выходе значения за пороги или из нормального состояния</translation>
+    </message>
+    <message>
+        <source>Revert</source>
+        <translation>Отменить</translation>
+    </message>
+    <message>
+        <source>Apply</source>
+        <translation>Применить</translation>
     </message>
 </context>
 <context>

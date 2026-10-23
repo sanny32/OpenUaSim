@@ -261,6 +261,12 @@ QJsonObject nodeToJson(const NodeDefinition &node)
             json.insert(QStringLiteral("alarm"), alarmToJson(node.alarm));
         if (node.historizing)
             json.insert(QStringLiteral("historizing"), true);
+        if (!node.properties.isEmpty()) {
+            QJsonObject properties;
+            for (auto it = node.properties.cbegin(); it != node.properties.cend(); ++it)
+                properties.insert(it.key(), it.value());
+            json.insert(QStringLiteral("properties"), properties);
+        }
     } else if (node.kind == NodeDefinition::Kind::Method) {
         json.insert(QStringLiteral("action"), methodKey(node.method));
     } else {
@@ -500,6 +506,9 @@ bool NodeReader::readVariable(const QJsonObject &json, const QString &path, Node
         return fail(path, tr("unknown quality '%1'").arg(quality));
 
     node.historizing = json.value(QStringLiteral("historizing")).toBool(false);
+    const QJsonObject properties = json.value(QStringLiteral("properties")).toObject();
+    for (auto it = properties.constBegin(); it != properties.constEnd(); ++it)
+        node.properties.insert(it.key(), it.value().toString());
 
     const QJsonObject simulation = json.value(QStringLiteral("simulation")).toObject();
     const QString function = simulation.value(QStringLiteral("function")).toString(QStringLiteral("none"));

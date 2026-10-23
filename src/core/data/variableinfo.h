@@ -89,6 +89,23 @@ struct AlarmSettings
 };
 
 ///
+/// \brief OPC UA property of a variable, such as the EURange of an analog item.
+///
+struct PropertyInfo
+{
+    /// \brief Browse name, without namespace.
+    QString browseName;
+    /// \brief Data type name, e.g. "Range", "EUInformation" or "LocalizedText[]" for an array.
+    QString dataType;
+    /// \brief Value as text, as VariableProperties::toText() writes it; empty while the property has no value.
+    QString value;
+    /// \brief Whether the value can be typed as text of the data type.
+    bool editable = false;
+    /// \brief Whether the user changed the value text since it was shown.
+    bool edited = false;
+};
+
+///
 /// \brief Describes one variable of an object in the address space.
 ///
 struct VariableInfo
@@ -204,6 +221,12 @@ struct VariableInfo
     QString alarmState;
     /// \brief Whether the server records the value history.
     bool historizing = false;
+    /// \brief Browse name of the variable type, e.g. "AnalogItemType"; empty while the variable is not built.
+    QString typeName;
+    /// \brief Properties of the variable, followed by the optional ones its type declares and it lacks.
+    QList<PropertyInfo> properties;
+    /// \brief Whether the node is a property of a variable, whose value text is the only setting edited.
+    bool property = false;
 
     ///
     /// \brief Returns the data type name to show.

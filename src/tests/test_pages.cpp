@@ -20,6 +20,7 @@
 #include <QSignalSpy>
 #include <QSpinBox>
 #include <QSplitter>
+#include <QStackedWidget>
 #include <QStandardItemModel>
 #include <QStyleOptionViewItem>
 #include <QTableView>
@@ -45,6 +46,7 @@
 #include "namespacesmodel.h"
 #include "namespacespage.h"
 #include "objectspage.h"
+#include "propertynodewidget.h"
 #include "pki/certificategenerator.h"
 #include "project/defaultproject.h"
 #include "sessionsmodel.h"
@@ -57,6 +59,7 @@
 #include "typespage.h"
 #include "variablesmodel.h"
 #include "valuedialog.h"
+#include "variablepropertieswidget.h"
 #include "viewsetup.h"
 
 Q_DECLARE_METATYPE(VariableInfo)
@@ -64,6 +67,17 @@ Q_DECLARE_METATYPE(SessionInfo)
 Q_DECLARE_METATYPE(CertificateInfo::Category)
 
 namespace {
+
+TreeNode *findTreeNode(QList<TreeNode> &nodes, const QString &id)
+{
+    for (TreeNode &node : nodes) {
+        if (node.id == id)
+            return &node;
+        if (TreeNode *found = findTreeNode(node.children, id))
+            return found;
+    }
+    return nullptr;
+}
 
 template <typename T>
 T *child(const QWidget &parent, const char *name)
@@ -238,6 +252,9 @@ private slots:
     void objectsPageShowsImportedVariablesReadOnly();
     void objectsPageLocksModelVariableStructure();
     void objectsPageShowsDataTypeOutsideTheList();
+    void objectsPageShowsTypeOfVariables();
+    void objectsPageEditsValueOfProperty();
+    void objectsPageElidesNodeId();
 
 private:
     ServerSnapshot _snapshot;
@@ -1686,6 +1703,99 @@ void TestPages::objectsPageLocksModelVariableStructure()
     page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
     QVERIFY(child<QLineEdit>(page, "displayNameEdit")->isEnabled());
     QVERIFY(child<QComboBox>(page, "dataTypeCombo")->isEnabled());
+}
+
+void TestPages::objectsPageShowsTypeOfVariables()
+{
+    const QString speedId = QStringLiteral("ns=2;s=Motor_01.Speed");
+    QHash<QString, QList<VariableInfo>> variables = _snapshot.variables;
+    for (QList<VariableInfo> &list : variables) {
+        for (VariableInfo &variable : list) {
+            if (variable.nodeId == speedId)
+                variable.typeName = QStringLiteral("AnalogItemType");
+        }
+    }
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, variables);
+    auto *type = child<QLineEdit>(page, "typeEdit");
+    QCOMPARE(page.currentNodeId(), speedId);
+    QCOMPARE(type->text(), QStringLiteral("AnalogItemType"));
+    QVERIFY(type->isReadOnly());
+
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    QVERIFY(type->text().isEmpty());
+}
+
+void TestPages::objectsPageEditsValueOfProperty()
+{
+    const QString temperatureId = QStringLiteral("ns=2;s=Motor_01.Temperature");
+    VariableInfo units;
+    units.nodeId = QStringLiteral("ns=2;s=Motor_01.Temperature.EngineeringUnits");
+    units.displayName = QStringLiteral("EngineeringUnits");
+    units.icon = QStringLiteral("property");
+    units.value = QStringLiteral("°C");
+    units.initialValue = units.value;
+    units.dataType = QStringLiteral("EUInformation");
+    units.access = QStringLiteral("Read");
+    units.typeName = QStringLiteral("PropertyType");
+    units.fromModel = true;
+    units.property = true;
+    QHash<QString, QList<VariableInfo>> variables = _snapshot.variables;
+    variables.insert(temperatureId, { units });
+    QList<TreeNode> tree = _snapshot.addressSpace;
+    TreeNode *temperature = findTreeNode(tree, temperatureId);
+    QVERIFY(temperature);
+    TreeNode unitsNode;
+    unitsNode.text = units.displayName;
+    unitsNode.id = units.nodeId;
+    unitsNode.kind = TreeNode::Kind::Property;
+    temperature->children.append(unitsNode);
+
+    ObjectsPage page;
+    page.setAddressSpace(tree, variables);
+    QVERIFY2(page.variablesModel()->rowOf(units.nodeId) >= 0, "nested variables list the properties of variables");
+
+    QVERIFY(page.selectNode(units.nodeId));
+    QCOMPARE(page.currentNodeId(), units.nodeId);
+    QCOMPARE(page.currentContainerId(), temperatureId);
+    QCOMPARE(ViewSetup::currentId(child<QTableView>(page, "variablesView")), units.nodeId);
+    auto *stack = child<QStackedWidget>(page, "propertiesStack");
+    auto *editor = child<PropertyNodeWidget>(page, "propertyNodeProperties");
+    QCOMPARE(stack->currentWidget(), editor);
+    QCOMPARE(child<QLineEdit>(page, "propertyNodeIdEdit")->text(), units.nodeId);
+    QCOMPARE(child<QLineEdit>(page, "propertyTypeEdit")->text(), QStringLiteral("PropertyType"));
+    QCOMPARE(child<QLineEdit>(page, "propertyDataTypeEdit")->text(), QStringLiteral("EUInformation"));
+    auto *value = child<QLineEdit>(page, "propertyValueEdit");
+    QCOMPARE(value->text(), QStringLiteral("°C"));
+
+    QSignalSpy requested(&page, &ObjectsPage::variableChangeRequested);
+    value->setText(QStringLiteral("K"));
+    value->setModified(true);
+    child<QPushButton>(page, "propertyApplyButton")->click();
+    QCOMPARE(requested.count(), 1);
+    const VariableInfo edited = requested.first().first().value<VariableInfo>();
+    QVERIFY(edited.property);
+    QCOMPARE(edited.nodeId, units.nodeId);
+    QCOMPARE(edited.initialValue.toString(), QStringLiteral("K"));
+
+    QVERIFY(page.selectNode(QStringLiteral("ns=2;s=Motor_01.Speed")));
+    QCOMPARE(stack->currentWidget(), child<VariablePropertiesWidget>(page, "variableProperties"));
+    QCOMPARE(child<QLineEdit>(page, "nodeIdEdit")->text(), QStringLiteral("ns=2;s=Motor_01.Speed"));
+}
+
+void TestPages::objectsPageElidesNodeId()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    page.resize(900, 600);
+    page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+    auto *nodeId = qobject_cast<ElidedLineEdit *>(child<QLineEdit>(page, "nodeIdEdit"));
+    QVERIFY(nodeId);
+    for (const char *name : { "typeEdit", "propertyNodeIdEdit", "propertyTypeEdit" })
+        QVERIFY2(qobject_cast<ElidedLineEdit *>(child<QLineEdit>(page, name)), name);
+    nodeId->setText(QStringLiteral("ns=1;s=") + QString(200, QLatin1Char('A')));
+    QVERIFY(nodeId->isElided());
 }
 
 void TestPages::objectsPageShowsDataTypeOutsideTheList()

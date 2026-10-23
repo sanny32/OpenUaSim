@@ -8,6 +8,7 @@
 
 #include <QCoreApplication>
 
+#include <QUaProperty>
 #include <QUaServer>
 
 #include "addressspace.h"
@@ -18,6 +19,7 @@
 #include "simserver.h"
 #include "snapshotbuilder.h"
 #include "typecatalog.h"
+#include "variableproperties.h"
 
 namespace {
 
@@ -132,6 +134,39 @@ void collectVariables(const QList<NodeDefinition> &nodes, const AddressSpace &ad
 }
 
 ///
+/// \brief Adds the properties and component variables of served variables below them, as OPC UA clients browse
+///        them, and lists them as the variables of their variable.
+/// \param server Server holding the nodes.
+/// \param nodes Tree nodes below the Objects folder.
+/// \param variables Variables keyed by the node id of their owner, receiving the children keyed by their variable.
+///
+void addVariableChildren(QUaServer &server, QList<TreeNode> &nodes, QHash<QString, QList<VariableInfo>> &variables)
+{
+    for (TreeNode &node : nodes) {
+        const auto *variable =
+            node.kind == TreeNode::Kind::Variable ? server.nodeById<QUaBaseDataVariable>(QUaNodeId(node.id)) : nullptr;
+        if (variable) {
+            const QList<QUaNode *> children = variable->browseChildren();
+            for (const QUaNode *child : children) {
+                const auto *served = qobject_cast<const QUaBaseVariable *>(child);
+                if (!served)
+                    continue;
+                const VariableInfo info = VariableProperties::describeChild(server, *served);
+                TreeNode leaf;
+                leaf.text = info.displayName;
+                leaf.icon = info.icon;
+                leaf.id = info.nodeId;
+                leaf.kind = qobject_cast<const QUaProperty *>(child) ? TreeNode::Kind::Property
+                                                                     : TreeNode::Kind::Variable;
+                node.children.append(leaf);
+                variables[node.id].append(info);
+            }
+        }
+        addVariableChildren(server, node.children, variables);
+    }
+}
+
+///
 /// \brief Describes a namespace URI.
 /// \param index Namespace index.
 /// \return Description of the standard and application namespaces; empty otherwise.
@@ -194,6 +229,8 @@ VariableInfo variableInfo(const NodeDefinition &node, const AddressSpace &addres
     info.alarm = node.alarm;
     info.alarmState = addressSpace.alarmState(node.nodeId);
     info.simulation = node.simulation;
+    info.typeName = addressSpace.typeName(node.nodeId);
+    info.properties = addressSpace.properties(node.nodeId);
     return info;
 }
 
@@ -278,6 +315,7 @@ ServerSnapshot build(const ProjectConfig &project, const SimServer &server, cons
                            snapshot.variables);
     ImportedNodes::collect(*server.uaServer(), ModelVariables::resolve(project.modelVariables, *server.uaServer()),
                            addressSpace, snapshot.addressSpace.first().children, snapshot.variables);
+    addVariableChildren(*server.uaServer(), snapshot.addressSpace.first().children, snapshot.variables);
     snapshot.types = TypeCatalog::types(*server.uaServer());
     snapshot.namespaces = namespaces(server);
     snapshot.endpoints = project.endpoints;

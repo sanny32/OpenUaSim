@@ -14,9 +14,17 @@
 #include "data/projectconfig.h"
 
 class QUaBaseDataVariable;
+class QUaBaseVariable;
 class QUaServer;
 
 namespace ModelVariables {
+
+///
+/// \brief Returns the access level text of a variable.
+/// \param variable Variable to describe.
+/// \return "Read", "Write" or "Read/Write".
+///
+QString accessText(const QUaBaseVariable &variable);
 
 ///
 /// \brief Returns the variable of an imported model that a server node id names.

@@ -8,6 +8,7 @@
 
 #include <QFileInfo>
 
+#include <QUaProperty>
 #include <QUaServer>
 
 #include <algorithm>
@@ -26,6 +27,7 @@
 #include "servercontroller.h"
 #include "simulation/valuecast.h"
 #include "snapshotbuilder.h"
+#include "variableproperties.h"
 
 ///
 /// \brief Creates a controller serving an empty project.
@@ -246,28 +248,34 @@ QString ServerController::copyNode(const QString &nodeId, const QString &parentI
 
 ///
 /// \brief Applies edited variable properties.
-/// \param variable Node id with the new display name, icon, data type, access, configured quality, historizing and
-///        simulation; a valid initial value, typed text or a value, replaces the stored one.
+/// \param variable Node id with the new display name, icon, data type, access, configured quality, historizing,
+///        simulation and edited property values; a valid initial value, typed text or a value, replaces the stored
+///        one. An imported model variable keeps the name, data type and array length of its model; a property of a
+///        variable takes only its value text, as initial value.
 /// \param error Receives the reason on failure; may be null.
-/// \return False when the change was refused, e.g. for text that is no value of the data type. A new
-///         name, data type, array length or alarm rebuilds the address space; other changes apply to the live variable,
-///         and a new initial value becomes its current value.
+/// \return False when the change was refused, e.g. for text that is no value of the data type. A new name, data
+///         type, array length, alarm or property value rebuilds the address space; other changes apply to the live
+///         variable, and a new initial value becomes its current value.
 ///
 bool ServerController::updateVariable(const VariableInfo &variable, QString *error)
 {
+    if (variable.property)
+        return updateProperty(variable, error);
     const NodeDefinition *existing = ProjectNodes::find(_project.nodes, variable.nodeId);
     if (!existing && ModelVariables::find(*_server.uaServer(), variable.nodeId))
         return updateModelVariable(variable, error);
     if (!existing)
         return updateDeclaredVariable(variable, error);
-    const bool structural = existing->browseName != variable.displayName || existing->dataType != variable.dataType
-        || existing->arrayLength != variable.arrayLength || existing->alarm != variable.alarm;
-
     NodeDefinition edited = *existing;
     edited.browseName = variable.displayName;
     edited.dataType = variable.dataType;
     edited.arrayLength = variable.arrayLength;
-    if (!applyVariableEdits(variable, edited, error) || !ProjectNodes::updateVariable(_project.nodes, edited, error))
+    if (!applyVariableEdits(variable, edited, error))
+        return false;
+    const bool structural = existing->browseName != edited.browseName || existing->dataType != edited.dataType
+        || existing->arrayLength != edited.arrayLength || existing->alarm != edited.alarm
+        || existing->properties != edited.properties;
+    if (!ProjectNodes::updateVariable(_project.nodes, edited, error))
         return false;
 
     emit projectEdited();
@@ -298,9 +306,9 @@ bool ServerController::updateModelVariable(const VariableInfo &variable, QString
     ModelVariable model = ModelVariables::describe(*_server.uaServer(), *served);
     const qsizetype index =
         ModelVariables::indexOf(_project.modelVariables, model.namespaceUri, model.variable.nodeId);
-    const AlarmSettings storedAlarm = index >= 0 ? _project.modelVariables.at(index).variable.alarm : AlarmSettings();
-    if (index >= 0)
-        model.variable.initialValue = _project.modelVariables.at(index).variable.initialValue;
+    const NodeDefinition stored = index >= 0 ? _project.modelVariables.at(index).variable : NodeDefinition();
+    model.variable.initialValue = stored.initialValue;
+    model.variable.properties = stored.properties;
     if (!applyVariableEdits(variable, model.variable, error))
         return false;
     if (const QString problem =
@@ -316,7 +324,7 @@ bool ServerController::updateModelVariable(const VariableInfo &variable, QString
         _project.modelVariables.append(model);
 
     emit projectEdited();
-    if (storedAlarm != model.variable.alarm) {
+    if (stored.alarm != model.variable.alarm || stored.properties != model.variable.properties) {
         rebuildNodes();
         return true;
     }
@@ -331,6 +339,51 @@ bool ServerController::updateModelVariable(const VariableInfo &variable, QString
     _addressSpace.attach({ settings });
     applyLiveSettings(settings, variable.initialValue.isValid());
     return true;
+}
+
+///
+/// \brief Applies the value typed for a property of a variable as an edited property value of that variable.
+/// \param property Property node id with the value text as initial value; an invalid one leaves the value as is.
+/// \param error Receives the reason on failure; may be null.
+/// \return False for a node that is no property of a listed variable, or for text that is no value of its data type.
+///
+bool ServerController::updateProperty(const VariableInfo &property, QString *error)
+{
+    const auto *served = _server.uaServer()->nodeById<QUaProperty>(QUaNodeId(property.nodeId));
+    const auto *owner = served ? qobject_cast<const QUaBaseDataVariable *>(served->parent()) : nullptr;
+    VariableInfo variable = owner ? listedVariable(owner->nodeId()) : VariableInfo();
+    if (variable.nodeId.isEmpty()) {
+        if (error)
+            *error = tr("'%1' is not a property of a variable").arg(property.nodeId);
+        return false;
+    }
+    if (!property.initialValue.isValid())
+        return true;
+    for (PropertyInfo &info : variable.properties) {
+        if (info.browseName == served->browseName().name()) {
+            info.value = property.initialValue.toString();
+            info.edited = true;
+        }
+    }
+    variable.initialValue = QVariant();
+    return updateVariable(variable, error);
+}
+
+///
+/// \brief Finds the description of a variable as the views list it.
+/// \param nodeId Server node id of the variable.
+/// \return Description from the snapshot, or an empty one when no folder, object or variable lists the variable.
+///
+VariableInfo ServerController::listedVariable(const QString &nodeId) const
+{
+    const QHash<QString, QList<VariableInfo>> variables = snapshot().variables;
+    for (const QList<VariableInfo> &list : variables) {
+        for (const VariableInfo &info : list) {
+            if (info.nodeId == nodeId)
+                return info;
+        }
+    }
+    return {};
 }
 
 ///
@@ -372,11 +425,13 @@ bool ServerController::updateDeclaredVariable(const VariableInfo &variable, QStr
 }
 
 ///
-/// \brief Copies the edited icon, access, quality, historizing, simulation, alarm and initial value of a variable.
-/// \param variable Edited properties; a valid initial value, typed text or a value, replaces the stored one.
+/// \brief Copies the edited icon, access, quality, historizing, simulation, alarm, initial value and property values
+///        of a variable.
+/// \param variable Edited properties; a valid initial value, typed text or a value, replaces the stored one, and an
+///        edited property value replaces the stored one or, when empty, drops it.
 /// \param node Definition receiving the edits; its data type parses the initial value.
 /// \param error Receives the reason on failure; may be null.
-/// \return False for an initial value that is no value of the data type.
+/// \return False for an initial value or a property value that is no value of its data type.
 ///
 bool ServerController::applyVariableEdits(const VariableInfo &variable, NodeDefinition &node, QString *error)
 {
@@ -386,6 +441,8 @@ bool ServerController::applyVariableEdits(const VariableInfo &variable, NodeDefi
     node.quality = variable.configuredQuality;
     node.historizing = variable.historizing;
     node.simulation = variable.simulation;
+    if (!applyPropertyEdits(variable.properties, node.properties, error))
+        return false;
     if (!variable.initialValue.isValid())
         return true;
     node.initialValue = variable.initialValue.typeId() == QMetaType::QString
@@ -396,6 +453,37 @@ bool ServerController::applyVariableEdits(const VariableInfo &variable, NodeDefi
     if (error)
         *error = tr("'%1' is not a %2 value").arg(variable.initialValue.toString(), node.dataType);
     return false;
+}
+
+///
+/// \brief Copies the edited property values of a variable in their canonical text form.
+/// \param edited Properties as shown, with the edited ones marked.
+/// \param values Stored value texts keyed by browse name; an edited empty text drops the value.
+/// \param error Receives the reason on failure; may be null.
+/// \return False for text that is no value of the data type of its property; values is then unchanged.
+///
+bool ServerController::applyPropertyEdits(const QList<PropertyInfo> &edited, QMap<QString, QString> &values,
+                                          QString *error)
+{
+    QMap<QString, QString> result = values;
+    for (const PropertyInfo &property : edited) {
+        if (!property.edited)
+            continue;
+        if (property.value.trimmed().isEmpty()) {
+            result.remove(property.browseName);
+            continue;
+        }
+        const QVariant value = VariableProperties::fromText(property.value, property.dataType);
+        if (!value.isValid()) {
+            if (error)
+                *error = tr("'%1' is not a %2 value for '%3'").arg(property.value, property.dataType,
+                                                                   property.browseName);
+            return false;
+        }
+        result.insert(property.browseName, VariableProperties::toText(value, property.dataType));
+    }
+    values = result;
+    return true;
 }
 
 ///

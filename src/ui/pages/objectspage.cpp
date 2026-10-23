@@ -6,27 +6,21 @@
 /// \brief Implements the address space page.
 ///
 
-#include <limits>
-
 #include <QSettings>
 
 #include "appicons.h"
-#include "data/projectconfig.h"
-#include "formatting.h"
 #include "itemroles.h"
 #include "objectspage.h"
-#include "simulation/signalgenerator.h"
-#include "simulation/valuecast.h"
+#include "propertynodewidget.h"
 #include "treemodel.h"
 #include "ui_objectspage.h"
 #include "variablelisting.h"
+#include "variablepropertieswidget.h"
 #include "variablesmodel.h"
 #include "viewsetup.h"
 
 namespace {
 
-constexpr int kMillisecondsPerSecond = 1000;
-constexpr int kSecondsUnit = 1;
 const char *const kNestedVariablesKey = "objects/nestedVariables";
 
 }
@@ -42,10 +36,7 @@ ObjectsPage::ObjectsPage(QWidget *parent)
     , _variablesModel(new VariablesModel(this))
 {
     ui->setupUi(this);
-    fillCombos();
     ViewSetup::splitByStretch(ui->splitter);
-    ViewSetup::bindCopyButton(ui->copyNodeIdButton, ui->nodeIdEdit);
-    ui->arrayLengthSpin->setMaximum(kMaxArrayLength);
     ui->nestedVariablesButton->setIcon(AppIcons::icon(QStringLiteral("list-tree")));
     ui->nestedVariablesButton->setChecked(QSettings().value(kNestedVariablesKey, true).toBool());
 
@@ -61,11 +52,12 @@ ObjectsPage::ObjectsPage(QWidget *parent)
     connect(ui->variablesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &ObjectsPage::showVariable);
     connect(ui->nestedVariablesButton, &QToolButton::toggled, this, &ObjectsPage::setNestedVariablesShown);
-    connect(ui->simulationCombo, &QComboBox::currentIndexChanged, this, &ObjectsPage::updateSimulationFields);
-    connect(ui->applyButton, &QPushButton::clicked, this, &ObjectsPage::applyProperties);
-    connect(ui->alarmButton, &QPushButton::clicked, this, &ObjectsPage::requestAlarmEdit);
-    connect(ui->revertButton, &QPushButton::clicked, this, &ObjectsPage::revertProperties);
-    updateSimulationFields();
+    connect(ui->variableProperties, &VariablePropertiesWidget::applyRequested,
+            this, &ObjectsPage::variableChangeRequested);
+    connect(ui->variableProperties, &VariablePropertiesWidget::alarmEditRequested,
+            this, &ObjectsPage::alarmEditRequested);
+    connect(ui->propertyNodeProperties, &PropertyNodeWidget::applyRequested,
+            this, &ObjectsPage::variableChangeRequested);
 }
 
 ///
@@ -199,7 +191,8 @@ void ObjectsPage::setTreeActions(const QList<QAction *> &actions)
 }
 
 ///
-/// \brief Lists the variables of the selected folder or object, or of the selected variable's or method's owner.
+/// \brief Lists the variables of the selected folder or object, or of the selected variable's, property's or
+///        method's owner.
 /// \param current Selected tree index.
 ///
 void ObjectsPage::showTreeNode(const QModelIndex &current)
@@ -207,7 +200,7 @@ void ObjectsPage::showTreeNode(const QModelIndex &current)
     const auto kind = static_cast<TreeNode::Kind>(current.data(ItemRoles::NodeKind).toInt());
     if (kind == TreeNode::Kind::Method) {
         showContainer(current.parent().data(ItemRoles::Id).toString());
-    } else if (kind == TreeNode::Kind::Variable) {
+    } else if (kind == TreeNode::Kind::Variable || kind == TreeNode::Kind::Property) {
         showContainer(current.parent().data(ItemRoles::Id).toString());
         ViewSetup::selectRow(ui->variablesView,
                              _variablesModel->rowOf(current.data(ItemRoles::Id).toString()));
@@ -283,24 +276,17 @@ void ObjectsPage::changeEvent(QEvent *event)
 }
 
 ///
-/// \brief Reapplies the translated texts, including the combo boxes filled from code and the table headers.
+/// \brief Reapplies the translated texts, including the table headers.
 ///
 void ObjectsPage::retranslate()
 {
     ui->retranslateUi(this);
     showVariablesTitle();
-    ViewSetup::retranslateVariableIconCombo(ui->iconCombo);
-    for (int index = 0; index < ui->simulationCombo->count(); ++index)
-        ui->simulationCombo->setItemText(
-            index, SignalGenerator::displayName(SimulationFunction(ui->simulationCombo->itemData(index).toInt())));
-    for (int index = 0; index < ui->qualityCombo->count(); ++index)
-        ui->qualityCombo->setItemText(
-            index, VariablesModel::qualityText(VariableInfo::Quality(ui->qualityCombo->itemData(index).toUInt())));
     _variablesModel->retranslate();
 }
 
 ///
-/// \brief Fills the properties panel from the selected variable.
+/// \brief Shows the selected variable or property in the editor of its kind.
 /// \param current Selected table index.
 ///
 void ObjectsPage::showVariable(const QModelIndex &current)
@@ -310,61 +296,16 @@ void ObjectsPage::showVariable(const QModelIndex &current)
         return;
     }
     const VariableInfo &variable = _variablesModel->item(current.row());
-    ui->propertiesHost->setEnabled(!variable.readOnly);
-    ui->propertiesActions->setEnabled(!variable.readOnly);
-    const QList<QWidget *> structuralFields = { ui->displayNameEdit, ui->dataTypeCombo, ui->arrayLengthSpin };
-    for (QWidget *widget : structuralFields)
-        widget->setEnabled(!variable.fromModel);
-    ui->nodeIdEdit->setText(variable.nodeId);
-    ui->displayNameEdit->setText(variable.displayName);
-    ui->iconCombo->setCurrentIndex(ui->iconCombo->findData(variable.icon));
-    const int dataTypeIndex = ui->dataTypeCombo->findText(variable.shownDataType());
-    ui->dataTypeCombo->setCurrentIndex(dataTypeIndex);
-    ui->dataTypeCombo->setPlaceholderText(dataTypeIndex < 0 ? variable.shownDataType() : QString());
-    ui->arrayLengthSpin->setValue(variable.arrayLength);
-    ui->accessCombo->setCurrentText(variable.access);
-    ui->initialValueEdit->setText(Formatting::value(variable.initialValue));
-    ui->qualityCombo->setCurrentIndex(ui->qualityCombo->findData(quint32(variable.configuredQuality)));
-    ui->historizingCheck->setChecked(variable.historizing);
-    ui->simulationCombo->setCurrentIndex(
-        ui->simulationCombo->findData(int(variable.simulation.function)));
-    ui->intervalSpin->setValue(variable.simulation.intervalMs);
-    ui->intervalUnitCombo->setCurrentIndex(0);
-    ui->periodSpin->setValue(variable.simulation.periodMs);
-    ui->amplitudeSpin->setValue(variable.simulation.amplitude);
-    ui->offsetSpin->setValue(variable.simulation.offset);
-    ui->valuesEdit->setText(variable.simulation.values.join(QStringLiteral("; ")));
-    updateSimulationFields();
+    if (variable.property) {
+        ui->propertyNodeProperties->setNode(variable);
+        ui->propertiesStack->setCurrentWidget(ui->propertyNodeProperties);
+    } else {
+        ui->variableProperties->setVariable(variable);
+        ui->propertiesStack->setCurrentWidget(ui->variableProperties);
+    }
     _currentNodeId = variable.nodeId;
     _currentFromTable = true;
     emit currentNodeChanged(_currentNodeId);
-}
-
-///
-/// \brief Lists the variable icons, the supported data types and simulation functions.
-///
-void ObjectsPage::fillCombos()
-{
-    ViewSetup::fillVariableIconCombo(ui->iconCombo);
-    ui->dataTypeCombo->addItems(ValueCast::dataTypes());
-    for (SimulationFunction function : SignalGenerator::functions())
-        ui->simulationCombo->addItem(SignalGenerator::displayName(function), int(function));
-    for (VariableInfo::Quality quality : VariableInfo::qualities())
-        ui->qualityCombo->addItem(VariablesModel::qualityText(quality), quint32(quality));
-}
-
-///
-/// \brief Shows the value list for the List function and the waveform parameters for the others.
-///
-void ObjectsPage::updateSimulationFields()
-{
-    const bool list = SimulationFunction(ui->simulationCombo->currentData().toInt()) == SimulationFunction::List;
-    const QList<QWidget *> waveformFields = { ui->amplitudeLabel, ui->amplitudeSpin, ui->offsetLabel,
-                                              ui->offsetSpin, ui->periodLabel, ui->periodSpin };
-    for (QWidget *widget : waveformFields)
-        widget->setVisible(!list);
-    ui->valuesLabel->setVisible(list);
-    ui->valuesEdit->setVisible(list);
 }
 
 ///
@@ -372,71 +313,7 @@ void ObjectsPage::updateSimulationFields()
 ///
 void ObjectsPage::clearProperties()
 {
-    ui->nodeIdEdit->clear();
-    ui->displayNameEdit->clear();
-    ui->initialValueEdit->clear();
-    ui->propertiesHost->setEnabled(false);
-    ui->propertiesActions->setEnabled(false);
-}
-
-///
-/// \brief Asks to apply the edited properties of the shown variable.
-///
-void ObjectsPage::applyProperties()
-{
-    if (ViewSetup::currentId(ui->variablesView).isEmpty())
-        return;
-    emit variableChangeRequested(editedVariable());
-}
-
-///
-/// \brief Asks to edit the alarm of the shown variable as it is stored.
-///
-void ObjectsPage::requestAlarmEdit()
-{
-    const QModelIndex current = ui->variablesView->currentIndex();
-    if (current.isValid())
-        emit alarmEditRequested(_variablesModel->item(current.row()));
-}
-
-///
-/// \brief Discards edits by showing the stored properties again.
-///
-void ObjectsPage::revertProperties()
-{
-    showVariable(ui->variablesView->currentIndex());
-}
-
-///
-/// \brief Reads the properties panel.
-/// \return Shown variable with the edited fields; an interval in seconds is converted to milliseconds,
-///         an icon the picker does not offer is kept unless another one is chosen, and the initial
-///         value is the typed text when it was edited and invalid otherwise.
-///
-VariableInfo ObjectsPage::editedVariable() const
-{
-    VariableInfo variable = _variablesModel->item(ui->variablesView->currentIndex().row());
-    variable.displayName = ui->displayNameEdit->text().trimmed();
-    if (ui->iconCombo->currentIndex() >= 0)
-        variable.icon = ui->iconCombo->currentData().toString();
-    variable.dataType = ui->dataTypeCombo->currentText();
-    variable.arrayLength = ui->arrayLengthSpin->value();
-    variable.access = ui->accessCombo->currentText();
-    variable.initialValue = ui->initialValueEdit->isModified() ? QVariant(ui->initialValueEdit->text()) : QVariant();
-    variable.configuredQuality = VariableInfo::Quality(ui->qualityCombo->currentData().toUInt());
-    variable.historizing = ui->historizingCheck->isChecked();
-    variable.simulation.function = SimulationFunction(ui->simulationCombo->currentData().toInt());
-    const int unit = ui->intervalUnitCombo->currentIndex() == kSecondsUnit ? kMillisecondsPerSecond : 1;
-    variable.simulation.intervalMs = int(qMin<qint64>(qint64(ui->intervalSpin->value()) * unit,
-                                                      std::numeric_limits<int>::max()));
-    variable.simulation.periodMs = ui->periodSpin->value();
-    variable.simulation.amplitude = ui->amplitudeSpin->value();
-    variable.simulation.offset = ui->offsetSpin->value();
-    variable.simulation.values.clear();
-    const QStringList values = ui->valuesEdit->text().split(QLatin1Char(';'), Qt::SkipEmptyParts);
-    for (const QString &value : values) {
-        if (!value.trimmed().isEmpty())
-            variable.simulation.values.append(value.trimmed());
-    }
-    return variable;
+    ui->variableProperties->clear();
+    ui->propertyNodeProperties->clear();
+    ui->propertiesStack->setCurrentWidget(ui->variableProperties);
 }

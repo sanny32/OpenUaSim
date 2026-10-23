@@ -159,6 +159,20 @@ public:
     ///
     QString alarmState(const QString &nodeId) const;
 
+    ///
+    /// \brief Returns the type of a built or attached variable.
+    /// \param nodeId Variable node id.
+    /// \return Browse name of its type definition, e.g. "AnalogItemType"; empty for an unknown variable.
+    ///
+    QString typeName(const QString &nodeId) const;
+
+    ///
+    /// \brief Returns the properties of a built or attached variable.
+    /// \param nodeId Variable node id.
+    /// \return Properties as VariableProperties::describe() lists them; none for an unknown variable.
+    ///
+    QList<PropertyInfo> properties(const QString &nodeId) const;
+
 signals:
     ///
     /// \brief Announces a value written by an OPC UA client.
@@ -202,7 +216,8 @@ private:
     void attachDeclared(QUaNode &parent, const NodeDefinition &node, const QString &path, QStringList &problems);
     QUaBaseDataVariable *addVariable(QUaNode *parent, const NodeDefinition &node, const QString &path,
                                      QStringList &problems);
-    void registerVariable(QUaBaseDataVariable *variable, const NodeDefinition &node);
+    void registerVariable(QUaBaseDataVariable *variable, const NodeDefinition &node, const QString &path,
+                          QStringList &problems);
     void handleValueChanged(const QVariant &value, const bool &networkChange);
 
     QUaServer *_server;
