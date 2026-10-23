@@ -204,7 +204,8 @@ void TestWidgets::eventLogShowsAndClears()
     QCOMPARE(view->model(), &model);
     QVERIFY(view->isColumnHidden(LogModel::ColCategory));
 
-    widget.findChild<QPushButton *>(QStringLiteral("clearButton"))->click();
+    auto *clear = widget.findChild<QToolButton *>(QStringLiteral("clearButton"));
+    QVERIFY(!clear->icon().isNull());    clear->click();
     QCOMPARE(model.rowCount(), 0);
 }
 

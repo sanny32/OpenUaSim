@@ -677,8 +677,8 @@
         <translation>Журнал событий</translation>
     </message>
     <message>
-        <source>Clear</source>
-        <translation>Очистить</translation>
+        <source>Clear Log</source>
+        <translation>Очистить журнал</translation>
     </message>
 </context>
 <context>

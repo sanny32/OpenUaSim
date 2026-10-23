@@ -8,6 +8,7 @@
 
 #include <QHeaderView>
 
+#include "appicons.h"
 #include "eventlogwidget.h"
 #include "logmodel.h"
 #include "ui_eventlogwidget.h"
@@ -28,11 +29,12 @@ EventLogWidget::EventLogWidget(QWidget *parent)
     , ui(new Ui::EventLogWidget)
 {
     ui->setupUi(this);
+    ui->clearButton->setIcon(AppIcons::icon(QStringLiteral("trash")));
     ViewSetup::configureTable(ui->logView);
     // A short strip under the pages: compact rows fit more entries than the delegate's default.
     ui->logView->verticalHeader()->setMinimumSectionSize(kCompactRowHeight);
     ui->logView->verticalHeader()->setDefaultSectionSize(kCompactRowHeight);
-    connect(ui->clearButton, &QPushButton::clicked, this, &EventLogWidget::clearLog);
+    connect(ui->clearButton, &QToolButton::clicked, this, &EventLogWidget::clearLog);
 }
 
 ///

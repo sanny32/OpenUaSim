@@ -51,7 +51,7 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>22</height>
+         <height>24</height>
         </size>
        </property>
        <property name="font">
@@ -73,9 +73,9 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="clearButton">
-       <property name="text">
-        <string>Clear</string>
+      <widget class="QToolButton" name="clearButton">
+       <property name="toolTip">
+        <string>Clear Log</string>
        </property>
       </widget>
      </item>
