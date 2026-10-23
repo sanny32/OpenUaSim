@@ -42,6 +42,8 @@ add_library(ouasim_core STATIC
     models/treebuilders.h
     models/treemodel.cpp
     models/treemodel.h
+    models/variablelisting.cpp
+    models/variablelisting.h
     models/variablesmodel.cpp
     models/variablesmodel.h
 

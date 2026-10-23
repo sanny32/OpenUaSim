@@ -66,6 +66,13 @@ public:
     int rowOf(const QString &nodeId) const;
 
     ///
+    /// \brief Replaces the listed variables.
+    /// \param variables Variables in row order.
+    /// \param locations Owner path shown before the name, keyed by variable node id; omitted for none.
+    ///
+    void setVariables(const QList<VariableInfo> &variables, const QHash<QString, QString> &locations = {});
+
+    ///
     /// \brief Updates the values of the listed variables.
     /// \param values New values keyed by node id; variables not listed are ignored.
     ///
@@ -84,4 +91,7 @@ public:
     /// \return Good, Warning or Error.
     ///
     static StatusKind qualityStatus(VariableInfo::Quality quality);
+
+private:
+    QHash<QString, QString> _locations;
 };

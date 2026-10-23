@@ -15,6 +15,7 @@
 #include "sessionsmodel.h"
 #include "subscriptionsmodel.h"
 #include "subtypesmodel.h"
+#include "variablelisting.h"
 #include "variablesmodel.h"
 
 namespace {
@@ -42,6 +43,47 @@ StatusKind status(const QModelIndex &index)
     return ItemRoles::statusFrom(index.data(ItemRoles::Status));
 }
 
+TreeNode treeNode(const QString &text, TreeNode::Kind kind, const QList<TreeNode> &children = {})
+{
+    TreeNode node;
+    node.text = text;
+    node.id = text;
+    node.kind = kind;
+    node.children = children;
+    return node;
+}
+
+///
+/// \brief Builds Line with its own Mode variable, a Motor object with a nested Gearbox and an empty Tank.
+///
+TreeNode lineTree()
+{
+    const TreeNode gearbox = treeNode(QStringLiteral("Gearbox"), TreeNode::Kind::Object,
+                                      { treeNode(QStringLiteral("Gearbox.Oil"), TreeNode::Kind::Variable) });
+    const TreeNode motor = treeNode(QStringLiteral("Motor"), TreeNode::Kind::Object,
+                                    { treeNode(QStringLiteral("Motor.Speed"), TreeNode::Kind::Variable),
+                                      treeNode(QStringLiteral("Motor.Start"), TreeNode::Kind::Method), gearbox });
+    return treeNode(QStringLiteral("Line"), TreeNode::Kind::Folder,
+                    { treeNode(QStringLiteral("Line.Mode"), TreeNode::Kind::Variable), motor,
+                      treeNode(QStringLiteral("Tank"), TreeNode::Kind::Object) });
+}
+
+QHash<QString, QList<VariableInfo>> lineVariables()
+{
+    return { { QStringLiteral("Line"), { variable(QStringLiteral("Line.Mode"), 1) } },
+             { QStringLiteral("Motor"),
+               { variable(QStringLiteral("Motor.Speed"), 2.0), variable(QStringLiteral("Motor.Load"), 3.0) } },
+             { QStringLiteral("Gearbox"), { variable(QStringLiteral("Gearbox.Oil"), 4.0) } } };
+}
+
+QStringList nodeIds(const QList<VariableInfo> &variables)
+{
+    QStringList ids;
+    for (const VariableInfo &info : variables)
+        ids.append(info.nodeId);
+    return ids;
+}
+
 }
 
 class TestTableModels : public QObject
@@ -57,6 +99,10 @@ private slots:
     void variablesModelShowsArrays();
     void variablesModelShowsModelDataTypeNames();
     void variablesModelShowsAlarmState();
+    void variablesModelShowsLocations();
+    void variableListingFindsNodes();
+    void variableListingCollectsOwnVariables();
+    void variableListingCollectsNestedVariables();
     void subscriptionsModel();
     void tableModelsHaveNoChildren();
     void variablesModel();
@@ -192,6 +238,58 @@ void TestTableModels::variablesModelShowsAlarmState()
     QCOMPARE(model.index(2, VariablesModel::ColAlarm).data().toString(), QStringLiteral("High"));
     QCOMPARE(model.index(2, VariablesModel::ColAlarm).data(ItemRoles::Status),
              ItemRoles::statusValue(StatusKind::Error));
+}
+
+void TestTableModels::variablesModelShowsLocations()
+{
+    VariablesModel model;
+    model.setVariables({ variable(QStringLiteral("a.Speed"), 1.0), variable(QStringLiteral("b.Load"), 2.0) },
+                       { { QStringLiteral("b.Load"), QStringLiteral("Line/Motor") } });
+    QCOMPARE(model.index(0, VariablesModel::ColName).data().toString(), QStringLiteral("Speed"));
+    QCOMPARE(model.index(1, VariablesModel::ColName).data().toString(), QStringLiteral("Line/Motor/Load"));
+    QCOMPARE(model.item(1).displayName, QStringLiteral("Load"));
+
+    model.setVariables({ variable(QStringLiteral("b.Load"), 2.0) });
+    QCOMPARE(model.index(0, VariablesModel::ColName).data().toString(), QStringLiteral("Load"));
+}
+
+void TestTableModels::variableListingFindsNodes()
+{
+    const QList<TreeNode> tree = { treeNode(QStringLiteral("Root"), TreeNode::Kind::Folder), lineTree() };
+    const TreeNode *gearbox = VariableListing::find(tree, QStringLiteral("Gearbox"));
+    QVERIFY(gearbox);
+    QCOMPARE(gearbox->kind, TreeNode::Kind::Object);
+    QCOMPARE(VariableListing::find(tree, QStringLiteral("Root")), &tree.first());
+    QVERIFY(!VariableListing::find(tree, QStringLiteral("Missing")));
+    QVERIFY(!VariableListing::find({}, QStringLiteral("Line")));
+}
+
+void TestTableModels::variableListingCollectsOwnVariables()
+{
+    const TreeNode line = lineTree();
+    const VariableListing::Listing listing = VariableListing::collect(line, lineVariables(), false);
+    QCOMPARE(nodeIds(listing.variables), QStringList { QStringLiteral("Line.Mode") });
+    QVERIFY(listing.locations.isEmpty());
+
+    const TreeNode *tank = VariableListing::find({ line }, QStringLiteral("Tank"));
+    QVERIFY(VariableListing::collect(*tank, lineVariables(), true).variables.isEmpty());
+}
+
+void TestTableModels::variableListingCollectsNestedVariables()
+{
+    const TreeNode line = lineTree();
+    const VariableListing::Listing listing = VariableListing::collect(line, lineVariables(), true);
+    QCOMPARE(nodeIds(listing.variables),
+             (QStringList { QStringLiteral("Line.Mode"), QStringLiteral("Motor.Speed"), QStringLiteral("Motor.Load"),
+                            QStringLiteral("Gearbox.Oil") }));
+    QVERIFY(!listing.locations.contains(QStringLiteral("Line.Mode")));
+    QCOMPARE(listing.locations.value(QStringLiteral("Motor.Load")), QStringLiteral("Motor"));
+    QCOMPARE(listing.locations.value(QStringLiteral("Gearbox.Oil")), QStringLiteral("Motor/Gearbox"));
+
+    const TreeNode *motor = VariableListing::find({ line }, QStringLiteral("Motor"));
+    const VariableListing::Listing motorListing = VariableListing::collect(*motor, lineVariables(), true);
+    QCOMPARE(motorListing.variables.size(), 3);
+    QCOMPARE(motorListing.locations.value(QStringLiteral("Gearbox.Oil")), QStringLiteral("Gearbox"));
 }
 
 void TestTableModels::subscriptionsModel()

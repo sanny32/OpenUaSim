@@ -127,7 +127,8 @@ private:
     void retranslate();
     void fillCombos();
     void showTreeNode(const QModelIndex &current);
-    void showObject(const QString &objectId, const QString &objectName);
+    void showContainer(const QString &containerId);
+    void setNestedVariablesShown(bool shown);
     void showVariable(const QModelIndex &current);
     void clearProperties();
     void applyProperties();
@@ -139,6 +140,7 @@ private:
     Ui::ObjectsPage *ui;
     TreeModel *_treeModel;
     VariablesModel *_variablesModel;
+    QList<TreeNode> _addressSpace;
     QHash<QString, QList<VariableInfo>> _variables;
     QString _containerId;
     QString _containerName;

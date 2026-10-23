@@ -8,6 +8,9 @@
 
 #include <limits>
 
+#include <QSettings>
+
+#include "appicons.h"
 #include "data/projectconfig.h"
 #include "formatting.h"
 #include "itemroles.h"
@@ -16,6 +19,7 @@
 #include "simulation/valuecast.h"
 #include "treemodel.h"
 #include "ui_objectspage.h"
+#include "variablelisting.h"
 #include "variablesmodel.h"
 #include "viewsetup.h"
 
@@ -23,6 +27,7 @@ namespace {
 
 constexpr int kMillisecondsPerSecond = 1000;
 constexpr int kSecondsUnit = 1;
+const char *const kNestedVariablesKey = "objects/nestedVariables";
 
 }
 
@@ -41,6 +46,8 @@ ObjectsPage::ObjectsPage(QWidget *parent)
     ViewSetup::splitByStretch(ui->splitter);
     ViewSetup::bindCopyButton(ui->copyNodeIdButton, ui->nodeIdEdit);
     ui->arrayLengthSpin->setMaximum(kMaxArrayLength);
+    ui->nestedVariablesButton->setIcon(AppIcons::icon(QStringLiteral("list-tree")));
+    ui->nestedVariablesButton->setChecked(QSettings().value(kNestedVariablesKey, true).toBool());
 
     ViewSetup::installDelegate(ui->addressTree);
     ViewSetup::attachSearch(ui->addressTree, _treeModel, ui->searchEdit);
@@ -53,6 +60,7 @@ ObjectsPage::ObjectsPage(QWidget *parent)
             this, &ObjectsPage::showTreeNode);
     connect(ui->variablesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &ObjectsPage::showVariable);
+    connect(ui->nestedVariablesButton, &QToolButton::toggled, this, &ObjectsPage::setNestedVariablesShown);
     connect(ui->simulationCombo, &QComboBox::currentIndexChanged, this, &ObjectsPage::updateSimulationFields);
     connect(ui->applyButton, &QPushButton::clicked, this, &ObjectsPage::applyProperties);
     connect(ui->alarmButton, &QPushButton::clicked, this, &ObjectsPage::requestAlarmEdit);
@@ -79,6 +87,7 @@ void ObjectsPage::setAddressSpace(const QList<TreeNode> &addressSpace,
     const QString previousTreeId = ViewSetup::currentId(ui->addressTree);
     const QString previousVariableId = ViewSetup::currentId(ui->variablesView);
 
+    _addressSpace = addressSpace;
     _variables = variables;
     _treeModel->setNodes(addressSpace);
     ViewSetup::applyInitialState(ui->addressTree);
@@ -197,20 +206,16 @@ void ObjectsPage::showTreeNode(const QModelIndex &current)
 {
     const auto kind = static_cast<TreeNode::Kind>(current.data(ItemRoles::NodeKind).toInt());
     if (kind == TreeNode::Kind::Method) {
-        const QModelIndex owner = current.parent();
-        showObject(owner.data(ItemRoles::Id).toString(), owner.data().toString());
+        showContainer(current.parent().data(ItemRoles::Id).toString());
     } else if (kind == TreeNode::Kind::Variable) {
-        const QModelIndex owner = current.parent();
-        showObject(owner.data(ItemRoles::Id).toString(), owner.data().toString());
+        showContainer(current.parent().data(ItemRoles::Id).toString());
         ViewSetup::selectRow(ui->variablesView,
                              _variablesModel->rowOf(current.data(ItemRoles::Id).toString()));
     } else if (kind == TreeNode::Kind::Object || kind == TreeNode::Kind::Folder) {
-        const QString id = current.data(ItemRoles::Id).toString();
-        showObject(id, _variables.contains(id) || kind == TreeNode::Kind::Object ? current.data().toString()
-                                                                                : QString());
+        showContainer(current.data(ItemRoles::Id).toString());
         ViewSetup::selectRow(ui->variablesView, 0);
     } else {
-        showObject(QString(), QString());
+        showContainer(QString());
     }
     // Selecting the first variable above made it current; the tree choice wins.
     _currentNodeId = current.data(ItemRoles::Id).toString();
@@ -219,17 +224,42 @@ void ObjectsPage::showTreeNode(const QModelIndex &current)
 }
 
 ///
-/// \brief Fills the variables table with the variables of a folder or object.
-/// \param objectId Owner node id; empty clears the table.
-/// \param objectName Owner display name for the panel title; empty shows the plain title.
+/// \brief Fills the variables table with the variables of a folder or object, and of the nodes
+///        below it while nested variables are shown.
+/// \param containerId Folder or object node id; empty or unknown clears the table.
 ///
-void ObjectsPage::showObject(const QString &objectId, const QString &objectName)
+void ObjectsPage::showContainer(const QString &containerId)
 {
-    _containerId = objectId;
-    _containerName = objectName;
-    _variablesModel->setItems(_variables.value(objectId));
+    const TreeNode *container = VariableListing::find(_addressSpace, containerId);
+    const VariableListing::Listing listing =
+        container ? VariableListing::collect(*container, _variables, ui->nestedVariablesButton->isChecked())
+                  : VariableListing::Listing();
+    _containerId = containerId;
+    // A folder without variables, such as Server, keeps the plain title.
+    const bool titled = container && (container->kind == TreeNode::Kind::Object || !listing.variables.isEmpty());
+    _containerName = titled ? container->text : QString();
+    _variablesModel->setVariables(listing.variables, listing.locations);
     showVariablesTitle();
     clearProperties();
+}
+
+///
+/// \brief Lists the shown container again with or without its nested variables and remembers the choice.
+/// \param shown Whether the variables of nested folders and objects are listed.
+///
+void ObjectsPage::setNestedVariablesShown(bool shown)
+{
+    QSettings().setValue(kNestedVariablesKey, shown);
+    const bool currentFromTable = _currentFromTable;
+    const QString variableId = ViewSetup::currentId(ui->variablesView);
+    showContainer(_containerId);
+    const int row = _variablesModel->rowOf(variableId);
+    ViewSetup::selectRow(ui->variablesView, qMax(row, 0));
+    if (!currentFromTable || row < 0) {
+        _currentNodeId = ViewSetup::currentId(ui->addressTree);
+        _currentFromTable = false;
+        emit currentNodeChanged(_currentNodeId);
+    }
 }
 
 ///

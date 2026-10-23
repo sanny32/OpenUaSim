@@ -46,7 +46,10 @@ QVariant VariablesModel::data(const QModelIndex &index, int role) const
 
     switch (index.column()) {
     case ColName:
-        if (role == Qt::DisplayRole) return variable.displayName;
+        if (role == Qt::DisplayRole) {
+            const QString location = _locations.value(variable.nodeId);
+            return location.isEmpty() ? variable.displayName : location + QLatin1Char('/') + variable.displayName;
+        }
         if (role == ItemRoles::IconName) return variable.icon;
         break;
     case ColValue:
@@ -108,6 +111,17 @@ int VariablesModel::rowOf(const QString &nodeId) const
             return row;
     }
     return -1;
+}
+
+///
+/// \brief Replaces the listed variables.
+/// \param variables Variables in row order.
+/// \param locations Owner path shown before the name, keyed by variable node id; omitted for none.
+///
+void VariablesModel::setVariables(const QList<VariableInfo> &variables, const QHash<QString, QString> &locations)
+{
+    _locations = locations;
+    setItems(variables);
 }
 
 ///

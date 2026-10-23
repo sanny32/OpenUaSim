@@ -180,6 +180,8 @@ private slots:
     void objectsPageFollowsVariableSelection();
     void objectsPageShowsObjects();
     void objectsPageClearsForFolders();
+    void objectsPageListsNestedVariables();
+    void objectsPageTogglesNestedVariables();
     void objectsPageUpdatesValues();
     void objectsPageAppliesEditedProperties();
     void objectsPageRevertsEdits();
@@ -372,11 +374,79 @@ void TestPages::objectsPageClearsForFolders()
     ObjectsPage page;
     page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
 
-    QVERIFY(ViewSetup::selectById(child<QTreeView>(page, "addressTree"), QStringLiteral("i=85")));
+    QVERIFY(ViewSetup::selectById(child<QTreeView>(page, "addressTree"), QStringLiteral("i=87")));
     QCOMPARE(page.variablesModel()->rowCount(), 0);
     QCOMPARE(child<QLabel>(page, "variablesTitle")->text(), QStringLiteral("Variables"));
     QVERIFY(text(page, "nodeIdEdit").isEmpty());
     QVERIFY(!child<QWidget>(page, "propertiesHost")->isEnabled());
+}
+
+void TestPages::objectsPageListsNestedVariables()
+{
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    QVERIFY(child<QToolButton>(page, "nestedVariablesButton")->isChecked());
+
+    QVERIFY(page.selectNode(QStringLiteral("ns=2;s=FactoryLine_01")));
+    const VariablesModel *model = page.variablesModel();
+    QCOMPARE(model->rowCount(), 12);
+    QCOMPARE(child<QLabel>(page, "variablesTitle")->text(), QStringLiteral("Variables in 'FactoryLine_01'"));
+    QCOMPARE(page.currentNodeId(), QStringLiteral("ns=2;s=FactoryLine_01"));
+    QCOMPARE(text(page, "nodeIdEdit"), QStringLiteral("ns=2;s=Motor_01.Speed"));
+    QCOMPARE(text(page, "displayNameEdit"), QStringLiteral("Speed"));
+    const int tankTemperature = model->rowOf(QStringLiteral("ns=2;s=Tank_01.Temperature"));
+    QCOMPARE(model->index(tankTemperature, VariablesModel::ColName).data().toString(),
+             QStringLiteral("Tank_01/Temperature"));
+
+    QVERIFY(page.selectNode(QStringLiteral("i=85")));
+    QCOMPARE(model->rowCount(), 12);
+    QCOMPARE(model->index(0, VariablesModel::ColName).data().toString(), QStringLiteral("FactoryLine_01/Motor_01/Speed"));
+
+    QVERIFY(page.selectNode(QStringLiteral("ns=2;s=Tank_01.Level")));
+    QCOMPARE(model->rowCount(), 3);
+    QCOMPARE(model->index(0, VariablesModel::ColName).data().toString(), QStringLiteral("Level"));
+}
+
+void TestPages::objectsPageTogglesNestedVariables()
+{
+    auto *page = new ObjectsPage;
+    page->setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    QVERIFY(page->selectNode(QStringLiteral("ns=2;s=FactoryLine_01")));
+    auto *button = child<QToolButton>(*page, "nestedVariablesButton");
+    QVERIFY(!button->icon().isNull());
+    QSignalSpy changed(page, &ObjectsPage::currentNodeChanged);
+
+    button->click();
+    QCOMPARE(page->variablesModel()->rowCount(), 0);
+    QCOMPARE(child<QLabel>(*page, "variablesTitle")->text(), QStringLiteral("Variables"));
+    QCOMPARE(page->currentNodeId(), QStringLiteral("ns=2;s=FactoryLine_01"));
+    QCOMPARE(changed.last().first().toString(), QStringLiteral("ns=2;s=FactoryLine_01"));
+    QVERIFY(text(*page, "nodeIdEdit").isEmpty());
+
+    delete page;
+    page = new ObjectsPage;
+    page->setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    button = child<QToolButton>(*page, "nestedVariablesButton");
+    QVERIFY(!button->isChecked());
+
+    QVERIFY(page->selectNode(QStringLiteral("ns=2;s=FactoryLine_01")));
+    button->click();
+    QCOMPARE(page->variablesModel()->rowCount(), 12);
+    ViewSetup::selectRow(child<QTableView>(*page, "variablesView"),
+                         page->variablesModel()->rowOf(QStringLiteral("ns=2;s=Pump_01.Flow")));
+    button->click();
+    QCOMPARE(page->currentNodeId(), QStringLiteral("ns=2;s=FactoryLine_01"));
+    button->click();
+    QCOMPARE(page->currentNodeId(), QStringLiteral("ns=2;s=FactoryLine_01"));
+
+    QVERIFY(page->selectNode(QStringLiteral("ns=2;s=Motor_01")));
+    ViewSetup::selectRow(child<QTableView>(*page, "variablesView"), 2);
+    button->click();
+    button->click();
+    QCOMPARE(page->currentNodeId(), QStringLiteral("ns=2;s=Motor_01.Running"));
+    QCOMPARE(text(*page, "nodeIdEdit"), QStringLiteral("ns=2;s=Motor_01.Running"));
+    QVERIFY(button->isChecked());
+    delete page;
 }
 
 void TestPages::objectsPageUpdatesValues()

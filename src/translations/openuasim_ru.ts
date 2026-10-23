@@ -1478,6 +1478,10 @@
         <translation>Переменные</translation>
     </message>
     <message>
+        <source>Include Variables of Nested Folders and Objects</source>
+        <translation>Включить переменные вложенных папок и объектов</translation>
+    </message>
+    <message>
         <source>Properties</source>
         <translation>Свойства</translation>
     </message>
