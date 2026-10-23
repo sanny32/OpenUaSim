@@ -45,13 +45,13 @@
 #include "mainwindow.h"
 #include "mock/mockdata.h"
 #include "objectspage.h"
-#include "project/defaultproject.h"
 #include "project/projectdocument.h"
 #include "project/projectnodes.h"
 #include "server/servercontroller.h"
 #include "serversettingsdialog.h"
 #include "statusindicator.h"
 #include "testport.h"
+#include "testproject.h"
 #include "usersdialog.h"
 #include "viewsetup.h"
 
@@ -342,7 +342,7 @@ void TestMainWindow::serverActionsFollowRunningState()
 
 void TestMainWindow::controllerDrivesWindow()
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.endpoints.first().port = TestPort::freePort();
     ServerController controller;
     controller.setProject(project);
@@ -371,7 +371,7 @@ void TestMainWindow::controllerDrivesWindow()
 
 void TestMainWindow::startFailureShowsMessage()
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.endpoints.clear();
     ServerController controller;
     controller.setProject(project);
@@ -401,7 +401,7 @@ void TestMainWindow::startWarningShowsMessage()
 void TestMainWindow::addNodeThroughDialog()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
     auto *page = child<ObjectsPage>(window, "objectsPage");
@@ -423,7 +423,7 @@ void TestMainWindow::addNodeThroughDialog()
 void TestMainWindow::deleteNodeAfterConfirmation()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
     QVERIFY(child<ObjectsPage>(window, "objectsPage")->selectNode(QStringLiteral("ns=1;s=Pump_01")));
@@ -443,7 +443,7 @@ void TestMainWindow::deleteNodeAfterConfirmation()
 void TestMainWindow::deleteNodeFollowsSelection()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     QVERIFY(!child<QAction>(window, "actionDeleteNode")->isEnabled());
     window.setController(&controller);
@@ -461,7 +461,7 @@ void TestMainWindow::deleteNodeFollowsSelection()
 void TestMainWindow::duplicatesAndPastesNodes()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
     auto *page = child<ObjectsPage>(window, "objectsPage");
@@ -487,7 +487,7 @@ void TestMainWindow::duplicatesAndPastesNodes()
 void TestMainWindow::deletesSelectedNodes()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
     auto *page = child<ObjectsPage>(window, "objectsPage");
@@ -513,7 +513,7 @@ void TestMainWindow::deletesSelectedNodes()
 void TestMainWindow::renamesNodeFromDialog()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
     auto *page = child<ObjectsPage>(window, "objectsPage");
@@ -544,7 +544,7 @@ void TestMainWindow::renamesNodeFromDialog()
 void TestMainWindow::switchesLanguageWithoutRestart()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
     window.show();
@@ -572,7 +572,7 @@ void TestMainWindow::switchesLanguageWithoutRestart()
 void TestMainWindow::configuresAlarmFromDialog()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
     const QString speed = QStringLiteral("ns=1;s=Motor_01.Speed");
@@ -597,7 +597,7 @@ void TestMainWindow::configuresAlarmFromDialog()
 void TestMainWindow::appliesUsersFromDialog()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
 
@@ -617,7 +617,7 @@ void TestMainWindow::appliesUsersFromDialog()
 void TestMainWindow::appliesServerSettingsFromDialog()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
 
@@ -635,7 +635,7 @@ void TestMainWindow::appliesServerSettingsFromDialog()
 void TestMainWindow::refusedVariableChangeShowsMessage()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
     auto *page = child<ObjectsPage>(window, "objectsPage");
@@ -651,7 +651,7 @@ void TestMainWindow::refusedVariableChangeShowsMessage()
 
 void TestMainWindow::endpointChangesShowRestartNote()
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.endpoints.first().port = TestPort::freePort();
     ServerController controller;
     controller.setProject(project);
@@ -681,7 +681,7 @@ void TestMainWindow::endpointChangesShowRestartNote()
 void TestMainWindow::refusedEndpointChangeShowsMessage()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
 
@@ -779,7 +779,7 @@ void TestMainWindow::closingAsksAboutUnsavedChanges()
 void TestMainWindow::importsAndExportsModels()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
 
@@ -802,7 +802,7 @@ void TestMainWindow::importsAndExportsModels()
 void TestMainWindow::removesModelAfterConfirmation()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     QVERIFY(controller.importNodeSet(QStringLiteral(OUASIM_TEST_DATA_DIR "/mixer.NodeSet2.xml")));
     MainWindow window;
     window.setController(&controller);
@@ -825,7 +825,7 @@ void TestMainWindow::removesModelAfterConfirmation()
 void TestMainWindow::exportsNamespaceAndLog()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     MainWindow window;
     window.setController(&controller);
 

@@ -120,8 +120,12 @@ void TestProjectFile::preservesVariableFields()
     QCOMPARE(speed.simulation.periodMs, 10000);
     QCOMPARE(speed.simulation.amplitude, 500.0);
     QCOMPARE(speed.simulation.offset, 1000.0);
-    QCOMPARE(loaded.endpoints.size(), 1);
-    QCOMPARE(loaded.endpoints.first().url(), QStringLiteral("opc.tcp://localhost:48400"));
+    QCOMPARE(loaded.endpoints.size(), original.endpoints.size());
+    for (int i = 0; i < original.endpoints.size(); ++i) {
+        QCOMPARE(loaded.endpoints.at(i).url(), QStringLiteral("opc.tcp://localhost:48400"));
+        QCOMPARE(loaded.endpoints.at(i).securityPolicy, original.endpoints.at(i).securityPolicy);
+        QCOMPARE(loaded.endpoints.at(i).securityMode, original.endpoints.at(i).securityMode);
+    }
 }
 
 void TestProjectFile::preservesEveryDataTypeValue_data()

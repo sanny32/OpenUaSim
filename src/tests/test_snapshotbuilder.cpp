@@ -5,12 +5,12 @@
 
 #include <algorithm>
 
-#include "project/defaultproject.h"
 #include "server/addressspace.h"
 #include "server/simserver.h"
 #include "server/snapshotbuilder.h"
 #include "server/typecatalog.h"
 #include "testport.h"
+#include "testproject.h"
 
 namespace {
 
@@ -55,7 +55,7 @@ private:
 
 void TestSnapshotBuilder::init()
 {
-    _project = DefaultProject::create();
+    _project = TestProject::create();
     _project.endpoints.first().port = TestPort::freePort();
     _server = new SimServer;
     _space = new AddressSpace(_server->uaServer());

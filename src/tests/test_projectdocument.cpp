@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QSet>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -11,11 +12,12 @@
 
 #include <QUaServer>
 
-#include "project/defaultproject.h"
 #include "project/projectdocument.h"
 #include "project/projectfile.h"
+#include "server/listenersettings.h"
 #include "server/servercontroller.h"
 #include "testport.h"
+#include "testproject.h"
 
 class TestProjectDocument : public QObject
 {
@@ -24,6 +26,7 @@ class TestProjectDocument : public QObject
 private slots:
     void init();
     void newProjectServesDefault();
+    void newProjectOffersEveryEndpoint();
     void editsMarkModified();
     void saveWithoutFileFails();
     void saveAsWritesAndClearsModified();
@@ -53,6 +56,30 @@ void TestProjectDocument::newProjectServesDefault()
     QVERIFY(document.fileName().isEmpty());
     QCOMPARE(document.displayName(), QStringLiteral("Untitled"));
     QVERIFY(!document.isModified());
+}
+
+void TestProjectDocument::newProjectOffersEveryEndpoint()
+{
+    ServerController controller;
+    ProjectDocument document(&controller);
+    document.newProject();
+    const QList<EndpointInfo> &endpoints = controller.project().endpoints;
+
+    QSet<QString> pairs;
+    for (const EndpointInfo &endpoint : endpoints) {
+        QVERIFY(endpoint.enabled);
+        QVERIFY(endpoint.allowAnonymous);
+        QCOMPARE(endpoint.url(), QStringLiteral("opc.tcp://localhost:48400"));
+        pairs.insert(endpoint.securityPolicy + QLatin1Char('/') + endpoint.securityMode);
+    }
+    QCOMPARE(endpoints.size(), 11);
+    QCOMPARE(pairs.size(), endpoints.size());
+    QCOMPARE(endpoints.first().securityPolicy, QStringLiteral("None"));
+
+    const ListenerSettings listener = ListenerSettingsBuilder::build(endpoints);
+    QVERIFY2(listener.ok(), qPrintable(listener.error));
+    QCOMPARE(listener.securityPolicies, ListenerSettingsBuilder::securityPolicyNames());
+    QCOMPARE(listener.securityModes, ListenerSettingsBuilder::securityModeNames());
 }
 
 void TestProjectDocument::editsMarkModified()
@@ -135,7 +162,7 @@ void TestProjectDocument::saveAsKeepsModelsNextToProject()
 
 void TestProjectDocument::saveAsReportsUncopyableModel()
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.nodeSetFiles = { _directory.filePath(QStringLiteral("missing.NodeSet2.xml")) };
     ServerController controller;
     ProjectDocument document(&controller);
@@ -151,7 +178,7 @@ void TestProjectDocument::saveAsReportsUncopyableModel()
 
 void TestProjectDocument::openServesFileAndClearsModified()
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.nodes.first().browseName = QStringLiteral("Line_02");
     const QString fileName = _directory.filePath(QStringLiteral("other.ouasim"));
     QVERIFY(ProjectFile::save(project, fileName));
@@ -186,7 +213,7 @@ void TestProjectDocument::openKeepsProjectOnError()
 
 void TestProjectDocument::openRestartsRunningServer()
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.endpoints.first().port = TestPort::freePort();
     const QString fileName = _directory.filePath(QStringLiteral("running.ouasim"));
     QVERIFY(ProjectFile::save(project, fileName));
@@ -194,9 +221,9 @@ void TestProjectDocument::openRestartsRunningServer()
     ServerController controller;
     ProjectDocument document(&controller);
     document.newProject();
-    ProjectConfig first = controller.project();
-    first.endpoints.first().port = TestPort::freePort();
-    QVERIFY(controller.setEndpoints(first.endpoints));
+    QList<EndpointInfo> unsecured = { controller.project().endpoints.first() };
+    unsecured.first().port = TestPort::freePort();
+    QVERIFY(controller.setEndpoints(unsecured));
     QVERIFY(controller.start());
 
     QVERIFY(document.open(fileName));

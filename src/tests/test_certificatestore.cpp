@@ -12,9 +12,9 @@
 
 #include "pki/certificategenerator.h"
 #include "pki/certificatestore.h"
-#include "project/defaultproject.h"
 #include "server/servercontroller.h"
 #include "testport.h"
+#include "testproject.h"
 #include "uatestclient.h"
 
 namespace {
@@ -55,6 +55,7 @@ private slots:
     void controllerAnnouncesChanges();
     void secureEndpointRunsWithInstalledCertificate();
     void startCreatesMissingServerCertificate();
+    void defaultProjectStartsWithEveryEndpoint();
     void ensuresCertificateBeforeServerStart_data();
     void ensuresCertificateBeforeServerStart();
     void ensureKeepsInstalledCertificate();
@@ -365,7 +366,7 @@ void TestCertificateStore::materialCollectsFolders()
 
 void TestCertificateStore::controllerAnnouncesChanges()
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.endpoints.first().port = TestPort::freePort();
     ServerController controller;
     controller.certificateStore().setRoot(_directory->path());
@@ -393,7 +394,7 @@ void TestCertificateStore::secureEndpointRunsWithInstalledCertificate()
 #ifndef OUASIM_HAVE_ENCRYPTION
     QSKIP("Built without OUASIM_WITH_ENCRYPTION");
 #else
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     EndpointInfo &endpoint = project.endpoints.first();
     endpoint.port = TestPort::freePort();
     endpoint.securityPolicy = QStringLiteral("Basic256Sha256");
@@ -415,7 +416,7 @@ void TestCertificateStore::startCreatesMissingServerCertificate()
 #ifndef OUASIM_HAVE_ENCRYPTION
     QSKIP("Built without OUASIM_WITH_ENCRYPTION");
 #else
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     EndpointInfo &endpoint = project.endpoints.first();
     endpoint.port = TestPort::freePort();
     endpoint.securityPolicy = QStringLiteral("Aes256_Sha256_RsaPss");
@@ -439,6 +440,37 @@ void TestCertificateStore::startCreatesMissingServerCertificate()
     QCOMPARE(client.setEncryption(certificate.readAll(), key.readAll(), QStringLiteral("urn:openuasim:test:stranger")),
              UA_STATUSCODE_GOOD);
     QCOMPARE(client.connect(controller.server().endpointUrl()), UA_STATUSCODE_GOOD);
+#endif
+}
+
+void TestCertificateStore::defaultProjectStartsWithEveryEndpoint()
+{
+#ifndef OUASIM_HAVE_ENCRYPTION
+    QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+#else
+    ProjectConfig project = DefaultProject::create();
+    const int port = TestPort::freePort();
+    for (EndpointInfo &endpoint : project.endpoints)
+        endpoint.port = port;
+
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    controller.setProject(project);
+    QSignalSpy warned(&controller, &ServerController::startWarning);
+    QVERIFY(controller.start());
+    QVERIFY(controller.certificateStore().hasServerCertificate());
+    QCOMPARE(warned.count(), 0);
+
+    UaTestClient anonymous;
+    QCOMPARE(anonymous.connect(controller.server().endpointUrl()), UA_STATUSCODE_GOOD);
+
+    QFile certificate(testData(QStringLiteral("stranger.der")));
+    QFile key(testData(QStringLiteral("stranger.key.der")));
+    QVERIFY(certificate.open(QIODevice::ReadOnly) && key.open(QIODevice::ReadOnly));
+    UaTestClient secure;
+    QCOMPARE(secure.setEncryption(certificate.readAll(), key.readAll(), QStringLiteral("urn:openuasim:test:stranger")),
+             UA_STATUSCODE_GOOD);
+    QCOMPARE(secure.connect(controller.server().endpointUrl()), UA_STATUSCODE_GOOD);
 #endif
 }
 
@@ -481,7 +513,7 @@ void TestCertificateStore::ensuresCertificateBeforeServerStart_data()
 void TestCertificateStore::ensuresCertificateBeforeServerStart()
 {
     QFETCH(bool, emptyEndpoints);
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.server.applicationUri = QStringLiteral("urn:openuasim:startup-test");
     if (emptyEndpoints)
         project.endpoints.clear();
@@ -532,7 +564,7 @@ void TestCertificateStore::ensureKeepsInstalledCertificate()
 {
     ServerController controller;
     controller.certificateStore().setRoot(_directory->path());
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
                                                 testData(QStringLiteral("server.key.pem"))));
     const PkiMaterial material = controller.certificateStore().material();
@@ -558,7 +590,7 @@ void TestCertificateStore::ensureReportsGenerationFailure()
     blocked.close();
     ServerController controller;
     controller.certificateStore().setRoot(_directory->path());
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
     controller.ensureServerCertificate();
     QVERIFY(!controller.certificateStore().hasServerCertificate());
@@ -587,7 +619,7 @@ void TestCertificateStore::rejectedClientLandsInRejectedFolder()
 #ifndef OUASIM_HAVE_ENCRYPTION
     QSKIP("Built without OUASIM_WITH_ENCRYPTION");
 #else
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     EndpointInfo &endpoint = project.endpoints.first();
     endpoint.port = TestPort::freePort();
     endpoint.securityPolicy = QStringLiteral("Basic256Sha256");
@@ -633,7 +665,7 @@ namespace {
 ///
 UA_StatusCode connectStranger(ServerController &controller, bool trustedClientsOnly)
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     EndpointInfo &endpoint = project.endpoints.first();
     endpoint.port = TestPort::freePort();
     endpoint.securityPolicy = QStringLiteral("Basic256Sha256");

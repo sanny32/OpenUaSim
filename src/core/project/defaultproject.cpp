@@ -7,6 +7,7 @@
 ///
 
 #include "defaultproject.h"
+#include "server/listenersettings.h"
 
 namespace {
 
@@ -69,6 +70,29 @@ NodeDefinition flag(const QString &device, const QString &name, const QString &i
 }
 
 ///
+/// \brief Builds one endpoint for every security policy and mode pair OPC UA allows.
+/// \return Endpoints on localhost and the default port, starting with the unsecured one.
+///
+QList<EndpointInfo> allEndpoints()
+{
+    QList<EndpointInfo> endpoints;
+    const QStringList modes = ListenerSettingsBuilder::securityModeNames();
+    for (const QString &policy : ListenerSettingsBuilder::securityPolicyNames()) {
+        for (const QString &mode : modes) {
+            if (!ListenerSettingsBuilder::securityPairs(policy, mode))
+                continue;
+            EndpointInfo endpoint;
+            endpoint.protocol = QStringLiteral("opc.tcp");
+            endpoint.hostname = QStringLiteral("localhost");
+            endpoint.securityPolicy = policy;
+            endpoint.securityMode = mode;
+            endpoints.append(endpoint);
+        }
+    }
+    return endpoints;
+}
+
+///
 /// \brief Builds a folder or object with children.
 /// \param kind Folder or Object.
 /// \param name Browse name, also the node id.
@@ -93,8 +117,9 @@ namespace DefaultProject {
 
 ///
 /// \brief Builds the sample factory-line project.
-/// \return Project with an anonymous unsecured endpoint on port 48400 and a FactoryLine_01
-///         folder holding a motor, a conveyor, a pump and a tank with simulated variables.
+/// \return Project with an anonymous endpoint on port 48400 for every security policy and mode
+///         pair, and a FactoryLine_01 folder holding a motor, a conveyor, a pump and a tank with
+///         simulated variables.
 ///
 ProjectConfig create()
 {
@@ -109,13 +134,7 @@ ProjectConfig create()
     const auto object = NodeDefinition::Kind::Object;
 
     ProjectConfig project;
-
-    EndpointInfo endpoint;
-    endpoint.protocol = QStringLiteral("opc.tcp");
-    endpoint.hostname = QStringLiteral("localhost");
-    endpoint.securityPolicy = QStringLiteral("None");
-    endpoint.securityMode = QStringLiteral("None");
-    project.endpoints.append(endpoint);
+    project.endpoints = allEndpoints();
 
     project.nodes.append(container(NodeDefinition::Kind::Folder, QStringLiteral("FactoryLine_01"), {
         container(object, motor, {

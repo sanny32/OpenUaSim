@@ -13,11 +13,11 @@
 
 #include <algorithm>
 
-#include "project/defaultproject.h"
 #include "server/importednodes.h"
 #include "server/servercontroller.h"
 #include "server/typecatalog.h"
 #include "testport.h"
+#include "testproject.h"
 #include "uatestclient.h"
 
 namespace {
@@ -42,7 +42,7 @@ const QString kTankUri = QStringLiteral("urn:openuasim:test:tank");
 
 ProjectConfig tankProject()
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.endpoints.first().port = TestPort::freePort();
     project.nodeSetFiles = { testData(QStringLiteral("tank.NodeSet2.xml")) };
     return project;
@@ -125,7 +125,7 @@ private:
 void TestNodeSets::writesWellFormedDocument()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     const QByteArray document = exportProject(controller, _directory.filePath(QStringLiteral("project.xml")));
     QXmlStreamReader xml(document);
     int objects = 0;
@@ -176,7 +176,7 @@ void TestNodeSets::writesVariableAttributes()
 void TestNodeSets::exportLoadsIntoAnotherServer()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     const QString fileName = _directory.filePath(QStringLiteral("roundtrip.xml"));
     exportProject(controller, fileName);
 
@@ -195,7 +195,7 @@ void TestNodeSets::exportLoadsIntoAnotherServer()
 void TestNodeSets::importAddsModelToProject()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     QSignalSpy edited(&controller, &ServerController::projectEdited);
 
     QVERIFY(controller.importNodeSet(testData(QStringLiteral("mixer.NodeSet2.xml"))));
@@ -209,7 +209,7 @@ void TestNodeSets::importAddsModelToProject()
 void TestNodeSets::importRejectsDuplicate()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     QVERIFY(controller.importNodeSet(testData(QStringLiteral("mixer.NodeSet2.xml"))));
     QString error;
     QVERIFY(!controller.importNodeSet(testData(QStringLiteral("mixer.NodeSet2.xml")), &error));
@@ -225,7 +225,7 @@ void TestNodeSets::importReportsBrokenFile()
     file.close();
 
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     QString error;
     QVERIFY(!controller.importNodeSet(fileName, &error));
     QVERIFY(!error.isEmpty());
@@ -235,13 +235,13 @@ void TestNodeSets::importReportsBrokenFile()
 
 void TestNodeSets::setProjectLoadsItsModels()
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.nodeSetFiles = { testData(QStringLiteral("mixer.NodeSet2.xml")) };
     ServerController controller;
     controller.setProject(project);
     QVERIFY(controller.server().uaServer()->namespaces().contains(QStringLiteral("urn:openuasim:test:mixer")));
 
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     QVERIFY(!controller.server().uaServer()->namespaces().contains(QStringLiteral("urn:openuasim:test:mixer")));
     QVERIFY(controller.addressSpace().hasVariable(QStringLiteral("ns=1;s=Motor_01.Speed")));
 }
@@ -249,7 +249,7 @@ void TestNodeSets::setProjectLoadsItsModels()
 void TestNodeSets::removeUnloadsModel()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     const QString mixer = testData(QStringLiteral("mixer.NodeSet2.xml"));
     QVERIFY(controller.importNodeSet(mixer));
     const QString path = controller.project().nodeSetFiles.first();
@@ -267,7 +267,7 @@ void TestNodeSets::removeUnloadsModel()
 
 void TestNodeSets::removeRestartsRunningServer()
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.endpoints.first().port = TestPort::freePort();
     project.nodeSetFiles = { testData(QStringLiteral("mixer.NodeSet2.xml")) };
     ServerController controller;
@@ -285,7 +285,7 @@ void TestNodeSets::removeRestartsRunningServer()
 void TestNodeSets::removeRejectsUnknownModel()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     QString error;
     QVERIFY(!controller.removeNodeSet(QStringLiteral("missing.xml"), &error));
     QVERIFY(error.contains(QStringLiteral("not imported")));
@@ -294,7 +294,7 @@ void TestNodeSets::removeRejectsUnknownModel()
 void TestNodeSets::snapshotListsImportedNodes()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     QVERIFY(controller.importNodeSet(testData(QStringLiteral("mixer.NodeSet2.xml"))));
     const ServerSnapshot snapshot = controller.snapshot();
 
@@ -333,7 +333,7 @@ void TestNodeSets::namesBuiltInDataTypes()
 void TestNodeSets::exportWritesFile()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     const QString fileName = _directory.filePath(QStringLiteral("export.xml"));
     QVERIFY(controller.exportNodeSet(fileName));
     QFile file(fileName);
@@ -344,7 +344,7 @@ void TestNodeSets::exportWritesFile()
 void TestNodeSets::exportsImportedNamespace()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     QVERIFY(controller.importNodeSet(testData(QStringLiteral("mixer.NodeSet2.xml"))));
     const QString fileName = _directory.filePath(QStringLiteral("mixer.xml"));
     QString error;
@@ -363,7 +363,7 @@ void TestNodeSets::exportsImportedNamespace()
 void TestNodeSets::exportRefusesStandardNamespace()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     const QString fileName = _directory.filePath(QStringLiteral("ns0.xml"));
     QString error;
     QVERIFY(!controller.exportNamespace(fileName, QStringLiteral("http://opcfoundation.org/UA/"), &error));
@@ -374,7 +374,7 @@ void TestNodeSets::exportRefusesStandardNamespace()
 void TestNodeSets::exportReportsUnknownNamespace()
 {
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     QString error;
     QVERIFY(!controller.exportNamespace(_directory.filePath(QStringLiteral("unknown.xml")),
                                         QStringLiteral("urn:no:such:namespace"), &error));
@@ -405,7 +405,7 @@ void TestNodeSets::examplesLoadCleanly()
 {
     QFETCH(QString, fileName);
     ServerController controller;
-    controller.setProject(DefaultProject::create());
+    controller.setProject(TestProject::create());
     const qsizetype logBefore = controller.log().size();
 
     QString error;

@@ -6,10 +6,10 @@
 
 #include <QUaServer>
 
-#include "project/defaultproject.h"
 #include "server/addressspace.h"
 #include "server/simserver.h"
 #include "testport.h"
+#include "testproject.h"
 #include "uatestclient.h"
 
 namespace {
@@ -37,7 +37,7 @@ NodeDefinition folder(const QString &name, const QList<NodeDefinition> &children
 
 ProjectConfig serverProject(quint16 port)
 {
-    ProjectConfig project = DefaultProject::create();
+    ProjectConfig project = TestProject::create();
     project.endpoints.first().port = port;
     return project;
 }
@@ -75,7 +75,7 @@ void TestAddressSpace::buildsDefaultProject()
 {
     QUaServer server;
     AddressSpace space(&server);
-    const QStringList problems = space.build(DefaultProject::create().nodes);
+    const QStringList problems = space.build(TestProject::create().nodes);
     QVERIFY2(problems.isEmpty(), qPrintable(problems.join(QLatin1Char('\n'))));
     QCOMPARE(space.nodeCount(), 17);
     QVERIFY(space.hasVariable(QStringLiteral("ns=1;s=Motor_01.Speed")));
@@ -180,8 +180,8 @@ void TestAddressSpace::rebuildReplacesNodes()
 {
     QUaServer server;
     AddressSpace space(&server);
-    QVERIFY(space.build(DefaultProject::create().nodes).isEmpty());
-    QVERIFY(space.build(DefaultProject::create().nodes).isEmpty());
+    QVERIFY(space.build(TestProject::create().nodes).isEmpty());
+    QVERIFY(space.build(TestProject::create().nodes).isEmpty());
     QCOMPARE(space.nodeCount(), 17);
 
     const NodeDefinition only = variable(QStringLiteral("Only"), QStringLiteral("Double"));
@@ -195,11 +195,11 @@ void TestAddressSpace::clearRemovesNodesFromServer()
     QUaServer server;
     {
         AddressSpace space(&server);
-        QVERIFY(space.build(DefaultProject::create().nodes).isEmpty());
+        QVERIFY(space.build(TestProject::create().nodes).isEmpty());
         space.clear();
         QCOMPARE(space.nodeCount(), 0);
         QVERIFY(!server.isNodeIdUsed(QUaNodeId(QStringLiteral("ns=1;s=Motor_01"))));
-        QVERIFY(space.build(DefaultProject::create().nodes).isEmpty());
+        QVERIFY(space.build(TestProject::create().nodes).isEmpty());
     }
     QVERIFY(!server.isNodeIdUsed(QUaNodeId(QStringLiteral("ns=1;s=Motor_01"))));
 }
@@ -208,7 +208,7 @@ void TestAddressSpace::clientReadsAndWrites()
 {
     SimServer server;
     AddressSpace space(server.uaServer());
-    QVERIFY(space.build(DefaultProject::create().nodes).isEmpty());
+    QVERIFY(space.build(TestProject::create().nodes).isEmpty());
     QVERIFY(server.start(serverProject(TestPort::freePort())));
 
     UaTestClient client;

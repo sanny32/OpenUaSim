@@ -4,11 +4,11 @@
 #include <QSignalSpy>
 #include <QTest>
 
-#include "project/defaultproject.h"
 #include "project/projectnodes.h"
 #include "server/servercontroller.h"
 #include "server/snapshotbuilder.h"
 #include "testport.h"
+#include "testproject.h"
 #include "uatestclient.h"
 
 Q_DECLARE_METATYPE(LogEntry)
@@ -20,7 +20,7 @@ using Values = QHash<QString, QVariant>;
 
 ProjectConfig project()
 {
-    ProjectConfig config = DefaultProject::create();
+    ProjectConfig config = TestProject::create();
     config.endpoints.first().port = TestPort::freePort();
     return config;
 }
