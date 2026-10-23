@@ -44,9 +44,10 @@ namespace {
 class InspectableDelegate : public ItemDelegate
 {
 public:
-    QStyleOptionViewItem optionFor(const QModelIndex &index) const
+    QStyleOptionViewItem optionFor(const QModelIndex &index, QStyle::State state = QStyle::State_None) const
     {
         QStyleOptionViewItem option;
+        option.state = state;
         initStyleOption(&option, index);
         return option;
     }
@@ -83,6 +84,7 @@ private slots:
     void delegateDecoratesIconNames();
     void delegateDecoratesStatus();
     void delegateLeavesPlainCellsAlone();
+    void delegateDropsFocusFrame();
     void delegateRaisesRowHeight();
     void mainStatusBar();
     void eventLogShowsAndClears();
@@ -166,6 +168,20 @@ void TestWidgets::delegateLeavesPlainCellsAlone()
     const QStyleOptionViewItem option = delegate.optionFor(model.index(0, 0));
     QVERIFY(!option.features.testFlag(QStyleOptionViewItem::HasDecoration));
     QVERIFY(option.icon.isNull());
+}
+
+void TestWidgets::delegateDropsFocusFrame()
+{
+    QStandardItemModel model(1, 2);
+    model.setData(model.index(0, 0), QStringLiteral("text"));
+    model.setData(model.index(0, 1), QStringLiteral("signal"), ItemRoles::IconName);
+    InspectableDelegate delegate;
+    const QStyle::State focused = QStyle::State_HasFocus | QStyle::State_Selected | QStyle::State_Enabled;
+    for (int column : { 0, 1 }) {
+        const QStyleOptionViewItem option = delegate.optionFor(model.index(0, column), focused);
+        QVERIFY(!option.state.testFlag(QStyle::State_HasFocus));
+        QVERIFY(option.state.testFlag(QStyle::State_Selected));
+    }
 }
 
 void TestWidgets::delegateRaisesRowHeight()
