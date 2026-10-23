@@ -44,6 +44,7 @@
 #include "namespacespage.h"
 #include "objectspage.h"
 #include "pki/certificategenerator.h"
+#include "project/defaultproject.h"
 #include "sessionsmodel.h"
 #include "sessionspage.h"
 #include "statusindicator.h"
@@ -167,6 +168,7 @@ private slots:
     void endpointsPageOffersSecurityOfTheBuild();
     void endpointsPageKeepsPolicyAndModePaired();
     void endpointsPageShowsStoredMismatch();
+    void endpointsPageFitsEveryEndpoint();
     void certificatesPage();
     void certificatesPageRequestsActions();
     void certificatesPageOwnFolderActions();
@@ -759,6 +761,23 @@ void TestPages::endpointsPageShowsStoredMismatch()
     page.setEndpoints(endpoints);
     QCOMPARE(child<QComboBox>(page, "securityPolicyCombo")->currentText(), QStringLiteral("Aes256_Sha256_RsaPss"));
     QCOMPARE(child<QComboBox>(page, "securityModeCombo")->currentText(), QStringLiteral("None"));
+}
+
+void TestPages::endpointsPageFitsEveryEndpoint()
+{
+    const QList<EndpointInfo> endpoints = DefaultProject::create().endpoints;
+    EndpointsPage page;
+    page.setEndpoints({ endpoints.first() });
+    page.resize(1200, 700);
+    page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+    page.setEndpoints(endpoints);
+
+    auto *table = child<QTableView>(page, "endpointsView");
+    const QAbstractItemView *view = table;
+    for (int column = 0; column < EndpointsModel::ColEnabled; ++column)
+        QVERIFY2(table->horizontalHeader()->sectionSize(column) >= view->sizeHintForColumn(column),
+                 qPrintable(QStringLiteral("column %1").arg(column)));
 }
 
 void TestPages::certificatesPage()
