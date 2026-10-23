@@ -37,13 +37,13 @@ constexpr int kMaxFittedColumnWidth = 320;
 constexpr int kSplitScale = 100;
 
 ///
-/// \brief Keeps the last pane of a splitter at its width once the splitter has been laid out,
-///        so resizing the splitter only resizes the other panes.
+/// \brief Keeps the side panes of a splitter at their widths once the splitter has been laid out,
+///        so resizing the splitter only resizes the panes between them.
 ///
-class TrailingPanePin : public QObject
+class SidePanePin : public QObject
 {
 public:
-    explicit TrailingPanePin(QSplitter *splitter);
+    explicit SidePanePin(QSplitter *splitter);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -54,9 +54,9 @@ private:
 
 ///
 /// \brief Watches a splitter's resizes; the pin is owned by the splitter.
-/// \param splitter Splitter whose last pane to pin.
+/// \param splitter Splitter whose side panes to pin.
 ///
-TrailingPanePin::TrailingPanePin(QSplitter *splitter)
+SidePanePin::SidePanePin(QSplitter *splitter)
     : QObject(splitter)
     , _splitter(splitter)
 {
@@ -64,18 +64,21 @@ TrailingPanePin::TrailingPanePin(QSplitter *splitter)
 }
 
 ///
-/// \brief Drops the last pane's stretch factor before the first resize that follows the initial layout.
+/// \brief Drops the stretch factors of the last pane and, when panes lie between, of the first one
+///        before the first resize that follows the initial layout.
 /// \param watched Watched splitter.
 /// \param event Event delivered to it.
 /// \return Always false, so the splitter still handles the event.
 ///
-bool TrailingPanePin::eventFilter(QObject *watched, QEvent *event)
+bool SidePanePin::eventFilter(QObject *watched, QEvent *event)
 {
     // The initial layout distributes the set sizes by stretch; a zero stretch there would keep the raw value.
     if (event->type() == QEvent::Resize && static_cast<QResizeEvent *>(event)->oldSize().isValid()) {
         // An unstretched pane keeps its last requested size, which can differ from the laid-out one.
         _splitter->setSizes(_splitter->sizes());
         _splitter->setStretchFactor(_splitter->count() - 1, 0);
+        if (_splitter->count() > 2)
+            _splitter->setStretchFactor(0, 0);
         _splitter->removeEventFilter(this);
         deleteLater();
     }
@@ -345,7 +348,8 @@ void fitHeightToLines(QPlainTextEdit *edit, int lines)
 
 ///
 /// \brief Sizes the panes of a splitter in proportion to their horizontal stretch factors and keeps
-///        the last pane at that width when the splitter is resized later.
+///        the side panes at that width when the splitter is resized later: the last pane, and the
+///        first one as well when panes lie between them.
 /// \param splitter Splitter to size; panes without a stretch factor count as one.
 ///
 void splitByStretch(QSplitter *splitter)
@@ -355,7 +359,7 @@ void splitByStretch(QSplitter *splitter)
     for (int i = 0; i < splitter->count(); ++i)
         sizes.append(qMax(1, splitter->widget(i)->sizePolicy().horizontalStretch()) * kSplitScale);
     splitter->setSizes(sizes);
-    new TrailingPanePin(splitter);
+    new SidePanePin(splitter);
 }
 
 ///

@@ -72,7 +72,8 @@ void fitHeightToLines(QPlainTextEdit *edit, int lines);
 
 ///
 /// \brief Sizes the panes of a splitter in proportion to their horizontal stretch factors and keeps
-///        the last pane at that width when the splitter is resized later.
+///        the side panes at that width when the splitter is resized later: the last pane, and the
+///        first one as well when panes lie between them.
 /// \param splitter Splitter to size; panes without a stretch factor count as one.
 ///
 void splitByStretch(QSplitter *splitter);

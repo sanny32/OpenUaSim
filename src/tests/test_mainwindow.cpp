@@ -79,6 +79,7 @@ private slots:
     void eventLogFollowsTab();
     void eventLogGetsItsShareOnFirstShow();
     void pagesDoNotBlockTheEventLog();
+    void pagesKeepSidePaneWidths();
     void statusBarNoteFollowsTab();
     void themeButtonHiddenWithoutTheme();
     void themeMenuSwitchesTheme();
@@ -922,6 +923,40 @@ void TestMainWindow::panelsFitTheDefaultWindow()
     QApplication::setStyle(previousStyle);
     AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language::English);
     QVERIFY2(overflowing.isEmpty(), qPrintable(overflowing.join(QStringLiteral("; "))));
+}
+
+///
+/// \brief Grows the window on every page with panes and expects only the panes between the side ones,
+///        or the first of two, to take the extra width.
+///
+void TestMainWindow::pagesKeepSidePaneWidths()
+{
+    MainWindow window;
+    window.setSnapshot(MockData::snapshot());
+    window.resize(1333, 842);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    auto *tabs = child<QTabWidget>(window, "tabWidget");
+
+    int checked = 0;
+    for (int tab = 0; tab < tabs->count(); ++tab) {
+        tabs->setCurrentIndex(tab);
+        auto *splitter = tabs->widget(tab)->findChild<QSplitter *>(QStringLiteral("splitter"));
+        if (!splitter)
+            continue;
+        ++checked;
+        window.resize(1333, 842);
+        QCoreApplication::processEvents();
+        const QList<int> initial = splitter->sizes();
+        window.resize(1900, 1000);
+        QTRY_VERIFY(splitter->sizes() != initial);
+        const QList<int> grown = splitter->sizes();
+        const QByteArray name = tabs->tabText(tab).toUtf8();
+        QVERIFY2(grown.last() == initial.last(), name.constData());
+        if (grown.size() > 2)
+            QVERIFY2(grown.first() == initial.first(), name.constData());
+    }
+    QCOMPARE(checked, 7);
 }
 
 QTEST_MAIN(TestMainWindow)

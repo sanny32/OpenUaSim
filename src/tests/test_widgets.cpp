@@ -112,7 +112,8 @@ private slots:
     void growColumnWithContentsKeepsWiderUserWidth();
     void fillVariableIconComboListsResolvableIcons();
     void splitByStretchFollowsStretchFactors();
-    void splitByStretchKeepsLastPaneWidth();
+    void splitByStretchKeepsSidePaneWidths();
+    void splitByStretchResizesFirstOfTwoPanes();
     void applyInitialStateExpandsAndSelects();
     void applyInitialStateFallsBackToFirstRow();
     void selectById();
@@ -779,7 +780,7 @@ void TestWidgets::splitByStretchFollowsStretchFactors()
     QVERIFY2(qAbs(sizes.at(2) - sizes.at(0)) <= 6, text.constData());
 }
 
-void TestWidgets::splitByStretchKeepsLastPaneWidth()
+void TestWidgets::splitByStretchKeepsSidePaneWidths()
 {
     QSplitter splitter;
     for (int stretch : { 1, 2, 1 }) {
@@ -800,13 +801,35 @@ void TestWidgets::splitByStretchKeepsLastPaneWidth()
     QVERIFY2(qAbs(initial.at(1) - 2 * initial.at(0)) <= 6, initialText.constData());
     QVERIFY2(qAbs(initial.at(2) - initial.at(0)) <= 6, initialText.constData());
 
-    splitter.resize(800, 100);    QTRY_COMPARE(splitter.sizes().at(2), initial.at(2));
-    const QList<int> grown = splitter.sizes();
-    QVERIFY(grown.at(0) > initial.at(0));
-    QVERIFY(grown.at(1) > initial.at(1));
+    splitter.resize(800, 100);
+    QTRY_COMPARE(splitter.sizes().at(2), initial.at(2));
+    QCOMPARE(splitter.sizes().at(0), initial.at(0));
+    QVERIFY(splitter.sizes().at(1) > initial.at(1));
 
     splitter.resize(600, 100);
     QTRY_COMPARE(splitter.sizes().at(2), initial.at(2));
+    QCOMPARE(splitter.sizes().at(0), initial.at(0));
+}
+
+void TestWidgets::splitByStretchResizesFirstOfTwoPanes()
+{
+    QSplitter splitter;
+    for (int stretch : { 3, 1 }) {
+        auto *pane = new QWidget;
+        QSizePolicy policy = pane->sizePolicy();
+        policy.setHorizontalStretch(stretch);
+        pane->setSizePolicy(policy);
+        splitter.addWidget(pane);
+    }
+    splitter.resize(400, 100);
+    ViewSetup::splitByStretch(&splitter);
+    splitter.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&splitter));
+
+    const QList<int> initial = splitter.sizes();
+    splitter.resize(800, 100);
+    QTRY_COMPARE(splitter.sizes().at(1), initial.at(1));
+    QVERIFY(splitter.sizes().at(0) > initial.at(0));
 }
 
 void TestWidgets::applyInitialStateExpandsAndSelects()
