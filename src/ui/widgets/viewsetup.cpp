@@ -131,23 +131,48 @@ QSortFilterProxyModel *createSearchProxy(QAbstractItemView *view, QAbstractItemM
 }
 
 ///
+/// \brief Returns the column header of a table or tree.
+/// \param view Table or tree view.
+/// \return The horizontal header.
+///
+QHeaderView *columnHeader(QAbstractItemView *view)
+{
+    if (auto *table = qobject_cast<QTableView *>(view))
+        return table->horizontalHeader();
+    return qobject_cast<QTreeView *>(view)->header();
+}
+
+///
+/// \brief Fits a column using the concrete view's sizing rules.
+/// \param view Table or tree view.
+/// \param column Column to resize.
+///
+void resizeColumn(QAbstractItemView *view, int column)
+{
+    if (auto *table = qobject_cast<QTableView *>(view))
+        table->resizeColumnToContents(column);
+    else
+        qobject_cast<QTreeView *>(view)->resizeColumnToContents(column);
+}
+
+///
 /// \brief Sizes the columns to their contents, capped but for the last one so one long value cannot
 ///        push the others out of view.
 /// \param view Table view to size.
 ///
-void fitColumnsToContents(QTableView *view)
+void fitColumnsToContents(QAbstractItemView *view)
 {
-    QHeaderView *header = view->horizontalHeader();
+    QHeaderView *header = columnHeader(view);
     const int last = header->count() - 1;
     for (int column = 0; column < last; ++column) {
         if (header->isSectionHidden(column))
             continue;
-        view->resizeColumnToContents(column);
+        resizeColumn(view, column);
         if (header->sectionSize(column) > kMaxFittedColumnWidth)
             header->resizeSection(column, kMaxFittedColumnWidth);
     }
     // The stretched last section never shrinks below this width, so contents that do not fit scroll.
-    view->resizeColumnToContents(last);
+    resizeColumn(view, last);
 }
 
 ///
@@ -156,18 +181,18 @@ void fitColumnsToContents(QTableView *view)
 class ColumnFitter : public QObject
 {
 public:
-    explicit ColumnFitter(QTableView *view);
+    explicit ColumnFitter(QAbstractItemView *view);
     void fitOnceFilled();
 
 private:
-    QTableView *_view;
+    QAbstractItemView *_view;
 };
 
 ///
 /// \brief Watches the model of a table for its first rows.
 /// \param view Table view to size; it owns the fitter.
 ///
-ColumnFitter::ColumnFitter(QTableView *view)
+ColumnFitter::ColumnFitter(QAbstractItemView *view)
     : QObject(view)
     , _view(view)
 {
@@ -193,12 +218,12 @@ void ColumnFitter::fitOnceFilled()
 class ColumnGrower : public QObject
 {
 public:
-    ColumnGrower(QTableView *view, int column);
+    ColumnGrower(QAbstractItemView *view, int column);
     void growOnChange(const QModelIndex &topLeft, const QModelIndex &bottomRight);
     void grow();
 
 private:
-    QTableView *_view;
+    QAbstractItemView *_view;
     int _column;
 };
 
@@ -207,7 +232,7 @@ private:
 /// \param view Table view to size; it owns the grower.
 /// \param column Column to keep wide enough.
 ///
-ColumnGrower::ColumnGrower(QTableView *view, int column)
+ColumnGrower::ColumnGrower(QAbstractItemView *view, int column)
     : QObject(view)
     , _view(view)
     , _column(column)
@@ -233,7 +258,7 @@ void ColumnGrower::growOnChange(const QModelIndex &topLeft, const QModelIndex &b
 ///
 void ColumnGrower::grow()
 {
-    QHeaderView *header = _view->horizontalHeader();
+    QHeaderView *header = columnHeader(_view);
     // QTableView narrows the public QAbstractItemView::sizeHintForColumn() override to protected.
     const QAbstractItemView *view = _view;
     const int needed = qMin(qMax(view->sizeHintForColumn(_column), header->sectionSizeHint(_column)),
@@ -281,7 +306,7 @@ void configureTable(QTableView *view)
 {
     installDelegate(view);
     view->verticalHeader()->setDefaultSectionSize(kTableRowHeight);
-    QHeaderView *header = view->horizontalHeader();
+    QHeaderView *header = columnHeader(view);
     header->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     header->setSectionResizeMode(QHeaderView::Interactive);
     header->setStretchLastSection(true);
@@ -483,6 +508,54 @@ void addCopyAction(QLineEdit *edit)
 QString currentId(const QAbstractItemView *view)
 {
     return view->currentIndex().siblingAtColumn(0).data(ItemRoles::Id).toString();
+}
+
+///
+/// \brief Configures a tree with table columns and the application delegate.
+/// \param view Tree view to configure.
+///
+void configureTable(QTreeView *view)
+{
+    installDelegate(view);
+    view->setUniformRowHeights(true);
+    view->header()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    view->header()->setSectionResizeMode(QHeaderView::Interactive);
+    view->header()->setStretchLastSection(true);
+}
+
+///
+/// \brief Fits tree columns once rows become available.
+/// \param view Tree view whose model is already set.
+///
+void fitColumnsWhenFilled(QTreeView *view)
+{
+    auto *fitter = new ColumnFitter(view);
+    fitter->fitOnceFilled();
+}
+
+///
+/// \brief Keeps a tree column wide enough for changing values.
+/// \param view Tree view whose model is already set.
+/// \param column Column to grow.
+///
+void growColumnWithContents(QTreeView *view, int column)
+{
+    auto *grower = new ColumnGrower(view, column);
+    grower->grow();
+}
+
+///
+/// \brief Selects a root row in a tree with table columns.
+/// \param view Tree view to update.
+/// \param row Root row to select.
+///
+void selectRow(QTreeView *view, int row)
+{
+    const QModelIndex index = view->model()->index(row, 0);
+    if (!index.isValid())
+        view->clearSelection();
+    view->setCurrentIndex(index);
+    view->scrollTo(index);
 }
 
 }

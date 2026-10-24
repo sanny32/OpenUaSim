@@ -318,7 +318,7 @@ void TestPages::propertiesActionsStayAtBottom()
     QCoreApplication::processEvents();
     QCOMPARE(panel->height() - apply->mapTo(panel, QPoint()).y() - apply->height(), bottomGap);
 
-    child<QTableView>(page, objects ? "variablesView" : "endpointsView")->setCurrentIndex({});
+    page.findChild<QAbstractItemView *>(objects ? "variablesView" : "endpointsView")->setCurrentIndex({});
     QVERIFY(!apply->isEnabled());
     QVERIFY(!revert->isEnabled());
 }
@@ -352,7 +352,7 @@ void TestPages::objectsPageStartsOnCurrentVariable()
 
     QCOMPARE(page.variablesModel()->rowCount(), 3);
     QCOMPARE(child<QLabel>(page, "variablesTitle")->text(), QStringLiteral("Variables in 'Motor_01'"));
-    QCOMPARE(child<QTableView>(page, "variablesView")->currentIndex().row(), 0);
+    QCOMPARE(child<QTreeView>(page, "variablesView")->currentIndex().row(), 0);
     QCOMPARE(text(page, "nodeIdEdit"), QStringLiteral("ns=2;s=Motor_01.Speed"));
     QCOMPARE(child<QComboBox>(page, "dataTypeCombo")->currentText(), QStringLiteral("Double"));
     QCOMPARE(child<QComboBox>(page, "simulationCombo")->currentText(), QStringLiteral("Sine wave"));
@@ -365,7 +365,7 @@ void TestPages::objectsPageFollowsVariableSelection()
     ObjectsPage page;
     page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
 
-    ViewSetup::selectRow(child<QTableView>(page, "variablesView"), 2);
+    ViewSetup::selectRow(child<QTreeView>(page, "variablesView"), 2);
     QCOMPARE(text(page, "nodeIdEdit"), QStringLiteral("ns=2;s=Motor_01.Running"));
     QCOMPARE(child<QComboBox>(page, "dataTypeCombo")->currentText(), QStringLiteral("Boolean"));
     QCOMPARE(child<QComboBox>(page, "simulationCombo")->currentText(), QStringLiteral("None"));
@@ -450,7 +450,7 @@ void TestPages::objectsPageTogglesNestedVariables()
     QVERIFY(page->selectNode(QStringLiteral("ns=2;s=FactoryLine_01")));
     button->click();
     QCOMPARE(page->variablesModel()->rowCount(), 12);
-    ViewSetup::selectRow(child<QTableView>(*page, "variablesView"),
+    ViewSetup::selectRow(child<QTreeView>(*page, "variablesView"),
                          page->variablesModel()->rowOf(QStringLiteral("ns=2;s=Pump_01.Flow")));
     button->click();
     QCOMPARE(page->currentNodeId(), QStringLiteral("ns=2;s=FactoryLine_01"));
@@ -458,7 +458,7 @@ void TestPages::objectsPageTogglesNestedVariables()
     QCOMPARE(page->currentNodeId(), QStringLiteral("ns=2;s=FactoryLine_01"));
 
     QVERIFY(page->selectNode(QStringLiteral("ns=2;s=Motor_01")));
-    ViewSetup::selectRow(child<QTableView>(*page, "variablesView"), 2);
+    ViewSetup::selectRow(child<QTreeView>(*page, "variablesView"), 2);
     button->click();
     button->click();
     QCOMPARE(page->currentNodeId(), QStringLiteral("ns=2;s=Motor_01.Running"));
@@ -600,7 +600,7 @@ void TestPages::objectsPageKeepsSelectionOnReload()
     ObjectsPage page;
     page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
     QVERIFY(page.selectNode(QStringLiteral("ns=2;s=Tank_01.Level")));
-    ViewSetup::selectRow(child<QTableView>(page, "variablesView"), 1);
+    ViewSetup::selectRow(child<QTreeView>(page, "variablesView"), 1);
 
     page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
     QCOMPARE(page.currentNodeId(), QStringLiteral("ns=2;s=Tank_01.Temperature"));
@@ -659,7 +659,7 @@ void TestPages::objectsPageValueColumnOnlyGrows()
 {
     ObjectsPage page;
     page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
-    const QHeaderView *header = child<QTableView>(page, "variablesView")->horizontalHeader();
+    const QHeaderView *header = child<QTreeView>(page, "variablesView")->header();
     const QString speed = QStringLiteral("ns=2;s=Motor_01.Speed");
 
     page.updateValues({ { speed, 1.0 } });
@@ -1755,10 +1755,27 @@ void TestPages::objectsPageEditsValueOfProperty()
     page.setAddressSpace(tree, variables);
     QVERIFY2(page.variablesModel()->rowOf(units.nodeId) >= 0, "nested variables list the properties of variables");
 
+    auto *view = child<QTreeView>(page, "variablesView");
+    const QModelIndex temperatureIndex = page.variablesModel()->indexForRow(
+        page.variablesModel()->rowOf(temperatureId));
+    QCOMPARE(view->model()->rowCount(temperatureIndex), 1);
+    const QModelIndex unitsIndex = view->model()->index(0, 0, temperatureIndex);
+    QCOMPARE(unitsIndex.data().toString(), units.displayName);
+    QVERIFY(!view->isExpanded(temperatureIndex));
+    view->expand(temperatureIndex);
+    QVERIFY(view->isExpanded(temperatureIndex));
+    view->setCurrentIndex(unitsIndex);
+    QCOMPARE(page.currentNodeId(), units.nodeId);
+    page.updateValues({{units.nodeId, QStringLiteral("K")}});
+    QCOMPARE(unitsIndex.siblingAtColumn(VariablesModel::ColValue).data().toString(), QStringLiteral("K"));
+    QVERIFY(view->isExpanded(temperatureIndex));
+    view->collapse(temperatureIndex);
+    QVERIFY(!view->isExpanded(temperatureIndex));
+
     QVERIFY(page.selectNode(units.nodeId));
     QCOMPARE(page.currentNodeId(), units.nodeId);
     QCOMPARE(page.currentContainerId(), temperatureId);
-    QCOMPARE(ViewSetup::currentId(child<QTableView>(page, "variablesView")), units.nodeId);
+    QCOMPARE(ViewSetup::currentId(child<QTreeView>(page, "variablesView")), units.nodeId);
     auto *stack = child<QStackedWidget>(page, "propertiesStack");
     auto *editor = child<PropertyNodeWidget>(page, "propertyNodeProperties");
     QCOMPARE(stack->currentWidget(), editor);

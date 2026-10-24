@@ -358,7 +358,7 @@ void TestMainWindow::controllerDrivesWindow()
     window.setController(&controller);
 
     QCOMPARE(child<QLineEdit>(window, "endpointEdit")->text(), project.endpoints.first().url());
-    const auto *variables = child<QTableView>(window, "variablesView");
+    const auto *variables = child<QTreeView>(window, "variablesView");
     QCOMPARE(variables->model()->rowCount(), 3);
     const QString initial = variables->model()->index(0, 1).data().toString();
 
@@ -759,7 +759,7 @@ void TestMainWindow::savesAndOpensProjectFiles()
     document.newProject();
     QVERIFY(window.openProjectFile(fileName));
     QVERIFY(!ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Pump_01")));
-    QCOMPARE(child<QTableView>(window, "variablesView")->model()->rowCount(), 3);
+    QCOMPARE(child<QTreeView>(window, "variablesView")->model()->rowCount(), 3);
 }
 
 void TestMainWindow::openFailureShowsMessage()

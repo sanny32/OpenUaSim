@@ -7,6 +7,7 @@
 ///
 
 #include <QSettings>
+#include <QSet>
 
 #include "appicons.h"
 #include "itemroles.h"
@@ -85,7 +86,7 @@ void ObjectsPage::setAddressSpace(const QList<TreeNode> &addressSpace,
     ViewSetup::applyInitialState(ui->addressTree);
     if (!previousTreeId.isEmpty() && ViewSetup::selectById(ui->addressTree, previousTreeId)
         && !previousVariableId.isEmpty()) {
-        ViewSetup::selectRow(ui->variablesView, _variablesModel->rowOf(previousVariableId));
+        selectVariableRow(_variablesModel->rowOf(previousVariableId));
     }
 }
 
@@ -131,7 +132,7 @@ void ObjectsPage::updateVariable(const VariableInfo &variable)
     if (row < 0)
         return;
     _variablesModel->setItem(row, variable);
-    if (ui->variablesView->currentIndex().row() == row)
+    if (ViewSetup::currentId(ui->variablesView) == variable.nodeId)
         showVariable(ui->variablesView->currentIndex());
 }
 
@@ -202,11 +203,10 @@ void ObjectsPage::showTreeNode(const QModelIndex &current)
         showContainer(current.parent().data(ItemRoles::Id).toString());
     } else if (kind == TreeNode::Kind::Variable || kind == TreeNode::Kind::Property) {
         showContainer(current.parent().data(ItemRoles::Id).toString());
-        ViewSetup::selectRow(ui->variablesView,
-                             _variablesModel->rowOf(current.data(ItemRoles::Id).toString()));
+        selectVariableRow(_variablesModel->rowOf(current.data(ItemRoles::Id).toString()));
     } else if (kind == TreeNode::Kind::Object || kind == TreeNode::Kind::Folder) {
         showContainer(current.data(ItemRoles::Id).toString());
-        ViewSetup::selectRow(ui->variablesView, 0);
+        selectVariableRow(0);
     } else {
         showContainer(QString());
     }
@@ -231,7 +231,20 @@ void ObjectsPage::showContainer(const QString &containerId)
     // A folder without variables, such as Server, keeps the plain title.
     const bool titled = container && (container->kind == TreeNode::Kind::Object || !listing.variables.isEmpty());
     _containerName = titled ? container->text : QString();
-    _variablesModel->setVariables(listing.variables, listing.locations);
+    QHash<QString, QString> owners;
+    for (auto it = _variables.cbegin(); it != _variables.cend(); ++it) {
+        for (const VariableInfo &variable : it.value())
+            owners.insert(variable.nodeId, it.key());
+    }
+    QSet<QString> listedIds;
+    for (const VariableInfo &variable : listing.variables)
+        listedIds.insert(variable.nodeId);
+    QHash<QString, QString> locations = listing.locations;
+    for (const VariableInfo &variable : listing.variables) {
+        if (listedIds.contains(owners.value(variable.nodeId)))
+            locations.remove(variable.nodeId);
+    }
+    _variablesModel->setVariables(listing.variables, locations, owners);
     showVariablesTitle();
     clearProperties();
 }
@@ -247,7 +260,7 @@ void ObjectsPage::setNestedVariablesShown(bool shown)
     const QString variableId = ViewSetup::currentId(ui->variablesView);
     showContainer(_containerId);
     const int row = _variablesModel->rowOf(variableId);
-    ViewSetup::selectRow(ui->variablesView, qMax(row, 0));
+    selectVariableRow(qMax(row, 0));
     if (!currentFromTable || row < 0) {
         _currentNodeId = ViewSetup::currentId(ui->addressTree);
         _currentFromTable = false;
@@ -295,7 +308,7 @@ void ObjectsPage::showVariable(const QModelIndex &current)
         clearProperties();
         return;
     }
-    const VariableInfo &variable = _variablesModel->item(current.row());
+    const VariableInfo &variable = _variablesModel->item(_variablesModel->rowOf(current.data(ItemRoles::Id).toString()));
     if (variable.property) {
         ui->propertyNodeProperties->setNode(variable);
         ui->propertiesStack->setCurrentWidget(ui->propertyNodeProperties);
@@ -316,4 +329,17 @@ void ObjectsPage::clearProperties()
     ui->variableProperties->clear();
     ui->propertyNodeProperties->clear();
     ui->propertiesStack->setCurrentWidget(ui->variableProperties);
+}
+
+///
+/// \brief Selects a stored variable and reveals its ancestors.
+/// \param row Source row, or a negative value to clear the selection.
+///
+void ObjectsPage::selectVariableRow(int row)
+{
+    const QModelIndex index = _variablesModel->indexForRow(row);
+    if (!index.isValid())
+        ui->variablesView->clearSelection();
+    ui->variablesView->setCurrentIndex(index);
+    ui->variablesView->scrollTo(index);
 }

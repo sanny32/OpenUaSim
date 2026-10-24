@@ -92,6 +92,7 @@ class TestTableModels : public QObject
 
 private slots:
     void initTestCase();
+    void variablesHaveChildRows();
     void itemTableModelStoresItems();
     void itemTableModelReplacesItem();
     void itemTableModelAppendsWithLimit();
@@ -123,6 +124,38 @@ private slots:
     void logLevels();
     void logCategories();
 };
+
+void TestTableModels::variablesHaveChildRows()
+{
+    VariablesModel model;
+    QAbstractItemModelTester tester(&model, QAbstractItemModelTester::FailureReportingMode::QtTest);
+    const VariableInfo analog = variable(QStringLiteral("AI"), 0);
+    const VariableInfo range = variable(QStringLiteral("AI.EURange"), 1);
+    const VariableInfo orphan = variable(QStringLiteral("Other"), 2);
+    model.setVariables({analog, range, orphan}, {},
+                       {{range.nodeId, analog.nodeId}, {orphan.nodeId, QStringLiteral("missing")}});
+    QCOMPARE(model.rowCount(), 2);
+    const QModelIndex root = model.index(0, 0);
+    QCOMPARE(model.rowCount(root), 1);
+    QCOMPARE(model.rowCount(model.index(0, 1)), 0);
+    const QModelIndex child = model.index(0, 0, root);
+    QCOMPARE(child.parent(), root);
+    QCOMPARE(child.data(ItemRoles::Id).toString(), range.nodeId);
+    QCOMPARE(child.data().toString(), QStringLiteral("EURange"));
+    QCOMPARE(model.indexForRow(model.rowOf(range.nodeId)), child);
+    QVERIFY(!model.index(1, 0, root).isValid());
+    QVERIFY(!model.indexForRow(-1).isValid());
+    QSignalSpy changed(&model, &VariablesModel::dataChanged);
+    model.updateValues({{range.nodeId, 7.5}, {QStringLiteral("missing"), 3}});
+    QCOMPARE(changed.size(), 1);
+    QCOMPARE(changed.first().at(0).toModelIndex().parent(), root);
+    QCOMPARE(model.index(0, VariablesModel::ColValue, root).data().toString(), QStringLiteral("7.5"));
+    model.setItems({range});
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(model.rowCount(model.index(0, 0)), 0);
+    model.clear();
+    QCOMPARE(model.rowCount(), 0);
+}
 
 void TestTableModels::initTestCase()
 {
@@ -339,8 +372,8 @@ void TestTableModels::subscriptionsModel()
 
 void TestTableModels::tableModelsHaveNoChildren()
 {
-    VariablesModel model;
-    model.setItems({ variable(QStringLiteral("a.Speed"), 1.0) });
+    LogModel model;
+    model.setItems({ LogEntry{} });
     const QModelIndex cell = model.index(0, 0);
     QCOMPARE(model.rowCount(cell), 0);
     QCOMPARE(model.columnCount(cell), 0);

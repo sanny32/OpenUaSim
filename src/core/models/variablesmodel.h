@@ -3,21 +3,21 @@
 
 ///
 /// \file variablesmodel.h
-/// \brief Declares the table model of an object's variables.
+/// \brief Declares the hierarchical model of an object's variables.
 ///
 
 #pragma once
 
+#include <QAbstractItemModel>
 #include <QHash>
 
 #include "data/statuskind.h"
 #include "data/variableinfo.h"
-#include "itemtablemodel.h"
 
 ///
-/// \brief Table of the variables of one object: name, value, data type, quality and alarm state.
+/// \brief Hierarchy of the variables of one object: name, value, data type, quality and alarm state.
 ///
-class VariablesModel : public ItemTableModel<VariableInfo>
+class VariablesModel : public QAbstractItemModel
 {
     Q_OBJECT
 
@@ -35,8 +35,8 @@ public:
 
     ///
     /// \brief Returns the fixed column count.
-    /// \param parent Parent index; non-root parents have no columns.
-    /// \return Column count, or 0 for non-root parents.
+    /// \param parent Parent index.
+    /// \return Column count.
     ///
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
@@ -69,8 +69,10 @@ public:
     /// \brief Replaces the listed variables.
     /// \param variables Variables in row order.
     /// \param locations Owner path shown before the name, keyed by variable node id; omitted for none.
+    /// \param owners Parent variable ids keyed by child node id; absent parents leave rows at the root.
     ///
-    void setVariables(const QList<VariableInfo> &variables, const QHash<QString, QString> &locations = {});
+    void setVariables(const QList<VariableInfo> &variables, const QHash<QString, QString> &locations = {},
+                      const QHash<QString, QString> &owners = {});
 
     ///
     /// \brief Updates the values of the listed variables.
@@ -92,6 +94,59 @@ public:
     ///
     static StatusKind qualityStatus(VariableInfo::Quality quality);
 
+    ///
+    /// \brief Returns the number of children of a variable or the root.
+    ///
+    int rowCount(const QModelIndex &parent = {}) const override;
+
+    ///
+    /// \brief Returns a cell among the children of a variable or the root.
+    ///
+    QModelIndex index(int row, int column, const QModelIndex &parent = {}) const override;
+
+    ///
+    /// \brief Returns the variable owning a child row.
+    ///
+    QModelIndex parent(const QModelIndex &index) const override;
+
+    ///
+    /// \brief Maps a stored item to its hierarchical cell.
+    ///
+    QModelIndex indexForRow(int row, int column = 0) const;
+
+    ///
+    /// \brief Replaces the items with a flat list.
+    ///
+    void setItems(const QList<VariableInfo> &items);
+
+    ///
+    /// \brief Returns the stored items in source order.
+    ///
+    const QList<VariableInfo> &items() const;
+
+    ///
+    /// \brief Returns a stored item by its source row.
+    ///
+    const VariableInfo &item(int row) const;
+
+    ///
+    /// \brief Updates a stored item without changing its parent.
+    ///
+    void setItem(int row, const VariableInfo &item);
+
+    ///
+    /// \brief Removes all stored items.
+    ///
+    void clear();
+
+    ///
+    /// \brief Refreshes translated headers and cells.
+    ///
+    void retranslate();
+
 private:
+    QList<VariableInfo> _items;
+    QList<int> _parents;
+    QHash<int, QList<int>> _children;
     QHash<QString, QString> _locations;
 };

@@ -131,6 +131,7 @@ private:
     void setNestedVariablesShown(bool shown);
     void showVariable(const QModelIndex &current);
     void clearProperties();
+    void selectVariableRow(int row);
 
     Ui::ObjectsPage *ui;
     TreeModel *_treeModel;

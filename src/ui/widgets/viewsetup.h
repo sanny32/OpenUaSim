@@ -143,4 +143,30 @@ void addCopyAction(QLineEdit *edit);
 ///
 QString currentId(const QAbstractItemView *view);
 
+///
+/// \brief Configures a tree with table columns and the application delegate.
+/// \param view Tree view to configure.
+///
+void configureTable(QTreeView *view);
+
+///
+/// \brief Fits tree columns once rows become available.
+/// \param view Tree view whose model is already set.
+///
+void fitColumnsWhenFilled(QTreeView *view);
+
+///
+/// \brief Keeps a tree column wide enough for changing values.
+/// \param view Tree view whose model is already set.
+/// \param column Column to grow.
+///
+void growColumnWithContents(QTreeView *view, int column);
+
+///
+/// \brief Selects a root row in a tree with table columns.
+/// \param view Tree view to update.
+/// \param row Root row to select.
+///
+void selectRow(QTreeView *view, int row);
+
 }

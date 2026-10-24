@@ -3,7 +3,7 @@
 
 ///
 /// \file variablesmodel.cpp
-/// \brief Implements the table model of an object's variables.
+/// \brief Implements the hierarchical model of an object's variables.
 ///
 
 #include "formatting.h"
@@ -15,18 +15,19 @@
 /// \param parent Owning QObject.
 ///
 VariablesModel::VariablesModel(QObject *parent)
-    : ItemTableModel(parent)
+    : QAbstractItemModel(parent)
 {
 }
 
 ///
 /// \brief Returns the fixed column count.
-/// \param parent Parent index; non-root parents have no columns.
-/// \return Column count, or 0 for non-root parents.
+/// \param parent Parent index.
+/// \return Column count.
 ///
 int VariablesModel::columnCount(const QModelIndex &parent) const
 {
-    return parent.isValid() ? 0 : ColCount;
+    Q_UNUSED(parent)
+    return ColCount;
 }
 
 ///
@@ -37,9 +38,10 @@ int VariablesModel::columnCount(const QModelIndex &parent) const
 ///
 QVariant VariablesModel::data(const QModelIndex &index, int role) const
 {
-    if (!hasItem(index))
+    if (!index.isValid() || index.model() != this || index.internalId() == 0
+        || index.internalId() > quintptr(_items.size()))
         return {};
-    const VariableInfo &variable = item(index.row());
+    const VariableInfo &variable = item(int(index.internalId()) - 1);
 
     if (role == ItemRoles::Id)
         return variable.nodeId;
@@ -88,7 +90,7 @@ QVariant VariablesModel::data(const QModelIndex &index, int role) const
 QVariant VariablesModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole)
-        return ItemTableModel::headerData(section, orientation, role);
+        return QAbstractItemModel::headerData(section, orientation, role);
     switch (section) {
     case ColName:     return tr("Name");
     case ColValue:    return tr("Value");
@@ -117,11 +119,23 @@ int VariablesModel::rowOf(const QString &nodeId) const
 /// \brief Replaces the listed variables.
 /// \param variables Variables in row order.
 /// \param locations Owner path shown before the name, keyed by variable node id; omitted for none.
+/// \param owners Parent variable ids keyed by child node id; absent parents leave rows at the root.
 ///
-void VariablesModel::setVariables(const QList<VariableInfo> &variables, const QHash<QString, QString> &locations)
+void VariablesModel::setVariables(const QList<VariableInfo> &variables, const QHash<QString, QString> &locations,
+                                  const QHash<QString, QString> &owners)
 {
+    beginResetModel();
     _locations = locations;
-    setItems(variables);
+    _items = variables;
+    _parents.clear();
+    _children.clear();
+    for (const VariableInfo &variable : variables) {
+        const QString owner = owners.value(variable.nodeId);
+        _parents.append(owner.isEmpty() ? -1 : rowOf(owner));
+    }
+    for (int row = 0; row < _items.size(); ++row)
+        _children[_parents.at(row)].append(row);
+    endResetModel();
 }
 
 ///
@@ -184,4 +198,96 @@ StatusKind VariablesModel::qualityStatus(VariableInfo::Quality quality)
     default:                               return StatusKind::Error;
     }
     return StatusKind::None;
+}
+
+///
+/// \brief Returns the number of children of a variable or the root.
+///
+int VariablesModel::rowCount(const QModelIndex &parent) const
+{
+    if (parent.isValid() && parent.column() != 0)
+        return 0;
+    return int(_children.value(parent.isValid() ? int(parent.internalId()) - 1 : -1).size());
+}
+
+///
+/// \brief Returns a cell among the children of a variable or the root.
+///
+QModelIndex VariablesModel::index(int row, int column, const QModelIndex &parent) const
+{
+    if (!hasIndex(row, column, parent))
+        return {};
+    const int source = _children.value(parent.isValid() ? int(parent.internalId()) - 1 : -1).at(row);
+    return createIndex(row, column, quintptr(source + 1));
+}
+
+///
+/// \brief Returns the variable owning a child row.
+///
+QModelIndex VariablesModel::parent(const QModelIndex &index) const
+{
+    if (!index.isValid())
+        return {};
+    return indexForRow(_parents.at(int(index.internalId()) - 1));
+}
+
+///
+/// \brief Maps a stored item to its hierarchical cell.
+///
+QModelIndex VariablesModel::indexForRow(int row, int column) const
+{
+    if (row < 0 || row >= _items.size())
+        return {};
+    return createIndex(int(_children.value(_parents.at(row)).indexOf(row)), column, quintptr(row + 1));
+}
+
+///
+/// \brief Replaces the items with a flat list.
+///
+void VariablesModel::setItems(const QList<VariableInfo> &items)
+{
+    setVariables(items);
+}
+
+///
+/// \brief Returns the stored items in source order.
+///
+const QList<VariableInfo> &VariablesModel::items() const
+{
+    return _items;
+}
+
+///
+/// \brief Returns a stored item by its source row.
+///
+const VariableInfo &VariablesModel::item(int row) const
+{
+    return _items.at(row);
+}
+
+///
+/// \brief Updates a stored item without changing its parent.
+///
+void VariablesModel::setItem(int row, const VariableInfo &item)
+{
+    _items[row] = item;
+    emit dataChanged(indexForRow(row), indexForRow(row, ColCount - 1));
+}
+
+///
+/// \brief Removes all stored items.
+///
+void VariablesModel::clear()
+{
+    setItems({});
+}
+
+///
+/// \brief Refreshes translated headers and cells.
+///
+void VariablesModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, ColCount - 1);
+    for (int row = 0; row < _items.size(); ++row)
+        emit dataChanged(indexForRow(row), indexForRow(row, ColCount - 1));
 }
