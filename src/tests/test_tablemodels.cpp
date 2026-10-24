@@ -99,6 +99,7 @@ private slots:
     void variablesModelUpdatesValues();
     void variablesModelShowsArrays();
     void variablesModelShowsModelDataTypeNames();
+    void variablesModelShowsNodeTypes();
     void variablesModelShowsAlarmState();
     void variablesModelShowsLocations();
     void variableListingFindsNodes();
@@ -251,6 +252,33 @@ void TestTableModels::variablesModelShowsModelDataTypeNames()
     model.setItems({ mode, modes });
     QCOMPARE(model.index(0, VariablesModel::ColDataType).data().toString(), QStringLiteral("TankMode"));
     QCOMPARE(model.index(1, VariablesModel::ColDataType).data().toString(), QStringLiteral("TankMode[3]"));
+}
+
+void TestTableModels::variablesModelShowsNodeTypes()
+{
+    VariableInfo analog = variable(QStringLiteral("AI"), 0);
+    analog.typeName = QStringLiteral("AnalogItemType");
+    VariableInfo property = variable(QStringLiteral("AI.EURange"), 0);
+    property.typeName = QStringLiteral("PropertyType");
+    property.dataType = QStringLiteral("Range");
+    property.property = true;
+    const VariableInfo unknown = variable(QStringLiteral("Unknown"), 0);
+    VariablesModel model;
+    model.setVariables({analog, property, unknown}, {}, {{property.nodeId, analog.nodeId}});
+    QCOMPARE(header(model, VariablesModel::ColNodeType), QStringLiteral("Node Type"));
+    QCOMPARE(int(VariablesModel::ColNodeType), int(VariablesModel::ColDataType) + 1);
+    const QModelIndex type = model.index(0, VariablesModel::ColNodeType);
+    QCOMPARE(type.data().toString(), analog.typeName);
+    QCOMPARE(type.data(Qt::ToolTipRole).toString(), analog.typeName);
+    QCOMPARE(model.index(0, VariablesModel::ColDataType).data().toString(), QStringLiteral("Double"));
+    const QModelIndex child = model.index(0, VariablesModel::ColNodeType, model.index(0, 0));
+    QCOMPARE(child.data().toString(), property.typeName);
+    QCOMPARE(child.data(Qt::ToolTipRole).toString(), property.typeName);
+    QVERIFY(model.index(1, VariablesModel::ColNodeType).data().toString().isEmpty());
+    analog.typeName = QStringLiteral("CustomAnalogType");
+    model.setItem(0, analog);
+    QCOMPARE(type.data().toString(), analog.typeName);
+    QCOMPARE(type.data(Qt::ToolTipRole).toString(), analog.typeName);
 }
 
 void TestTableModels::variablesModelShowsAlarmState()

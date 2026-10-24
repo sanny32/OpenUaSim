@@ -63,6 +63,9 @@ QVariant VariablesModel::data(const QModelIndex &index, int role) const
                 ? QStringLiteral("%1[%2]").arg(variable.shownDataType()).arg(variable.arrayLength)
                 : variable.shownDataType();
         break;
+    case ColNodeType:
+        if (role == Qt::DisplayRole || role == Qt::ToolTipRole) return variable.typeName;
+        break;
     case ColQuality:
         if (role == Qt::DisplayRole) return qualityText(variable.quality);
         if (role == ItemRoles::Status) return ItemRoles::statusValue(qualityStatus(variable.quality));
@@ -95,6 +98,7 @@ QVariant VariablesModel::headerData(int section, Qt::Orientation orientation, in
     case ColName:     return tr("Name");
     case ColValue:    return tr("Value");
     case ColDataType: return tr("Data Type");
+    case ColNodeType: return tr("Node Type");
     case ColQuality:  return tr("Quality");
     case ColAlarm:    return tr("Alarm");
     default:          return {};

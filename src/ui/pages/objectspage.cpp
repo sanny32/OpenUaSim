@@ -6,6 +6,8 @@
 /// \brief Implements the address space page.
 ///
 
+#include <QAction>
+#include <QHeaderView>
 #include <QSettings>
 #include <QSet>
 
@@ -23,6 +25,8 @@
 namespace {
 
 const char *const kNestedVariablesKey = "objects/nestedVariables";
+const char *const kVariableColumnKeys[] = { "name", "value", "dataType", "nodeType", "quality", "alarm" };
+const char *const kVariableColumnsKey = "objects/variableColumns/";
 
 }
 
@@ -45,6 +49,7 @@ ObjectsPage::ObjectsPage(QWidget *parent)
     ViewSetup::attachSearch(ui->addressTree, _treeModel, ui->searchEdit);
     ViewSetup::configureTable(ui->variablesView);
     ui->variablesView->setModel(_variablesModel);
+    configureVariableColumns();
     ViewSetup::fitColumnsWhenFilled(ui->variablesView);
     ViewSetup::growColumnWithContents(ui->variablesView, VariablesModel::ColValue);
 
@@ -296,6 +301,8 @@ void ObjectsPage::retranslate()
     ui->retranslateUi(this);
     showVariablesTitle();
     _variablesModel->retranslate();
+    for (QAction *action : ui->variablesView->header()->actions())
+        action->setText(_variablesModel->headerData(action->data().toInt(), Qt::Horizontal).toString());
 }
 
 ///
@@ -342,4 +349,39 @@ void ObjectsPage::selectVariableRow(int row)
         ui->variablesView->clearSelection();
     ui->variablesView->setCurrentIndex(index);
     ui->variablesView->scrollTo(index);
+}
+
+///
+/// \brief Adds column visibility choices to the header and restores the saved choices.
+///
+void ObjectsPage::configureVariableColumns()
+{
+    QHeaderView *header = ui->variablesView->header();
+    header->setContextMenuPolicy(Qt::ActionsContextMenu);
+    for (int column = 0; column < VariablesModel::ColCount; ++column) {
+        const QString key = QLatin1String(kVariableColumnKeys[column]);
+        const bool visible = column == VariablesModel::ColName
+            || QSettings().value(QLatin1String(kVariableColumnsKey) + key, true).toBool();
+        auto *action = new QAction(_variablesModel->headerData(column, Qt::Horizontal).toString(), header);
+        action->setObjectName(QStringLiteral("variableColumn_") + key);
+        action->setData(column);
+        action->setCheckable(true);
+        action->setChecked(visible);
+        action->setEnabled(column != VariablesModel::ColName);
+        header->addAction(action);
+        header->setSectionHidden(column, !visible);
+        connect(action, &QAction::toggled, this, &ObjectsPage::setVariableColumnVisible);
+    }
+}
+
+///
+/// \brief Applies a header menu choice and remembers it across sessions.
+/// \param visible Whether the chosen column is shown.
+///
+void ObjectsPage::setVariableColumnVisible(bool visible)
+{
+    const auto *action = qobject_cast<QAction *>(sender());
+    const int column = action->data().toInt();
+    ui->variablesView->setColumnHidden(column, !visible);
+    QSettings().setValue(QLatin1String(kVariableColumnsKey) + QLatin1String(kVariableColumnKeys[column]), visible);
 }

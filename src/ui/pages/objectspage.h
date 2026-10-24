@@ -132,6 +132,8 @@ private:
     void showVariable(const QModelIndex &current);
     void clearProperties();
     void selectVariableRow(int row);
+    void configureVariableColumns();
+    void setVariableColumnVisible(bool visible);
 
     Ui::ObjectsPage *ui;
     TreeModel *_treeModel;

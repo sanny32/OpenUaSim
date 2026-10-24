@@ -2498,6 +2498,10 @@
 <context>
     <name>VariablesModel</name>
     <message>
+        <source>Node Type</source>
+        <translation>Тип узла</translation>
+    </message>
+    <message>
         <source>Name</source>
         <translation>Имя</translation>
     </message>

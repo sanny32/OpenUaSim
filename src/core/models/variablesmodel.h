@@ -15,7 +15,7 @@
 #include "data/variableinfo.h"
 
 ///
-/// \brief Hierarchy of the variables of one object: name, value, data type, quality and alarm state.
+/// \brief Hierarchy of the variables of one object: name, value, data type, node type, quality and alarm state.
 ///
 class VariablesModel : public QAbstractItemModel
 {
@@ -25,7 +25,7 @@ public:
     ///
     /// \brief Columns exposed by the model.
     ///
-    enum Column { ColName, ColValue, ColDataType, ColQuality, ColAlarm, ColCount };
+    enum Column { ColName, ColValue, ColDataType, ColNodeType, ColQuality, ColAlarm, ColCount };
 
     ///
     /// \brief Constructs an empty model.

@@ -3,6 +3,7 @@
 
 #include <cmath>
 
+#include <QAction>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
@@ -17,6 +18,8 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QScopeGuard>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QSpinBox>
 #include <QSplitter>
@@ -253,6 +256,7 @@ private slots:
     void objectsPageLocksModelVariableStructure();
     void objectsPageShowsDataTypeOutsideTheList();
     void objectsPageShowsTypeOfVariables();
+    void objectsPageChoosesVisibleColumns();
     void objectsPageEditsValueOfProperty();
     void objectsPageElidesNodeId();
 
@@ -1720,10 +1724,66 @@ void TestPages::objectsPageShowsTypeOfVariables()
     auto *type = child<QLineEdit>(page, "typeEdit");
     QCOMPARE(page.currentNodeId(), speedId);
     QCOMPARE(type->text(), QStringLiteral("AnalogItemType"));
+    const auto *model = page.variablesModel();
+    QCOMPARE(model->indexForRow(model->rowOf(speedId), VariablesModel::ColNodeType).data().toString(),
+             QStringLiteral("AnalogItemType"));
     QVERIFY(type->isReadOnly());
 
     page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
     QVERIFY(type->text().isEmpty());
+}
+
+void TestPages::objectsPageChoosesVisibleColumns()
+{
+    QSettings settings;
+    settings.remove(QStringLiteral("objects/variableColumns"));
+    const auto restore = qScopeGuard([&settings] { settings.remove(QStringLiteral("objects/variableColumns")); });
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    auto *view = child<QTreeView>(page, "variablesView");
+    const QString currentId = page.currentNodeId();
+    QHeaderView *header = view->header();
+    QCOMPARE(header->contextMenuPolicy(), Qt::ActionsContextMenu);
+    const QList<QAction *> actions = header->actions();
+    QCOMPARE(actions.size(), int(VariablesModel::ColCount));
+    for (int column = 0; column < actions.size(); ++column) {
+        QAction *action = actions.at(column);
+        QCOMPARE(action->data().toInt(), column);
+        QCOMPARE(action->text(), view->model()->headerData(column, Qt::Horizontal).toString());
+        QVERIFY(action->isCheckable());
+        QVERIFY(action->isChecked());
+        QVERIFY(!header->isSectionHidden(column));
+        if (column == VariablesModel::ColName) {
+            QVERIFY(!action->isEnabled());
+            continue;
+        }
+        action->trigger();
+        QVERIFY(header->isSectionHidden(column));
+        QVERIFY(!action->isChecked());
+        action->trigger();
+        QVERIFY(!header->isSectionHidden(column));
+    }
+    auto *nodeType = actions.at(VariablesModel::ColNodeType);
+    nodeType->trigger();
+    actions.at(VariablesModel::ColAlarm)->trigger();
+    QCOMPARE(page.currentNodeId(), currentId);
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    QVERIFY(view->isColumnHidden(VariablesModel::ColNodeType));
+    nodeType->setText(QStringLiteral("stale"));
+    QEvent languageChange(QEvent::LanguageChange);
+    QCoreApplication::sendEvent(&page, &languageChange);
+    QCOMPARE(nodeType->text(), view->model()->headerData(VariablesModel::ColNodeType, Qt::Horizontal).toString());
+    QVERIFY(!nodeType->isChecked());
+
+    ObjectsPage reopened;
+    reopened.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    auto *restoredView = child<QTreeView>(reopened, "variablesView");
+    QVERIFY(restoredView->isColumnHidden(VariablesModel::ColNodeType));
+    QVERIFY(restoredView->isColumnHidden(VariablesModel::ColAlarm));
+    QVERIFY(!restoredView->isColumnHidden(VariablesModel::ColName));
+    QVERIFY(!restoredView->isColumnHidden(VariablesModel::ColDataType));
+    restoredView->header()->actions().at(VariablesModel::ColNodeType)->trigger();
+    QVERIFY(!restoredView->isColumnHidden(VariablesModel::ColNodeType));
 }
 
 void TestPages::objectsPageEditsValueOfProperty()
