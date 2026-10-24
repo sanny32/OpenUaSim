@@ -2439,6 +2439,14 @@
         <translation>Качество</translation>
     </message>
     <message>
+        <source>Configured Quality</source>
+        <translation>Заданное качество</translation>
+    </message>
+    <message>
+        <source>Quality to report with values; the actual quality above also reflects server errors</source>
+        <translation>Качество для передачи со значениями; фактическое качество выше также учитывает ошибки сервера</translation>
+    </message>
+    <message>
         <source>Simulation</source>
         <translation>Симуляция</translation>
     </message>

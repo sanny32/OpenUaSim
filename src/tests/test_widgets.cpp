@@ -43,6 +43,7 @@
 #include "statusindicator.h"
 #include "treemodel.h"
 #include "variablepropertieswidget.h"
+#include "variablesmodel.h"
 #include "viewsetup.h"
 
 namespace {
@@ -132,6 +133,8 @@ private slots:
     void attachTableSearchFiltersAllColumns();
     void bindCopyButtonCopies();
     void variablePropertiesEditsVariable();
+    void variablePropertiesShowsCurrentQuality_data();
+    void variablePropertiesShowsCurrentQuality();
     void variablePropertiesLocksReadOnlyAndModelVariables();
     void propertyNodeEditsValue();
     void propertyNodeEditsTextValue();
@@ -1082,6 +1085,66 @@ void TestWidgets::variablePropertiesEditsVariable()
     QVERIFY(named<QLineEdit>(editor, "nodeIdEdit")->text().isEmpty());
     named<QPushButton>(editor, "applyButton")->click();
     QCOMPARE(applied.count(), 1);
+}
+
+void TestWidgets::variablePropertiesShowsCurrentQuality_data()
+{
+    QTest::addColumn<VariableInfo::Quality>("quality");
+    QTest::addColumn<VariableInfo::Quality>("configuredQuality");
+    for (VariableInfo::Quality quality : VariableInfo::qualities())
+        QTest::newRow(qPrintable(VariablesModel::qualityText(quality))) << quality << quality;
+    QTest::newRow("waiting for initial data") << VariableInfo::Quality::BadWaitingForInitialData
+                                              << VariableInfo::Quality::Good;
+    QTest::newRow("server failure") << VariableInfo::Quality::Bad << VariableInfo::Quality::Uncertain;
+}
+
+void TestWidgets::variablePropertiesShowsCurrentQuality()
+{
+    QFETCH(VariableInfo::Quality, quality);
+    QFETCH(VariableInfo::Quality, configuredQuality);
+    VariablePropertiesWidget editor;
+    auto *indicator = editor.findChild<StatusIndicator *>(QStringLiteral("qualityIndicator"));
+    QVERIFY(indicator);
+    QCOMPARE(indicator->status(), StatusKind::None);
+    QVERIFY(indicator->text().isEmpty());
+
+    VariableInfo variable = speedVariable();
+    variable.quality = quality;
+    variable.configuredQuality = configuredQuality;
+    editor.setVariable(variable);
+    VariablesModel model;
+    model.setItems({ variable });
+    const QModelIndex cell = model.index(0, VariablesModel::ColQuality);
+    QCOMPARE(indicator->text(), cell.data().toString());
+    QCOMPARE(indicator->status(), VariablesModel::qualityStatus(quality));
+    auto *combo = named<QComboBox>(editor, "qualityCombo");
+    QCOMPARE(combo->currentData().toUInt(), quint32(configuredQuality));
+    QCOMPARE(named<QLabel>(editor, "configuredQualityLabel")->text(), QStringLiteral("Configured Quality"));
+
+    combo->setCurrentIndex(combo->findData(quint32(VariableInfo::Quality::BadSensorFailure)));
+    QEvent languageChange(QEvent::LanguageChange);
+    QCoreApplication::sendEvent(&editor, &languageChange);
+    QCOMPARE(indicator->text(), cell.data().toString());
+    QCOMPARE(combo->currentData().toUInt(), quint32(VariableInfo::Quality::BadSensorFailure));
+    QSignalSpy applied(&editor, &VariablePropertiesWidget::applyRequested);
+    named<QPushButton>(editor, "applyButton")->click();
+    QCOMPARE(applied.count(), 1);
+    const VariableInfo edited = applied.first().first().value<VariableInfo>();
+    QCOMPARE(edited.quality, quality);
+    QCOMPARE(edited.configuredQuality, VariableInfo::Quality::BadSensorFailure);
+
+    named<QPushButton>(editor, "revertButton")->click();
+    QCOMPARE(indicator->text(), cell.data().toString());
+    QCOMPARE(combo->currentData().toUInt(), quint32(configuredQuality));
+    variable.quality = VariableInfo::Quality::UncertainLastUsableValue;
+    editor.setVariable(variable);
+    QCOMPARE(indicator->text(), VariablesModel::qualityText(variable.quality));
+    QCOMPARE(indicator->status(), StatusKind::Warning);
+    editor.clear();
+    QCOMPARE(indicator->status(), StatusKind::None);
+    QVERIFY(indicator->text().isEmpty());
+    QCoreApplication::sendEvent(&editor, &languageChange);
+    QVERIFY(indicator->text().isEmpty());
 }
 
 void TestWidgets::variablePropertiesLocksReadOnlyAndModelVariables()

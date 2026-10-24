@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QLineEdit>
+#include <QLabel>
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QLocale>
@@ -15,6 +16,8 @@
 #include "addnodedialog.h"
 #include "project/projectfile.h"
 #include "variablepropertieswidget.h"
+#include "statusindicator.h"
+#include "variablesmodel.h"
 
 Q_DECLARE_METATYPE(VariableInfo)
 
@@ -41,6 +44,7 @@ private slots:
     void appliesRussianAndBack();
     void replacesEarlierTranslators();
     void announcesLanguageChange();
+    void variableQualityFollowsLanguage();
 };
 
 void TestAppLanguage::accessValuesStayPortable_data()
@@ -171,6 +175,40 @@ void TestAppLanguage::announcesLanguageChange()
 
     AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language::Russian);
     QTRY_VERIFY(changes > 0);
+}
+
+void TestAppLanguage::variableQualityFollowsLanguage()
+{
+    AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language::English);
+    VariableInfo variable;
+    variable.nodeId = QStringLiteral("ns=1;s=Image");
+    variable.quality = VariableInfo::Quality::BadWaitingForInitialData;
+    variable.configuredQuality = VariableInfo::Quality::Good;
+    VariablePropertiesWidget editor;
+    editor.setVariable(variable);
+    auto *indicator = editor.findChild<StatusIndicator *>(QStringLiteral("qualityIndicator"));
+    auto *label = editor.findChild<QLabel *>(QStringLiteral("configuredQualityLabel"));
+    auto *combo = editor.findChild<QComboBox *>(QStringLiteral("qualityCombo"));
+    QVERIFY(indicator);
+    QVERIFY(label);
+    QVERIFY(combo);
+    const QString english = indicator->text();
+    QCOMPARE(english, VariablesModel::qualityText(variable.quality));
+    QCOMPARE(label->text(), QStringLiteral("Configured Quality"));
+
+    QVERIFY(AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language::Russian));
+    QCoreApplication::processEvents();
+    QCOMPARE(label->text(), QStringLiteral("Заданное качество"));
+    QCOMPARE(indicator->text(), VariablesModel::qualityText(variable.quality));
+    QVERIFY(indicator->text() != english);
+    QCOMPARE(combo->currentData().toUInt(), quint32(variable.configuredQuality));
+    QCOMPARE(indicator->status(), StatusKind::Error);
+
+    AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language::English);
+    QCoreApplication::processEvents();
+    QCOMPARE(indicator->text(), english);
+    QCOMPARE(label->text(), QStringLiteral("Configured Quality"));
+    QCOMPARE(combo->currentData().toUInt(), quint32(variable.configuredQuality));
 }
 
 QTEST_MAIN(TestAppLanguage)
