@@ -258,7 +258,7 @@ QString iconName(const QHash<QString, TypeInfo> &types, const QString &typeId)
     if (category == QLatin1String("DataType"))
         return QStringLiteral("data-type");
     if (category == QLatin1String("ReferenceType"))
-        return QStringLiteral("link");
+        return QStringLiteral("reference-type");
     return QStringLiteral("variable");
 }
 

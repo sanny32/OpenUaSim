@@ -168,7 +168,7 @@ void TestAddNodeDialog::typeCategoryIcons_data()
     QTest::addColumn<QString>("rootId");
     QTest::addColumn<QStringList>("names");
     QTest::newRow("references")
-        << "ReferenceType" << "link" << "list-tree" << "i=31"
+        << "ReferenceType" << "reference-type" << "list-tree" << "i=31"
         << QStringList { "References", "HierarchicalReferences", "NonHierarchicalReferences" };
     QTest::newRow("data-types")
         << "DataType" << "data-type" << "hash" << "i=24"

@@ -142,7 +142,7 @@ void TestAppTheme::paletteIconsFollowTheTheme_data()
 {
     QTest::addColumn<QString>("name");
     QTest::newRow("save") << QStringLiteral("save");
-    QTest::newRow("link") << QStringLiteral("link");
+    QTest::newRow("reference-type") << QStringLiteral("reference-type");
     QTest::newRow("data-type") << QStringLiteral("data-type");
     for (const AppIcons::NamedIcon &icon : AppIcons::variableIcons()) {
         if (!icon.name.startsWith(QStringLiteral("status-")))
