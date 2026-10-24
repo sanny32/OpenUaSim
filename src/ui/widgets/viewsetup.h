@@ -52,6 +52,12 @@ void fitColumnsWhenFilled(QTableView *view);
 void growColumnWithContents(QTableView *view, int column);
 
 ///
+/// \brief Associates translated access choices with the stable values stored in projects.
+/// \param combo Access selector whose items are Read, Write and Read/Write, in that order.
+///
+void configureAccessCombo(QComboBox *combo);
+
+///
 /// \brief Fills a combo box with the icons a variable can be given; item data holds the icon name.
 /// \param combo Combo box to fill.
 ///

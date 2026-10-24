@@ -2,12 +2,21 @@
 // SPDX-License-Identifier: MIT
 
 #include <QApplication>
+#include <QComboBox>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QSignalSpy>
 #include <QLocale>
 #include <QSettings>
 #include <QTest>
 #include <QTranslator>
 
 #include "applanguage.h"
+#include "addnodedialog.h"
+#include "project/projectfile.h"
+#include "variablepropertieswidget.h"
+
+Q_DECLARE_METATYPE(VariableInfo)
 
 namespace {
 
@@ -24,6 +33,8 @@ class TestAppLanguage : public QObject
 
 private slots:
     void cleanup();
+    void accessValuesStayPortable_data();
+    void accessValuesStayPortable();
     void savesPreference();
     void unknownPreferenceFallsBackToSystem();
     void resolvesLocaleNames();
@@ -31,6 +42,64 @@ private slots:
     void replacesEarlierTranslators();
     void announcesLanguageChange();
 };
+
+void TestAppLanguage::accessValuesStayPortable_data()
+{
+    QTest::addColumn<QString>("access");
+    QTest::newRow("read") << QStringLiteral("Read");
+    QTest::newRow("write") << QStringLiteral("Write");
+    QTest::newRow("readWrite") << QStringLiteral("Read/Write");
+}
+
+void TestAppLanguage::accessValuesStayPortable()
+{
+    QFETCH(QString, access);
+    AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language::Russian);
+    AddNodeDialog dialog({}, {});
+    dialog.findChild<QComboBox *>(QStringLiteral("kindCombo"))->setCurrentIndex(int(NodeDefinition::Kind::Variable));
+    dialog.findChild<QLineEdit *>(QStringLiteral("browseNameEdit"))->setText(QStringLiteral("AI"));
+    auto *createdAccess = dialog.findChild<QComboBox *>(QStringLiteral("accessCombo"));
+    createdAccess->setCurrentIndex(createdAccess->findData(access));
+    QVERIFY(createdAccess->currentIndex() >= 0);
+    QVERIFY(createdAccess->currentText() != access);
+    QCOMPARE(dialog.node().access, access);
+    ProjectConfig project;
+    project.nodes.append(dialog.node());
+    const auto loaded = ProjectFile::fromJson(ProjectFile::toJson(project));
+    QVERIFY2(loaded.ok(), qPrintable(loaded.error));
+    QCOMPARE(loaded.project.nodes.first().access, access);
+
+    VariableInfo variable;
+    variable.nodeId = QStringLiteral("ns=1;s=AI");
+    variable.displayName = QStringLiteral("AI");
+    variable.dataType = QStringLiteral("Double");
+    variable.access = access;
+    VariablePropertiesWidget editor;
+    editor.setVariable(variable);
+    auto *editedAccess = editor.findChild<QComboBox *>(QStringLiteral("accessCombo"));
+    QCOMPARE(editedAccess->currentData().toString(), access);
+    QVERIFY(editedAccess->currentText() != access);
+    QSignalSpy applied(&editor, &VariablePropertiesWidget::applyRequested);
+    editor.findChild<QPushButton *>(QStringLiteral("applyButton"))->click();
+    QCOMPARE(applied.size(), 1);
+    QCOMPARE(applied.takeFirst().first().value<VariableInfo>().access, access);
+    const int changedIndex = (editedAccess->currentIndex() + 1) % editedAccess->count();
+    editedAccess->setCurrentIndex(changedIndex);
+    const QString changedAccess = editedAccess->currentData().toString();
+    editor.findChild<QPushButton *>(QStringLiteral("applyButton"))->click();
+    QCOMPARE(applied.takeFirst().first().value<VariableInfo>().access, changedAccess);
+    AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language::English);
+    QCoreApplication::processEvents();
+    QCOMPARE(editedAccess->currentText(), changedAccess);
+    QCOMPARE(editedAccess->currentData().toString(), changedAccess);
+    editor.setVariable(variable);
+    QCOMPARE(editedAccess->currentData().toString(), access);
+    AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language::Russian);
+    QCoreApplication::processEvents();
+    QCOMPARE(editedAccess->currentData().toString(), access);
+    editor.findChild<QPushButton *>(QStringLiteral("applyButton"))->click();
+    QCOMPARE(applied.takeFirst().first().value<VariableInfo>().access, access);
+}
 
 void TestAppLanguage::cleanup()
 {

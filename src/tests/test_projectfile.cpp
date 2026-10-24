@@ -66,6 +66,8 @@ class TestProjectFile : public QObject
 
 private slots:
     void defaultProjectRoundTrips();
+    void loadsLegacyAccess_data();
+    void loadsLegacyAccess();
     void preservesVariableFields();
     void preservesEveryDataTypeValue_data();
     void preservesEveryDataTypeValue();
@@ -95,6 +97,33 @@ private slots:
     void loadReportsMissingFile();
     void saveReportsUnwritablePath();
 };
+
+void TestProjectFile::loadsLegacyAccess_data()
+{
+    QTest::addColumn<QString>("stored");
+    QTest::addColumn<QString>("canonical");
+    QTest::newRow("read") << QStringLiteral("\u0427\u0442\u0435\u043d\u0438\u0435") << QStringLiteral("Read");
+    QTest::newRow("write") << QStringLiteral("\u0417\u0430\u043f\u0438\u0441\u044c") << QStringLiteral("Write");
+    QTest::newRow("readWrite") << QStringLiteral("\u0427\u0442\u0435\u043d\u0438\u0435/\u0437\u0430\u043f\u0438\u0441\u044c") << QStringLiteral("Read/Write");
+}
+
+void TestProjectFile::loadsLegacyAccess()
+{
+    QFETCH(QString, stored);
+    QFETCH(QString, canonical);
+    const auto loaded = ProjectFile::fromJson(projectWithNode(variableNode(QStringLiteral("access"), stored)));
+    QVERIFY2(loaded.ok(), qPrintable(loaded.error));
+    QCOMPARE(loaded.project.nodes.first().access, canonical);
+    const QJsonObject saved = QJsonDocument::fromJson(ProjectFile::toJson(loaded.project)).object();
+    QCOMPARE(saved.value(QStringLiteral("nodes")).toArray().first().toObject()
+                 .value(QStringLiteral("access")).toString(), canonical);
+
+    QJsonObject model = modelVariable(QStringLiteral("urn:test"), QStringLiteral("ns=1;s=Level"));
+    model.insert(QStringLiteral("access"), stored);
+    const auto loadedModel = ProjectFile::fromJson(projectWithModelVariables({model}));
+    QVERIFY2(loadedModel.ok(), qPrintable(loadedModel.error));
+    QCOMPARE(loadedModel.project.modelVariables.first().variable.access, canonical);
+}
 
 void TestProjectFile::defaultProjectRoundTrips()
 {

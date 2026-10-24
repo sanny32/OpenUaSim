@@ -46,6 +46,7 @@ AddNodeDialog::AddNodeDialog(const QList<NodeDefinition> &nodes, const QString &
     , _usedIds(ProjectNodes::nodeIds(nodes))
 {
     ui->setupUi(this);
+    ViewSetup::configureAccessCombo(ui->accessCombo);
     const QString objects = tr("Objects");
     ui->parentCombo->addItem(AppIcons::icon(QStringLiteral("folder")), objects, QString());
     fillParentCombo(nodes, objects);
@@ -104,7 +105,7 @@ NodeDefinition AddNodeDialog::node() const
         node.typeDefinition = ui->typeCombo->currentData().toString();
     if (node.kind == NodeDefinition::Kind::Variable) {
         node.dataType = ui->dataTypeCombo->currentText();
-        node.access = ui->accessCombo->currentText();
+        node.access = ui->accessCombo->currentData().toString();
         node.icon = ui->iconCombo->currentData().toString();
         node.initialValue = ValueCast::defaultValue(node.dataType);
     } else if (node.kind == NodeDefinition::Kind::Method) {

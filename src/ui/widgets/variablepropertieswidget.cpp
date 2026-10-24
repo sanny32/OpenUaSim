@@ -33,6 +33,7 @@ VariablePropertiesWidget::VariablePropertiesWidget(QWidget *parent)
     , ui(new Ui::VariablePropertiesWidget)
 {
     ui->setupUi(this);
+    ViewSetup::configureAccessCombo(ui->accessCombo);
     fillCombos();
     ViewSetup::bindCopyButton(ui->copyNodeIdButton, ui->nodeIdEdit);
     ui->arrayLengthSpin->setMaximum(kMaxArrayLength);
@@ -74,7 +75,7 @@ void VariablePropertiesWidget::setVariable(const VariableInfo &variable)
     ui->dataTypeCombo->setCurrentIndex(dataTypeIndex);
     ui->dataTypeCombo->setPlaceholderText(dataTypeIndex < 0 ? variable.shownDataType() : QString());
     ui->arrayLengthSpin->setValue(variable.arrayLength);
-    ui->accessCombo->setCurrentText(variable.access);
+    ui->accessCombo->setCurrentIndex(ui->accessCombo->findData(variable.access));
     ui->initialValueEdit->setText(Formatting::value(variable.initialValue));
     ui->qualityCombo->setCurrentIndex(ui->qualityCombo->findData(quint32(variable.configuredQuality)));
     ui->historizingCheck->setChecked(variable.historizing);
@@ -195,7 +196,7 @@ VariableInfo VariablePropertiesWidget::editedVariable() const
         variable.icon = ui->iconCombo->currentData().toString();
     variable.dataType = ui->dataTypeCombo->currentText();
     variable.arrayLength = ui->arrayLengthSpin->value();
-    variable.access = ui->accessCombo->currentText();
+    variable.access = ui->accessCombo->currentData().toString();
     variable.initialValue = ui->initialValueEdit->isModified() ? QVariant(ui->initialValueEdit->text()) : QVariant();
     variable.configuredQuality = VariableInfo::Quality(ui->qualityCombo->currentData().toUInt());
     variable.historizing = ui->historizingCheck->isChecked();

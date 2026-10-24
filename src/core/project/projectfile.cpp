@@ -30,6 +30,19 @@ const QStringList kAccessLevels = { QStringLiteral("Read"), QStringLiteral("Writ
                                     QStringLiteral("Read/Write") };
 
 ///
+/// \brief Recovers access levels written as translated UI labels by earlier versions.
+/// \param access Stored access level.
+/// \return Stable access level, or the original text when it is not a legacy label.
+///
+QString canonicalAccess(const QString &access)
+{
+    static const QStringList legacy = {QStringLiteral("Чтение"), QStringLiteral("Запись"),
+                                       QStringLiteral("Чтение/запись")};
+    const int index = legacy.indexOf(access);
+    return index < 0 ? access : kAccessLevels.at(index);
+}
+
+///
 /// \brief Translates a message of the project file reader.
 /// \param text Source text.
 /// \return Translated text.
@@ -492,7 +505,7 @@ bool NodeReader::readVariable(const QJsonObject &json, const QString &path, Node
     if (!ValueCast::isSupported(node.dataType))
         return fail(path, tr("unsupported data type '%1'").arg(node.dataType));
 
-    node.access = json.value(QStringLiteral("access")).toString(node.access);
+    node.access = canonicalAccess(json.value(QStringLiteral("access")).toString(node.access));
     if (!kAccessLevels.contains(node.access))
         return fail(path, tr("unknown access level '%1'").arg(node.access));
 

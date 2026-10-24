@@ -558,4 +558,15 @@ void selectRow(QTreeView *view, int row)
     view->scrollTo(index);
 }
 
+///
+/// \brief Associates translated access choices with the stable values stored in projects.
+/// \param combo Access selector whose items are Read, Write and Read/Write, in that order.
+///
+void configureAccessCombo(QComboBox *combo)
+{
+    const QStringList levels = {QStringLiteral("Read"), QStringLiteral("Write"), QStringLiteral("Read/Write")};
+    for (int index = 0; index < levels.size(); ++index)
+        combo->setItemData(index, levels.at(index));
+}
+
 }
