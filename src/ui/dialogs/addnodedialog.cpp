@@ -160,7 +160,7 @@ void AddNodeDialog::fillTypeCombo()
     const QList<TypeInfo> types = TypeCatalog::instanceTypes(_types, NodeDefinition::Kind(ui->kindCombo->currentIndex()));
     for (qsizetype index = 0; index < types.size(); ++index) {
         const TypeInfo &type = types.at(index);
-        ui->typeCombo->addItem(type.browseName,
+        ui->typeCombo->addItem(AppIcons::icon(TypeCatalog::iconName(_types, type.nodeId)), type.browseName,
                                index == 0 ? QString() : PortableNodeId::fromServer(type.nodeId, _namespaces));
     }
     ui->typeCombo->setEnabled(types.size() > 1);

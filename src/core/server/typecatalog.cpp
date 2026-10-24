@@ -181,13 +181,14 @@ bool derivesFrom(const QHash<QString, TypeInfo> &types, const QString &typeId, c
 ///
 /// \brief Describes a type for the navigation tree.
 /// \param info Type to describe.
+/// \param types Types keyed by server node id.
 /// \return Tree node without children.
 ///
-TreeNode typeNode(const TypeInfo &info)
+TreeNode typeNode(const TypeInfo &info, const QHash<QString, TypeInfo> &types)
 {
     TreeNode node;
     node.text = info.browseName;
-    node.icon = QStringLiteral("folder");
+    node.icon = TypeCatalog::iconName(types, info.nodeId);
     node.id = info.nodeId;
     node.kind = TreeNode::Kind::Type;
     node.current = info.nodeId == kFolderType;
@@ -199,10 +200,11 @@ TreeNode typeNode(const TypeInfo &info)
 /// \param parentId Type whose subtypes are built.
 /// \param subtypes Types keyed by the node id of their supertype.
 /// \param shown Node ids of the types to show.
+/// \param types Types keyed by server node id.
 /// \return Tree nodes with their own shown subtypes.
 ///
 QList<TreeNode> subtypeNodes(const QString &parentId, const QMultiHash<QString, const TypeInfo *> &subtypes,
-                             const QSet<QString> &shown)
+                             const QSet<QString> &shown, const QHash<QString, TypeInfo> &types)
 {
     QList<const TypeInfo *> children = subtypes.values(parentId);
     std::sort(children.begin(), children.end(), [](const TypeInfo *a, const TypeInfo *b) {
@@ -212,8 +214,8 @@ QList<TreeNode> subtypeNodes(const QString &parentId, const QMultiHash<QString, 
     for (const TypeInfo *child : std::as_const(children)) {
         if (!shown.contains(child->nodeId))
             continue;
-        TreeNode node = typeNode(*child);
-        node.children = subtypeNodes(child->nodeId, subtypes, shown);
+        TreeNode node = typeNode(*child, types);
+        node.children = subtypeNodes(child->nodeId, subtypes, shown, types);
         nodes.append(node);
     }
     return nodes;
@@ -222,6 +224,43 @@ QList<TreeNode> subtypeNodes(const QString &parentId, const QMultiHash<QString, 
 }
 
 namespace TypeCatalog {
+
+///
+/// \brief Selects an icon by the nearest recognized type in the supertype chain.
+/// \param types Types keyed by server node id.
+/// \param typeId Type whose family determines the icon.
+/// \return Icon resource name, with a generic fallback for unknown types.
+///
+QString iconName(const QHash<QString, TypeInfo> &types, const QString &typeId)
+{
+    static const QHash<QString, QString> icons {
+        { QStringLiteral("i=%1").arg(UA_NS0ID_BASEVARIABLETYPE), QStringLiteral("variable") },
+        { QStringLiteral("i=%1").arg(UA_NS0ID_BASEDATAVARIABLETYPE), QStringLiteral("variable") },
+        { QStringLiteral("i=%1").arg(UA_NS0ID_PROPERTYTYPE), QStringLiteral("property") },
+        { QStringLiteral("i=%1").arg(UA_NS0ID_DATAITEMTYPE), QStringLiteral("variable") },
+        { QStringLiteral("i=%1").arg(UA_NS0ID_BASEANALOGTYPE), QStringLiteral("analog") },
+        { QStringLiteral("i=%1").arg(UA_NS0ID_ANALOGITEMTYPE), QStringLiteral("analog") },
+        { QStringLiteral("i=%1").arg(UA_NS0ID_ARRAYITEMTYPE), QStringLiteral("array") },
+        { QStringLiteral("i=%1").arg(UA_NS0ID_IMAGEITEMTYPE), QStringLiteral("matrix") },
+        { QStringLiteral("i=%1").arg(UA_NS0ID_DISCRETEITEMTYPE), QStringLiteral("discrete") },
+        { QStringLiteral("i=%1").arg(UA_NS0ID_MULTISTATEDICTIONARYENTRYDISCRETEBASETYPE), QStringLiteral("dictionary") },
+        { QStringLiteral("i=%1").arg(UA_NS0ID_FOLDERTYPE), QStringLiteral("folder") },
+        { QStringLiteral("i=%1").arg(UA_NS0ID_BASEOBJECTTYPE), QStringLiteral("object") },
+    };
+    QSet<QString> visited;
+    for (QString id = typeId; !id.isEmpty() && !visited.contains(id); id = types.value(id).baseTypeId) {
+        const auto found = icons.constFind(id);
+        if (found != icons.cend())
+            return *found;
+        visited.insert(id);
+    }
+    const QString category = types.value(typeId).category;
+    if (category == QLatin1String("DataType"))
+        return QStringLiteral("hash");
+    if (category == QLatin1String("ReferenceType"))
+        return QStringLiteral("list-tree");
+    return QStringLiteral("variable");
+}
 
 ///
 /// \brief Reads the object, variable, data and reference types of a server.
@@ -292,9 +331,9 @@ QList<TreeNode> tree(const QHash<QString, TypeInfo> &types, bool allStandardType
     root.kind = TreeNode::Kind::Folder;
     root.expanded = true;
     for (const TypeInfo *type : std::as_const(roots)) {
-        TreeNode node = typeNode(*type);
+        TreeNode node = typeNode(*type, types);
         node.expanded = true;
-        node.children = subtypeNodes(type->nodeId, subtypes, shown);
+        node.children = subtypeNodes(type->nodeId, subtypes, shown, types);
         root.children.append(node);
     }
     return { root };

@@ -5,10 +5,13 @@
 #include <QHelpEvent>
 #include <QClipboard>
 #include <QComboBox>
+#include <QDialogButtonBox>
 #include <QHeaderView>
+#include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
@@ -94,6 +97,8 @@ private slots:
     void eventLogFollowsNewRowsAtBottom();
     void eventLogKeepsPositionWhenScrolledUp();
     void eventLogCloseButtonRequestsClose();
+    void appStyleCompactMessageBoxIcons();
+    void appStyleMessageBoxVerticalSpace();
     void appStylePanelsAndSeparators();
     void appStyleAccentButton();
     void appStyleSelectedTab();
@@ -291,6 +296,49 @@ void TestWidgets::eventLogCloseButtonRequestsClose()
 
     close->click();
     QCOMPARE(closed.count(), 1);
+}
+
+///
+/// \brief Keeps standard message box icons compact at logical pixel sizes.
+///
+void TestWidgets::appStyleCompactMessageBoxIcons()
+{
+    AppStyle style;
+    QMessageBox box;
+    box.setStyle(&style);
+    for (const auto icon : { QMessageBox::Warning, QMessageBox::Information,
+                             QMessageBox::Critical, QMessageBox::Question }) {
+        box.setIcon(icon);
+        const QPixmap pixmap = box.iconPixmap();
+        QVERIFY(!pixmap.isNull());
+        QCOMPARE(pixmap.deviceIndependentSize(), QSizeF(24, 24));
+    }
+    box.setIcon(QMessageBox::NoIcon);
+    QVERIFY(box.iconPixmap().isNull());
+}
+
+///
+/// \brief Preserves breathing room around short and wrapped message box text.
+///
+void TestWidgets::appStyleMessageBoxVerticalSpace()
+{
+    AppStyle style;
+    for (const QString &text : { QStringLiteral("Save changes?"),
+                                QStringLiteral("Save changes?\nThe project has unsaved settings.") }) {
+        QMessageBox box(QMessageBox::Warning, QStringLiteral("Unsaved Changes"), text,
+                        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+        box.setStyle(&style);
+        box.show();
+        const auto *layout = qobject_cast<QGridLayout *>(box.layout());
+        QVERIFY(layout);
+        QVERIFY(layout->contentsMargins().top() >= 20);
+        QVERIFY(layout->contentsMargins().bottom() >= 20);
+        QVERIFY(layout->verticalSpacing() >= 14);
+        const auto *buttons = box.findChild<QDialogButtonBox *>();
+        QVERIFY(buttons);
+        QVERIFY(box.height() - buttons->geometry().bottom() >= 20);
+        QCOMPARE(box.iconPixmap().deviceIndependentSize(), QSizeF(24, 24));
+    }
 }
 
 void TestWidgets::appStylePanelsAndSeparators()

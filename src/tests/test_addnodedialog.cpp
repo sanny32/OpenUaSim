@@ -7,6 +7,10 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QTest>
+#include <QUaServer>
+
+#include "appicons.h"
+#include "server/typecatalog.h"
 
 #include "addnodedialog.h"
 
@@ -94,6 +98,7 @@ class TestAddNodeDialog : public QObject
     Q_OBJECT
 
 private slots:
+    void typeFamilyIcons();
     void showsParentAndStartsInvalid();
     void offersOnlyContainersAsParents();
     void unknownParentSelectsTopLevel();
@@ -108,6 +113,50 @@ private slots:
     void describesTypedObject();
     void withoutTypesKeepsStandardType();
 };
+
+
+void TestAddNodeDialog::typeFamilyIcons()
+{
+    QUaServer server;
+    auto types = TypeCatalog::types(server);
+    const QHash<QString, QString> expected {
+        { "BaseDataVariableType", "variable" }, { "AnalogItemType", "analog" },
+        { "AnalogUnitType", "analog" }, { "ImageItemType", "matrix" },
+        { "YArrayItemType", "array" }, { "XYArrayItemType", "array" },
+        { "TwoStateDiscreteType", "discrete" }, { "MultiStateDiscreteType", "discrete" },
+        { "MultiStateValueDiscreteType", "discrete" },
+        { "MultiStateDictionaryEntryDiscreteType", "dictionary" },
+    };
+    AddNodeDialog dialog({}, {});
+    dialog.setTypes(types, kNamespaces);
+    child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(2);
+    const auto *combo = child<QComboBox>(dialog, "typeCombo");
+    QSet<QString> checked;
+    const auto standardTypes = types.values();
+    for (const TypeInfo &info : standardTypes) {
+        if (!expected.contains(info.browseName))
+            continue;
+        const QString icon = TypeCatalog::iconName(types, info.nodeId);
+        QCOMPARE(icon, expected.value(info.browseName));
+        QVERIFY(!AppIcons::icon(icon).pixmap(16, 16).isNull());
+        if (icon == QLatin1String("analog")) {
+            QVERIFY(AppIcons::icon(icon).pixmap(24, 24).toImage()
+                    != AppIcons::icon(QStringLiteral("signal")).pixmap(24, 24).toImage());
+        }
+        const int index = combo->findText(info.browseName);
+        QVERIFY(index >= 0);
+        QVERIFY(!combo->itemIcon(index).isNull());
+        const QString customId = "ns=2;s=Custom" + info.nodeId;
+        types.insert(customId, type("Custom", customId, info.nodeId));
+        QCOMPARE(TypeCatalog::iconName(types, customId), icon);
+        types.remove(customId);
+        checked.insert(info.browseName);
+    }
+    QCOMPARE(checked.size(), expected.size());
+    QCOMPARE(TypeCatalog::iconName(types, "missing"), QStringLiteral("variable"));
+    types.insert("cycle", type("Cycle", "cycle", "cycle"));
+    QCOMPARE(TypeCatalog::iconName(types, "cycle"), QStringLiteral("variable"));
+}
 
 void TestAddNodeDialog::showsParentAndStartsInvalid()
 {

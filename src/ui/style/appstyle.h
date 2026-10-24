@@ -81,7 +81,7 @@ public:
 
     ///
     /// \brief Sets item view text margins, icon size and tree indentation, header margins and
-    ///        check box indicator size.
+    ///        check box indicator and message box icon sizes.
     /// \param metric Metric to query.
     /// \param option Style option of the control.
     /// \param widget Widget being measured.
@@ -101,7 +101,7 @@ public:
                          const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Makes panel scroll areas transparent so the panel colour shows through.
+    /// \brief Adds vertical space to message boxes and makes panel scroll areas transparent.
     /// \param widget Widget being polished.
     ///
     void polish(QWidget *widget) override;

@@ -11,6 +11,8 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QKeyEvent>
+#include <QGridLayout>
+#include <QMessageBox>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPainter>
@@ -45,6 +47,7 @@ constexpr int kItemIconSize = 18;
 constexpr int kItemIconTextGap = 6;
 constexpr int kTreeIndentation = 22;
 constexpr int kCheckIndicatorSize = 14;
+constexpr int kMessageBoxIconSize = 24;
 
 ///
 /// \brief Reports whether a widget sits in the main toolbar.
@@ -245,7 +248,7 @@ QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
 
 ///
 /// \brief Sets item view text margins, icon size and tree indentation, header margins and
-///        check box indicator size.
+///        check box indicator and message box icon sizes.
 /// \param metric Metric to query.
 /// \param option Style option of the control.
 /// \param widget Widget being measured.
@@ -256,6 +259,8 @@ int AppStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, const 
     // Applies on all sides, so it also sets the header height and the minimum row height.
     if (metric == PM_HeaderMargin)
         return kHeaderMargin;
+    if (metric == PM_MessageBoxIconSize)
+        return kMessageBoxIconSize;
     if (metric == PM_TreeViewIndentation)
         return kTreeIndentation;
     if (metric == PM_IndicatorWidth || metric == PM_IndicatorHeight)
@@ -296,12 +301,21 @@ QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option, c
 }
 
 ///
-/// \brief Makes panel scroll areas transparent so the panel colour shows through.
+/// \brief Adds vertical space to message boxes and makes panel scroll areas transparent.
 /// \param widget Widget being polished.
 ///
 void AppStyle::polish(QWidget *widget)
 {
     QProxyStyle::polish(widget);
+    if (auto *box = qobject_cast<QMessageBox *>(widget)) {
+        if (auto *layout = qobject_cast<QGridLayout *>(box->layout())) {
+            QMargins margins = layout->contentsMargins();
+            margins.setTop(20);
+            margins.setBottom(20);
+            layout->setContentsMargins(margins);
+            layout->setVerticalSpacing(14);
+        }
+    }
     auto *scroll = qobject_cast<QScrollArea *>(widget);
     if (!scroll || !scroll->property(panelBodyProperty).toBool())
         return;

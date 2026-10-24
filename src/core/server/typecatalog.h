@@ -20,6 +20,14 @@ class QUaServer;
 namespace TypeCatalog {
 
 ///
+/// \brief Selects an icon by the nearest recognized type in the supertype chain.
+/// \param types Types keyed by server node id.
+/// \param typeId Type whose family determines the icon.
+/// \return Icon resource name, with a generic fallback for unknown types.
+///
+QString iconName(const QHash<QString, TypeInfo> &types, const QString &typeId);
+
+///
 /// \brief Reads the object, variable, data and reference types of a server.
 /// \param server Server holding the standard types and the types of imported models.
 /// \return Types keyed by node id, e.g. "i=61" or "ns=2;i=1000", with their supertype, category, declared
