@@ -44,6 +44,7 @@ private slots:
     void statusColors();
     void everyIconResourceLoads();
     void unknownIconIsNull();
+    void paletteIconsFollowTheTheme_data();
     void paletteIconsFollowTheTheme();
     void statusDots();
 };
@@ -137,9 +138,22 @@ void TestAppTheme::unknownIconIsNull()
     QVERIFY(AppIcons::icon(QStringLiteral("does-not-exist")).isNull());
 }
 
+void TestAppTheme::paletteIconsFollowTheTheme_data()
+{
+    QTest::addColumn<QString>("name");
+    QTest::newRow("save") << QStringLiteral("save");
+    QTest::newRow("link") << QStringLiteral("link");
+    QTest::newRow("data-type") << QStringLiteral("data-type");
+    for (const AppIcons::NamedIcon &icon : AppIcons::variableIcons()) {
+        if (!icon.name.startsWith(QStringLiteral("status-")))
+            QTest::newRow(qPrintable(icon.name)) << icon.name;
+    }
+}
+
 void TestAppTheme::paletteIconsFollowTheTheme()
 {
-    const QIcon icon = AppIcons::icon(QStringLiteral("save"));
+    QFETCH(QString, name);
+    const QIcon icon = AppIcons::icon(name);
     QApplication::setPalette(AppPalette::build(true));
     const QColor onDark = strokeColor(icon);
     QApplication::setPalette(AppPalette::build(false));

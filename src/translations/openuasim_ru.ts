@@ -307,6 +307,22 @@
         <source>Inactive</source>
         <translation>Неактивна</translation>
     </message>
+    <message>
+        <source>Image</source>
+        <translation>Изображение</translation>
+    </message>
+    <message>
+        <source>Chart</source>
+        <translation>График</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>Сеть</translation>
+    </message>
+    <message>
+        <source>Database</source>
+        <translation>База данных</translation>
+    </message>
 </context>
 <context>
     <name>CertificateGenerator</name>

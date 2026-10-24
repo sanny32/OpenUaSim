@@ -206,6 +206,7 @@ private slots:
     void objectsPageEditsInitialValueQualityAndHistorizing();
     void objectsPageKeepsSelectionOnReload();
     void objectsPageUpdatesOneVariable();
+    void objectsPageUpdatesVariableIcon_data();
     void objectsPageUpdatesVariableIcon();
     void objectsPageKeepsUnlistedIcon();
     void objectsPageValueColumnOnlyGrows();
@@ -625,23 +626,31 @@ void TestPages::objectsPageUpdatesOneVariable()
     QCOMPARE(child<QComboBox>(page, "accessCombo")->currentText(), QStringLiteral("Read"));
 }
 
+void TestPages::objectsPageUpdatesVariableIcon_data()
+{
+    QTest::addColumn<QString>("icon");
+    for (const char *name : { "gauge", "image", "chart", "network", "database" })
+        QTest::newRow(name) << QString::fromLatin1(name);
+}
+
 void TestPages::objectsPageUpdatesVariableIcon()
 {
+    QFETCH(QString, icon);
     ObjectsPage page;
     page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
     VariableInfo speed = page.variablesModel()->item(0);
-    speed.icon = QStringLiteral("gauge");
+    speed.icon = icon;
     page.updateVariable(speed);
 
-    QCOMPARE(child<QComboBox>(page, "iconCombo")->currentData().toString(), QStringLiteral("gauge"));
+    QCOMPARE(child<QComboBox>(page, "iconCombo")->currentData().toString(), icon);
     QCOMPARE(page.variablesModel()->data(page.variablesModel()->index(0, VariablesModel::ColName),
                                          ItemRoles::IconName).toString(),
-             QStringLiteral("gauge"));
+             icon);
     const QAbstractItemModel *tree = child<QTreeView>(page, "addressTree")->model();
     const QModelIndexList found = tree->match(tree->index(0, 0), ItemRoles::Id, speed.nodeId, 1,
                                               Qt::MatchExactly | Qt::MatchRecursive);
     QCOMPARE(found.size(), 1);
-    QCOMPARE(found.first().data(ItemRoles::IconName).toString(), QStringLiteral("gauge"));
+    QCOMPARE(found.first().data(ItemRoles::IconName).toString(), icon);
 }
 
 void TestPages::objectsPageKeepsUnlistedIcon()

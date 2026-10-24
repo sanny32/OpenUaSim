@@ -68,6 +68,7 @@ private slots:
     void defaultProjectRoundTrips();
     void loadsLegacyAccess_data();
     void loadsLegacyAccess();
+    void preservesVariableFields_data();
     void preservesVariableFields();
     void preservesEveryDataTypeValue_data();
     void preservesEveryDataTypeValue();
@@ -133,16 +134,25 @@ void TestProjectFile::defaultProjectRoundTrips()
     QCOMPARE(ProjectFile::toJson(result.project), ProjectFile::toJson(original));
 }
 
+void TestProjectFile::preservesVariableFields_data()
+{
+    QTest::addColumn<QString>("icon");
+    for (const char *name : { "signal", "image", "chart", "network", "database" })
+        QTest::newRow(name) << QString::fromLatin1(name);
+}
+
 void TestProjectFile::preservesVariableFields()
 {
-    const ProjectConfig original = DefaultProject::create();
+    QFETCH(QString, icon);
+    ProjectConfig original = DefaultProject::create();
+    original.nodes.first().children.first().children.first().icon = icon;
     const ProjectConfig loaded = ProjectFile::fromJson(ProjectFile::toJson(original)).project;
 
     const NodeDefinition &speed = firstVariable(loaded);
     QCOMPARE(speed.kind, NodeDefinition::Kind::Variable);
     QCOMPARE(speed.browseName, QStringLiteral("Speed"));
     QCOMPARE(speed.nodeId, QStringLiteral("ns=1;s=Motor_01.Speed"));
-    QCOMPARE(speed.icon, QStringLiteral("signal"));
+    QCOMPARE(speed.icon, icon);
     QCOMPARE(speed.dataType, QStringLiteral("Double"));
     QCOMPARE(speed.access, QStringLiteral("Read/Write"));
     QCOMPARE(speed.initialValue, QVariant(1000.0));

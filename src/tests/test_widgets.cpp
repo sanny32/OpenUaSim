@@ -826,7 +826,10 @@ void TestWidgets::fillVariableIconComboListsResolvableIcons()
     QComboBox combo;
     ViewSetup::fillVariableIconCombo(&combo);
     QCOMPARE(combo.count(), AppIcons::variableIcons().size());
-    QVERIFY(combo.findData(QStringLiteral("signal")) >= 0);
+    for (const QString &name : { QStringLiteral("signal"), QStringLiteral("image"),
+                                 QStringLiteral("chart"), QStringLiteral("network"),
+                                 QStringLiteral("database") })
+        QVERIFY2(combo.findData(name) >= 0, qPrintable(name));
     for (int index = 0; index < combo.count(); ++index) {
         QVERIFY2(!combo.itemIcon(index).isNull(), qPrintable(combo.itemData(index).toString()));
         QVERIFY(!combo.itemText(index).isEmpty());

@@ -99,6 +99,8 @@ class TestAddNodeDialog : public QObject
 
 private slots:
     void typeFamilyIcons();
+    void typeCategoryIcons_data();
+    void typeCategoryIcons();
     void showsParentAndStartsInvalid();
     void offersOnlyContainersAsParents();
     void unknownParentSelectsTopLevel();
@@ -156,6 +158,62 @@ void TestAddNodeDialog::typeFamilyIcons()
     QCOMPARE(TypeCatalog::iconName(types, "missing"), QStringLiteral("variable"));
     types.insert("cycle", type("Cycle", "cycle", "cycle"));
     QCOMPARE(TypeCatalog::iconName(types, "cycle"), QStringLiteral("variable"));
+}
+
+void TestAddNodeDialog::typeCategoryIcons_data()
+{
+    QTest::addColumn<QString>("category");
+    QTest::addColumn<QString>("icon");
+    QTest::addColumn<QString>("oldIcon");
+    QTest::addColumn<QString>("rootId");
+    QTest::addColumn<QStringList>("names");
+    QTest::newRow("references")
+        << "ReferenceType" << "link" << "list-tree" << "i=31"
+        << QStringList { "References", "HierarchicalReferences", "NonHierarchicalReferences" };
+    QTest::newRow("data-types")
+        << "DataType" << "data-type" << "hash" << "i=24"
+        << QStringList { "BaseDataType", "Boolean", "DateTime", "Number", "Double", "String" };
+}
+
+void TestAddNodeDialog::typeCategoryIcons()
+{
+    QFETCH(QString, category);
+    QFETCH(QString, icon);
+    QFETCH(QString, oldIcon);
+    QFETCH(QString, rootId);
+    QFETCH(QStringList, names);
+    QUaServer server;
+    auto types = TypeCatalog::types(server);
+    QSet<QString> checked;
+    for (const TypeInfo &info : types) {
+        if (info.category != category)
+            continue;
+        QCOMPARE(TypeCatalog::iconName(types, info.nodeId), icon);
+        checked.insert(info.browseName);
+    }
+    for (const QString &name : names)
+        QVERIFY2(checked.contains(name), qPrintable(name));
+
+    TypeInfo custom = type("CustomType", "ns=2;s=CustomType", rootId);
+    custom.category = category;
+    types.insert(custom.nodeId, custom);
+    QCOMPARE(TypeCatalog::iconName(types, custom.nodeId), icon);
+    const QImage rendered = AppIcons::icon(icon).pixmap(24, 24).toImage();
+    QVERIFY(!rendered.isNull());
+    QVERIFY(rendered != AppIcons::icon(oldIcon).pixmap(24, 24).toImage());
+
+    const QList<TreeNode> tree = TypeCatalog::tree(types, true);
+    bool found = false;
+    for (const TreeNode &root : tree.first().children) {
+        if (root.id != rootId)
+            continue;
+        QCOMPARE(root.icon, icon);
+        QVERIFY(!root.children.isEmpty());
+        for (const TreeNode &child : root.children)
+            QCOMPARE(child.icon, icon);
+        found = true;
+    }
+    QVERIFY(found);
 }
 
 void TestAddNodeDialog::showsParentAndStartsInvalid()

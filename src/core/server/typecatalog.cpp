@@ -256,9 +256,9 @@ QString iconName(const QHash<QString, TypeInfo> &types, const QString &typeId)
     }
     const QString category = types.value(typeId).category;
     if (category == QLatin1String("DataType"))
-        return QStringLiteral("hash");
+        return QStringLiteral("data-type");
     if (category == QLatin1String("ReferenceType"))
-        return QStringLiteral("list-tree");
+        return QStringLiteral("link");
     return QStringLiteral("variable");
 }
 

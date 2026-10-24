@@ -229,6 +229,10 @@ QList<NamedIcon> variableIcons()
         named("clock", QT_TRANSLATE_NOOP("AppIcons", "Time")),
         named("hash", QT_TRANSLATE_NOOP("AppIcons", "Counter")),
         named("text", QT_TRANSLATE_NOOP("AppIcons", "Text")),
+        named("image", QT_TRANSLATE_NOOP("AppIcons", "Image")),
+        named("chart", QT_TRANSLATE_NOOP("AppIcons", "Chart")),
+        named("network", QT_TRANSLATE_NOOP("AppIcons", "Network")),
+        named("database", QT_TRANSLATE_NOOP("AppIcons", "Database")),
         named("status-good", QT_TRANSLATE_NOOP("AppIcons", "Active")),
         named("status-inactive", QT_TRANSLATE_NOOP("AppIcons", "Inactive")),
     };
