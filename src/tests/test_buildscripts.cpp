@@ -17,14 +17,15 @@ private slots:
 ///
 void BuildScriptsTest::bash()
 {
-    QString executable = QStandardPaths::findExecutable(QStringLiteral("bash"));
+    QString executable;
 #ifdef Q_OS_WIN
-    if (executable.isEmpty()) {
-        const QString gitBash = qEnvironmentVariable("ProgramFiles") + QStringLiteral("/Git/bin/bash.exe");
-        if (QFileInfo::exists(gitBash))
-            executable = gitBash;
-    }
+    // The Windows system bash.exe launches WSL, which cannot use our Windows paths and tools.
+    const QString gitBash = qEnvironmentVariable("ProgramFiles") + QStringLiteral("/Git/bin/bash.exe");
+    if (QFileInfo::exists(gitBash))
+        executable = gitBash;
 #endif
+    if (executable.isEmpty())
+        executable = QStandardPaths::findExecutable(QStringLiteral("bash"));
     if (executable.isEmpty())
         QSKIP("Bash is unavailable");
 
