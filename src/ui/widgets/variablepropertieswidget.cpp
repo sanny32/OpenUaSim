@@ -77,8 +77,7 @@ void VariablePropertiesWidget::setVariable(const VariableInfo &variable)
     ui->arrayLengthSpin->setValue(variable.arrayLength);
     ui->accessCombo->setCurrentIndex(ui->accessCombo->findData(variable.access));
     ui->initialValueEdit->setText(Formatting::value(variable.initialValue));
-    ui->qualityIndicator->setStatus(VariablesModel::qualityStatus(variable.quality),
-                                    VariablesModel::qualityText(variable.quality));
+    refreshQualityIndicator();
     ui->qualityCombo->setCurrentIndex(ui->qualityCombo->findData(quint32(variable.configuredQuality)));
     ui->historizingCheck->setChecked(variable.historizing);
     ui->simulationCombo->setCurrentIndex(ui->simulationCombo->findData(int(variable.simulation.function)));
@@ -89,6 +88,28 @@ void VariablePropertiesWidget::setVariable(const VariableInfo &variable)
     ui->offsetSpin->setValue(variable.simulation.offset);
     ui->valuesEdit->setText(variable.simulation.values.join(QStringLiteral("; ")));
     updateSimulationFields();
+}
+
+///
+/// \brief Shows a live quality change without discarding edited properties.
+/// \param nodeId Variable whose current quality changed.
+/// \param quality Quality reported by the server.
+///
+void VariablePropertiesWidget::updateQuality(const QString &nodeId, VariableInfo::Quality quality)
+{
+    if (nodeId.isEmpty() || _variable.nodeId != nodeId)
+        return;
+    _variable.quality = quality;
+    refreshQualityIndicator();
+}
+
+///
+/// \brief Refreshes the live quality indicator independently of editable settings.
+///
+void VariablePropertiesWidget::refreshQualityIndicator()
+{
+    ui->qualityIndicator->setStatus(VariablesModel::qualityStatus(_variable.quality),
+                                    VariablesModel::qualityText(_variable.quality));
 }
 
 ///
@@ -137,8 +158,7 @@ void VariablePropertiesWidget::retranslate()
 {
     ui->retranslateUi(this);
     if (!_variable.nodeId.isEmpty())
-        ui->qualityIndicator->setStatus(VariablesModel::qualityStatus(_variable.quality),
-                                        VariablesModel::qualityText(_variable.quality));
+        refreshQualityIndicator();
     ViewSetup::retranslateVariableIconCombo(ui->iconCombo);
     for (int index = 0; index < ui->simulationCombo->count(); ++index)
         ui->simulationCombo->setItemText(

@@ -107,6 +107,26 @@
         <source>T&amp;ype</source>
         <translation>Т&amp;ип</translation>
     </message>
+    <message>
+        <source>Number of array elements; Scalar holds a single value</source>
+        <translation>Число элементов массива; «Скаляр» — одно значение</translation>
+    </message>
+    <message>
+        <source>Array Length</source>
+        <translation>Длина массива</translation>
+    </message>
+    <message>
+        <source>Scalar</source>
+        <translation>Скаляр</translation>
+    </message>
+    <message>
+        <source>[</source>
+        <translation>[</translation>
+    </message>
+    <message>
+        <source>]</source>
+        <translation>]</translation>
+    </message>
 </context>
 <context>
     <name>AddressSpace</name>
@@ -2259,6 +2279,50 @@
     <message>
         <source>Types</source>
         <translation>Типы</translation>
+    </message>
+    <message>
+        <source>Cannot read the value constraints of type '%1'.</source>
+        <translation>Не удалось прочитать ограничения значений типа «%1».</translation>
+    </message>
+    <message>
+        <source>Type '%1' is abstract and cannot be instantiated.</source>
+        <translation>Тип «%1» абстрактный: создать его экземпляр нельзя.</translation>
+    </message>
+    <message>
+        <source>Array length must be between 0 and %1.</source>
+        <translation>Длина массива должна быть от 0 до %1.</translation>
+    </message>
+    <message>
+        <source>Type '%1' requires a multidimensional array, which is not supported.</source>
+        <translation>Тип «%1» требует многомерный массив, который пока не поддерживается.</translation>
+    </message>
+    <message>
+        <source>Type '%1' requires a data type that the simulator cannot write.</source>
+        <translation>Тип «%1» требует тип данных, запись которого симулятор не поддерживает.</translation>
+    </message>
+    <message>
+        <source>Type '%1' does not accept %2 values.</source>
+        <translation>Тип «%1» не допускает значения %2.</translation>
+    </message>
+    <message>
+        <source>Type '%1' requires a scalar value.</source>
+        <translation>Тип «%1» требует скалярное значение.</translation>
+    </message>
+    <message>
+        <source>Type '%1' requires a one-dimensional array.</source>
+        <translation>Тип «%1» требует одномерный массив.</translation>
+    </message>
+    <message>
+        <source>Type '%1' requires an array of %2 elements.</source>
+        <translation>Тип «%1» требует массив из %2 элементов.</translation>
+    </message>
+    <message>
+        <source>Type '%1' is not loaded.</source>
+        <translation>Тип «%1» не загружен.</translation>
+    </message>
+    <message>
+        <source>Type '%1' is not a data variable type.</source>
+        <translation>Тип «%1» не является типом переменной данных.</translation>
     </message>
 </context>
 <context>

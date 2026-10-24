@@ -138,6 +138,7 @@ void MainWindow::setController(ServerController *controller)
     connect(controller, &ServerController::startFailed, this, &MainWindow::showStartFailure);
     connect(controller, &ServerController::startWarning, this, &MainWindow::showStartWarning);
     connect(controller, &ServerController::variableChanged, ui->objectsPage, &ObjectsPage::updateVariable);
+    connect(controller, &ServerController::variableQualityChanged, ui->objectsPage, &ObjectsPage::updateQuality);
     connect(ui->objectsPage, &ObjectsPage::variableChangeRequested, this, &MainWindow::applyVariableChange);
     connect(ui->objectsPage, &ObjectsPage::alarmEditRequested, this, &MainWindow::showAlarmDialog);
     connect(ui->objectsPage, &ObjectsPage::currentNodeChanged, this, &MainWindow::updateNodeActions);

@@ -8,6 +8,7 @@
 
 #include <QPushButton>
 #include <QRegularExpression>
+#include <QSignalBlocker>
 
 #include "addnodedialog.h"
 #include "appicons.h"
@@ -54,11 +55,15 @@ AddNodeDialog::AddNodeDialog(const QList<NodeDefinition> &nodes, const QString &
     ui->dataTypeCombo->addItems(ValueCast::dataTypes());
     ui->dataTypeCombo->setCurrentText(QStringLiteral("Double"));
     ViewSetup::fillVariableIconCombo(ui->iconCombo);
+    ui->arrayLengthSpin->setMaximum(kMaxArrayLength);
 
     connect(ui->parentCombo, &QComboBox::currentIndexChanged, this, &AddNodeDialog::validate);
     connect(ui->kindCombo, &QComboBox::currentIndexChanged, this, &AddNodeDialog::updateKindFields);
     connect(ui->browseNameEdit, &QLineEdit::textChanged, this, &AddNodeDialog::validate);
     connect(ui->nodeIdEdit, &QLineEdit::textChanged, this, &AddNodeDialog::validate);
+    connect(ui->typeCombo, &QComboBox::currentIndexChanged, this, &AddNodeDialog::updateTypeFields);
+    connect(ui->dataTypeCombo, &QComboBox::currentTextChanged, this, &AddNodeDialog::validate);
+    connect(ui->arrayLengthSpin, &QSpinBox::valueChanged, this, &AddNodeDialog::validate);
     updateKindFields();
 }
 
@@ -80,6 +85,7 @@ void AddNodeDialog::setTypes(const QHash<QString, TypeInfo> &types, const QStrin
     _types = types;
     _namespaces = namespaces;
     fillTypeCombo();
+    updateTypeFields();
 }
 
 ///
@@ -105,9 +111,12 @@ NodeDefinition AddNodeDialog::node() const
         node.typeDefinition = ui->typeCombo->currentData().toString();
     if (node.kind == NodeDefinition::Kind::Variable) {
         node.dataType = ui->dataTypeCombo->currentText();
+        node.arrayLength = ui->arrayLengthSpin->value();
         node.access = ui->accessCombo->currentData().toString();
         node.icon = ui->iconCombo->currentData().toString();
-        node.initialValue = ValueCast::defaultValue(node.dataType);
+        const QVariant value = ValueCast::defaultValue(node.dataType);
+        node.initialValue = node.arrayLength > 0
+            ? QVariant(ValueCast::toArray(value, node.dataType, node.arrayLength)) : value;
     } else if (node.kind == NodeDefinition::Kind::Method) {
         node.method = NodeDefinition::MethodAction(ui->actionCombo->currentIndex());
     }
@@ -132,6 +141,11 @@ QString AddNodeDialog::problem() const
         return tr("'%1' is not a node id such as ns=1;s=Name.").arg(nodeId);
     if (_usedIds.contains(nodeId))
         return tr("The node id '%1' is already used.").arg(nodeId);
+    if (NodeDefinition::Kind(ui->kindCombo->currentIndex()) == NodeDefinition::Kind::Variable) {
+        const TypeInfo type = _types.value(ui->typeCombo->currentData(Qt::UserRole + 1).toString());
+        if (!type.dataTypeId.isEmpty() || !ui->typeCombo->currentData().toString().isEmpty())
+            return TypeCatalog::variableProblem(type, ui->dataTypeCombo->currentText(), ui->arrayLengthSpin->value());
+    }
     return {};
 }
 
@@ -156,12 +170,14 @@ void AddNodeDialog::fillParentCombo(const QList<NodeDefinition> &nodes, const QS
 ///
 void AddNodeDialog::fillTypeCombo()
 {
+    const QSignalBlocker blocker(ui->typeCombo);
     ui->typeCombo->clear();
     const QList<TypeInfo> types = TypeCatalog::instanceTypes(_types, NodeDefinition::Kind(ui->kindCombo->currentIndex()));
     for (qsizetype index = 0; index < types.size(); ++index) {
         const TypeInfo &type = types.at(index);
         ui->typeCombo->addItem(AppIcons::icon(TypeCatalog::iconName(_types, type.nodeId)), type.browseName,
                                index == 0 ? QString() : PortableNodeId::fromServer(type.nodeId, _namespaces));
+        ui->typeCombo->setItemData(int(index), type.nodeId, Qt::UserRole + 1);
     }
     ui->typeCombo->setEnabled(types.size() > 1);
 }
@@ -174,10 +190,42 @@ void AddNodeDialog::updateKindFields()
     fillTypeCombo();
     const auto kind = NodeDefinition::Kind(ui->kindCombo->currentIndex());
     const bool variable = kind == NodeDefinition::Kind::Variable;
-    ui->dataTypeCombo->setEnabled(variable);
     ui->accessCombo->setEnabled(variable);
     ui->iconCombo->setEnabled(variable);
     ui->actionCombo->setEnabled(kind == NodeDefinition::Kind::Method);
+    updateTypeFields();
+}
+
+///
+/// \brief Offers writable data types and array lengths permitted by the selected variable type.
+///
+void AddNodeDialog::updateTypeFields()
+{
+    const bool variable = NodeDefinition::Kind(ui->kindCombo->currentIndex()) == NodeDefinition::Kind::Variable;
+    const TypeInfo type = _types.value(ui->typeCombo->currentData(Qt::UserRole + 1).toString());
+    const QStringList dataTypes = variable && !type.dataTypeId.isEmpty()
+        ? type.valueDataTypes : ValueCast::dataTypes();
+    const QString previous = ui->dataTypeCombo->currentText();
+    const QSignalBlocker dataTypeBlocker(ui->dataTypeCombo);
+    const QSignalBlocker lengthBlocker(ui->arrayLengthSpin);
+    ui->dataTypeCombo->clear();
+    ui->dataTypeCombo->addItems(dataTypes);
+    ui->dataTypeCombo->setCurrentIndex(qMax(0, ui->dataTypeCombo->findText(previous)));
+    ui->dataTypeCombo->setEnabled(variable && !dataTypes.isEmpty());
+    int minimum = 0;
+    int maximum = kMaxArrayLength;
+    if (variable && !type.dataTypeId.isEmpty()) {
+        if (type.valueRank == -1)
+            maximum = 0;
+        else if (type.valueRank >= 0)
+            minimum = 1;
+        if (type.arrayDimensions.size() == 1 && type.arrayDimensions.first() > 0
+            && type.arrayDimensions.first() <= quint32(kMaxArrayLength))
+            minimum = maximum = int(type.arrayDimensions.first());
+    }
+    ui->arrayLengthSpin->setRange(minimum, maximum);
+    ui->arrayLengthSpin->setSpecialValueText(minimum == 0 ? tr("Scalar") : QString());
+    ui->arrayLengthSpin->setEnabled(variable && minimum != maximum && type.valueRank <= 1);
     validate();
 }
 

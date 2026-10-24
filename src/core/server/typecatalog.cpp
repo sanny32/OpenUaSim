@@ -15,6 +15,8 @@
 #include <algorithm>
 
 #include "simulation/valuecast.h"
+#include "importednodes.h"
+#include "project/portablenodeid.h"
 #include "typecatalog.h"
 
 namespace {
@@ -118,7 +120,7 @@ void TypeReader::read(const QUaNodeId &typeId, const QString &baseTypeId, const 
     if (types.contains(id))
         return;
 
-    TypeInfo info;
+    TypeInfo info = category == QLatin1String("VariableType") ? TypeCatalog::variableType(_server, id) : TypeInfo();
     info.browseName = _server.browseName(typeId).name();
     info.nodeId = id;
     info.baseTypeId = baseTypeId;
@@ -265,8 +267,8 @@ QString iconName(const QHash<QString, TypeInfo> &types, const QString &typeId)
 ///
 /// \brief Reads the object, variable, data and reference types of a server.
 /// \param server Server holding the standard types and the types of imported models.
-/// \return Types keyed by node id, e.g. "i=61" or "ns=2;i=1000", with their supertype, category, declared
-///         children and forward references counted by reference type.
+/// \return Types keyed by node id, e.g. "i=61" or "ns=2;i=1000", with their supertype, category, variable value
+///         constraints, declared children and forward references counted by reference type.
 ///
 QHash<QString, TypeInfo> types(const QUaServer &server)
 {
@@ -337,6 +339,94 @@ QList<TreeNode> tree(const QHash<QString, TypeInfo> &types, bool allStandardType
         root.children.append(node);
     }
     return { root };
+}
+
+///
+/// \brief Reads the value constraints of a variable type without creating an instance.
+/// \param server Server holding the type and its data type hierarchy.
+/// \param typeId Server node id of the variable type.
+/// \return Type description; an empty dataTypeId means the type has no readable variable attributes.
+///
+TypeInfo variableType(const QUaServer &server, const QString &typeId)
+{
+    TypeInfo info;
+    const QUaNodeId id(typeId);
+    info.nodeId = typeId;
+    info.browseName = server.browseName(id).name();
+    info.isAbstract = server.isAbstract(id);
+    QUaVariableAttributes attributes;
+    if (!server.variableAttributes(id, attributes))
+        return info;
+    info.dataTypeId = idText(attributes.dataType);
+    info.valueRank = attributes.valueRank;
+    info.arrayDimensions = attributes.arrayDimensions;
+    for (const QString &dataType : ValueCast::dataTypes()) {
+        const QUaNodeId dataTypeId(ImportedNodes::dataTypeNodeId(dataType));
+        if (server.isSubtypeOf(dataTypeId, attributes.dataType))
+            info.valueDataTypes.append(dataType);
+    }
+    return info;
+}
+
+///
+/// \brief Checks whether a simulated value satisfies a variable type's constraints.
+/// \param type Variable type with its value constraints.
+/// \param dataType Built-in data type of the value or array elements.
+/// \param arrayLength Zero for a scalar, otherwise the one-dimensional array length.
+/// \return Problem text, or empty for a supported, compatible value shape.
+///
+QString variableProblem(const TypeInfo &type, const QString &dataType, int arrayLength)
+{
+    const QString name = type.browseName.isEmpty() ? type.nodeId : type.browseName;
+    if (type.dataTypeId.isEmpty())
+        return QCoreApplication::translate("TypeCatalog", "Cannot read the value constraints of type '%1'.").arg(name);
+    if (type.isAbstract)
+        return QCoreApplication::translate("TypeCatalog", "Type '%1' is abstract and cannot be instantiated.").arg(name);
+    if (arrayLength < 0 || arrayLength > kMaxArrayLength)
+        return QCoreApplication::translate("TypeCatalog", "Array length must be between 0 and %1.").arg(kMaxArrayLength);
+    if (type.valueRank > 1 || type.arrayDimensions.size() > 1)
+        return QCoreApplication::translate("TypeCatalog", "Type '%1' requires a multidimensional array, which is not supported.").arg(name);
+    if (type.valueDataTypes.isEmpty())
+        return QCoreApplication::translate("TypeCatalog", "Type '%1' requires a data type that the simulator cannot write.").arg(name);
+    if (!type.valueDataTypes.contains(dataType))
+        return QCoreApplication::translate("TypeCatalog", "Type '%1' does not accept %2 values.").arg(name, dataType);
+    if (type.valueRank == -1 && arrayLength > 0)
+        return QCoreApplication::translate("TypeCatalog", "Type '%1' requires a scalar value.").arg(name);
+    if (type.valueRank >= 0 && arrayLength == 0)
+        return QCoreApplication::translate("TypeCatalog", "Type '%1' requires a one-dimensional array.").arg(name);
+    if (arrayLength > 0 && !type.arrayDimensions.isEmpty() && type.arrayDimensions.first() != 0
+        && quint32(arrayLength) != type.arrayDimensions.first())
+        return QCoreApplication::translate("TypeCatalog", "Type '%1' requires an array of %2 elements.")
+            .arg(name).arg(type.arrayDimensions.first());
+    return {};
+}
+
+///
+/// \brief Checks variable type constraints throughout a node definition before creating or changing nodes.
+/// \param server Server holding the standard and imported types.
+/// \param node Definition whose variables are checked; portable type ids are resolved against the server.
+/// \return First problem text, or empty when every variable has a compatible value shape.
+///
+QString variableProblem(const QUaServer &server, const NodeDefinition &node)
+{
+    if (node.kind == NodeDefinition::Kind::Variable) {
+        const QString typeId = node.typeDefinition.isEmpty() ? kBaseDataVariableType
+            : PortableNodeId::toServer(node.typeDefinition, server.namespaces());
+        if (typeId.isEmpty())
+            return QCoreApplication::translate("TypeCatalog", "Type '%1' is not loaded.").arg(node.typeDefinition);
+        const QUaNodeId id(typeId);
+        if (!server.isSubtypeOf(id, QUaNodeId(kBaseDataVariableType)))
+            return QCoreApplication::translate("TypeCatalog", "Type '%1' is not a data variable type.").arg(node.typeDefinition);
+        const QString problem = variableProblem(variableType(server, typeId), node.dataType, node.arrayLength);
+        if (!problem.isEmpty())
+            return problem;
+    }
+    for (const NodeDefinition &child : node.children) {
+        const QString problem = variableProblem(server, child);
+        if (!problem.isEmpty())
+            return problem;
+    }
+    return {};
 }
 
 ///

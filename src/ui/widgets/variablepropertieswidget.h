@@ -43,6 +43,13 @@ public:
     void setVariable(const VariableInfo &variable);
 
     ///
+    /// \brief Shows a live quality change without discarding edited properties.
+    /// \param nodeId Variable whose current quality changed.
+    /// \param quality Quality reported by the server.
+    ///
+    void updateQuality(const QString &nodeId, VariableInfo::Quality quality);
+
+    ///
     /// \brief Empties and disables the editor.
     ///
     void clear();
@@ -65,6 +72,7 @@ protected:
 
 private:
     void fillCombos();
+    void refreshQualityIndicator();
     void retranslate();
     void updateSimulationFields();
     void requestApply();

@@ -58,7 +58,7 @@ public:
     ~AddressSpace() override;
 
     ///
-    /// \brief Replaces the built nodes with a node tree.
+    /// \brief Replaces the built nodes with a node tree and observes project and imported variable writes.
     /// \param nodes Tree to build under the Objects folder; nodes need node ids.
     /// \return Problems with nodes that were skipped together with their children: a missing,
     ///         malformed or already used node id, an unknown namespace, a duplicated browse
@@ -182,6 +182,13 @@ signals:
     void valueWrittenByClient(const QString &nodeId, const QVariant &value);
 
     ///
+    /// \brief Announces a change in the live quality of a served variable.
+    /// \param nodeId Variable whose current quality changed.
+    /// \param quality Quality reported by the server.
+    ///
+    void qualityChanged(const QString &nodeId, VariableInfo::Quality quality);
+
+    ///
     /// \brief Announces values a method call set.
     /// \param values New values keyed by node id.
     ///
@@ -218,12 +225,15 @@ private:
                                      QStringList &problems);
     void registerVariable(QUaBaseDataVariable *variable, const NodeDefinition &node, const QString &path,
                           QStringList &problems);
+    void observeVariable(QUaBaseDataVariable *variable, const QString &nodeId);
     void handleValueChanged(const QVariant &value, const bool &networkChange);
 
     QUaServer *_server;
     QList<QPointer<QUaNode>> _roots;
     QHash<QString, QPointer<QUaBaseDataVariable>> _variables;
+    QList<QPointer<QUaBaseDataVariable>> _observedVariables;
     QHash<QString, VariableShape> _shapes;
+    QHash<QString, VariableInfo::Quality> _qualities;
     QHash<const QObject *, QString> _variableIds;
     QHash<QString, QPointer<QUaAlarmCondition>> _alarms;
     QHash<const QObject *, QString> _alarmIds;

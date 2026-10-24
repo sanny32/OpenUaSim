@@ -62,6 +62,7 @@ private slots:
     void clientReadsAndWrites();
     void readOnlyVariableRejectsClientWrite();
     void appliesConfiguredQuality();
+    void announcesLiveQualityChanges();
     void buildsArrayVariables();
     void clientCallsMethods();
     void skipsTopLevelMethods();
@@ -269,6 +270,39 @@ void TestAddressSpace::appliesConfiguredQuality()
     QVERIFY(space.setValue(level.nodeId, 4.0));
     QCOMPARE(space.quality(level.nodeId), VariableInfo::Quality::Good);
     QVERIFY(!space.setQuality(QStringLiteral("ns=1;s=None"), VariableInfo::Quality::Bad));
+}
+
+///
+/// \brief Live quality notifications follow status changes and survive rebuilding the same node id.
+///
+void TestAddressSpace::announcesLiveQualityChanges()
+{
+    QUaServer server;
+    AddressSpace space(&server);
+    NodeDefinition level = variable(QStringLiteral("Level"), QStringLiteral("Double"));
+    level.initialValue = 7.5;
+    level.quality = VariableInfo::Quality::BadWaitingForInitialData;
+    QVERIFY(space.build({ level }).isEmpty());
+    QSignalSpy changed(&space, &AddressSpace::qualityChanged);
+    QVERIFY(space.setValue(level.nodeId, 7.5));
+    QCOMPARE(changed.count(), 0);
+    QVERIFY(space.setQuality(level.nodeId, VariableInfo::Quality::Good));
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(changed.first().at(0).toString(), level.nodeId);
+    QCOMPARE(changed.first().at(1).value<VariableInfo::Quality>(), VariableInfo::Quality::Good);
+    QVERIFY(space.setValue(level.nodeId, 12.0));
+    QCOMPARE(changed.count(), 1);
+    QVERIFY(space.setQuality(level.nodeId, VariableInfo::Quality::Uncertain));
+    QCOMPARE(changed.count(), 2);
+    QCOMPARE(changed.last().at(1).value<VariableInfo::Quality>(), VariableInfo::Quality::Uncertain);
+
+    QVERIFY(space.build({ level }).isEmpty());
+    changed.clear();
+    QVERIFY(space.setQuality(level.nodeId, VariableInfo::Quality::Good));
+    QCOMPARE(changed.count(), 1);
+    space.clear();
+    QVERIFY(!space.setQuality(level.nodeId, VariableInfo::Quality::Bad));
+    QCOMPARE(changed.count(), 1);
 }
 
 void TestAddressSpace::buildsArrayVariables()

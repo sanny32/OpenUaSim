@@ -331,6 +331,13 @@ signals:
     void variableChanged(const VariableInfo &variable);
 
     ///
+    /// \brief Announces a change in the live quality of a served variable.
+    /// \param nodeId Variable whose current quality changed.
+    /// \param quality Quality reported by the server.
+    ///
+    void variableQualityChanged(const QString &nodeId, VariableInfo::Quality quality);
+
+    ///
     /// \brief Announces a new endpoint list.
     ///
     void endpointsChanged();

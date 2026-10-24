@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QTest>
 #include <QUaServer>
 
@@ -114,6 +115,8 @@ private slots:
     void offersTypesOfTheKind();
     void describesTypedObject();
     void withoutTypesKeepsStandardType();
+    void allVariableTypesRespectConstraints();
+    void importedFixedArraySelectsItsShape();
 };
 
 
@@ -388,6 +391,99 @@ void TestAddNodeDialog::withoutTypesKeepsStandardType()
     child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("Motor"));
     QVERIFY(!child<QComboBox>(dialog, "typeCombo")->isEnabled());
     QVERIFY(dialog.node().typeDefinition.isEmpty());
+    QVERIFY(okEnabled(dialog));
+}
+
+///
+/// \brief All offered standard variable types produce compatible defaults or an explicit blocking error.
+///
+void TestAddNodeDialog::allVariableTypesRespectConstraints()
+{
+    QUaServer server;
+    const auto types = TypeCatalog::types(server);
+    AddNodeDialog dialog({}, {});
+    dialog.setTypes(types, server.namespaces());
+    child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(2);
+    child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("Value"));
+    auto *combo = child<QComboBox>(dialog, "typeCombo");
+    int accepted = 0;
+    int refused = 0;
+    for (int index = 0; index < combo->count(); ++index) {
+        combo->setCurrentIndex(index);
+        const NodeDefinition node = dialog.node();
+        const QString problem = TypeCatalog::variableProblem(server, node);
+        QCOMPARE(dialog.problem(), problem);
+        QCOMPARE(okEnabled(dialog), problem.isEmpty());
+        QCOMPARE(child<QLabel>(dialog, "problemLabel")->text(), problem);
+        if (problem.isEmpty()) {
+            QVERIFY(node.initialValue.isValid());
+            ++accepted;
+        } else {
+            ++refused;
+        }
+    }
+    QVERIFY(accepted > 5);
+    QVERIFY(refused > 1);
+
+    combo->setCurrentText(QStringLiteral("TwoStateDiscreteType"));
+    QCOMPARE(itemTexts(*child<QComboBox>(dialog, "dataTypeCombo")), QStringList { QStringLiteral("Boolean") });
+    child<QSpinBox>(dialog, "arrayLengthSpin")->setValue(0);
+    QCOMPARE(dialog.node().arrayLength, 0);
+    QVERIFY(child<QSpinBox>(dialog, "arrayLengthSpin")->isEnabled());
+    QVERIFY(okEnabled(dialog));
+    combo->setCurrentText(QStringLiteral("ImageItemType"));
+    QVERIFY(!okEnabled(dialog));
+    QVERIFY(dialog.problem().contains(QStringLiteral("multidimensional")));
+    combo->setCurrentText(QStringLiteral("BaseDataVariableType"));
+    QVERIFY(okEnabled(dialog));
+    QVERIFY(child<QSpinBox>(dialog, "arrayLengthSpin")->isEnabled());
+    child<QSpinBox>(dialog, "arrayLengthSpin")->setValue(3);
+    QCOMPARE(dialog.node().initialValue.toList().size(), 3);
+    child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(1);
+    QVERIFY(!child<QSpinBox>(dialog, "arrayLengthSpin")->isEnabled());
+}
+
+///
+/// \brief Imported fixed arrays restrict both the element type and the length in the creation dialog.
+///
+void TestAddNodeDialog::importedFixedArraySelectsItsShape()
+{
+    auto types = sampleTypes();
+    TypeInfo fixed = type("Fixed", "ns=2;i=5000", "i=63");
+    fixed.dataTypeId = QStringLiteral("i=5");
+    fixed.valueDataTypes = { QStringLiteral("UInt16") };
+    fixed.valueRank = 1;
+    fixed.arrayDimensions = { 3 };
+    types.insert(fixed.nodeId, fixed);
+    AddNodeDialog dialog({}, {});
+    dialog.setTypes(types, kNamespaces);
+    child<QComboBox>(dialog, "kindCombo")->setCurrentIndex(2);
+    child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("Value"));
+    child<QComboBox>(dialog, "typeCombo")->setCurrentText(QStringLiteral("Fixed"));
+    const NodeDefinition node = dialog.node();
+    QCOMPARE(node.typeDefinition, QStringLiteral("nsu=urn:pump;i=5000"));
+    QCOMPARE(node.dataType, QStringLiteral("UInt16"));
+    QCOMPARE(node.arrayLength, 3);
+    QCOMPARE(child<QSpinBox>(dialog, "arrayLengthSpin")->text(), QStringLiteral("[3]"));
+    QCOMPARE(node.initialValue.toList().size(), 3);
+    QVERIFY(!child<QSpinBox>(dialog, "arrayLengthSpin")->isEnabled());
+    QVERIFY(okEnabled(dialog));
+
+    fixed.arrayDimensions = { quint32(kMaxArrayLength + 1) };
+    types.insert(fixed.nodeId, fixed);
+    dialog.setTypes(types, kNamespaces);
+    child<QComboBox>(dialog, "typeCombo")->setCurrentText(QStringLiteral("Fixed"));
+    QVERIFY(!okEnabled(dialog));
+    QVERIFY(dialog.problem().contains(QString::number(kMaxArrayLength + 1)));
+
+    fixed.valueRank = -1;
+    fixed.arrayDimensions.clear();
+    types.insert(fixed.nodeId, fixed);
+    dialog.setTypes(types, kNamespaces);
+    child<QComboBox>(dialog, "typeCombo")->setCurrentText(QStringLiteral("Fixed"));
+    QCOMPARE(dialog.node().arrayLength, 0);
+    QCOMPARE(child<QSpinBox>(dialog, "arrayLengthSpin")->text(), QStringLiteral("Scalar"));
+    QVERIFY(!child<QSpinBox>(dialog, "arrayLengthSpin")->isEnabled());
     QVERIFY(okEnabled(dialog));
 }
 

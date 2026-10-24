@@ -10,6 +10,7 @@
 
 #include <QList>
 #include <QString>
+#include <QStringList>
 
 ///
 /// \brief Number of references of one reference type held by a node.
@@ -39,6 +40,14 @@ struct TypeInfo
     int children = 0;
     /// \brief Whether the type is abstract.
     bool isAbstract = false;
+    /// \brief Required data type node id for a variable type; empty when no constraints were read.
+    QString dataTypeId;
+    /// \brief Built-in data types the simulator can write as this variable type.
+    QStringList valueDataTypes;
+    /// \brief OPC UA ValueRank constraint; -2 permits scalars and arrays.
+    qint32 valueRank = -2;
+    /// \brief Required array lengths; zero permits any length in that dimension.
+    QList<quint32> arrayDimensions;
     /// \brief Free-form description.
     QString description;
     /// \brief Reference counts grouped by reference type.

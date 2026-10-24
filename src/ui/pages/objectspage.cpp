@@ -142,6 +142,28 @@ void ObjectsPage::updateVariable(const VariableInfo &variable)
 }
 
 ///
+/// \brief Shows a live quality change without discarding edited properties.
+/// \param nodeId Variable whose current quality changed.
+/// \param quality Quality reported by the server.
+///
+void ObjectsPage::updateQuality(const QString &nodeId, VariableInfo::Quality quality)
+{
+    for (QList<VariableInfo> &variables : _variables) {
+        for (VariableInfo &variable : variables) {
+            if (variable.nodeId == nodeId)
+                variable.quality = quality;
+        }
+    }
+    const int row = _variablesModel->rowOf(nodeId);
+    if (row >= 0) {
+        VariableInfo variable = _variablesModel->item(row);
+        variable.quality = quality;
+        _variablesModel->setItem(row, variable);
+    }
+    ui->variableProperties->updateQuality(nodeId, quality);
+}
+
+///
 /// \brief Selects a node of the address space tree.
 /// \param nodeId Node id.
 /// \return False when the tree has no such node.

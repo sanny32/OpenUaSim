@@ -27,6 +27,7 @@
 #include "servercontroller.h"
 #include "simulation/valuecast.h"
 #include "snapshotbuilder.h"
+#include "typecatalog.h"
 #include "variableproperties.h"
 
 ///
@@ -45,6 +46,7 @@ ServerController::ServerController(QObject *parent)
     connect(&_server, &SimServer::startWarning, this, &ServerController::startWarning);
     connect(&_engine, &SimulationEngine::valuesUpdated, this, &ServerController::valuesChanged);
     connect(&_addressSpace, &AddressSpace::valueWrittenByClient, this, &ServerController::handleClientWrite);
+    connect(&_addressSpace, &AddressSpace::qualityChanged, this, &ServerController::variableQualityChanged);
     connect(&_addressSpace, &AddressSpace::valuesSetByMethod, this, &ServerController::valuesChanged);
     connect(&_addressSpace, &AddressSpace::methodCalled, this, &ServerController::logMethodCall);
     connect(&_addressSpace, &AddressSpace::alarmChanged, this, &ServerController::handleAlarmChanged);
@@ -190,6 +192,12 @@ bool ServerController::exportNamespace(const QString &fileName, const QString &n
 ///
 QString ServerController::addNode(const QString &parentId, const NodeDefinition &node, QString *error)
 {
+    const QString problem = TypeCatalog::variableProblem(*_server.uaServer(), node);
+    if (!problem.isEmpty()) {
+        if (error)
+            *error = problem;
+        return {};
+    }
     const QString nodeId = ProjectNodes::insert(_project.nodes, parentId, node, error);
     if (!nodeId.isEmpty()) {
         rebuildNodes();
@@ -270,6 +278,12 @@ bool ServerController::updateVariable(const VariableInfo &variable, QString *err
     edited.browseName = variable.displayName;
     edited.dataType = variable.dataType;
     edited.arrayLength = variable.arrayLength;
+    const QString problem = TypeCatalog::variableProblem(*_server.uaServer(), edited);
+    if (!problem.isEmpty()) {
+        if (error)
+            *error = problem;
+        return false;
+    }
     if (!applyVariableEdits(variable, edited, error))
         return false;
     const bool structural = existing->browseName != edited.browseName || existing->dataType != edited.dataType

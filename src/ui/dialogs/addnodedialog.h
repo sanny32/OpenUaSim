@@ -22,7 +22,7 @@ class AddNodeDialog;
 }
 
 ///
-/// \brief Asks for the parent, kind, type, browse name, node id and, for variables, data type, access and icon
+/// \brief Asks for the parent, kind, type, browse name, node id and, for variables, data type, array length, access and icon
 ///        of a new node; for methods, their action.
 ///
 class AddNodeDialog : public QDialog
@@ -72,6 +72,7 @@ private:
     void fillParentCombo(const QList<NodeDefinition> &nodes, const QString &path);
     void fillTypeCombo();
     void updateKindFields();
+    void updateTypeFields();
     void validate();
 
     Ui::AddNodeDialog *ui;

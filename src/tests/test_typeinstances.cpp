@@ -135,7 +135,7 @@ private slots:
     void copiedInstanceKeepsItsSettings();
     void typedVariableChecksDataType();
     void unloadedTypeIsLogged();
-    void typeOfOtherKindIsLogged();
+    void rejectsTypeOfOtherKind();
     void projectFileKeepsTypeAndDeclaredNodes();
     void variablesShowTheirTypeAndProperties();
     void editedPropertiesAreKeptAndServed();
@@ -309,9 +309,10 @@ void TestTypeInstances::typedVariableChecksDataType()
 
     NodeDefinition text = typedNode(NodeDefinition::Kind::Variable, QStringLiteral("Text"), QStringLiteral("i=2368"));
     text.dataType = QStringLiteral("String");
-    const QString textId = controller.addNode(QString(), text);
-    QVERIFY(!controller.addressSpace().hasVariable(textId));
-    QVERIFY(logContains(controller.log(), QStringLiteral("type 'i=2368' takes no String values")));
+    QString error;
+    const QString textId = controller.addNode(QString(), text, &error);
+    QVERIFY(textId.isEmpty());
+    QVERIFY(error.contains(QStringLiteral("does not accept String")));
 }
 
 void TestTypeInstances::unloadedTypeIsLogged()
@@ -325,14 +326,18 @@ void TestTypeInstances::unloadedTypeIsLogged()
     QVERIFY(logContains(controller.log(), QStringLiteral("type 'nsu=urn:missing;i=1' is not loaded")));
 }
 
-void TestTypeInstances::typeOfOtherKindIsLogged()
+///
+/// \brief A type of another node class is refused before the project is changed.
+///
+void TestTypeInstances::rejectsTypeOfOtherKind()
 {
     ServerController controller;
     controller.setProject(pumpProject());
-    const QString id =
-        controller.addNode(QString(), typedNode(NodeDefinition::Kind::Variable, QStringLiteral("Odd"), kPumpType));
-    QVERIFY(!controller.server().uaServer()->nodeById(QUaNodeId(id)));
-    QVERIFY(logContains(controller.log(), QStringLiteral("cannot be instantiated as this node")));
+    QString error;
+    const QString id = controller.addNode(
+        QString(), typedNode(NodeDefinition::Kind::Variable, QStringLiteral("Odd"), kPumpType), &error);
+    QVERIFY(id.isEmpty());
+    QVERIFY(error.contains(QStringLiteral("not a data variable type")));
 }
 
 void TestTypeInstances::projectFileKeepsTypeAndDeclaredNodes()

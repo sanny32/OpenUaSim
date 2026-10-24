@@ -21,6 +21,7 @@
 #include "project/portablenodeid.h"
 #include "simulation/valuecast.h"
 #include "variableproperties.h"
+#include "typecatalog.h"
 
 namespace {
 
@@ -180,7 +181,7 @@ AddressSpace::~AddressSpace()
 }
 
 ///
-/// \brief Replaces the built nodes with a node tree.
+/// \brief Replaces the built nodes with a node tree and observes project and imported variable writes.
 /// \param nodes Tree to build under the Objects folder; nodes need node ids.
 /// \return Problems with nodes that were skipped together with their children: a missing,
 ///         malformed or already used node id, an unknown namespace, a duplicated browse
@@ -193,6 +194,11 @@ QStringList AddressSpace::build(const QList<NodeDefinition> &nodes)
     for (const NodeDefinition &node : nodes) {
         if (QUaNode *root = buildNode(_server->objectsFolder(), node, node.browseName, problems))
             _roots.append(root);
+    }
+    const auto variables = _server->objectsFolder()->findChildren<QUaBaseDataVariable *>();
+    for (QUaBaseDataVariable *variable : variables) {
+        if (variable->nodeId().namespaceIndex() >= kApplicationNamespace)
+            observeVariable(variable, variable->nodeId());
     }
     return problems;
 }
@@ -235,7 +241,7 @@ void AddressSpace::clear()
     }
     _alarms.clear();
     _alarmIds.clear();
-    for (const QPointer<QUaBaseDataVariable> &variable : std::as_const(_variables)) {
+    for (const QPointer<QUaBaseDataVariable> &variable : std::as_const(_observedVariables)) {
         if (variable)
             variable->disconnect(this);
     }
@@ -243,7 +249,9 @@ void AddressSpace::clear()
         delete root.data();
     _roots.clear();
     _variables.clear();
+    _observedVariables.clear();
     _shapes.clear();
+    _qualities.clear();
     _variableIds.clear();
     _nodeCount = 0;
 }
@@ -639,6 +647,8 @@ QString AddressSpace::checkNode(QUaNode *parent, const NodeDefinition &node) con
         return tr("unsupported data type '%1'").arg(node.dataType);
     if (!node.typeDefinition.isEmpty() && PortableNodeId::toServer(node.typeDefinition, _server->namespaces()).isEmpty())
         return tr("type '%1' is not loaded").arg(node.typeDefinition);
+    if (node.kind == NodeDefinition::Kind::Variable)
+        return TypeCatalog::variableProblem(*_server, node);
     return {};
 }
 
@@ -726,13 +736,6 @@ QUaBaseDataVariable *AddressSpace::addVariable(QUaNode *parent, const NodeDefini
                                                QUaNodeId(node.nodeId));
     } else {
         variable = qobject_cast<QUaBaseDataVariable *>(addInstance(parent, node, path, problems));
-        const QUaNodeId dataTypeId(ImportedNodes::dataTypeNodeId(node.dataType));
-        if (variable && !_server->isSubtypeOf(dataTypeId, QUaNodeId(variable->dataTypeNodeId()))) {
-            problems.append(QStringLiteral("%1: %2").arg(path, tr("type '%1' takes no %2 values")
-                                                                   .arg(node.typeDefinition, node.dataType)));
-            delete variable;
-            return nullptr;
-        }
     }
     if (!variable)
         return nullptr;
@@ -765,17 +768,40 @@ void AddressSpace::registerVariable(QUaBaseDataVariable *variable, const NodeDef
     applyAccess(variable, node.access);
     _variables.insert(node.nodeId, variable);
     _shapes.insert(node.nodeId, shape);
-    _variableIds.insert(variable, node.nodeId);
+    observeVariable(variable, node.nodeId);
+}
+
+///
+/// \brief Observes writes without taking over a model variable's value or settings.
+/// \param variable Served variable whose writes are forwarded.
+/// \param nodeId Variable id used by the project or model snapshot.
+///
+void AddressSpace::observeVariable(QUaBaseDataVariable *variable, const QString &nodeId)
+{
+    if (_variableIds.contains(variable))
+        return;
+    _observedVariables.append(variable);
+    _variableIds.insert(variable, nodeId);
+    _qualities.insert(nodeId, qualityOf(*variable));
     connect(variable, &QUaBaseVariable::valueChanged, this, &AddressSpace::handleValueChanged);
 }
 
 ///
-/// \brief Reports values written by clients.
+/// \brief Relays client writes and live quality changes, including writes without an explicit status.
 /// \param value New value.
 /// \param networkChange True when a client wrote it.
 ///
 void AddressSpace::handleValueChanged(const QVariant &value, const bool &networkChange)
 {
+    const auto *variable = qobject_cast<QUaBaseDataVariable *>(sender());
+    const QString nodeId = _variableIds.value(variable);
+    if (!variable || nodeId.isEmpty())
+        return;
+    const VariableInfo::Quality currentQuality = qualityOf(*variable);
+    if (_qualities.value(nodeId) != currentQuality) {
+        _qualities.insert(nodeId, currentQuality);
+        emit qualityChanged(nodeId, currentQuality);
+    }
     if (networkChange)
-        emit valueWrittenByClient(_variableIds.value(sender()), value);
+        emit valueWrittenByClient(nodeId, value);
 }

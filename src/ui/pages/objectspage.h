@@ -70,6 +70,13 @@ public:
     void updateVariable(const VariableInfo &variable);
 
     ///
+    /// \brief Shows a live quality change without discarding edited properties.
+    /// \param nodeId Variable whose current quality changed.
+    /// \param quality Quality reported by the server.
+    ///
+    void updateQuality(const QString &nodeId, VariableInfo::Quality quality);
+
+    ///
     /// \brief Selects a node of the address space tree.
     /// \param nodeId Node id.
     /// \return False when the tree has no such node.
