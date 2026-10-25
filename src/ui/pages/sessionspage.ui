@@ -73,7 +73,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QLabel" name="clientSessionsTitle">
+          <widget class="ElidedLabel" name="clientSessionsTitle">
            <property name="font">
             <font>
              <pointsize>11</pointsize>
@@ -139,7 +139,7 @@
              <number>8</number>
             </property>
             <item>
-             <widget class="QLineEdit" name="searchEdit">
+             <widget class="ElidedLineEdit" name="searchEdit">
               <property name="placeholderText">
                <string>Search sessions...</string>
               </property>
@@ -149,7 +149,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="stateFilterCombo">
+             <widget class="ElidedComboBox" name="stateFilterCombo">
               <item>
                <property name="text">
                 <string>All Sessions</string>
@@ -249,7 +249,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QLabel" name="propertiesTitle">
+          <widget class="ElidedLabel" name="propertiesTitle">
            <property name="font">
             <font>
              <pointsize>11</pointsize>
@@ -332,7 +332,7 @@
                <number>5</number>
               </property>
               <item row="0" column="0">
-               <widget class="QLabel" name="sessionIdLabel">
+               <widget class="ElidedLabel" name="sessionIdLabel">
                 <property name="text">
                  <string>Session ID</string>
                 </property>
@@ -360,7 +360,7 @@
                </layout>
               </item>
               <item row="1" column="0">
-               <widget class="QLabel" name="sessionNameLabel">
+               <widget class="ElidedLabel" name="sessionNameLabel">
                 <property name="text">
                  <string>Session Name</string>
                 </property>
@@ -374,7 +374,7 @@
                </widget>
               </item>
               <item row="2" column="0">
-               <widget class="QLabel" name="applicationUriLabel">
+               <widget class="ElidedLabel" name="applicationUriLabel">
                 <property name="text">
                  <string>Client Application URI</string>
                 </property>
@@ -388,7 +388,7 @@
                </widget>
               </item>
               <item row="3" column="0">
-               <widget class="QLabel" name="endpointUrlLabel">
+               <widget class="ElidedLabel" name="endpointUrlLabel">
                 <property name="text">
                  <string>Endpoint URL</string>
                 </property>
@@ -402,35 +402,35 @@
                </widget>
               </item>
               <item row="4" column="0">
-               <widget class="QLabel" name="securityModeLabel">
+               <widget class="ElidedLabel" name="securityModeLabel">
                 <property name="text">
                  <string>Security Mode</string>
                 </property>
                </widget>
               </item>
               <item row="4" column="1">
-               <widget class="QLineEdit" name="securityModeEdit">
+               <widget class="ElidedLineEdit" name="securityModeEdit">
                 <property name="readOnly">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
               <item row="5" column="0">
-               <widget class="QLabel" name="userIdentityLabel">
+               <widget class="ElidedLabel" name="userIdentityLabel">
                 <property name="text">
                  <string>User Identity</string>
                 </property>
                </widget>
               </item>
               <item row="5" column="1">
-               <widget class="QLineEdit" name="userIdentityEdit">
+               <widget class="ElidedLineEdit" name="userIdentityEdit">
                 <property name="readOnly">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
               <item row="6" column="0">
-               <widget class="QLabel" name="stateLabel">
+               <widget class="ElidedLabel" name="stateLabel">
                 <property name="text">
                  <string>State</string>
                 </property>
@@ -441,35 +441,35 @@
 </widget>
               </item>
               <item row="7" column="0">
-               <widget class="QLabel" name="createdLabel">
+               <widget class="ElidedLabel" name="createdLabel">
                 <property name="text">
                  <string>Created</string>
                 </property>
                </widget>
               </item>
               <item row="7" column="1">
-               <widget class="QLineEdit" name="createdEdit">
+               <widget class="ElidedLineEdit" name="createdEdit">
                 <property name="readOnly">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
               <item row="8" column="0">
-               <widget class="QLabel" name="lastActivityLabel">
+               <widget class="ElidedLabel" name="lastActivityLabel">
                 <property name="text">
                  <string>Last Activity</string>
                 </property>
                </widget>
               </item>
               <item row="8" column="1">
-               <widget class="QLineEdit" name="lastActivityEdit">
+               <widget class="ElidedLineEdit" name="lastActivityEdit">
                 <property name="readOnly">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
               <item row="9" column="0">
-               <widget class="QLabel" name="subscriptionsLabel">
+               <widget class="ElidedLabel" name="subscriptionsLabel">
                 <property name="text">
                  <string>Current Subscriptions</string>
                 </property>
@@ -481,7 +481,7 @@
                  <number>4</number>
                 </property>
                 <item>
-                 <widget class="QLineEdit" name="subscriptionsEdit">
+                 <widget class="ElidedLineEdit" name="subscriptionsEdit">
                   <property name="readOnly">
                    <bool>true</bool>
                   </property>
@@ -526,6 +526,16 @@
    <class>StatusIndicator</class>
    <extends>QWidget</extends>
    <header>statusindicator.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedComboBox</class>
+   <extends>QComboBox</extends>
+   <header>elidedcombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>elidedlabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

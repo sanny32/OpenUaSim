@@ -73,7 +73,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QLabel" name="typesTitle">
+          <widget class="ElidedLabel" name="typesTitle">
            <property name="font">
             <font>
              <pointsize>11</pointsize>
@@ -134,7 +134,7 @@
            <number>10</number>
           </property>
           <item>
-           <widget class="QLineEdit" name="searchEdit">
+           <widget class="ElidedLineEdit" name="searchEdit">
             <property name="placeholderText">
              <string>Search types...</string>
             </property>
@@ -215,7 +215,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QLabel" name="subtypesTitle">
+          <widget class="ElidedLabel" name="subtypesTitle">
            <property name="font">
             <font>
              <pointsize>11</pointsize>
@@ -355,7 +355,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QLabel" name="propertiesTitle">
+          <widget class="ElidedLabel" name="propertiesTitle">
            <property name="font">
             <font>
              <pointsize>11</pointsize>
@@ -438,7 +438,7 @@
                <number>5</number>
               </property>
               <item row="0" column="0">
-               <widget class="QLabel" name="browseNameLabel">
+               <widget class="ElidedLabel" name="browseNameLabel">
                 <property name="text">
                  <string>BrowseName</string>
                 </property>
@@ -466,7 +466,7 @@
                </layout>
               </item>
               <item row="1" column="0">
-               <widget class="QLabel" name="nodeIdLabel">
+               <widget class="ElidedLabel" name="nodeIdLabel">
                 <property name="text">
                  <string>NodeId</string>
                 </property>
@@ -494,7 +494,7 @@
                </layout>
               </item>
               <item row="2" column="0">
-               <widget class="QLabel" name="baseTypeLabel">
+               <widget class="ElidedLabel" name="baseTypeLabel">
                 <property name="text">
                  <string>Base Type</string>
                 </property>
@@ -508,21 +508,21 @@
 </widget>
               </item>
               <item row="3" column="0">
-               <widget class="QLabel" name="isAbstractLabel">
+               <widget class="ElidedLabel" name="isAbstractLabel">
                 <property name="text">
                  <string>IsAbstract</string>
                 </property>
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QLineEdit" name="isAbstractEdit">
+               <widget class="ElidedLineEdit" name="isAbstractEdit">
                 <property name="readOnly">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
               <item row="4" column="0">
-               <widget class="QLabel" name="descriptionLabel">
+               <widget class="ElidedLabel" name="descriptionLabel">
                 <property name="text">
                  <string>Description</string>
                 </property>
@@ -542,7 +542,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="referencesTitle">
+            <widget class="ElidedLabel" name="referencesTitle">
              <property name="font">
               <font>
                <pointsize>11</pointsize>
@@ -615,6 +615,11 @@
    <class>ElidedLineEdit</class>
    <extends>QLineEdit</extends>
    <header>elidedlineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>elidedlabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

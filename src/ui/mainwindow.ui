@@ -163,7 +163,7 @@
        </spacer>
       </item>
       <item>
-       <widget class="QLabel" name="endpointLabel">
+       <widget class="ElidedLabel" name="endpointLabel">
         <property name="text">
          <string>Endpoint:</string>
         </property>
@@ -175,7 +175,7 @@
          <number>2</number>
         </property>
         <item>
-         <widget class="QLineEdit" name="endpointEdit">
+         <widget class="ElidedLineEdit" name="endpointEdit">
           <property name="toolbar" stdset="0">
            <bool>true</bool>
           </property>
@@ -656,6 +656,16 @@
    <extends>QWidget</extends>
    <header>logpage.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>elidedlineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>elidedlabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

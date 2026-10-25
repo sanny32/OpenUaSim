@@ -10,11 +10,11 @@
 #include <QApplication>
 #include <QFontMetricsF>
 #include <QHelpEvent>
-#include <QToolTip>
 
 #include "appicons.h"
 #include "itemdelegate.h"
 #include "itemroles.h"
+#include "texttooltip.h"
 
 namespace {
 
@@ -91,9 +91,7 @@ bool ItemDelegate::textOverflows(const QStyleOptionViewItem &styled) const
 void ItemDelegate::showTextTip(const QHelpEvent *event, QAbstractItemView *view, const QRect &cell,
                                const QString &text)
 {
-    // Rich text makes long values wrap instead of producing a screen-wide tooltip.
-    const QString html = QStringLiteral("<p style='white-space:pre-wrap'>%1</p>").arg(text.toHtmlEscaped());
-    QToolTip::showText(event->globalPos(), html, view->viewport(), cell);
+    TextToolTip::show(event, view->viewport(), text, cell);
 }
 
 ///

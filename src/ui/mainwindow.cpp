@@ -27,6 +27,7 @@
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
+#include "elidedlabel.h"
 #include "project/projectdocument.h"
 #include "project/projectfile.h"
 #include "project/projectnodes.h"
@@ -66,7 +67,7 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     , _logModel(new LogModel(this))
     , _theme(theme)
     , _statusTimer(new QTimer(this))
-    , _restartNote(new QLabel(tr("Restart the server to apply the changes"), this))
+    , _restartNote(new ElidedLabel(tr("Restart the server to apply the changes"), this))
 {
     ui->setupUi(this);
     setWindowTitle(QStringLiteral(APP_NAME));

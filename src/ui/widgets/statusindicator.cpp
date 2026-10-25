@@ -6,10 +6,13 @@
 /// \brief Implements the coloured dot-and-label status indicator.
 ///
 
+#include <QHelpEvent>
 #include <QPainter>
+#include <QToolTip>
 
 #include "appcolors.h"
 #include "statusindicator.h"
+#include "texttooltip.h"
 
 namespace {
 
@@ -89,6 +92,23 @@ QSize StatusIndicator::minimumSizeHint() const
 }
 
 ///
+/// \brief Shows the complete status label when it is clipped and has no explicit tooltip.
+/// \param event Widget event.
+/// \return True when the event was handled.
+///
+bool StatusIndicator::event(QEvent *event)
+{
+    if (event->type() == QEvent::ToolTip && toolTip().isEmpty()) {
+        if (fontMetrics().horizontalAdvance(_text) > textRect().width())
+            TextToolTip::show(static_cast<QHelpEvent *>(event), this, _text);
+        else
+            QToolTip::hideText();
+        return true;
+    }
+    return QWidget::event(event);
+}
+
+///
 /// \brief Draws the dot vertically centred, then the label.
 /// \param event Unused.
 ///
@@ -108,8 +128,9 @@ void StatusIndicator::paintEvent(QPaintEvent *event)
         return;
     painter.setPen(_coloredText ? AppColors::statusText(_status)
                                 : palette().color(QPalette::WindowText));
-    const QRect textRect = rect().adjusted(diameter + kSpacing, 0, 0, 0);
-    painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, _text);
+    const QRect text = textRect();
+    painter.drawText(text, Qt::AlignLeft | Qt::AlignVCenter,
+                     fontMetrics().elidedText(_text, Qt::ElideRight, qMax(0, text.width())));
 }
 
 ///
@@ -119,4 +140,13 @@ void StatusIndicator::paintEvent(QPaintEvent *event)
 int StatusIndicator::dotDiameter() const
 {
     return qRound(fontMetrics().height() * 0.85);
+}
+
+///
+/// \brief Reserves space for the status dot before placing the label.
+/// \return Available text rectangle.
+///
+QRect StatusIndicator::textRect() const
+{
+    return rect().adjusted(dotDiameter() + kSpacing, 0, 0, 0);
 }

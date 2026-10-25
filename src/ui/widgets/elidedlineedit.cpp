@@ -10,8 +10,10 @@
 #include <QPainter>
 #include <QStyleOptionFrame>
 #include <QToolTip>
+#include <QToolButton>
 
 #include "elidedlineedit.h"
+#include "texttooltip.h"
 
 namespace {
 
@@ -50,7 +52,7 @@ bool ElidedLineEdit::event(QEvent *event)
     if (event->type() == QEvent::ToolTip && toolTip().isEmpty()) {
         const auto *help = static_cast<QHelpEvent *>(event);
         if (isElided())
-            QToolTip::showText(help->globalPos(), displayText(), this);
+            TextToolTip::show(help, this, displayText());
         else
             QToolTip::hideText();
         return true;
@@ -82,22 +84,33 @@ void ElidedLineEdit::paintEvent(QPaintEvent *event)
 
 ///
 /// \brief Returns the area the text is drawn in.
-/// \return Contents rectangle without the text margins.
+/// \return Contents rectangle without text margins or embedded action buttons.
 ///
 QRect ElidedLineEdit::textRect() const
 {
     QStyleOptionFrame panel;
     initStyleOption(&panel);
     const QRect contents = style()->subElementRect(QStyle::SE_LineEditContents, &panel, this);
-    return contents.marginsRemoved(textMargins())
+    QRect rect = contents.marginsRemoved(textMargins())
         .adjusted(kHorizontalMargin, kVerticalMargin, -kHorizontalMargin, -kVerticalMargin);
+    const auto buttons = findChildren<QToolButton *>(QString(), Qt::FindDirectChildrenOnly);
+    for (const QToolButton *button : buttons) {
+        if (!button->isVisibleTo(this))
+            continue;
+        const QRect geometry = button->geometry();
+        if (geometry.center().x() < contents.center().x())
+            rect.setLeft(qMax(rect.left(), geometry.right() + 1 + kHorizontalMargin));
+        else
+            rect.setRight(qMin(rect.right(), geometry.left() - 1 - kHorizontalMargin));
+    }
+    return rect;
 }
 
 ///
-/// \brief Keeps an unfocused value scrolled to its beginning, as the focused edit shows it on entry.
+/// \brief Keeps newly displayed read-only values scrolled to their beginning.
 ///
 void ElidedLineEdit::showStart()
 {
-    if (!hasFocus())
+    if (isReadOnly() && !hasFocus())
         setCursorPosition(0);
 }

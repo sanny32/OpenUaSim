@@ -32,7 +32,9 @@
 #include "apppalette.h"
 #include "appstyle.h"
 #include "data/serverstatus.h"
+#include "elidedlabel.h"
 #include "elidedlineedit.h"
+#include "elidedcombobox.h"
 #include "eventlogwidget.h"
 #include "formatting.h"
 #include "itemdelegate.h"
@@ -88,6 +90,7 @@ class TestWidgets : public QObject
 
 private slots:
     void statusIndicator();
+    void statusIndicatorShowsOverflowTooltip();
     void delegateDecoratesIconNames();
     void delegateDecoratesStatus();
     void delegateLeavesPlainCellsAlone();
@@ -119,6 +122,14 @@ private slots:
     void elidedCellShowsFullTextTooltip();
     void elidedLineEditElidesUnfocusedText();
     void elidedLineEditShowsShortTextPlainly();
+    void elidedLineEditKeepsTypingOrder();
+    void elidedLineEditReservesActionSpace_data();
+    void elidedLineEditReservesActionSpace();
+    void elidedComboBoxShowsOverflowTooltip();
+    void elidedComboBoxKeepsManualInput();
+    void elidedControlsKeepExplicitTooltips();
+    void elidedLabelKeepsFullValue();
+    void elidedControlsMaskPasswordTooltips();
     void growColumnWithContentsNeverShrinks();
     void growColumnWithContentsKeepsWiderUserWidth();
     void fillVariableIconComboListsResolvableIcons();
@@ -153,6 +164,25 @@ void TestWidgets::statusIndicator()
     indicator.setColoredText(true);
     indicator.resize(indicator.sizeHint());
     QVERIFY(!indicator.grab().isNull());
+}
+
+void TestWidgets::statusIndicatorShowsOverflowTooltip()
+{
+    StatusIndicator indicator;
+    const QString value = QStringLiteral("A long status message");
+    indicator.setStatus(StatusKind::Good, value);
+    indicator.setFixedSize(70, 30);
+    indicator.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&indicator));
+    const QPoint pos = indicator.rect().center();
+    QHelpEvent hover(QEvent::ToolTip, pos, indicator.mapToGlobal(pos));
+    QCoreApplication::sendEvent(&indicator, &hover);
+    QTRY_VERIFY(QToolTip::isVisible());
+    QVERIFY(QToolTip::text().contains(value.toHtmlEscaped()));
+    QToolTip::hideText();
+    indicator.setStatus(StatusKind::Good, QStringLiteral("OK"));
+    QCoreApplication::sendEvent(&indicator, &hover);
+    QTRY_VERIFY(!QToolTip::isVisible());
 }
 
 void TestWidgets::delegateDecoratesIconNames()
@@ -752,7 +782,7 @@ void TestWidgets::elidedLineEditElidesUnfocusedText()
     QHelpEvent hover(QEvent::ToolTip, pos, edit->mapToGlobal(pos));
     QCoreApplication::sendEvent(edit, &hover);
     QTRY_VERIFY(QToolTip::isVisible());
-    QCOMPARE(QToolTip::text(), id);
+    QVERIFY(QToolTip::text().contains(id.toHtmlEscaped()));
     QToolTip::hideText();
 
     edit->setFocus();
@@ -778,6 +808,174 @@ void TestWidgets::elidedLineEditShowsShortTextPlainly()
     QHelpEvent hover(QEvent::ToolTip, pos, edit.mapToGlobal(pos));
     QCoreApplication::sendEvent(&edit, &hover);
     QTRY_VERIFY(!QToolTip::isVisible());
+}
+
+void TestWidgets::elidedLineEditKeepsTypingOrder()
+{
+    ElidedLineEdit edit;
+    edit.setText(QStringLiteral("1000"));
+    edit.selectAll();
+    QTest::keyClicks(&edit, "1500");
+    QCOMPARE(edit.text(), QStringLiteral("1500"));
+    QCOMPARE(edit.cursorPosition(), 4);
+}
+
+void TestWidgets::elidedLineEditReservesActionSpace_data()
+{
+    QTest::addColumn<bool>("leading");
+    QTest::newRow("copy") << false;
+    QTest::newRow("search") << true;
+}
+
+void TestWidgets::elidedLineEditReservesActionSpace()
+{
+    QFETCH(bool, leading);
+    const QString text = QStringLiteral("opc.tcp://machine.local:48400");
+    ElidedLineEdit edit;
+    edit.setReadOnly(true);
+    edit.resize(edit.fontMetrics().horizontalAdvance(text) + 16, 34);
+    edit.setText(text);
+    edit.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&edit));
+    QVERIFY(!edit.isElided());
+    if (leading)
+        edit.addAction(AppIcons::icon(QStringLiteral("search")), QLineEdit::LeadingPosition);
+    else
+        ViewSetup::addCopyAction(&edit);
+    QCoreApplication::processEvents();
+    QVERIFY(edit.isElided());
+    QCOMPARE(edit.text(), text);
+
+    const QPoint pos = edit.rect().center();
+    QHelpEvent hover(QEvent::ToolTip, pos, edit.mapToGlobal(pos));
+    QCoreApplication::sendEvent(&edit, &hover);
+    QTRY_VERIFY(QToolTip::isVisible());
+    QVERIFY(QToolTip::text().contains(text.toHtmlEscaped()));
+    QToolTip::hideText();
+
+    edit.resize(edit.width() + 200, edit.height());
+    QVERIFY(!edit.isElided());
+}
+
+void TestWidgets::elidedComboBoxShowsOverflowTooltip()
+{
+    const QString value = QStringLiteral("A long server name with <plain> & unescaped characters");
+    ElidedComboBox combo;
+    combo.addItem(value, QStringLiteral("id"));
+    combo.setFixedSize(130, 30);
+    combo.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&combo));
+    QVERIFY(combo.isElided());
+    QCOMPARE(combo.currentText(), value);
+    QCOMPARE(combo.currentData().toString(), QStringLiteral("id"));
+    QVERIFY(qobject_cast<ItemDelegate *>(combo.view()->itemDelegate()));
+
+    const QPoint pos = combo.rect().center();
+    QHelpEvent hover(QEvent::ToolTip, pos, combo.mapToGlobal(pos));
+    QCoreApplication::sendEvent(&combo, &hover);
+    QTRY_VERIFY(QToolTip::isVisible());
+    QVERIFY(QToolTip::text().contains(value.toHtmlEscaped()));
+    QToolTip::hideText();
+
+    combo.setItemText(0, QStringLiteral("short"));
+    QVERIFY(!combo.isElided());
+    QCoreApplication::sendEvent(&combo, &hover);
+    QTRY_VERIFY(!QToolTip::isVisible());
+}
+
+void TestWidgets::elidedComboBoxKeepsManualInput()
+{
+    ElidedComboBox combo;
+    combo.addItem(QStringLiteral("localhost"));
+    combo.setEditable(true);
+    auto *edit = qobject_cast<ElidedLineEdit *>(combo.lineEdit());
+    QVERIFY(edit);
+    QCOMPARE(combo.currentText(), QStringLiteral("localhost"));
+    combo.setEditText(QStringLiteral("a-long-manually-entered-server-name.local"));
+    combo.resize(130, 30);
+    combo.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&combo));
+    QVERIFY(combo.isElided());
+    edit->setFocus();
+    QTest::keyClick(edit, Qt::Key_End);
+    QTest::keyClicks(edit, ":48400");
+    QVERIFY(combo.currentText().endsWith(QStringLiteral(":48400")));
+    combo.setEditable(false);
+    QVERIFY(!combo.isEditable());
+    combo.setEditable(true);
+    QVERIFY(qobject_cast<ElidedLineEdit *>(combo.lineEdit()));
+}
+
+void TestWidgets::elidedLabelKeepsFullValue()
+{
+    ElidedLabel label;
+    const QString value = QStringLiteral("opc.tcp://long-machine-name.local:48400 <plain> & text");
+    label.setText(value);
+    label.setTextInteractionFlags(Qt::TextSelectableByMouse);
+    label.setFixedSize(130, 30);
+    label.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&label));
+    QVERIFY(label.isElided());
+    QVERIFY(label.minimumSizeHint().width() < label.sizeHint().width());
+    const QPoint pos = label.rect().center();
+    QHelpEvent hover(QEvent::ToolTip, pos, label.mapToGlobal(pos));
+    QCoreApplication::sendEvent(&label, &hover);
+    QTRY_VERIFY(QToolTip::isVisible());
+    QVERIFY(QToolTip::text().contains(value.toHtmlEscaped()));
+    QToolTip::hideText();
+    label.setSelection(0, value.size());
+    QCOMPARE(label.selectedText(), value);
+    label.setSelection(0, 0);
+    label.setText(QStringLiteral("short"));
+    QVERIFY(!label.isElided());
+    QCoreApplication::sendEvent(&label, &hover);
+    QTRY_VERIFY(!QToolTip::isVisible());
+    label.setText(value);
+    label.setWordWrap(true);
+    QVERIFY(!label.isElided());
+}
+
+void TestWidgets::elidedControlsMaskPasswordTooltips()
+{
+    ElidedComboBox combo;
+    combo.setEditable(true);
+    combo.lineEdit()->setEchoMode(QLineEdit::Password);
+    combo.setEditText(QString(200, QLatin1Char('x')));
+    combo.setFixedSize(100, 30);
+    combo.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&combo));
+    QVERIFY(combo.isElided());
+    for (QWidget *widget : { static_cast<QWidget *>(&combo), static_cast<QWidget *>(combo.lineEdit()) }) {
+        const QPoint pos = widget->rect().center();
+        QHelpEvent hover(QEvent::ToolTip, pos, widget->mapToGlobal(pos));
+        QCoreApplication::sendEvent(widget, &hover);
+        QTRY_VERIFY(QToolTip::isVisible());
+        QVERIFY(QToolTip::text().contains(combo.lineEdit()->displayText().toHtmlEscaped()));
+        QVERIFY(!QToolTip::text().contains(combo.currentText()));
+        QToolTip::hideText();
+    }
+}
+
+void TestWidgets::elidedControlsKeepExplicitTooltips()
+{
+    ElidedLineEdit edit;
+    ElidedComboBox combo;
+    ElidedLabel label;
+    edit.setText(QString(200, QLatin1Char('x')));
+    combo.addItem(edit.text());
+    label.setText(edit.text());
+    for (QWidget *widget : { static_cast<QWidget *>(&edit), static_cast<QWidget *>(&combo),
+                             static_cast<QWidget *>(&label) }) {
+        widget->setFixedSize(100, 30);
+        widget->setToolTip(QStringLiteral("Own tooltip"));
+        widget->show();
+        QVERIFY(QTest::qWaitForWindowExposed(widget));
+        const QPoint pos = widget->rect().center();
+        QHelpEvent hover(QEvent::ToolTip, pos, widget->mapToGlobal(pos));
+        QCoreApplication::sendEvent(widget, &hover);
+        QTRY_COMPARE(QToolTip::text(), QStringLiteral("Own tooltip"));
+        QToolTip::hideText();
+    }
 }
 
 void TestWidgets::growColumnWithContentsNeverShrinks()

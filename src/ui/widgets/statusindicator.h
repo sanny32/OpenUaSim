@@ -64,10 +64,12 @@ public:
     QSize minimumSizeHint() const override;
 
 protected:
+    bool event(QEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
 
 private:
     int dotDiameter() const;
+    QRect textRect() const;
 
     StatusKind _status = StatusKind::None;
     QString _text;

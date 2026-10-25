@@ -63,7 +63,7 @@
          <number>5</number>
         </property>
         <item>
-         <widget class="QLabel" name="serverStatusTitle">
+         <widget class="ElidedLabel" name="serverStatusTitle">
           <property name="font">
            <font>
             <pointsize>11</pointsize>
@@ -146,7 +146,7 @@
               <number>5</number>
              </property>
              <item row="0" column="0">
-              <widget class="QLabel" name="serverStatusLabel">
+              <widget class="ElidedLabel" name="serverStatusLabel">
                <property name="text">
                 <string>Server Status</string>
                </property>
@@ -197,7 +197,7 @@
               </widget>
              </item>
              <item row="2" column="0">
-              <widget class="QLabel" name="primaryEndpointLabel">
+              <widget class="ElidedLabel" name="primaryEndpointLabel">
                <property name="text">
                 <string>Primary Endpoint (UA TCP)</string>
                </property>
@@ -210,7 +210,7 @@
               </widget>
              </item>
              <item row="2" column="1">
-              <widget class="QLabel" name="primaryEndpointValue">
+              <widget class="ElidedLabel" name="primaryEndpointValue">
                <property name="textInteractionFlags">
                 <set>Qt::TextSelectableByMouse</set>
                </property>
@@ -254,7 +254,7 @@
               </widget>
              </item>
              <item row="4" column="0">
-              <widget class="QLabel" name="applicationUriLabel">
+              <widget class="ElidedLabel" name="applicationUriLabel">
                <property name="text">
                 <string>Application URI</string>
                </property>
@@ -267,7 +267,7 @@
               </widget>
              </item>
              <item row="4" column="1">
-              <widget class="QLabel" name="applicationUriValue">
+              <widget class="ElidedLabel" name="applicationUriValue">
                <property name="textInteractionFlags">
                 <set>Qt::TextSelectableByMouse</set>
                </property>
@@ -311,7 +311,7 @@
               </widget>
              </item>
              <item row="6" column="0">
-              <widget class="QLabel" name="startTimeLabel">
+              <widget class="ElidedLabel" name="startTimeLabel">
                <property name="text">
                 <string>Server Start Time</string>
                </property>
@@ -324,7 +324,7 @@
               </widget>
              </item>
              <item row="6" column="1">
-              <widget class="QLabel" name="startTimeValue">
+              <widget class="ElidedLabel" name="startTimeValue">
                <property name="textInteractionFlags">
                 <set>Qt::TextSelectableByMouse</set>
                </property>
@@ -368,7 +368,7 @@
               </widget>
              </item>
              <item row="8" column="0">
-              <widget class="QLabel" name="uptimeLabel">
+              <widget class="ElidedLabel" name="uptimeLabel">
                <property name="text">
                 <string>Uptime</string>
                </property>
@@ -381,7 +381,7 @@
               </widget>
              </item>
              <item row="8" column="1">
-              <widget class="QLabel" name="uptimeValue">
+              <widget class="ElidedLabel" name="uptimeValue">
                <property name="textInteractionFlags">
                 <set>Qt::TextSelectableByMouse</set>
                </property>
@@ -425,7 +425,7 @@
               </widget>
              </item>
              <item row="10" column="0">
-              <widget class="QLabel" name="securityModesLabel">
+              <widget class="ElidedLabel" name="securityModesLabel">
                <property name="text">
                 <string>Security Modes</string>
                </property>
@@ -438,7 +438,7 @@
               </widget>
              </item>
              <item row="10" column="1">
-              <widget class="QLabel" name="securityModesValue">
+              <widget class="ElidedLabel" name="securityModesValue">
                <property name="textInteractionFlags">
                 <set>Qt::TextSelectableByMouse</set>
                </property>
@@ -482,7 +482,7 @@
               </widget>
              </item>
              <item row="12" column="0">
-              <widget class="QLabel" name="totalNodesLabel">
+              <widget class="ElidedLabel" name="totalNodesLabel">
                <property name="text">
                 <string>Total Nodes</string>
                </property>
@@ -495,7 +495,7 @@
               </widget>
              </item>
              <item row="12" column="1">
-              <widget class="QLabel" name="totalNodesValue">
+              <widget class="ElidedLabel" name="totalNodesValue">
                <property name="textInteractionFlags">
                 <set>Qt::TextSelectableByMouse</set>
                </property>
@@ -539,7 +539,7 @@
               </widget>
              </item>
              <item row="14" column="0">
-              <widget class="QLabel" name="namespacesLabel">
+              <widget class="ElidedLabel" name="namespacesLabel">
                <property name="text">
                 <string>Namespaces</string>
                </property>
@@ -552,7 +552,7 @@
               </widget>
              </item>
              <item row="14" column="1">
-              <widget class="QLabel" name="namespacesValue">
+              <widget class="ElidedLabel" name="namespacesValue">
                <property name="textInteractionFlags">
                 <set>Qt::TextSelectableByMouse</set>
                </property>
@@ -596,7 +596,7 @@
               </widget>
              </item>
              <item row="16" column="0">
-              <widget class="QLabel" name="clientsLabel">
+              <widget class="ElidedLabel" name="clientsLabel">
                <property name="text">
                 <string>Clients Connected</string>
                </property>
@@ -609,7 +609,7 @@
               </widget>
              </item>
              <item row="16" column="1">
-              <widget class="QLabel" name="clientsValue">
+              <widget class="ElidedLabel" name="clientsValue">
                <property name="textInteractionFlags">
                 <set>Qt::TextSelectableByMouse</set>
                </property>
@@ -676,6 +676,11 @@
    <class>StatusIndicator</class>
    <extends>QWidget</extends>
    <header>statusindicator.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>elidedlabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

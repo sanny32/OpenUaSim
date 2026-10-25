@@ -25,7 +25,7 @@
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QLineEdit" name="applicationNameEdit"/>
+      <widget class="ElidedLineEdit" name="applicationNameEdit"/>
      </item>
      <item row="1" column="0">
       <widget class="QLabel" name="applicationUriLabel">
@@ -38,7 +38,7 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QLineEdit" name="applicationUriEdit"/>
+      <widget class="ElidedLineEdit" name="applicationUriEdit"/>
      </item>
      <item row="2" column="0">
       <widget class="QLabel" name="maxSessionsLabel">
@@ -137,6 +137,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ElidedLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>elidedlineedit.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>

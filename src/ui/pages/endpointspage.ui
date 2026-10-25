@@ -73,7 +73,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QLabel" name="serverEndpointsTitle">
+          <widget class="ElidedLabel" name="serverEndpointsTitle">
            <property name="font">
             <font>
              <pointsize>11</pointsize>
@@ -134,7 +134,7 @@
            <number>10</number>
           </property>
           <item>
-           <widget class="QLineEdit" name="searchEdit">
+           <widget class="ElidedLineEdit" name="searchEdit">
             <property name="placeholderText">
              <string>Search endpoints...</string>
             </property>
@@ -251,7 +251,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QLabel" name="propertiesTitle">
+          <widget class="ElidedLabel" name="propertiesTitle">
            <property name="font">
             <font>
              <pointsize>11</pointsize>
@@ -334,14 +334,14 @@
                <number>5</number>
               </property>
               <item row="0" column="0">
-               <widget class="QLabel" name="hostnameLabel">
+               <widget class="ElidedLabel" name="hostnameLabel">
                 <property name="text">
                  <string>Hostname</string>
                 </property>
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QComboBox" name="hostnameCombo">
+               <widget class="ElidedComboBox" name="hostnameCombo">
                 <property name="editable">
                  <bool>true</bool>
                 </property>
@@ -351,7 +351,7 @@
                </widget>
               </item>
               <item row="1" column="0">
-               <widget class="QLabel" name="portLabel">
+               <widget class="ElidedLabel" name="portLabel">
                 <property name="text">
                  <string>Port</string>
                 </property>
@@ -368,14 +368,14 @@
                </widget>
               </item>
               <item row="2" column="0">
-               <widget class="QLabel" name="securityPolicyLabel">
+               <widget class="ElidedLabel" name="securityPolicyLabel">
                 <property name="text">
                  <string>Security Policy</string>
                 </property>
                </widget>
               </item>
               <item row="2" column="1">
-               <widget class="QComboBox" name="securityPolicyCombo">
+               <widget class="ElidedComboBox" name="securityPolicyCombo">
                 <item>
                  <property name="text">
                   <string>None</string>
@@ -409,14 +409,14 @@
                </widget>
               </item>
               <item row="3" column="0">
-               <widget class="QLabel" name="securityModeLabel">
+               <widget class="ElidedLabel" name="securityModeLabel">
                 <property name="text">
                  <string>Security Mode</string>
                 </property>
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QComboBox" name="securityModeCombo">
+               <widget class="ElidedComboBox" name="securityModeCombo">
                 <item>
                  <property name="text">
                   <string>None</string>
@@ -435,7 +435,7 @@
                </widget>
               </item>
               <item row="4" column="0">
-               <widget class="QLabel" name="allowAnonymousLabel">
+               <widget class="ElidedLabel" name="allowAnonymousLabel">
                 <property name="text">
                  <string>Allow Anonymous</string>
                 </property>
@@ -449,7 +449,7 @@
                </widget>
               </item>
               <item row="5" column="0">
-               <widget class="QLabel" name="usernamePasswordLabel">
+               <widget class="ElidedLabel" name="usernamePasswordLabel">
                 <property name="text">
                  <string>Username/Password</string>
                 </property>
@@ -496,7 +496,7 @@
                </layout>
               </item>
               <item row="6" column="0">
-               <widget class="QLabel" name="trustedClientsOnlyLabel">
+               <widget class="ElidedLabel" name="trustedClientsOnlyLabel">
                 <property name="text">
                  <string>Trusted Clients Only</string>
                 </property>
@@ -513,7 +513,7 @@
                </widget>
               </item>
               <item row="7" column="0">
-               <widget class="QLabel" name="enabledLabel">
+               <widget class="ElidedLabel" name="enabledLabel">
                 <property name="text">
                  <string>Enabled</string>
                 </property>
@@ -588,6 +588,23 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ElidedLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>elidedlineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedComboBox</class>
+   <extends>QComboBox</extends>
+   <header>elidedcombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>elidedlabel.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

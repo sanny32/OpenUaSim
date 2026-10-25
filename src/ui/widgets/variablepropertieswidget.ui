@@ -59,7 +59,7 @@
            <number>4</number>
           </property>
           <item row="0" column="0">
-           <widget class="QLabel" name="nodeIdLabel">
+           <widget class="ElidedLabel" name="nodeIdLabel">
             <property name="text">
              <string>NodeId</string>
             </property>
@@ -87,7 +87,7 @@
            </layout>
           </item>
           <item row="1" column="0">
-           <widget class="QLabel" name="typeLabel">
+           <widget class="ElidedLabel" name="typeLabel">
             <property name="text">
              <string>Type</string>
             </property>
@@ -101,7 +101,7 @@
            </widget>
           </item>
           <item row="2" column="0">
-           <widget class="QLabel" name="displayNameLabel">
+           <widget class="ElidedLabel" name="displayNameLabel">
             <property name="text">
              <string>Display Name</string>
             </property>
@@ -113,10 +113,10 @@
              <number>4</number>
             </property>
             <item>
-             <widget class="QLineEdit" name="displayNameEdit"/>
+             <widget class="ElidedLineEdit" name="displayNameEdit"/>
             </item>
             <item>
-             <widget class="QComboBox" name="iconCombo">
+             <widget class="ElidedComboBox" name="iconCombo">
               <property name="toolTip">
                <string>Icon</string>
               </property>
@@ -128,7 +128,7 @@
            </layout>
           </item>
           <item row="3" column="0">
-           <widget class="QLabel" name="dataTypeLabel">
+           <widget class="ElidedLabel" name="dataTypeLabel">
             <property name="text">
              <string>Data Type</string>
             </property>
@@ -140,7 +140,7 @@
              <number>4</number>
             </property>
             <item>
-             <widget class="QComboBox" name="dataTypeCombo">
+             <widget class="ElidedComboBox" name="dataTypeCombo">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                 <horstretch>1</horstretch>
@@ -174,7 +174,7 @@
            </layout>
           </item>
           <item row="4" column="0">
-           <widget class="QLabel" name="accessLabel">
+           <widget class="ElidedLabel" name="accessLabel">
             <property name="text">
              <string>Access</string>
             </property>
@@ -186,7 +186,7 @@
              <number>8</number>
             </property>
             <item>
-             <widget class="QComboBox" name="accessCombo">
+             <widget class="ElidedComboBox" name="accessCombo">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                 <horstretch>1</horstretch>
@@ -223,17 +223,17 @@
            </layout>
           </item>
           <item row="5" column="0">
-           <widget class="QLabel" name="initialValueLabel">
+           <widget class="ElidedLabel" name="initialValueLabel">
             <property name="text">
              <string>Initial Value</string>
             </property>
            </widget>
           </item>
           <item row="5" column="1">
-           <widget class="QLineEdit" name="initialValueEdit"/>
+           <widget class="ElidedLineEdit" name="initialValueEdit"/>
           </item>
           <item row="6" column="0">
-           <widget class="QLabel" name="qualityLabel">
+           <widget class="ElidedLabel" name="qualityLabel">
             <property name="text">
              <string>Quality</string>
             </property>
@@ -243,14 +243,14 @@
            <widget class="StatusIndicator" name="qualityIndicator" native="true"/>
           </item>
           <item row="7" column="0">
-           <widget class="QLabel" name="configuredQualityLabel">
+           <widget class="ElidedLabel" name="configuredQualityLabel">
             <property name="text">
              <string>Configured Quality</string>
             </property>
            </widget>
           </item>
           <item row="7" column="1">
-           <widget class="QComboBox" name="qualityCombo">
+           <widget class="ElidedComboBox" name="qualityCombo">
             <property name="toolTip">
              <string>Quality to report with values; the actual quality above also reflects server errors</string>
             </property>
@@ -279,18 +279,18 @@
            </widget>
           </item>
           <item row="9" column="0">
-           <widget class="QLabel" name="simulationLabel">
+           <widget class="ElidedLabel" name="simulationLabel">
             <property name="text">
              <string>Simulation</string>
             </property>
            </widget>
           </item>
           <item row="9" column="1">
-           <widget class="QComboBox" name="simulationCombo">
+           <widget class="ElidedComboBox" name="simulationCombo">
            </widget>
           </item>
           <item row="10" column="0">
-           <widget class="QLabel" name="updateIntervalLabel">
+           <widget class="ElidedLabel" name="updateIntervalLabel">
             <property name="text">
              <string>Update Interval</string>
             </property>
@@ -312,7 +312,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="intervalUnitCombo">
+             <widget class="ElidedComboBox" name="intervalUnitCombo">
               <item>
                <property name="text">
                 <string>ms</string>
@@ -328,7 +328,7 @@
            </layout>
           </item>
           <item row="11" column="0">
-           <widget class="QLabel" name="amplitudeLabel">
+           <widget class="ElidedLabel" name="amplitudeLabel">
             <property name="text">
              <string>Amplitude</string>
             </property>
@@ -351,7 +351,7 @@
            </widget>
           </item>
           <item row="12" column="0">
-           <widget class="QLabel" name="offsetLabel">
+           <widget class="ElidedLabel" name="offsetLabel">
             <property name="text">
              <string>Offset</string>
             </property>
@@ -374,7 +374,7 @@
            </widget>
           </item>
           <item row="13" column="0">
-           <widget class="QLabel" name="periodLabel">
+           <widget class="ElidedLabel" name="periodLabel">
             <property name="text">
              <string>Period</string>
             </property>
@@ -397,14 +397,14 @@
            </widget>
           </item>
           <item row="14" column="0">
-           <widget class="QLabel" name="valuesLabel">
+           <widget class="ElidedLabel" name="valuesLabel">
             <property name="text">
              <string>Values</string>
             </property>
            </widget>
           </item>
           <item row="14" column="1">
-           <widget class="QLineEdit" name="valuesEdit">
+           <widget class="ElidedLineEdit" name="valuesEdit">
             <property name="placeholderText">
              <string>Values separated by ;</string>
             </property>
@@ -491,6 +491,16 @@
    <class>ElidedLineEdit</class>
    <extends>QLineEdit</extends>
    <header>elidedlineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedComboBox</class>
+   <extends>QComboBox</extends>
+   <header>elidedcombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>elidedlabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

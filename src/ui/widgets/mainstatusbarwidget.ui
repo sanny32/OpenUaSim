@@ -43,7 +43,7 @@
     </spacer>
    </item>
    <item>
-    <widget class="QLabel" name="trailingLabel"/>
+    <widget class="ElidedLabel" name="trailingLabel"/>
    </item>
   </layout>
  </widget>
@@ -52,6 +52,11 @@
    <class>StatusIndicator</class>
    <extends>QWidget</extends>
    <header>statusindicator.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>elidedlabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

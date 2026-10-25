@@ -59,7 +59,7 @@
            <number>5</number>
           </property>
           <item row="0" column="0">
-           <widget class="QLabel" name="propertyNodeIdLabel">
+           <widget class="ElidedLabel" name="propertyNodeIdLabel">
             <property name="text">
              <string>NodeId</string>
             </property>
@@ -87,7 +87,7 @@
            </layout>
           </item>
           <item row="1" column="0">
-           <widget class="QLabel" name="propertyTypeLabel">
+           <widget class="ElidedLabel" name="propertyTypeLabel">
             <property name="text">
              <string>Type</string>
             </property>
@@ -101,7 +101,7 @@
            </widget>
           </item>
           <item row="2" column="0">
-           <widget class="QLabel" name="propertyNameLabel">
+           <widget class="ElidedLabel" name="propertyNameLabel">
             <property name="text">
              <string>Display Name</string>
             </property>
@@ -115,7 +115,7 @@
            </widget>
           </item>
           <item row="3" column="0">
-           <widget class="QLabel" name="propertyDataTypeLabel">
+           <widget class="ElidedLabel" name="propertyDataTypeLabel">
             <property name="text">
              <string>Data Type</string>
             </property>
@@ -129,7 +129,7 @@
            </widget>
           </item>
           <item row="4" column="0">
-           <widget class="QLabel" name="propertyAccessLabel">
+           <widget class="ElidedLabel" name="propertyAccessLabel">
             <property name="text">
              <string>Access</string>
             </property>
@@ -143,34 +143,34 @@
            </widget>
           </item>
           <item row="5" column="0">
-           <widget class="QLabel" name="propertyValueLabel">
+           <widget class="ElidedLabel" name="propertyValueLabel">
             <property name="text">
              <string>Value</string>
             </property>
            </widget>
           </item>
           <item row="5" column="1">
-           <widget class="QLineEdit" name="propertyValueEdit"/>
+           <widget class="ElidedLineEdit" name="propertyValueEdit"/>
           </item>
           <item row="6" column="0">
-           <widget class="QLabel" name="propertyLowLabel">
+           <widget class="ElidedLabel" name="propertyLowLabel">
             <property name="text">
              <string>Low</string>
             </property>
            </widget>
           </item>
           <item row="6" column="1">
-           <widget class="QLineEdit" name="propertyLowEdit"/>
+           <widget class="ElidedLineEdit" name="propertyLowEdit"/>
           </item>
           <item row="7" column="0">
-           <widget class="QLabel" name="propertyHighLabel">
+           <widget class="ElidedLabel" name="propertyHighLabel">
             <property name="text">
              <string>High</string>
             </property>
            </widget>
           </item>
           <item row="7" column="1">
-           <widget class="QLineEdit" name="propertyHighEdit"/>
+           <widget class="ElidedLineEdit" name="propertyHighEdit"/>
           </item>
          </layout>
         </widget>
@@ -238,6 +238,11 @@
    <class>ElidedLineEdit</class>
    <extends>QLineEdit</extends>
    <header>elidedlineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>elidedlabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

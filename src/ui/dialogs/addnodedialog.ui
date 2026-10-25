@@ -25,7 +25,7 @@
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QComboBox" name="parentCombo">
+      <widget class="ElidedComboBox" name="parentCombo">
        <property name="sizeAdjustPolicy">
         <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
        </property>
@@ -45,7 +45,7 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QComboBox" name="kindCombo">
+      <widget class="ElidedComboBox" name="kindCombo">
        <item>
         <property name="text">
          <string>Folder</string>
@@ -79,7 +79,7 @@
       </widget>
      </item>
      <item row="2" column="1">
-      <widget class="QComboBox" name="typeCombo"/>
+      <widget class="ElidedComboBox" name="typeCombo"/>
      </item>
      <item row="3" column="0">
       <widget class="QLabel" name="browseNameLabel">
@@ -92,7 +92,7 @@
       </widget>
      </item>
      <item row="3" column="1">
-      <widget class="QLineEdit" name="browseNameEdit"/>
+      <widget class="ElidedLineEdit" name="browseNameEdit"/>
      </item>
      <item row="4" column="0">
       <widget class="QLabel" name="nodeIdLabel">
@@ -105,7 +105,7 @@
       </widget>
      </item>
      <item row="4" column="1">
-      <widget class="QLineEdit" name="nodeIdEdit">
+      <widget class="ElidedLineEdit" name="nodeIdEdit">
        <property name="placeholderText">
         <string>Generated from the browse path</string>
        </property>
@@ -124,7 +124,7 @@
      <item row="5" column="1">
       <layout class="QHBoxLayout" name="dataTypeLayout">
        <item>
-        <widget class="QComboBox" name="dataTypeCombo"/>
+        <widget class="ElidedComboBox" name="dataTypeCombo"/>
        </item>
        <item>
         <widget class="QSpinBox" name="arrayLengthSpin">
@@ -161,7 +161,7 @@
       </widget>
      </item>
      <item row="6" column="1">
-      <widget class="QComboBox" name="accessCombo">
+      <widget class="ElidedComboBox" name="accessCombo">
        <property name="currentIndex">
         <number>2</number>
        </property>
@@ -193,7 +193,7 @@
       </widget>
      </item>
      <item row="7" column="1">
-      <widget class="QComboBox" name="iconCombo"/>
+      <widget class="ElidedComboBox" name="iconCombo"/>
      </item>
      <item row="8" column="0">
       <widget class="QLabel" name="actionLabel">
@@ -206,7 +206,7 @@
       </widget>
      </item>
      <item row="8" column="1">
-      <widget class="QComboBox" name="actionCombo">
+      <widget class="ElidedComboBox" name="actionCombo">
        <item>
         <property name="text">
          <string>Reset the variables to their initial values</string>
@@ -237,6 +237,18 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ElidedLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>elidedlineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedComboBox</class>
+   <extends>QComboBox</extends>
+   <header>elidedcombobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>

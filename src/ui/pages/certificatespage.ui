@@ -73,7 +73,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QLabel" name="storeTitle">
+          <widget class="ElidedLabel" name="storeTitle">
            <property name="font">
             <font>
              <pointsize>11</pointsize>
@@ -134,7 +134,7 @@
            <number>10</number>
           </property>
           <item>
-           <widget class="QLineEdit" name="searchEdit">
+           <widget class="ElidedLineEdit" name="searchEdit">
             <property name="placeholderText">
              <string>Search categories...</string>
             </property>
@@ -208,7 +208,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QLabel" name="certificatesTitle">
+          <widget class="ElidedLabel" name="certificatesTitle">
            <property name="font">
             <font>
              <pointsize>11</pointsize>
@@ -348,7 +348,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QLabel" name="detailsTitle">
+          <widget class="ElidedLabel" name="detailsTitle">
            <property name="font">
             <font>
              <pointsize>11</pointsize>
@@ -518,6 +518,18 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ElidedLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>elidedlineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>elidedlabel.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

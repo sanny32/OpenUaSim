@@ -40,6 +40,7 @@
 #include "appstyle.h"
 #include "apptheme.h"
 #include "endpointspage.h"
+#include "elidedlineedit.h"
 #include "eventlogwidget.h"
 #include "itemroles.h"
 #include "logmodel.h"
@@ -142,7 +143,7 @@ void TestMainWindow::showsSnapshot()
     MainWindow window;
     window.setSnapshot(snapshot);
 
-    QCOMPARE(child<QLineEdit>(window, "endpointEdit")->text(), snapshot.status.primaryEndpoint);
+    QCOMPARE(child<ElidedLineEdit>(window, "endpointEdit")->text(), snapshot.status.primaryEndpoint);
     const QList<StatusIndicator *> indicators
         = window.findChildren<StatusIndicator *>(QStringLiteral("serverIndicator"));
     QCOMPARE(indicators.size(), 1);
