@@ -14,6 +14,8 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPainter>
+#include <QStyleOptionToolButton>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSignalSpy>
@@ -84,6 +86,8 @@ private slots:
     void statusBarNoteFollowsTab();
     void themeButtonHiddenWithoutTheme();
     void themeMenuSwitchesTheme();
+    void themeButtonAppearance_data();
+    void themeButtonAppearance();
     void menuBarListsMenus();
     void viewMenuSwitchesPages();
     void eventLogActionTogglesPanel();
@@ -254,6 +258,67 @@ void TestMainWindow::themeMenuSwitchesTheme()
 
     child<QAction>(window, "actionThemeSystem")->trigger();
     QCOMPARE(theme.mode(), AppTheme::Mode::System);
+}
+
+///
+/// \brief Covers both palettes and layout directions of the theme menu button.
+///
+void TestMainWindow::themeButtonAppearance_data()
+{
+    QTest::addColumn<bool>("dark");
+    QTest::addColumn<bool>("rtl");
+    QTest::newRow("light") << false << false;
+    QTest::newRow("dark") << true << false;
+    QTest::newRow("light-rtl") << false << true;
+    QTest::newRow("dark-rtl") << true << true;
+}
+
+///
+/// \brief Checks icon spacing and distinct interaction feedback without changing menu behaviour.
+///
+void TestMainWindow::themeButtonAppearance()
+{
+    QFETCH(bool, dark);
+    QFETCH(bool, rtl);
+    AppTheme theme;
+    MainWindow window(&theme);
+    AppStyle style;
+    auto *button = child<QToolButton>(window, "themeButton");
+    button->setStyle(&style);
+    button->setPalette(AppPalette::build(dark));
+    button->setLayoutDirection(rtl ? Qt::RightToLeft : Qt::LeftToRight);
+    button->resize(button->sizeHint());
+    QCOMPARE(button->iconSize(), QSize(20, 20));
+    QVERIFY(button->width() >= button->iconSize().width() + 32);
+    QVERIFY(button->height() >= 34);
+    QCOMPARE(button->popupMode(), QToolButton::InstantPopup);
+
+    QStyleOptionToolButton option;
+    option.initFrom(button);
+    option.rect = button->rect();
+    option.icon = button->icon();
+    option.iconSize = button->iconSize();
+    option.features = QStyleOptionToolButton::HasMenu;
+    const QList<QStyle::State> states = { QStyle::State_Enabled,
+        QStyle::State_Enabled | QStyle::State_MouseOver,
+        QStyle::State_Enabled | QStyle::State_Sunken,
+        QStyle::State_Enabled | QStyle::State_HasFocus, QStyle::State_None };
+    QList<QImage> images;
+    for (QStyle::State state : states) {
+        QImage image(button->size(), QImage::Format_ARGB32_Premultiplied);
+        image.fill(Qt::transparent);
+        QPainter painter(&image);
+        option.state = state;
+        style.drawComplexControl(QStyle::CC_ToolButton, &option, &painter, button);
+        painter.end();
+        images.append(image);
+    }
+    QVERIFY(images[0] != images[1]);
+    QVERIFY(images[1] != images[2]);
+    QVERIFY(images[0] != images[3]);
+    QVERIFY(images[0] != images[4]);
+    QVERIFY(images[0].pixelColor(0, 0).alpha() < 20);
+    button->setStyle(nullptr);
 }
 
 void TestMainWindow::menuBarListsMenus()

@@ -21,7 +21,7 @@ class QStyleOptionButton;
 /// - \c separator (bool) on a one-pixel StyledPanel QFrame draws a line in the mid colour,
 ///   which stays subtle in both themes unlike QFrame::HLine;
 /// - \c accent ("success") on a QPushButton draws a tinted, outlined button;
-/// - \c toolbar (bool) on a QPushButton or QLineEdit makes it larger, for the main toolbar.
+/// - \c toolbar (bool) on a QPushButton, QToolButton or QLineEdit makes it larger, for the main toolbar.
 ///
 /// Tab bars draw separate tabs with the selected one filled in the accent colour, and check
 /// boxes draw as accent-filled rounded squares.
@@ -37,7 +37,7 @@ public:
     static constexpr const char *panelBodyProperty = "panelBody";
     /// \brief Name of the bool property marking a QFrame as a separator line.
     static constexpr const char *separatorProperty = "separator";
-    /// \brief Name of the bool property marking a push button or line edit of the main toolbar.
+    /// \brief Name of the bool property marking a push button, tool button or line edit of the main toolbar.
     static constexpr const char *toolbarProperty = "toolbar";
     /// \brief Name of the string property selecting a push button accent.
     static constexpr const char *accentProperty = "accent";
@@ -67,6 +67,16 @@ public:
     ///
     void drawControl(ControlElement element, const QStyleOption *option, QPainter *painter,
                      const QWidget *widget = nullptr) const override;
+
+    ///
+    /// \brief Draws toolbar menu buttons with a separate chevron and rounded hover feedback.
+    /// \param control Complex control to draw.
+    /// \param option Style option of the control.
+    /// \param painter Painter to draw with.
+    /// \param widget Widget being drawn.
+    ///
+    void drawComplexControl(ComplexControl control, const QStyleOptionComplex *option,
+                            QPainter *painter, const QWidget *widget = nullptr) const override;
 
     ///
     /// \brief Raises tabs, input fields, header sections and toolbar controls to the design heights.

@@ -20,6 +20,7 @@
 #include <QScrollArea>
 #include <QStyleFactory>
 #include <QStyleOptionButton>
+#include <QStyleOptionToolButton>
 #include <QStyleOptionTab>
 #include <QStyleOptionViewItem>
 #include <QWidget>
@@ -198,6 +199,54 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option, Q
 }
 
 ///
+/// \brief Draws toolbar menu buttons with a separate chevron and rounded hover feedback.
+/// \param control Complex control to draw.
+/// \param option Style option of the control.
+/// \param painter Painter to draw with.
+/// \param widget Widget being drawn.
+///
+void AppStyle::drawComplexControl(ComplexControl control, const QStyleOptionComplex *option,
+                                  QPainter *painter, const QWidget *widget) const
+{
+    const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
+    if (control != CC_ToolButton || !button || !isToolbarWidget(widget)
+        || !button->features.testFlag(QStyleOptionToolButton::HasMenu)) {
+        QProxyStyle::drawComplexControl(control, option, painter, widget);
+        return;
+    }
+
+    const bool enabled = button->state.testFlag(State_Enabled);
+    const bool pressed = button->state.testFlag(State_Sunken);
+    const bool highlighted = enabled && (pressed || button->state.testFlag(State_MouseOver)
+                                        || button->state.testFlag(State_HasFocus));
+    const QPalette::ColorGroup group = enabled ? QPalette::Active : QPalette::Disabled;
+    const QColor foreground = button->palette.color(group, QPalette::ButtonText);
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    painter->setPen(highlighted ? withAlpha(button->palette.color(QPalette::Highlight), 150)
+                               : withAlpha(foreground, 35));
+    painter->setBrush(highlighted ? withAlpha(button->palette.color(QPalette::Highlight), pressed ? 45 : 25)
+                                 : withAlpha(foreground, 8));
+    painter->drawRoundedRect(QRectF(button->rect).adjusted(0.5, 0.5, -0.5, -0.5),
+                             cornerRadius(), cornerRadius());
+
+    const QRect iconRect = visualRect(button->direction, button->rect,
+                                     QRect(button->rect.left() + 9,
+                                           button->rect.center().y() - button->iconSize.height() / 2 + 1,
+                                           button->iconSize.width(), button->iconSize.height()));
+    button->icon.paint(painter, iconRect, Qt::AlignCenter,
+                       enabled ? QIcon::Normal : QIcon::Disabled);
+    const QRect arrowRect = visualRect(button->direction, button->rect,
+                                      QRect(button->rect.right() - 15, button->rect.center().y() - 1, 6, 3));
+    painter->setPen(QPen(foreground, 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter->setBrush(Qt::NoBrush);
+    painter->drawPolyline(QPolygonF{QPointF(arrowRect.left(), arrowRect.top()),
+                                    QPointF(arrowRect.left() + 3, arrowRect.bottom() + 1),
+                                    QPointF(arrowRect.right() + 1, arrowRect.top())});
+    painter->restore();
+}
+
+///
 /// \brief Raises tabs, input fields, header sections and toolbar controls to the design heights.
 /// \param type Contents type being measured.
 /// \param option Style option of the control.
@@ -213,6 +262,11 @@ QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
     case CT_TabBarTab:
         size.rwidth() += kTabGap + kTabPadding;
         size.setHeight(qMax(size.height(), kTabHeight));
+        break;
+    case CT_ToolButton:
+        if (isToolbarWidget(widget))
+            size = QSize(qMax(size.width(), contentsSize.width() + 32),
+                         qMax(size.height(), kToolbarHeight));
         break;
     case CT_PushButton:
         if (!isToolbarWidget(widget))
