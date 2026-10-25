@@ -32,6 +32,9 @@
 #include <QTextLayout>
 #include <QToolButton>
 #include <QToolTip>
+#include <QNetworkInterface>
+#include <QSet>
+#include <QSysInfo>
 #include <QTest>
 #include <QTreeView>
 
@@ -217,6 +220,8 @@ private slots:
     void namespacesPage();
     void endpointsPage();
     void endpointsPageAppliesEdits();
+    void endpointsPageOffersHostnames();
+    void endpointsPageAppliesSelectedHostname();
     void endpointsPageAddsAndRemoves();
     void endpointsPageAddsNextSecurityPair();
     void endpointsPageDisablesAddWhenEveryPairIsUsed();
@@ -804,17 +809,64 @@ void TestPages::endpointsPage()
     page.setEndpoints(_snapshot.endpoints);
 
     QCOMPARE(page.endpointsModel()->rowCount(), _snapshot.endpoints.size());
-    QCOMPARE(text(page, "hostnameEdit"), QStringLiteral("localhost"));
+    QCOMPARE(child<QComboBox>(page, "hostnameCombo")->currentText(), QStringLiteral("localhost"));
     QCOMPARE(child<QComboBox>(page, "securityModeCombo")->currentText(), QStringLiteral("Sign & Encrypt"));
     QVERIFY(!page.findChild<QLineEdit *>(QStringLiteral("usernameEdit")));
 
     ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 3);
-    QCOMPARE(text(page, "hostnameEdit"), QStringLiteral("localhost"));
+    QCOMPARE(child<QComboBox>(page, "hostnameCombo")->currentText(), QStringLiteral("localhost"));
     QCOMPARE(child<QComboBox>(page, "securityPolicyCombo")->currentText(), QStringLiteral("None"));
 
     child<QLineEdit>(page, "searchEdit")->setText(QStringLiteral("192.168"));
     ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 0);
-    QCOMPARE(text(page, "hostnameEdit"), QStringLiteral("192.168.1.100"));
+    QCOMPARE(child<QComboBox>(page, "hostnameCombo")->currentText(), QStringLiteral("192.168.1.100"));
+}
+
+void TestPages::endpointsPageOffersHostnames()
+{
+    EndpointsPage page;
+    auto endpoints = _snapshot.endpoints;
+    endpoints.first().hostname = QStringLiteral("saved-server.example");
+    endpoints.last().hostname = endpoints.first().hostname;
+    page.setEndpoints(endpoints);
+    auto *combo = child<QComboBox>(page, "hostnameCombo");
+    QVERIFY(combo->isEditable());
+    QCOMPARE(combo->insertPolicy(), QComboBox::NoInsert);
+    QCOMPARE(combo->itemText(0), QSysInfo::machineHostName());
+    QVERIFY(combo->findText(QStringLiteral("localhost")) >= 0);
+    QVERIFY(combo->findText(QStringLiteral("saved-server.example")) >= 0);
+    QCOMPARE(combo->currentText(), QStringLiteral("saved-server.example"));
+    for (const QHostAddress &address : QNetworkInterface::allAddresses()) {
+        if (address.protocol() == QAbstractSocket::IPv4Protocol)
+            QVERIFY2(combo->findText(address.toString()) >= 0, qPrintable(address.toString()));
+    }
+    QSet<QString> choices;
+    for (int i = 0; i < combo->count(); ++i) {
+        QVERIFY(!combo->itemText(i).isEmpty());
+        choices.insert(combo->itemText(i));
+    }
+    QCOMPARE(choices.size(), combo->count());
+
+    endpoints.first().hostname.clear();
+    page.setEndpoints(endpoints);
+    QVERIFY(combo->currentText().isEmpty());
+    page.setEndpoints({});
+    QVERIFY(!combo->isEnabled());
+    QVERIFY(combo->findText(QStringLiteral("saved-server.example")) < 0);
+}
+
+void TestPages::endpointsPageAppliesSelectedHostname()
+{
+    EndpointsPage page;
+    page.setEndpoints(_snapshot.endpoints);
+    QSignalSpy requested(&page, &EndpointsPage::endpointsChangeRequested);
+    auto *combo = child<QComboBox>(page, "hostnameCombo");
+    combo->setCurrentIndex(combo->findText(QSysInfo::machineHostName()));
+    QCOMPARE(requested.count(), 0);
+    child<QPushButton>(page, "applyButton")->click();
+    QCOMPARE(requested.count(), 1);
+    const auto endpoints = requested.first().first().value<QList<EndpointInfo>>();
+    QCOMPARE(endpoints.first().hostname, QSysInfo::machineHostName());
 }
 
 void TestPages::endpointsPageAppliesEdits()
@@ -824,7 +876,7 @@ void TestPages::endpointsPageAppliesEdits()
     page.setEndpoints(endpoints);
     QSignalSpy requested(&page, &EndpointsPage::endpointsChangeRequested);
 
-    child<QLineEdit>(page, "hostnameEdit")->setText(QStringLiteral("edited-host"));
+    child<QComboBox>(page, "hostnameCombo")->setEditText(QStringLiteral("  edited-host  "));
     child<QSpinBox>(page, "portSpin")->setValue(4900);
     child<QCheckBox>(page, "usernamePasswordCheck")->setChecked(true);
     child<QPushButton>(page, "applyButton")->click();
@@ -859,6 +911,10 @@ void TestPages::endpointsPageAddsAndRemoves()
 
     page.setEndpoints({});
     QVERIFY(!child<QPushButton>(page, "removeEndpointButton")->isEnabled());
+    child<QPushButton>(page, "addEndpointButton")->click();
+    const Endpoints first = requested.last().first().value<Endpoints>();
+    QCOMPARE(first.size(), 1);
+    QCOMPARE(first.first().hostname, QSysInfo::machineHostName());
 }
 
 void TestPages::endpointsPageAddsNextSecurityPair()
@@ -907,12 +963,12 @@ void TestPages::endpointsPageRevertsAndKeepsRow()
     EndpointsPage page;
     page.setEndpoints(_snapshot.endpoints);
     ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 2);
-    child<QLineEdit>(page, "hostnameEdit")->setText(QStringLiteral("changed-host"));
+    child<QComboBox>(page, "hostnameCombo")->setEditText(QStringLiteral("changed-host"));
     child<QPushButton>(page, "revertButton")->click();
-    QCOMPARE(text(page, "hostnameEdit"), _snapshot.endpoints[2].hostname);
+    QCOMPARE(child<QComboBox>(page, "hostnameCombo")->currentText(), _snapshot.endpoints[2].hostname);
 
     page.setEndpoints(_snapshot.endpoints);
-    QCOMPARE(text(page, "hostnameEdit"), _snapshot.endpoints[2].hostname);
+    QCOMPARE(child<QComboBox>(page, "hostnameCombo")->currentText(), _snapshot.endpoints[2].hostname);
 }
 
 void TestPages::endpointsPageOffersSecurityOfTheBuild()

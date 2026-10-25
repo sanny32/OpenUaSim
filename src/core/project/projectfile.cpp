@@ -334,7 +334,7 @@ EndpointInfo endpointFromJson(const QJsonObject &json)
 {
     EndpointInfo endpoint;
     endpoint.protocol = json.value(QStringLiteral("protocol")).toString(QStringLiteral("opc.tcp"));
-    endpoint.hostname = json.value(QStringLiteral("hostname")).toString(QStringLiteral("localhost"));
+    endpoint.hostname = json.value(QStringLiteral("hostname")).toString(endpoint.hostname);
     endpoint.port = json.value(QStringLiteral("port")).toInt(endpoint.port);
     endpoint.path = json.value(QStringLiteral("path")).toString();
     endpoint.securityPolicy = json.value(QStringLiteral("securityPolicy")).toString(QStringLiteral("None"));

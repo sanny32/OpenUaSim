@@ -764,7 +764,7 @@ void TestMainWindow::endpointChangesShowRestartNote()
 
     child<QAction>(window, "actionRestartServer")->trigger();
     QVERIFY(!(*note)->isVisible());
-    QCOMPARE(child<QLineEdit>(window, "endpointEdit")->text(), QStringLiteral("opc.tcp://localhost:%1").arg(port));
+    QCOMPARE(child<QLineEdit>(window, "endpointEdit")->text(), QStringLiteral("opc.tcp://%1:%2").arg(project.endpoints.first().hostname).arg(port));
 }
 
 void TestMainWindow::refusedEndpointChangeShowsMessage()

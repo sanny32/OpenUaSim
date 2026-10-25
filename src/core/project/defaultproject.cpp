@@ -73,7 +73,7 @@ NodeDefinition flag(const QString &device, const QString &name, const QString &i
 
 ///
 /// \brief Builds one endpoint for every security policy and mode pair OPC UA allows.
-/// \return Endpoints on localhost and the default port, starting with the unsecured one.
+/// \return Endpoints on the local machine hostname and the default port, starting with the unsecured one.
 ///
 QList<EndpointInfo> allEndpoints()
 {
@@ -81,7 +81,6 @@ QList<EndpointInfo> allEndpoints()
     for (const auto &pair : ListenerSettingsBuilder::allowedSecurityPairs()) {
         EndpointInfo endpoint;
         endpoint.protocol = QStringLiteral("opc.tcp");
-        endpoint.hostname = QStringLiteral("localhost");
         endpoint.securityPolicy = pair.first;
         endpoint.securityMode = pair.second;
         endpoints.append(endpoint);

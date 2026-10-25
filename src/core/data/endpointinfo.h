@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QSysInfo>
 #include <QString>
 
 /// \brief Port of new endpoints; not the IANA 4840 so the simulator can run next to a real server.
@@ -20,8 +21,8 @@ struct EndpointInfo
 {
     /// \brief URL scheme, e.g. "opc.tcp".
     QString protocol;
-    /// \brief Host name or address.
-    QString hostname;
+    /// \brief Host name or address; defaults to the local machine hostname.
+    QString hostname = QSysInfo::machineHostName();
     /// \brief TCP port.
     int port = kDefaultEndpointPort;
     /// \brief Optional URL path, starting with a slash.

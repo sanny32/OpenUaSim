@@ -7,6 +7,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTemporaryDir>
+#include <QSysInfo>
 #include <QTest>
 #include <QTimeZone>
 
@@ -82,6 +83,8 @@ private slots:
     void movesFormat1EndpointLoginsToUsers();
     void emptyProjectRoundTrips();
     void missingFieldsUseDefaults();
+    void preservesExplicitHostname_data();
+    void preservesExplicitHostname();
     void keepsTrustedClientsOnlyKey();
     void rejectsMalformedJson();
     void rejectsNonObjectRoot();
@@ -163,7 +166,7 @@ void TestProjectFile::preservesVariableFields()
     QCOMPARE(speed.simulation.offset, 1000.0);
     QCOMPARE(loaded.endpoints.size(), original.endpoints.size());
     for (int i = 0; i < original.endpoints.size(); ++i) {
-        QCOMPARE(loaded.endpoints.at(i).url(), QStringLiteral("opc.tcp://localhost:48400"));
+        QCOMPARE(loaded.endpoints.at(i).url(), original.endpoints.at(i).url());
         QCOMPARE(loaded.endpoints.at(i).securityPolicy, original.endpoints.at(i).securityPolicy);
         QCOMPARE(loaded.endpoints.at(i).securityMode, original.endpoints.at(i).securityMode);
     }
@@ -386,6 +389,7 @@ void TestProjectFile::missingFieldsUseDefaults()
     QVERIFY2(result.ok(), qPrintable(result.error));
 
     const EndpointInfo &loadedEndpoint = result.project.endpoints.first();
+    QCOMPARE(loadedEndpoint.hostname, QSysInfo::machineHostName());
     QCOMPARE(loadedEndpoint.port, kDefaultEndpointPort);
     QCOMPARE(loadedEndpoint.protocol, QStringLiteral("opc.tcp"));
     QVERIFY(loadedEndpoint.enabled);
@@ -401,6 +405,25 @@ void TestProjectFile::missingFieldsUseDefaults()
     QVERIFY(!variable.historizing);
     QCOMPARE(result.project.server.history.maxValues, HistoryLimits().maxValues);
     QCOMPARE(result.project.server.history.maxAgeMinutes, 0);
+}
+
+void TestProjectFile::preservesExplicitHostname_data()
+{
+    QTest::addColumn<QString>("hostname");
+    QTest::newRow("localhost") << QStringLiteral("localhost");
+    QTest::newRow("remote") << QStringLiteral("plant-server");
+    QTest::newRow("address") << QStringLiteral("192.168.1.100");
+    QTest::newRow("empty") << QString();
+}
+
+void TestProjectFile::preservesExplicitHostname()
+{
+    QFETCH(QString, hostname);
+    ProjectConfig project = DefaultProject::create();
+    project.endpoints.first().hostname = hostname;
+    const auto result = ProjectFile::fromJson(ProjectFile::toJson(project));
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.project.endpoints.first().hostname, hostname);
 }
 
 void TestProjectFile::keepsTrustedClientsOnlyKey()

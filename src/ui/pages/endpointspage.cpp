@@ -6,7 +6,9 @@
 /// \brief Implements the endpoints page.
 ///
 
+#include <QNetworkInterface>
 #include <QSortFilterProxyModel>
+#include <QSysInfo>
 #include <QStandardItemModel>
 
 #include <algorithm>
@@ -34,6 +36,25 @@ void disableAllButNone(QComboBox *combo, const QString &toolTip)
         item->setEnabled(false);
         item->setToolTip(toolTip);
     }
+}
+
+///
+/// \brief Offers local hosts and preserves hostnames from the project even when unavailable locally.
+/// \param endpoints Configured endpoints whose hostnames must remain selectable.
+/// \return Unique machine hostname, localhost, local IPv4 addresses and configured hostnames.
+///
+QStringList hostnameChoices(const QList<EndpointInfo> &endpoints)
+{
+    QStringList hosts { QSysInfo::machineHostName(), QStringLiteral("localhost") };
+    for (const QHostAddress &address : QNetworkInterface::allAddresses()) {
+        if (address.protocol() == QAbstractSocket::IPv4Protocol)
+            hosts.append(address.toString());
+    }
+    for (const EndpointInfo &endpoint : endpoints)
+        hosts.append(endpoint.hostname);
+    hosts.removeAll(QString());
+    hosts.removeDuplicates();
+    return hosts;
 }
 
 using SecurityPair = QPair<QString, QString>;
@@ -140,14 +161,17 @@ EndpointsPage::~EndpointsPage()
 }
 
 ///
-/// \brief Shows the configured endpoints, keeping the selected row when it still exists.
+/// \brief Shows endpoints and hostname choices, keeping the selected row when it still exists.
 /// \param endpoints Endpoints to list.
 ///
 void EndpointsPage::setEndpoints(const QList<EndpointInfo> &endpoints)
 {
     const int previous = qMax(0, ui->endpointsView->currentIndex().row());
+    ui->hostnameCombo->clear();
+    ui->hostnameCombo->addItems(hostnameChoices(endpoints));
     _endpointsModel->setItems(endpoints);
     ViewSetup::selectRow(ui->endpointsView, qMin(previous, int(endpoints.size()) - 1));
+    showEndpoint(ui->endpointsView->currentIndex());
     ui->removeEndpointButton->setEnabled(!endpoints.isEmpty());
     ui->addEndpointButton->setEnabled(!everySecurityPairUsed(endpoints));
 }
@@ -174,7 +198,7 @@ void EndpointsPage::showEndpoint(const QModelIndex &current)
         return;
     const EndpointInfo &endpoint = _endpointsModel->item(source.row());
 
-    ui->hostnameEdit->setText(endpoint.hostname);
+    ui->hostnameCombo->setCurrentText(endpoint.hostname);
     ui->portSpin->setValue(endpoint.port);
     {
         // Show the stored pair as is, even a mismatched one, instead of letting the combos correct each other.
@@ -255,7 +279,7 @@ int EndpointsPage::currentRow() const
 EndpointInfo EndpointsPage::editedEndpoint(int row) const
 {
     EndpointInfo endpoint = _endpointsModel->item(row);
-    endpoint.hostname = ui->hostnameEdit->text().trimmed();
+    endpoint.hostname = ui->hostnameCombo->currentText().trimmed();
     endpoint.port = ui->portSpin->value();
     endpoint.securityPolicy = ui->securityPolicyCombo->currentText();
     endpoint.securityMode = ui->securityModeCombo->currentText();
@@ -295,7 +319,7 @@ void EndpointsPage::addEndpoint()
     QList<EndpointInfo> endpoints = _endpointsModel->items();
     EndpointInfo endpoint;
     endpoint.protocol = QStringLiteral("opc.tcp");
-    endpoint.hostname = endpoints.isEmpty() ? QStringLiteral("localhost") : endpoints.first().hostname;
+    endpoint.hostname = endpoints.isEmpty() ? endpoint.hostname : endpoints.first().hostname;
     endpoint.port = endpoints.isEmpty() ? endpoint.port : endpoints.first().port;
     const SecurityPair security = nextSecurityPair(endpoints);
     endpoint.securityPolicy = security.first;

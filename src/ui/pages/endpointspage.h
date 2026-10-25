@@ -40,7 +40,7 @@ public:
     ~EndpointsPage() override;
 
     ///
-    /// \brief Shows the configured endpoints.
+    /// \brief Shows endpoints and hostname choices, keeping the selected row when it still exists.
     /// \param endpoints Endpoints to list.
     ///
     void setEndpoints(const QList<EndpointInfo> &endpoints);

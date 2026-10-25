@@ -8,6 +8,7 @@
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QSysInfo>
 #include <QTest>
 
 #include <QUaServer>
@@ -69,7 +70,8 @@ void TestProjectDocument::newProjectOffersEveryEndpoint()
     for (const EndpointInfo &endpoint : endpoints) {
         QVERIFY(endpoint.enabled);
         QVERIFY(endpoint.allowAnonymous);
-        QCOMPARE(endpoint.url(), QStringLiteral("opc.tcp://localhost:48400"));
+        QCOMPARE(endpoint.hostname, QSysInfo::machineHostName());
+        QCOMPARE(endpoint.url(), QStringLiteral("opc.tcp://%1:48400").arg(QSysInfo::machineHostName()));
         pairs.insert(endpoint.securityPolicy + QLatin1Char('/') + endpoint.securityMode);
     }
     QCOMPARE(endpoints.size(), 11);
