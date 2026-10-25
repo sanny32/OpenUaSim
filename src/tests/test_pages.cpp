@@ -229,6 +229,7 @@ private slots:
     void endpointsPageOffersSecurityOfTheBuild();
     void endpointsPageKeepsPolicyAndModePaired();
     void endpointsPageShowsStoredMismatch();
+    void endpointsPageFitsEveryEndpoint_data();
     void endpointsPageFitsEveryEndpoint();
     void endpointsPageRequestsUsers();
     void certificatesPage();
@@ -1045,9 +1046,21 @@ void TestPages::endpointsPageShowsStoredMismatch()
     QCOMPARE(child<QComboBox>(page, "securityModeCombo")->currentText(), QStringLiteral("None"));
 }
 
+void TestPages::endpointsPageFitsEveryEndpoint_data()
+{
+    QTest::addColumn<QString>("hostname");
+    QTest::addColumn<bool>("urlExceedsLimit");
+    QTest::newRow("short-hostname") << QStringLiteral("test-host") << false;
+    QTest::newRow("long-hostname") << QString(60, QLatin1Char('h')) + QStringLiteral(".example.test") << true;
+}
+
 void TestPages::endpointsPageFitsEveryEndpoint()
 {
-    const QList<EndpointInfo> endpoints = DefaultProject::create().endpoints;
+    QFETCH(QString, hostname);
+    QFETCH(bool, urlExceedsLimit);
+    QList<EndpointInfo> endpoints = DefaultProject::create().endpoints;
+    for (EndpointInfo &endpoint : endpoints)
+        endpoint.hostname = hostname;
     EndpointsPage page;
     page.setEndpoints({ endpoints.first() });
     page.resize(1200, 700);
@@ -1057,9 +1070,15 @@ void TestPages::endpointsPageFitsEveryEndpoint()
 
     auto *table = child<QTableView>(page, "endpointsView");
     const QAbstractItemView *view = table;
-    for (int column = 0; column < EndpointsModel::ColEnabled; ++column)
-        QVERIFY2(table->horizontalHeader()->sectionSize(column) >= view->sizeHintForColumn(column),
-                 qPrintable(QStringLiteral("column %1").arg(column)));
+    constexpr int maxWidth = 320;
+    QCOMPARE(view->sizeHintForColumn(EndpointsModel::ColUrl) > maxWidth, urlExceedsLimit);
+    QCOMPARE(table->model()->rowCount(), endpoints.size());
+    for (int column = 0; column < EndpointsModel::ColEnabled; ++column) {
+        const int width = table->horizontalHeader()->sectionSize(column);
+        const int needed = qMin(view->sizeHintForColumn(column), maxWidth);
+        QVERIFY2(width >= needed, qPrintable(QStringLiteral("column %1: %2 < %3").arg(column).arg(width).arg(needed)));
+        QVERIFY2(width <= maxWidth, qPrintable(QStringLiteral("column %1: %2 > %3").arg(column).arg(width).arg(maxWidth)));
+    }
 }
 
 void TestPages::endpointsPageRequestsUsers()
