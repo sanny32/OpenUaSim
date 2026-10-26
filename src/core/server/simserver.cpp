@@ -225,12 +225,33 @@ bool SimServer::start(const ProjectConfig &project)
 }
 
 ///
-/// \brief Sets the certificates applied on the next start; ignored in builds without encryption.
+/// \brief Sets the certificates: a running server applies the trusted and issuer certificates at once and
+///        the server certificate on the next start; ignored in builds without encryption.
 /// \param material Server certificate and key with the trusted and issuer certificates.
+/// \return False when the server runs with another server certificate and needs a restart.
 ///
-void SimServer::setPkiMaterial(const PkiMaterial &material)
+bool SimServer::setPkiMaterial(const PkiMaterial &material)
 {
-    _pki = material;
+    if (!_server->isRunning()) {
+        _pki = material;
+        return true;
+    }
+    _pki.trusted = material.trusted;
+    _pki.issuers = material.issuers;
+    applyTrustLists();
+    return material.certificate == _pki.certificate && material.privateKey == _pki.privateKey;
+}
+
+///
+/// \brief Gives QUaServer the trusted and issuer certificates; a running server applies them to the next client.
+///
+void SimServer::applyTrustLists()
+{
+#ifdef OUASIM_HAVE_ENCRYPTION
+    // An empty trusted list makes open62541 accept any client certificate.
+    _server->setTrustedCertificates(_trustedClientsOnly ? _pki.trusted : QList<QByteArray>());
+    _server->setIssuerCertificates(_pki.issuers);
+#endif
 }
 
 ///
@@ -338,11 +359,9 @@ bool SimServer::configureSecurity(const ListenerSettings &listener)
 #ifdef OUASIM_HAVE_ENCRYPTION
     _server->setCertificate(_pki.certificate);
     _server->setPrivateKey(_pki.privateKey);
-    // An empty trusted list makes open62541 accept any client certificate.
-    _server->setTrustedCertificates(listener.trustedClientsOnly ? _pki.trusted : QList<QByteArray>());
-    _server->setIssuerCertificates(_pki.issuers);
-    _server->setRejectUntrustedCertificates(listener.trustedClientsOnly);
     _trustedClientsOnly = listener.trustedClientsOnly;
+    applyTrustLists();
+    _server->setRejectUntrustedCertificates(listener.trustedClientsOnly);
     _server->setSecurityPolicies(securityPolicies(listener.securityPolicies));
     _server->setSecurityModes(securityModes(listener.securityModes));
     _certificateUsers.clear();

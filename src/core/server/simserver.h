@@ -53,10 +53,12 @@ public:
     bool start(const ProjectConfig &project);
 
     ///
-    /// \brief Sets the certificates applied on the next start; ignored in builds without encryption.
+    /// \brief Sets the certificates: a running server applies the trusted and issuer certificates at once and
+    ///        the server certificate on the next start; ignored in builds without encryption.
     /// \param material Server certificate and key with the trusted and issuer certificates.
+    /// \return False when the server runs with another server certificate and needs a restart.
     ///
-    void setPkiMaterial(const PkiMaterial &material);
+    bool setPkiMaterial(const PkiMaterial &material);
 
     ///
     /// \brief Stops listening and closes every session; does nothing when stopped.
@@ -159,6 +161,7 @@ private:
     void releaseServer();
     bool configure(const ProjectConfig &project, const ListenerSettings &listener);
     bool configureSecurity(const ListenerSettings &listener);
+    void applyTrustLists();
     void applyUsers(const QList<UserAccount> &users);
 #ifdef OUASIM_HAVE_ENCRYPTION
     QString certificateUserName(const QByteArray &certificate);

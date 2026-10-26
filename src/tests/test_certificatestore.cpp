@@ -70,7 +70,7 @@ private slots:
     void anyClientConnectsWithoutTrustedClientsOnly();
     void unverifiedClientLandsInRejectedFolder();
     void unverifiedClientAlreadyStoredIsNotCopied();
-    void trustedBeforeRestartIsNotCopiedToRejected();
+    void trustingRejectedClientAppliesWithoutRestart();
 
 private:
     QTemporaryDir *_directory = nullptr;
@@ -382,7 +382,7 @@ void TestCertificateStore::controllerAnnouncesChanges()
 
     QVERIFY(controller.importCertificate(testData(QStringLiteral("client.der")), Category::Rejected));
     QCOMPARE(changed.count(), 1);
-    QVERIFY(controller.isRestartRequired());
+    QVERIFY(!controller.isRestartRequired());
     QCOMPARE(controller.snapshot().certificates.size(), 1);
 
     const QString stored = controller.certificates().first().filePath;
@@ -393,6 +393,11 @@ void TestCertificateStore::controllerAnnouncesChanges()
     QString error;
     QVERIFY(!controller.removeCertificate(stored, &error));
     QCOMPARE(changed.count(), 3);
+    QVERIFY(!controller.isRestartRequired());
+
+    QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                                testData(QStringLiteral("server.key.pem"))));
+    QVERIFY(controller.isRestartRequired());
 }
 
 void TestCertificateStore::secureEndpointRunsWithInstalledCertificate()
@@ -738,10 +743,27 @@ void TestCertificateStore::rejectedClientLandsInRejectedFolder()
 namespace {
 
 ///
-/// \brief Starts a server whose only endpoint is Basic256Sha256 / Sign & Encrypt, then connects as the stranger client.
+/// rief Connects as the stranger client to a running server.
+/// \param controller Running controller.
+/// eturn Connection status.
+///
+UA_StatusCode connectStrangerTo(ServerController &controller)
+{
+    QFile certificate(testData(QStringLiteral("stranger.der")));
+    QFile key(testData(QStringLiteral("stranger.key.der")));
+    if (!certificate.open(QIODevice::ReadOnly) || !key.open(QIODevice::ReadOnly))
+        return UA_STATUSCODE_BADINTERNALERROR;
+    UaTestClient client;
+    const UA_StatusCode encryption =
+        client.setEncryption(certificate.readAll(), key.readAll(), QStringLiteral("urn:openuasim:test:stranger"));
+    return encryption != UA_STATUSCODE_GOOD ? encryption : client.connect(controller.server().endpointUrl());
+}
+
+///
+/// rief Starts a server whose only endpoint is Basic256Sha256 / Sign & Encrypt, then connects as the stranger client.
 /// \param controller Controller to start; its store must already point at the test directory.
 /// \param trustedClientsOnly Whether the endpoint accepts only trusted clients.
-/// \return Connection status.
+/// eturn Connection status.
 ///
 UA_StatusCode connectStranger(ServerController &controller, bool trustedClientsOnly)
 {
@@ -754,15 +776,7 @@ UA_StatusCode connectStranger(ServerController &controller, bool trustedClientsO
     controller.setProject(project);
     if (!controller.start())
         return UA_STATUSCODE_BADINTERNALERROR;
-
-    QFile certificate(testData(QStringLiteral("stranger.der")));
-    QFile key(testData(QStringLiteral("stranger.key.der")));
-    if (!certificate.open(QIODevice::ReadOnly) || !key.open(QIODevice::ReadOnly))
-        return UA_STATUSCODE_BADINTERNALERROR;
-    UaTestClient client;
-    const UA_StatusCode encryption =
-        client.setEncryption(certificate.readAll(), key.readAll(), QStringLiteral("urn:openuasim:test:stranger"));
-    return encryption != UA_STATUSCODE_GOOD ? encryption : client.connect(controller.server().endpointUrl());
+    return connectStrangerTo(controller);
 }
 
 }
@@ -844,7 +858,7 @@ void TestCertificateStore::unverifiedClientAlreadyStoredIsNotCopied()
 #endif
 }
 
-void TestCertificateStore::trustedBeforeRestartIsNotCopiedToRejected()
+void TestCertificateStore::trustingRejectedClientAppliesWithoutRestart()
 {
 #ifndef OUASIM_HAVE_ENCRYPTION
     QSKIP("Built without OUASIM_WITH_ENCRYPTION");
@@ -854,25 +868,23 @@ void TestCertificateStore::trustedBeforeRestartIsNotCopiedToRejected()
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
     QVERIFY(connectStranger(controller, true) != UA_STATUSCODE_GOOD);
     QTRY_VERIFY(changed.count() >= 2);
-    QString rejected;
-    for (const CertificateInfo &info : controller.certificates()) {
-        if (info.category == Category::Rejected)
-            rejected = info.filePath;
-    }
-    QVERIFY(controller.moveCertificate(rejected, Category::Trusted));
-    QVERIFY(controller.isRestartRequired());
-
-    QFile certificate(testData(QStringLiteral("stranger.der")));
-    QFile key(testData(QStringLiteral("stranger.key.der")));
-    QVERIFY(certificate.open(QIODevice::ReadOnly) && key.open(QIODevice::ReadOnly));
-    UaTestClient client;
-    QCOMPARE(client.setEncryption(certificate.readAll(), key.readAll(), QStringLiteral("urn:openuasim:test:stranger")),
-             UA_STATUSCODE_GOOD);
-    QVERIFY(client.connect(controller.server().endpointUrl()) != UA_STATUSCODE_GOOD);
-
+    QVERIFY(connectStrangerTo(controller) != UA_STATUSCODE_GOOD);
     QTRY_VERIFY(std::any_of(controller.log().cbegin(), controller.log().cend(), [](const LogEntry &entry) {
-        return entry.message.contains(QStringLiteral("only after a restart"));
+        return entry.message.contains(QStringLiteral("rejected again"));
     }));
+    QString rejected;
+    int rejectedCount = 0;
+    for (const CertificateInfo &info : controller.certificates()) {
+        if (info.category == Category::Rejected) {
+            rejected = info.filePath;
+            ++rejectedCount;
+        }
+    }
+    QCOMPARE(rejectedCount, 1);
+
+    QVERIFY(controller.moveCertificate(rejected, Category::Trusted));
+    QVERIFY(!controller.isRestartRequired());
+    QCOMPARE(connectStrangerTo(controller), UA_STATUSCODE_GOOD);
     QList<Category> categories;
     for (const CertificateInfo &info : controller.certificates()) {
         if (info.commonName == QStringLiteral("Stranger Client"))

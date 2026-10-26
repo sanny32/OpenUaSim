@@ -1861,10 +1861,6 @@
         <translation>Сертификат клиента «%1» снова отклонён (%2)</translation>
     </message>
     <message>
-        <source>Client certificate &apos;%1&apos; rejected (%2): it is trusted, but the running server applies certificate changes only after a restart</source>
-        <translation>Сертификат клиента «%1» отклонён (%2): он доверенный, но работающий сервер применяет изменения сертификатов только после перезапуска</translation>
-    </message>
-    <message>
         <source>Client certificate &apos;%1&apos; rejected (%2) although it is trusted</source>
         <translation>Сертификат клиента «%1» отклонён (%2), хотя он доверенный</translation>
     </message>

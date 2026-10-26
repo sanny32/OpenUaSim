@@ -923,7 +923,8 @@ void ServerController::ensureServerCertificate()
 }
 
 ///
-/// \brief Announces a successful PKI change, which a running server applies on restart.
+/// \brief Gives a successful PKI change to the server and announces it; a running server applies the trust
+///        lists at once and needs a restart only for another server certificate.
 /// \param changed Whether the store changed.
 /// \return The value of changed, so callers can return it directly.
 ///
@@ -931,7 +932,7 @@ bool ServerController::finishCertificateChange(bool changed)
 {
     if (!changed)
         return false;
-    if (isRunning())
+    if (!_server.setPkiMaterial(_certificates.material()))
         setRestartRequired(true);
     emit certificatesChanged();
     return true;
@@ -1013,14 +1014,9 @@ void ServerController::handleClientWrite(const QString &nodeId, const QVariant &
 void ServerController::handleCertificateRejected(const QByteArray &certificate, const QString &reason)
 {
     if (const std::optional<CertificateInfo> known = _certificates.find(certificate)) {
-        QString message;
-        if (known->category != CertificateInfo::Category::Trusted)
-            message = tr("Client certificate '%1' rejected again (%2)");
-        else if (_restartRequired)
-            message = tr("Client certificate '%1' rejected (%2): it is trusted, but the running server "
-                         "applies certificate changes only after a restart");
-        else
-            message = tr("Client certificate '%1' rejected (%2) although it is trusted");
+        const QString message = known->category == CertificateInfo::Category::Trusted
+            ? tr("Client certificate '%1' rejected (%2) although it is trusted")
+            : tr("Client certificate '%1' rejected again (%2)");
         appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Security,
                                    message.arg(known->commonName, reason)));
         return;
