@@ -837,9 +837,20 @@ void TestPages::endpointsPageOffersHostnames()
     QVERIFY(combo->findText(QStringLiteral("localhost")) >= 0);
     QVERIFY(combo->findText(QStringLiteral("saved-server.example")) >= 0);
     QCOMPARE(combo->currentText(), QStringLiteral("saved-server.example"));
-    for (const QHostAddress &address : QNetworkInterface::allAddresses()) {
-        if (address.protocol() == QAbstractSocket::IPv4Protocol)
-            QVERIFY2(combo->findText(address.toString()) >= 0, qPrintable(address.toString()));
+    for (const QNetworkInterface &networkInterface : QNetworkInterface::allInterfaces()) {
+        const QNetworkInterface::InterfaceFlags flags = networkInterface.flags();
+        const bool tunnel = flags.testFlag(QNetworkInterface::IsPointToPoint)
+                            || networkInterface.type() == QNetworkInterface::Virtual
+                            || networkInterface.type() == QNetworkInterface::Ppp
+                            || (networkInterface.hardwareAddress().isEmpty()
+                                && !flags.testFlag(QNetworkInterface::IsLoopBack));
+        const bool offered = flags.testFlag(QNetworkInterface::IsUp) && !tunnel;
+        for (const QNetworkAddressEntry &entry : networkInterface.addressEntries()) {
+            const QString address = entry.ip().toString();
+            if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol)
+                QVERIFY2((combo->findText(address) >= 0) == offered,
+                         qPrintable(networkInterface.humanReadableName() + u' ' + address));
+        }
     }
     QSet<QString> choices;
     for (int i = 0; i < combo->count(); ++i) {

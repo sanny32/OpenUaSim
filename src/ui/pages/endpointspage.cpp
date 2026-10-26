@@ -39,16 +39,37 @@ void disableAllButNone(QComboBox *combo, const QString &toolTip)
 }
 
 ///
+/// \brief Tells whether clients can reach the server through the interface's addresses.
+/// \return False for interfaces that are down and for VPN or tunnel adapters.
+///
+bool isReachableInterface(const QNetworkInterface &networkInterface)
+{
+    const QNetworkInterface::InterfaceFlags flags = networkInterface.flags();
+    // Wintun and tun adapters (e.g. AdGuard VPN, WireGuard) report Unknown type; only the missing MAC gives them away.
+    const bool tunnelWithoutMac = networkInterface.hardwareAddress().isEmpty()
+                                  && !flags.testFlag(QNetworkInterface::IsLoopBack);
+    return flags.testFlag(QNetworkInterface::IsUp)
+           && !flags.testFlag(QNetworkInterface::IsPointToPoint)
+           && networkInterface.type() != QNetworkInterface::Virtual
+           && networkInterface.type() != QNetworkInterface::Ppp
+           && !tunnelWithoutMac;
+}
+
+///
 /// \brief Offers local hosts and preserves hostnames from the project even when unavailable locally.
 /// \param endpoints Configured endpoints whose hostnames must remain selectable.
-/// \return Unique machine hostname, localhost, local IPv4 addresses and configured hostnames.
+/// \return Unique machine hostname, localhost, IPv4 addresses of reachable interfaces and configured hostnames.
 ///
 QStringList hostnameChoices(const QList<EndpointInfo> &endpoints)
 {
     QStringList hosts { QSysInfo::machineHostName(), QStringLiteral("localhost") };
-    for (const QHostAddress &address : QNetworkInterface::allAddresses()) {
-        if (address.protocol() == QAbstractSocket::IPv4Protocol)
-            hosts.append(address.toString());
+    for (const QNetworkInterface &networkInterface : QNetworkInterface::allInterfaces()) {
+        if (!isReachableInterface(networkInterface))
+            continue;
+        for (const QNetworkAddressEntry &entry : networkInterface.addressEntries()) {
+            if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol)
+                hosts.append(entry.ip().toString());
+        }
     }
     for (const EndpointInfo &endpoint : endpoints)
         hosts.append(endpoint.hostname);
