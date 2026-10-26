@@ -22,7 +22,16 @@ public:
     ///
     /// \brief Columns exposed by the model.
     ///
-    enum Column { ColProtocol, ColUrl, ColSecurityPolicy, ColSecurityMode, ColEnabled, ColCount };
+    enum Column {
+        ColProtocol,
+        ColUrl,
+        ColSecurityPolicy,
+        ColSecurityMode,
+        ColUserAuthentication,
+        ColTrustedClientsOnly,
+        ColEnabled,
+        ColCount
+    };
 
     ///
     /// \brief Constructs an empty model.
@@ -54,4 +63,11 @@ public:
     ///
     QVariant headerData(int section, Qt::Orientation orientation,
                         int role = Qt::DisplayRole) const override;
+
+    ///
+    /// \brief Lists the user identity tokens an endpoint accepts.
+    /// \param endpoint Endpoint to describe.
+    /// \return Text such as "Anonymous, Username, Certificate", or "None" when it accepts no token.
+    ///
+    static QString userAuthenticationText(const EndpointInfo &endpoint);
 };

@@ -116,6 +116,8 @@ private slots:
     void referencesModel();
     void namespacesModel();
     void endpointsModel();
+    void endpointUserAuthenticationText_data();
+    void endpointUserAuthenticationText();
     void certificatesModel();
     void certificateStatus_data();
     void certificateStatus();
@@ -545,6 +547,41 @@ void TestTableModels::endpointsModel()
     QCOMPARE(model.index(1, EndpointsModel::ColEnabled).data().toString(), QStringLiteral("No"));
     QCOMPARE(status(model.index(1, EndpointsModel::ColEnabled)), StatusKind::Inactive);
     QCOMPARE(status(model.index(0, EndpointsModel::ColUrl)), StatusKind::None);
+    QCOMPARE(header(model, EndpointsModel::ColUserAuthentication), QStringLiteral("User Authentication"));
+    QCOMPARE(header(model, EndpointsModel::ColTrustedClientsOnly), QStringLiteral("Trusted Clients Only"));
+    QCOMPARE(model.index(0, EndpointsModel::ColUserAuthentication).data().toString(), QStringLiteral("Anonymous"));
+    QCOMPARE(model.index(0, EndpointsModel::ColTrustedClientsOnly).data().toString(), QStringLiteral("No"));
+    QCOMPARE(status(model.index(0, EndpointsModel::ColTrustedClientsOnly)), StatusKind::None);
+}
+
+void TestTableModels::endpointUserAuthenticationText_data()
+{
+    QTest::addColumn<bool>("anonymous");
+    QTest::addColumn<bool>("username");
+    QTest::addColumn<bool>("certificate");
+    QTest::addColumn<QString>("text");
+    QTest::newRow("all") << true << true << true << QStringLiteral("Anonymous, Username, Certificate");
+    QTest::newRow("username") << false << true << false << QStringLiteral("Username");
+    QTest::newRow("certificate") << false << false << true << QStringLiteral("Certificate");
+    QTest::newRow("none") << false << false << false << QStringLiteral("None");
+}
+
+void TestTableModels::endpointUserAuthenticationText()
+{
+    QFETCH(bool, anonymous);
+    QFETCH(bool, username);
+    QFETCH(bool, certificate);
+    QFETCH(QString, text);
+    EndpointInfo endpoint;
+    endpoint.allowAnonymous = anonymous;
+    endpoint.usernamePassword = username;
+    endpoint.userCertificate = certificate;
+    endpoint.trustedClientsOnly = true;
+
+    EndpointsModel model;
+    model.setItems({ endpoint });
+    QCOMPARE(model.index(0, EndpointsModel::ColUserAuthentication).data().toString(), text);
+    QCOMPARE(model.index(0, EndpointsModel::ColTrustedClientsOnly).data().toString(), QStringLiteral("Yes"));
 }
 
 void TestTableModels::certificatesModel()

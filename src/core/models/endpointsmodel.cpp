@@ -6,6 +6,8 @@
 /// \brief Implements the table model of server endpoints.
 ///
 
+#include <QStringList>
+
 #include "endpointsmodel.h"
 #include "itemroles.h"
 
@@ -48,12 +50,14 @@ QVariant EndpointsModel::data(const QModelIndex &index, int role) const
         return {};
 
     switch (index.column()) {
-    case ColProtocol:       return endpoint.protocol;
-    case ColUrl:            return endpoint.url();
-    case ColSecurityPolicy: return endpoint.securityPolicy;
-    case ColSecurityMode:   return endpoint.securityMode;
-    case ColEnabled:        return endpoint.enabled ? tr("Yes") : tr("No");
-    default:                return {};
+    case ColProtocol:           return endpoint.protocol;
+    case ColUrl:                return endpoint.url();
+    case ColSecurityPolicy:     return endpoint.securityPolicy;
+    case ColSecurityMode:       return endpoint.securityMode;
+    case ColUserAuthentication: return userAuthenticationText(endpoint);
+    case ColTrustedClientsOnly: return endpoint.trustedClientsOnly ? tr("Yes") : tr("No");
+    case ColEnabled:            return endpoint.enabled ? tr("Yes") : tr("No");
+    default:                    return {};
     }
 }
 
@@ -69,11 +73,30 @@ QVariant EndpointsModel::headerData(int section, Qt::Orientation orientation, in
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole)
         return ItemTableModel::headerData(section, orientation, role);
     switch (section) {
-    case ColProtocol:       return tr("Protocol");
-    case ColUrl:            return tr("URL");
-    case ColSecurityPolicy: return tr("Security Policy");
-    case ColSecurityMode:   return tr("Security Mode");
-    case ColEnabled:        return tr("Enabled");
-    default:                return {};
+    case ColProtocol:           return tr("Protocol");
+    case ColUrl:                return tr("URL");
+    case ColSecurityPolicy:     return tr("Security Policy");
+    case ColSecurityMode:       return tr("Security Mode");
+    case ColUserAuthentication: return tr("User Authentication");
+    case ColTrustedClientsOnly: return tr("Trusted Clients Only");
+    case ColEnabled:            return tr("Enabled");
+    default:                    return {};
     }
+}
+
+///
+/// \brief Lists the user identity tokens an endpoint accepts.
+/// \param endpoint Endpoint to describe.
+/// \return Text such as "Anonymous, Username, Certificate", or "None" when it accepts no token.
+///
+QString EndpointsModel::userAuthenticationText(const EndpointInfo &endpoint)
+{
+    QStringList tokens;
+    if (endpoint.allowAnonymous)
+        tokens << tr("Anonymous");
+    if (endpoint.usernamePassword)
+        tokens << tr("Username");
+    if (endpoint.userCertificate)
+        tokens << tr("Certificate");
+    return tokens.isEmpty() ? tr("None") : tokens.join(QStringLiteral(", "));
 }

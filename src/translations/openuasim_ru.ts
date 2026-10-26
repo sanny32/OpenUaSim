@@ -610,8 +610,32 @@
         <translation>Режим безопасности</translation>
     </message>
     <message>
+        <source>User Authentication</source>
+        <translation>Аутентификация</translation>
+    </message>
+    <message>
+        <source>Trusted Clients Only</source>
+        <translation>Только доверенные клиенты</translation>
+    </message>
+    <message>
         <source>Enabled</source>
         <translation>Включено</translation>
+    </message>
+    <message>
+        <source>Anonymous</source>
+        <translation>Анонимно</translation>
+    </message>
+    <message>
+        <source>Username</source>
+        <translation>Имя и пароль</translation>
+    </message>
+    <message>
+        <source>Certificate</source>
+        <translation>Сертификат</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Нет</translation>
     </message>
 </context>
 <context>
