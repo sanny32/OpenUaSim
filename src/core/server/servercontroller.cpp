@@ -1005,12 +1005,26 @@ void ServerController::handleClientWrite(const QString &nodeId, const QVariant &
 }
 
 ///
-/// \brief Keeps a rejected client certificate in the rejected folder, where it can be reviewed and trusted.
+/// \brief Keeps a rejected client certificate in the rejected folder, where it can be reviewed and trusted;
+///        a certificate the store already holds is not copied, and the log says why a trusted one failed.
 /// \param certificate Rejected DER certificate.
 /// \param reason Status code name of the rejection.
 ///
 void ServerController::handleCertificateRejected(const QByteArray &certificate, const QString &reason)
 {
+    if (const std::optional<CertificateInfo> known = _certificates.find(certificate)) {
+        QString message;
+        if (known->category != CertificateInfo::Category::Trusted)
+            message = tr("Client certificate '%1' rejected again (%2)");
+        else if (_restartRequired)
+            message = tr("Client certificate '%1' rejected (%2): it is trusted, but the running server "
+                         "applies certificate changes only after a restart");
+        else
+            message = tr("Client certificate '%1' rejected (%2) although it is trusted");
+        appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Security,
+                                   message.arg(known->commonName, reason)));
+        return;
+    }
     QString error;
     const QString stored = _certificates.addCertificate(certificate, CertificateInfo::Category::Rejected, &error);
     if (stored.isEmpty()) {
@@ -1031,7 +1045,7 @@ void ServerController::handleCertificateRejected(const QByteArray &certificate, 
 ///
 void ServerController::handleUnverifiedClient(const QByteArray &certificate)
 {
-    if (_certificates.isStored(certificate))
+    if (_certificates.find(certificate))
         return;
     QString error;
     const QString stored = _certificates.addCertificate(certificate, CertificateInfo::Category::Rejected, &error);

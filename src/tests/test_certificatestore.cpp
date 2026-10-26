@@ -70,6 +70,7 @@ private slots:
     void anyClientConnectsWithoutTrustedClientsOnly();
     void unverifiedClientLandsInRejectedFolder();
     void unverifiedClientAlreadyStoredIsNotCopied();
+    void trustedBeforeRestartIsNotCopiedToRejected();
 
 private:
     QTemporaryDir *_directory = nullptr;
@@ -680,14 +681,17 @@ void TestCertificateStore::findsStoredCertificateByContent()
     QFile stranger(testData(QStringLiteral("stranger.der")));
     QVERIFY(client.open(QIODevice::ReadOnly) && stranger.open(QIODevice::ReadOnly));
     const QByteArray clientDer = client.readAll();
-    QVERIFY(!_store.isStored(clientDer));
+    QVERIFY(!_store.find(clientDer));
 
     const QString stored = _store.addCertificate(clientDer, Category::Issuer);
     const QString renamed = QFileInfo(stored).absolutePath() + QStringLiteral("/renamed.der");
     QVERIFY(QFile::rename(stored, renamed));
-    QVERIFY(_store.isStored(clientDer));
-    QVERIFY(!_store.isStored(stranger.readAll()));
-    QVERIFY(!_store.isStored(QByteArray("garbage")));
+    const std::optional<CertificateInfo> found = _store.find(clientDer);
+    QVERIFY(found);
+    QCOMPARE(found->category, Category::Issuer);
+    QCOMPARE(QFileInfo(found->filePath).fileName(), QStringLiteral("renamed.der"));
+    QVERIFY(!_store.find(stranger.readAll()));
+    QVERIFY(!_store.find(QByteArray("garbage")));
 }
 
 void TestCertificateStore::rejectedClientLandsInRejectedFolder()
@@ -831,6 +835,44 @@ void TestCertificateStore::unverifiedClientAlreadyStoredIsNotCopied()
     QCOMPARE(connectStranger(controller, false), UA_STATUSCODE_GOOD);
 
     QTRY_VERIFY(!controller.sessions().isEmpty());
+    QList<Category> categories;
+    for (const CertificateInfo &info : controller.certificates()) {
+        if (info.commonName == QStringLiteral("Stranger Client"))
+            categories << info.category;
+    }
+    QCOMPARE(categories, QList<Category> { Category::Trusted });
+#endif
+}
+
+void TestCertificateStore::trustedBeforeRestartIsNotCopiedToRejected()
+{
+#ifndef OUASIM_HAVE_ENCRYPTION
+    QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+#else
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    QSignalSpy changed(&controller, &ServerController::certificatesChanged);
+    QVERIFY(connectStranger(controller, true) != UA_STATUSCODE_GOOD);
+    QTRY_VERIFY(changed.count() >= 2);
+    QString rejected;
+    for (const CertificateInfo &info : controller.certificates()) {
+        if (info.category == Category::Rejected)
+            rejected = info.filePath;
+    }
+    QVERIFY(controller.moveCertificate(rejected, Category::Trusted));
+    QVERIFY(controller.isRestartRequired());
+
+    QFile certificate(testData(QStringLiteral("stranger.der")));
+    QFile key(testData(QStringLiteral("stranger.key.der")));
+    QVERIFY(certificate.open(QIODevice::ReadOnly) && key.open(QIODevice::ReadOnly));
+    UaTestClient client;
+    QCOMPARE(client.setEncryption(certificate.readAll(), key.readAll(), QStringLiteral("urn:openuasim:test:stranger")),
+             UA_STATUSCODE_GOOD);
+    QVERIFY(client.connect(controller.server().endpointUrl()) != UA_STATUSCODE_GOOD);
+
+    QTRY_VERIFY(std::any_of(controller.log().cbegin(), controller.log().cend(), [](const LogEntry &entry) {
+        return entry.message.contains(QStringLiteral("only after a restart"));
+    }));
     QList<Category> categories;
     for (const CertificateInfo &info : controller.certificates()) {
         if (info.commonName == QStringLiteral("Stranger Client"))

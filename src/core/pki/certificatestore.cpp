@@ -355,23 +355,23 @@ QList<CertificateInfo> CertificateStore::certificates() const
 }
 
 ///
-/// \brief Tells whether any folder already holds a certificate, whatever its file name.
+/// \brief Looks a certificate up in every folder, whatever its file name.
 /// \param certificate PEM or DER certificate.
-/// \return False when no folder holds it or the data is not a certificate.
+/// \return The stored certificate, or nothing when no folder holds it or the data is not a certificate.
 ///
-bool CertificateStore::isStored(const QByteArray &certificate) const
+std::optional<CertificateInfo> CertificateStore::find(const QByteArray &certificate) const
 {
     const QSslCertificate wanted = parseCertificate(certificate);
     if (wanted.isNull())
-        return false;
+        return std::nullopt;
     for (CertificateInfo::Category category : categories()) {
         const QFileInfoList files = QDir(folder(category)).entryInfoList(QDir::Files);
         for (const QFileInfo &file : files) {
             if (parseCertificate(readFile(file.absoluteFilePath())) == wanted)
-                return true;
+                return describe(wanted, category, file.absoluteFilePath());
         }
     }
-    return false;
+    return std::nullopt;
 }
 
 ///

@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include <QByteArray>
 #include <QList>
 #include <QString>
@@ -73,11 +75,11 @@ public:
     QList<CertificateInfo> certificates() const;
 
     ///
-    /// \brief Tells whether any folder already holds a certificate, whatever its file name.
+    /// \brief Looks a certificate up in every folder, whatever its file name.
     /// \param certificate PEM or DER certificate.
-    /// \return False when no folder holds it or the data is not a certificate.
+    /// \return The stored certificate, or nothing when no folder holds it or the data is not a certificate.
     ///
-    bool isStored(const QByteArray &certificate) const;
+    std::optional<CertificateInfo> find(const QByteArray &certificate) const;
 
     ///
     /// \brief Copies a certificate into a folder as DER.
