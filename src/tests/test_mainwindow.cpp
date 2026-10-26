@@ -772,7 +772,8 @@ void TestMainWindow::refusedEndpointChangeShowsMessage()
 {
     ProjectConfig project = TestProject::create();
     project.endpoints.append(project.endpoints.first());
-    project.endpoints.last().hostname = QStringLiteral("127.0.0.1");
+    project.endpoints.last().securityPolicy = QStringLiteral("Basic256Sha256");
+    project.endpoints.last().securityMode = QStringLiteral("None");
     ServerController controller;
     controller.setProject(project);
     MainWindow window;
@@ -785,8 +786,9 @@ void TestMainWindow::refusedEndpointChangeShowsMessage()
 
     auto *box = window.findChild<QMessageBox *>();
     QVERIFY(box);
-    QVERIFY(box->text().contains(QStringLiteral("must share one port")));
+    QVERIFY(box->text().contains(QStringLiteral("pairs security policy")));
     box->close();
+    QCOMPARE(controller.project().endpoints.first().port, project.endpoints.first().port);
 }
 
 void TestMainWindow::titleShowsDocumentAndChanges()

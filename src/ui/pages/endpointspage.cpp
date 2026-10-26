@@ -339,7 +339,8 @@ EndpointInfo EndpointsPage::editedEndpoint(int row) const
 }
 
 ///
-/// \brief Asks to store the edited properties of the selected endpoint.
+/// \brief Asks to store the edited properties of the selected endpoint; hostname and port go to every
+///        endpoint because the server has a single listener.
 ///
 void EndpointsPage::applyEndpoint()
 {
@@ -358,7 +359,12 @@ void EndpointsPage::applyEndpoint()
         box->open();
         return;
     }
-    endpoints[row] = editedEndpoint(row);
+    const EndpointInfo edited = editedEndpoint(row);
+    for (EndpointInfo &endpoint : endpoints) {
+        endpoint.hostname = edited.hostname;
+        endpoint.port = edited.port;
+    }
+    endpoints[row] = edited;
     emit endpointsChangeRequested(endpoints);
 }
 

@@ -901,9 +901,13 @@ void TestPages::endpointsPageAppliesEdits()
     using Endpoints = QList<EndpointInfo>;
     const Endpoints applied = requested.first().first().value<Endpoints>();
     QCOMPARE(applied.size(), endpoints.size());
-    QCOMPARE(applied[0].hostname, QStringLiteral("edited-host"));
-    QCOMPARE(applied[0].port, 4900);
+    for (const EndpointInfo &endpoint : applied) {
+        QCOMPARE(endpoint.hostname, QStringLiteral("edited-host"));
+        QCOMPARE(endpoint.port, 4900);
+    }
     QVERIFY(applied[0].usernamePassword);
+    for (qsizetype i = 1; i < applied.size(); ++i)
+        QCOMPARE(applied[i].usernamePassword, endpoints[i].usernamePassword);
 }
 
 void TestPages::endpointsPageAddsAndRemoves()
