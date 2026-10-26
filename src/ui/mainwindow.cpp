@@ -11,9 +11,7 @@
 #include <QActionGroup>
 #include <QApplication>
 #include <QCloseEvent>
-#include <QFile>
 #include <QFileDialog>
-#include <QFileInfo>
 #include <QInputDialog>
 #include <QLabel>
 #include <QPushButton>
@@ -24,12 +22,14 @@
 #include "appicons.h"
 #include "applanguage.h"
 #include "apptheme.h"
+#include "certificateactions.h"
 #include "messagedialog.h"
 #include "data/serversnapshot.h"
 #include "logexport.h"
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
+#include "modelactions.h"
 #include "elidedlabel.h"
 #include "project/projectdocument.h"
 #include "project/projectfile.h"
@@ -46,37 +46,6 @@ namespace {
 constexpr double kEventLogShare = 0.28;
 constexpr int kPageShortcutCount = 9;
 constexpr int kStatusRefreshMs = 1000;
-
-///
-/// \brief Returns the file name filter of NodeSet2 files for file dialogs.
-/// \return Filter such as "NodeSet2 XML (*.xml)".
-///
-QString nodeSetFilter()
-{
-    return QCoreApplication::translate("MainWindow", "NodeSet2 XML (*.xml)");
-}
-
-///
-/// \brief Explains what deleting a certificate from a store folder changes.
-/// \param category Folder of the certificate.
-/// \return One or two sentences for the confirmation.
-///
-QString deletionConsequence(CertificateInfo::Category category)
-{
-    switch (category) {
-    case CertificateInfo::Category::Application:
-        return QCoreApplication::translate("MainWindow", "The server creates a new certificate on its next start. "
-                                                         "Clients that trust the current one will have to trust the new one.");
-    case CertificateInfo::Category::Trusted:
-        return QCoreApplication::translate("MainWindow", "The client will no longer be trusted.");
-    case CertificateInfo::Category::Rejected:
-        return QCoreApplication::translate("MainWindow", "If the client connects again, its certificate appears again.");
-    case CertificateInfo::Category::Issuer:
-        return QCoreApplication::translate("MainWindow", "Client certificates signed by this issuer will no longer "
-                                                         "be validated through it.");
-    }
-    return {};
-}
 
 }
 
@@ -176,18 +145,10 @@ void MainWindow::setController(ServerController *controller)
     connect(ui->actionDeleteNode, &QAction::triggered, this, &MainWindow::confirmDeleteNode);
     connect(ui->actionServerSettings, &QAction::triggered, this, &MainWindow::showServerSettingsDialog);
     connect(ui->actionUserAccounts, &QAction::triggered, this, &MainWindow::showUsersDialog);
-    connect(ui->certificatesPage, &CertificatesPage::generateRequested,
-            this, &MainWindow::confirmGenerateServerCertificate);
-    connect(ui->certificatesPage, &CertificatesPage::importRequested, this, &MainWindow::importCertificate);
-    connect(ui->certificatesPage, &CertificatesPage::exportRequested, this, &MainWindow::exportCertificate);
-    connect(ui->certificatesPage, &CertificatesPage::moveRequested, this, &MainWindow::moveCertificate);
-    connect(ui->certificatesPage, &CertificatesPage::deleteRequested, this, &MainWindow::confirmDeleteCertificate);
-    connect(controller, &ServerController::certificatesChanged, this, &MainWindow::reloadCertificates);
-    connect(ui->actionImportModel, &QAction::triggered, this, &MainWindow::importModel);
-    connect(ui->actionExportModel, &QAction::triggered, this, &MainWindow::exportModel);
-    connect(ui->namespacesPage, &NamespacesPage::importRequested, this, &MainWindow::importModel);
-    connect(ui->namespacesPage, &NamespacesPage::exportRequested, this, &MainWindow::exportNamespace);
-    connect(ui->namespacesPage, &NamespacesPage::modelRemovalRequested, this, &MainWindow::confirmRemoveModel);
+    _certificateActions = new CertificateActions(*controller, ui->certificatesPage, this);
+    _modelActions = new ModelActions(*controller, ui->namespacesPage, this);
+    connect(ui->actionImportModel, &QAction::triggered, _modelActions, &ModelActions::importModel);
+    connect(ui->actionExportModel, &QAction::triggered, _modelActions, &ModelActions::exportModel);
     connect(ui->endpointsPage, &EndpointsPage::endpointsChangeRequested, this, &MainWindow::applyEndpoints);
     connect(ui->endpointsPage, &EndpointsPage::usersEditRequested, this, &MainWindow::showUsersDialog);
     connect(controller, &ServerController::endpointsChanged, this, &MainWindow::reloadEndpoints);
@@ -207,6 +168,24 @@ void MainWindow::setController(ServerController *controller)
 LogModel *MainWindow::logModel() const
 {
     return _logModel;
+}
+
+///
+/// \brief Returns the actions of the Certificates page.
+/// \return Actions created by setController(), or null before.
+///
+CertificateActions *MainWindow::certificateActions() const
+{
+    return _certificateActions;
+}
+
+///
+/// \brief Returns the actions on NodeSet2 models.
+/// \return Actions created by setController(), or null before.
+///
+ModelActions *MainWindow::modelActions() const
+{
+    return _modelActions;
 }
 
 ///
@@ -273,49 +252,6 @@ bool MainWindow::confirmDiscardChanges()
 }
 
 ///
-/// \brief Imports a NodeSet2 model, reporting a file that cannot be loaded.
-/// \param fileName NodeSet2 file.
-/// \return True when the model was loaded.
-///
-bool MainWindow::importModelFrom(const QString &fileName)
-{
-    QString error;
-    if (_controller && _controller->importNodeSet(fileName, &error))
-        return true;
-    showError(tr("Model not imported"), error);
-    return false;
-}
-
-///
-/// \brief Exports the project nodes as NodeSet2, reporting a file that cannot be written.
-/// \param fileName Target path.
-/// \return True when the file was written.
-///
-bool MainWindow::exportModelTo(const QString &fileName)
-{
-    QString error;
-    if (_controller && _controller->exportNodeSet(fileName, &error))
-        return true;
-    showError(tr("Model not exported"), error);
-    return false;
-}
-
-///
-/// \brief Exports the nodes of one namespace as NodeSet2, reporting a file that cannot be written.
-/// \param fileName Target path.
-/// \param namespaceUri URI of the namespace to export.
-/// \return True when the file was written.
-///
-bool MainWindow::exportNamespaceTo(const QString &fileName, const QString &namespaceUri)
-{
-    QString error;
-    if (_controller && _controller->exportNamespace(fileName, namespaceUri, &error))
-        return true;
-    showError(tr("Namespace not exported"), error);
-    return false;
-}
-
-///
 /// \brief Writes log entries to a CSV file, reporting a file that cannot be written.
 /// \param fileName Target path.
 /// \param entries Entries to write.
@@ -327,36 +263,6 @@ bool MainWindow::exportLogTo(const QString &fileName, const QList<LogEntry> &ent
     if (LogExport::write(fileName, entries, &error))
         return true;
     showError(tr("Log not exported"), error);
-    return false;
-}
-
-///
-/// \brief Adds a client or issuer certificate to the PKI store, reporting a refused file.
-/// \param fileName PEM or DER certificate.
-/// \param category Trusted, Rejected or Issuer folder.
-/// \return True when the certificate was stored.
-///
-bool MainWindow::importCertificateFrom(const QString &fileName, CertificateInfo::Category category)
-{
-    QString error;
-    if (_controller && _controller->importCertificate(fileName, category, &error))
-        return true;
-    showError(tr("Certificate not imported"), error);
-    return false;
-}
-
-///
-/// \brief Installs the server certificate and key, reporting refused files.
-/// \param certificateFile PEM or DER certificate.
-/// \param keyFile PEM or DER private key.
-/// \return True when both were stored.
-///
-bool MainWindow::installServerCertificateFrom(const QString &certificateFile, const QString &keyFile)
-{
-    QString error;
-    if (_controller && _controller->installServerCertificate(certificateFile, keyFile, &error))
-        return true;
-    showError(tr("Server certificate not installed"), error);
     return false;
 }
 
@@ -706,9 +612,7 @@ void MainWindow::showStartWarning(const QString &reason)
 ///
 void MainWindow::showError(const QString &title, const QString &text)
 {
-    auto *dialog = new MessageDialog(QStyle::SP_MessageBoxWarning, title, text, QString(), this);
-    dialog->setAttribute(Qt::WA_DeleteOnClose);
-    dialog->open();
+    MessageDialog::warning(title, text, this);
 }
 
 ///
@@ -1053,46 +957,6 @@ bool MainWindow::saveProjectAs()
 }
 
 ///
-/// \brief Picks a NodeSet2 file and imports it.
-///
-void MainWindow::importModel()
-{
-    if (!_controller)
-        return;
-    const QString fileName = QFileDialog::getOpenFileName(this, tr("Import Model"), QString(),
-                                                          nodeSetFilter());
-    if (!fileName.isEmpty())
-        importModelFrom(fileName);
-}
-
-///
-/// \brief Asks for a file name and exports the project nodes there.
-///
-void MainWindow::exportModel()
-{
-    if (!_controller)
-        return;
-    const QString fileName = QFileDialog::getSaveFileName(this, tr("Export Model"), QString(),
-                                                          nodeSetFilter());
-    if (!fileName.isEmpty())
-        exportModelTo(fileName);
-}
-
-///
-/// \brief Asks for a file name and exports the nodes of a namespace there.
-/// \param namespaceUri URI of the namespace to export.
-///
-void MainWindow::exportNamespace(const QString &namespaceUri)
-{
-    if (!_controller)
-        return;
-    const QString fileName = QFileDialog::getSaveFileName(this, tr("Export Namespace"), QString(),
-                                                          nodeSetFilter());
-    if (!fileName.isEmpty())
-        exportNamespaceTo(fileName, namespaceUri);
-}
-
-///
 /// \brief Lists the subscriptions of a session in a dialog.
 /// \param session Session to describe.
 ///
@@ -1101,34 +965,6 @@ void MainWindow::showSubscriptions(const SessionInfo &session)
     auto *dialog = new SubscriptionsDialog(session, this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     dialog->open();
-}
-
-///
-/// \brief Asks before unloading an imported model.
-/// \param fileName Model file.
-///
-void MainWindow::confirmRemoveModel(const QString &fileName)
-{
-    _pendingModelFile = fileName;
-    auto *dialog = MessageDialog::confirmation(
-        tr("Remove Model"),
-        tr("Remove the model '%1' with its nodes and namespaces?").arg(QFileInfo(fileName).fileName()),
-        tr("A running server restarts and disconnects its clients."), tr("Remove"), this);
-    dialog->setAttribute(Qt::WA_DeleteOnClose);
-    connect(dialog, &QDialog::accepted, this, &MainWindow::removePendingModel);
-    dialog->open();
-}
-
-///
-/// \brief Unloads the model the Remove Model question was confirmed for.
-///
-void MainWindow::removePendingModel()
-{
-    if (!_controller)
-        return;
-    QString error;
-    if (!_controller->removeNodeSet(_pendingModelFile, &error))
-        showError(tr("Model not removed"), error);
 }
 
 ///
@@ -1141,126 +977,6 @@ void MainWindow::exportLog(const QList<LogEntry> &entries)
                                                           tr("CSV files (*.csv)"));
     if (!fileName.isEmpty())
         exportLogTo(fileName, entries);
-}
-
-///
-/// \brief Picks a certificate, and for the server folder also its private key, and stores it.
-/// \param category Folder the certificate goes to.
-///
-void MainWindow::importCertificate(CertificateInfo::Category category)
-{
-    const QString filter = tr("Certificates (*.der *.pem *.crt *.cer);;All files (*)");
-    const QString certificate = QFileDialog::getOpenFileName(this, tr("Import Certificate"), QString(), filter);
-    if (certificate.isEmpty())
-        return;
-    if (category != CertificateInfo::Category::Application) {
-        importCertificateFrom(certificate, category);
-        return;
-    }
-    const QString key = QFileDialog::getOpenFileName(this, tr("Private Key of the Server Certificate"), QString(),
-                                                     tr("Private keys (*.pem *.key *.der);;All files (*)"));
-    if (!key.isEmpty())
-        installServerCertificateFrom(certificate, key);
-}
-
-///
-/// \brief Saves a copy of a stored certificate.
-/// \param filePath Stored certificate file.
-///
-void MainWindow::exportCertificate(const QString &filePath)
-{
-    const QString target = QFileDialog::getSaveFileName(this, tr("Export Certificate"), QFileInfo(filePath).fileName(),
-                                                        tr("DER certificates (*.der)"));
-    if (target.isEmpty())
-        return;
-    QFile::remove(target);
-    if (!QFile::copy(filePath, target))
-        showError(tr("Certificate not exported"), tr("Cannot write '%1'").arg(target));
-}
-
-///
-/// \brief Trusts or rejects a stored certificate.
-/// \param filePath Stored certificate file.
-/// \param category Target folder.
-///
-void MainWindow::moveCertificate(const QString &filePath, CertificateInfo::Category category)
-{
-    QString error;
-    if (_controller && !_controller->moveCertificate(filePath, category, &error))
-        showError(tr("Certificate not moved"), error);
-}
-
-///
-/// \brief Asks before deleting a stored certificate.
-/// \param filePath Stored certificate file.
-///
-void MainWindow::confirmDeleteCertificate(const QString &filePath)
-{
-    if (!_controller)
-        return;
-    const QList<CertificateInfo> certificates = _controller->certificates();
-    const auto certificate = std::find_if(certificates.cbegin(), certificates.cend(),
-                                          [&filePath](const CertificateInfo &info) { return info.filePath == filePath; });
-    if (certificate == certificates.cend())
-        return;
-    _pendingCertificate = filePath;
-    auto *dialog = MessageDialog::confirmation(tr("Delete Certificate"),
-                                               tr("Delete the certificate '%1'?").arg(certificate->commonName),
-                                               deletionConsequence(certificate->category), tr("Delete"), this);
-    dialog->setAttribute(Qt::WA_DeleteOnClose);
-    connect(dialog, &QDialog::accepted, this, &MainWindow::deletePendingCertificate);
-    dialog->open();
-}
-
-///
-/// \brief Deletes the certificate the Delete Certificate question was confirmed for.
-///
-void MainWindow::deletePendingCertificate()
-{
-    if (!_controller)
-        return;
-    QString error;
-    if (!_controller->removeCertificate(_pendingCertificate, &error))
-        showError(tr("Certificate not deleted"), error);
-}
-
-///
-/// \brief Creates a server certificate, first asking before it replaces an installed one.
-///
-void MainWindow::confirmGenerateServerCertificate()
-{
-    if (!_controller)
-        return;
-    if (!_controller->certificateStore().hasServerCertificate()) {
-        generateServerCertificate();
-        return;
-    }
-    auto *dialog = MessageDialog::confirmation(tr("Generate Server Certificate"),
-                                               tr("Replace the installed server certificate?"),
-                                               tr("Clients that trust it will have to trust the new one."),
-                                               tr("Replace"), this);
-    dialog->setAttribute(Qt::WA_DeleteOnClose);
-    connect(dialog, &QDialog::accepted, this, &MainWindow::generateServerCertificate);
-    dialog->open();
-}
-
-///
-/// \brief Creates and installs a self-signed server certificate, reporting a failure.
-///
-void MainWindow::generateServerCertificate()
-{
-    QString error;
-    if (_controller && !_controller->generateServerCertificate(&error))
-        showError(tr("Server certificate not created"), error);
-}
-
-///
-/// \brief Shows the current contents of the PKI store.
-///
-void MainWindow::reloadCertificates()
-{
-    if (_controller)
-        ui->certificatesPage->setCertificates(_controller->certificates());
 }
 
 ///

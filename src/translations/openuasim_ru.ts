@@ -214,10 +214,6 @@
         <source>the simulation cannot drive this node</source>
         <translation>симуляция не может управлять этим узлом</translation>
     </message>
-    <message>
-        <source>type &apos;%1&apos; takes no %2 values</source>
-        <translation>тип «%1» не принимает значения %2</translation>
-    </message>
 </context>
 <context>
     <name>AlarmDialog</name>
@@ -342,6 +338,105 @@
     <message>
         <source>Database</source>
         <translation>База данных</translation>
+    </message>
+</context>
+<context>
+    <name>CertificateActions</name>
+    <message>
+        <source>The server creates a new certificate on its next start. Clients that trust the current one will have to trust the new one.</source>
+        <translation>При следующем запуске сервер создаст новый сертификат. Клиентам, доверяющим текущему, придётся доверять новому.</translation>
+    </message>
+    <message>
+        <source>The client will no longer be trusted.</source>
+        <translation>Клиент больше не будет доверенным.</translation>
+    </message>
+    <message>
+        <source>If the client connects again, its certificate appears again.</source>
+        <translation>Если клиент подключится снова, его сертификат появится опять.</translation>
+    </message>
+    <message>
+        <source>Client certificates signed by this issuer will no longer be validated through it.</source>
+        <translation>Сертификаты клиентов, подписанные этим издателем, больше не будут проверяться через него.</translation>
+    </message>
+    <message>
+        <source>Certificate not imported</source>
+        <translation>Сертификат не импортирован</translation>
+    </message>
+    <message>
+        <source>Server certificate not installed</source>
+        <translation>Сертификат сервера не установлен</translation>
+    </message>
+    <message>
+        <source>Certificates (*.der *.pem *.crt *.cer);;All files (*)</source>
+        <translation>Сертификаты (*.der *.pem *.crt *.cer);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Import Certificate</source>
+        <translation>Импорт сертификата</translation>
+    </message>
+    <message>
+        <source>Private Key of the Server Certificate</source>
+        <translation>Закрытый ключ сертификата сервера</translation>
+    </message>
+    <message>
+        <source>Private keys (*.pem *.key *.der);;All files (*)</source>
+        <translation>Закрытые ключи (*.pem *.key *.der);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Export Certificate</source>
+        <translation>Экспорт сертификата</translation>
+    </message>
+    <message>
+        <source>DER certificates (*.der)</source>
+        <translation>Сертификаты DER (*.der)</translation>
+    </message>
+    <message>
+        <source>Certificate not exported</source>
+        <translation>Сертификат не экспортирован</translation>
+    </message>
+    <message>
+        <source>Cannot write &apos;%1&apos;</source>
+        <translation>Не удалось записать «%1»</translation>
+    </message>
+    <message>
+        <source>Certificate not moved</source>
+        <translation>Сертификат не перемещён</translation>
+    </message>
+    <message>
+        <source>Delete Certificate</source>
+        <translation>Удаление сертификата</translation>
+    </message>
+    <message>
+        <source>Delete the certificate &apos;%1&apos;?</source>
+        <translation>Удалить сертификат «%1»?</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Удалить</translation>
+    </message>
+    <message>
+        <source>Certificate not deleted</source>
+        <translation>Сертификат не удалён</translation>
+    </message>
+    <message>
+        <source>Generate Server Certificate</source>
+        <translation>Создание сертификата сервера</translation>
+    </message>
+    <message>
+        <source>Replace the installed server certificate?</source>
+        <translation>Заменить установленный сертификат сервера?</translation>
+    </message>
+    <message>
+        <source>Clients that trust it will have to trust the new one.</source>
+        <translation>Клиентам, которые ему доверяют, придётся доверять новому.</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>Заменить</translation>
+    </message>
+    <message>
+        <source>Server certificate not created</source>
+        <translation>Сертификат сервера не создан</translation>
     </message>
 </context>
 <context>
@@ -574,17 +669,6 @@
     <message>
         <source>X.509 Details</source>
         <translation>Подробности X.509</translation>
-    </message>
-</context>
-<context>
-    <name>MessageDialog</name>
-    <message>
-        <source>Cancel</source>
-        <translation>Отмена</translation>
-    </message>
-    <message>
-        <source>OK</source>
-        <translation>OK</translation>
     </message>
 </context>
 <context>
@@ -1190,10 +1274,6 @@
         <translation>О &amp;Qt</translation>
     </message>
     <message>
-        <source>NodeSet2 XML (*.xml)</source>
-        <translation>NodeSet2 XML (*.xml)</translation>
-    </message>
-    <message>
         <source>Restart the server to apply the changes</source>
         <translation>Перезапустите сервер, чтобы применить изменения</translation>
     </message>
@@ -1214,28 +1294,8 @@
         <translation>Сохранить изменения в «%1»?</translation>
     </message>
     <message>
-        <source>Model not imported</source>
-        <translation>Модель не импортирована</translation>
-    </message>
-    <message>
-        <source>Model not exported</source>
-        <translation>Модель не экспортирована</translation>
-    </message>
-    <message>
-        <source>Namespace not exported</source>
-        <translation>Пространство имён не экспортировано</translation>
-    </message>
-    <message>
         <source>Log not exported</source>
         <translation>Журнал не экспортирован</translation>
-    </message>
-    <message>
-        <source>Certificate not imported</source>
-        <translation>Сертификат не импортирован</translation>
-    </message>
-    <message>
-        <source>Server certificate not installed</source>
-        <translation>Сертификат сервера не установлен</translation>
     </message>
     <message>
         <source>About %1</source>
@@ -1318,8 +1378,70 @@
         <translation>Сохранение проекта</translation>
     </message>
     <message>
+        <source>Export Log</source>
+        <translation>Экспорт журнала</translation>
+    </message>
+    <message>
+        <source>CSV files (*.csv)</source>
+        <translation>Файлы CSV (*.csv)</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Удалить</translation>
+    </message>
+    <message>
+        <source>Your changes will be lost if you don&apos;t save them.</source>
+        <translation>Если не сохранить изменения, они будут потеряны.</translation>
+    </message>
+    <message>
+        <source>Don&apos;t Save</source>
+        <translation>Не сохранять</translation>
+    </message>
+    <message>
+        <source>Overview</source>
+        <translation>Обзор</translation>
+    </message>
+    <message>
+        <source>&amp;Language</source>
+        <translation>&amp;Язык</translation>
+    </message>
+</context>
+<context>
+    <name>MessageDialog</name>
+    <message>
+        <source>Cancel</source>
+        <translation>Отмена</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+</context>
+<context>
+    <name>ModelActions</name>
+    <message>
+        <source>NodeSet2 XML (*.xml)</source>
+        <translation>NodeSet2 XML (*.xml)</translation>
+    </message>
+    <message>
+        <source>Import Model</source>
+        <translation>Импорт модели</translation>
+    </message>
+    <message>
         <source>Export Model</source>
         <translation>Экспорт модели</translation>
+    </message>
+    <message>
+        <source>Model not imported</source>
+        <translation>Модель не импортирована</translation>
+    </message>
+    <message>
+        <source>Model not exported</source>
+        <translation>Модель не экспортирована</translation>
+    </message>
+    <message>
+        <source>Namespace not exported</source>
+        <translation>Пространство имён не экспортировано</translation>
     </message>
     <message>
         <source>Export Namespace</source>
@@ -1344,118 +1466,6 @@
     <message>
         <source>Model not removed</source>
         <translation>Модель не удалена</translation>
-    </message>
-    <message>
-        <source>Export Log</source>
-        <translation>Экспорт журнала</translation>
-    </message>
-    <message>
-        <source>CSV files (*.csv)</source>
-        <translation>Файлы CSV (*.csv)</translation>
-    </message>
-    <message>
-        <source>Certificates (*.der *.pem *.crt *.cer);;All files (*)</source>
-        <translation>Сертификаты (*.der *.pem *.crt *.cer);;Все файлы (*)</translation>
-    </message>
-    <message>
-        <source>Import Certificate</source>
-        <translation>Импорт сертификата</translation>
-    </message>
-    <message>
-        <source>Private Key of the Server Certificate</source>
-        <translation>Закрытый ключ сертификата сервера</translation>
-    </message>
-    <message>
-        <source>Private keys (*.pem *.key *.der);;All files (*)</source>
-        <translation>Закрытые ключи (*.pem *.key *.der);;Все файлы (*)</translation>
-    </message>
-    <message>
-        <source>Export Certificate</source>
-        <translation>Экспорт сертификата</translation>
-    </message>
-    <message>
-        <source>DER certificates (*.der)</source>
-        <translation>Сертификаты DER (*.der)</translation>
-    </message>
-    <message>
-        <source>Certificate not exported</source>
-        <translation>Сертификат не экспортирован</translation>
-    </message>
-    <message>
-        <source>Cannot write &apos;%1&apos;</source>
-        <translation>Не удалось записать «%1»</translation>
-    </message>
-    <message>
-        <source>Certificate not moved</source>
-        <translation>Сертификат не перемещён</translation>
-    </message>
-    <message>
-        <source>Delete Certificate</source>
-        <translation>Удаление сертификата</translation>
-    </message>
-    <message>
-        <source>Delete the certificate &apos;%1&apos;?</source>
-        <translation>Удалить сертификат «%1»?</translation>
-    </message>
-    <message>
-        <source>Delete</source>
-        <translation>Удалить</translation>
-    </message>
-    <message>
-        <source>The server creates a new certificate on its next start. Clients that trust the current one will have to trust the new one.</source>
-        <translation>При следующем запуске сервер создаст новый сертификат. Клиентам, доверяющим текущему, придётся доверять новому.</translation>
-    </message>
-    <message>
-        <source>The client will no longer be trusted.</source>
-        <translation>Клиент больше не будет доверенным.</translation>
-    </message>
-    <message>
-        <source>If the client connects again, its certificate appears again.</source>
-        <translation>Если клиент подключится снова, его сертификат появится опять.</translation>
-    </message>
-    <message>
-        <source>Client certificates signed by this issuer will no longer be validated through it.</source>
-        <translation>Сертификаты клиентов, подписанные этим издателем, больше не будут проверяться через него.</translation>
-    </message>
-    <message>
-        <source>Certificate not deleted</source>
-        <translation>Сертификат не удалён</translation>
-    </message>
-    <message>
-        <source>Generate Server Certificate</source>
-        <translation>Создание сертификата сервера</translation>
-    </message>
-    <message>
-        <source>Replace the installed server certificate?</source>
-        <translation>Заменить установленный сертификат сервера?</translation>
-    </message>
-    <message>
-        <source>Clients that trust it will have to trust the new one.</source>
-        <translation>Клиентам, которые ему доверяют, придётся доверять новому.</translation>
-    </message>
-    <message>
-        <source>Replace</source>
-        <translation>Заменить</translation>
-    </message>
-    <message>
-        <source>Your changes will be lost if you don&apos;t save them.</source>
-        <translation>Если не сохранить изменения, они будут потеряны.</translation>
-    </message>
-    <message>
-        <source>Don&apos;t Save</source>
-        <translation>Не сохранять</translation>
-    </message>
-    <message>
-        <source>Server certificate not created</source>
-        <translation>Сертификат сервера не создан</translation>
-    </message>
-    <message>
-        <source>Overview</source>
-        <translation>Обзор</translation>
-    </message>
-    <message>
-        <source>&amp;Language</source>
-        <translation>&amp;Язык</translation>
     </message>
 </context>
 <context>
@@ -1603,6 +1613,29 @@
     </message>
 </context>
 <context>
+    <name>NodeSetLoader</name>
+    <message>
+        <source>Model &apos;%1&apos; not loaded: %2</source>
+        <translation>Модель «%1» не загружена: %2</translation>
+    </message>
+    <message>
+        <source>Model &apos;%1&apos;: %2</source>
+        <translation>Модель «%1»: %2</translation>
+    </message>
+    <message>
+        <source>Model &apos;%1&apos; loaded with %2 nodes</source>
+        <translation>Модель «%1» загружена, узлов: %2</translation>
+    </message>
+    <message>
+        <source>The standard OPC UA namespace cannot be exported</source>
+        <translation>Стандартное пространство имён OPC UA нельзя экспортировать</translation>
+    </message>
+    <message>
+        <source>Model export: %1</source>
+        <translation>Экспорт модели: %1</translation>
+    </message>
+</context>
+<context>
     <name>ObjectsPage</name>
     <message>
         <source>Address Space</source>
@@ -1627,6 +1660,37 @@
     <message>
         <source>Variables in &apos;%1&apos;</source>
         <translation>Переменные «%1»</translation>
+    </message>
+</context>
+<context>
+    <name>PkiService</name>
+    <message>
+        <source>Created a self-signed server certificate</source>
+        <translation>Создан самоподписанный сертификат сервера</translation>
+    </message>
+    <message>
+        <source>Client certificate &apos;%1&apos; rejected (%2) although it is trusted</source>
+        <translation>Сертификат клиента «%1» отклонён (%2), хотя он доверенный</translation>
+    </message>
+    <message>
+        <source>Client certificate &apos;%1&apos; rejected again (%2)</source>
+        <translation>Сертификат клиента «%1» снова отклонён (%2)</translation>
+    </message>
+    <message>
+        <source>A rejected client certificate could not be kept: %1</source>
+        <translation>Не удалось сохранить отклонённый сертификат клиента: %1</translation>
+    </message>
+    <message>
+        <source>Client certificate &apos;%1&apos; rejected (%2); it was moved to the rejected folder</source>
+        <translation>Сертификат клиента «%1» отклонён (%2) и перемещён в папку отклонённых</translation>
+    </message>
+    <message>
+        <source>The certificate of a connected client could not be kept: %1</source>
+        <translation>Не удалось сохранить сертификат подключившегося клиента: %1</translation>
+    </message>
+    <message>
+        <source>Client certificate &apos;%1&apos; accepted without a trust check; it was added to the rejected folder</source>
+        <translation>Сертификат клиента «%1» принят без проверки доверия и добавлен в папку отклонённых</translation>
     </message>
 </context>
 <context>
@@ -1801,14 +1865,6 @@
         <translation>«%1» уже импортирован</translation>
     </message>
     <message>
-        <source>The standard OPC UA namespace cannot be exported</source>
-        <translation>Стандартное пространство имён OPC UA нельзя экспортировать</translation>
-    </message>
-    <message>
-        <source>Model export: %1</source>
-        <translation>Экспорт модели: %1</translation>
-    </message>
-    <message>
         <source>There is no node &apos;%1&apos;</source>
         <translation>Нет узла «%1»</translation>
     </message>
@@ -1829,52 +1885,12 @@
         <translation>Узел пропущен: %1</translation>
     </message>
     <message>
-        <source>Model &apos;%1&apos; not loaded: %2</source>
-        <translation>Модель «%1» не загружена: %2</translation>
-    </message>
-    <message>
-        <source>Model &apos;%1&apos;: %2</source>
-        <translation>Модель «%1»: %2</translation>
-    </message>
-    <message>
-        <source>Model &apos;%1&apos; loaded with %2 nodes</source>
-        <translation>Модель «%1» загружена, узлов: %2</translation>
-    </message>
-    <message>
         <source>Client called %1: %2</source>
         <translation>Клиент вызвал %1: %2</translation>
     </message>
     <message>
         <source>Client wrote %1 to %2</source>
         <translation>Клиент записал %1 в %2</translation>
-    </message>
-    <message>
-        <source>A rejected client certificate could not be kept: %1</source>
-        <translation>Не удалось сохранить отклонённый сертификат клиента: %1</translation>
-    </message>
-    <message>
-        <source>Client certificate &apos;%1&apos; rejected (%2); it was moved to the rejected folder</source>
-        <translation>Сертификат клиента «%1» отклонён (%2) и перемещён в папку отклонённых</translation>
-    </message>
-    <message>
-        <source>Client certificate &apos;%1&apos; rejected again (%2)</source>
-        <translation>Сертификат клиента «%1» снова отклонён (%2)</translation>
-    </message>
-    <message>
-        <source>Client certificate &apos;%1&apos; rejected (%2) although it is trusted</source>
-        <translation>Сертификат клиента «%1» отклонён (%2), хотя он доверенный</translation>
-    </message>
-    <message>
-        <source>The certificate of a connected client could not be kept: %1</source>
-        <translation>Не удалось сохранить сертификат подключившегося клиента: %1</translation>
-    </message>
-    <message>
-        <source>Client certificate &apos;%1&apos; accepted without a trust check; it was added to the rejected folder</source>
-        <translation>Сертификат клиента «%1» принят без проверки доверия и добавлен в папку отклонённых</translation>
-    </message>
-    <message>
-        <source>Created a self-signed server certificate</source>
-        <translation>Создан самоподписанный сертификат сервера</translation>
     </message>
     <message>
         <source>Alarm of %1 returned to normal</source>
@@ -2440,11 +2456,11 @@
         <translation>Типы</translation>
     </message>
     <message>
-        <source>Cannot read the value constraints of type '%1'.</source>
+        <source>Cannot read the value constraints of type &apos;%1&apos;.</source>
         <translation>Не удалось прочитать ограничения значений типа «%1».</translation>
     </message>
     <message>
-        <source>Type '%1' is abstract and cannot be instantiated.</source>
+        <source>Type &apos;%1&apos; is abstract and cannot be instantiated.</source>
         <translation>Тип «%1» абстрактный: создать его экземпляр нельзя.</translation>
     </message>
     <message>
@@ -2452,35 +2468,35 @@
         <translation>Длина массива должна быть от 0 до %1.</translation>
     </message>
     <message>
-        <source>Type '%1' requires a multidimensional array, which is not supported.</source>
+        <source>Type &apos;%1&apos; requires a multidimensional array, which is not supported.</source>
         <translation>Тип «%1» требует многомерный массив, который пока не поддерживается.</translation>
     </message>
     <message>
-        <source>Type '%1' requires a data type that the simulator cannot write.</source>
+        <source>Type &apos;%1&apos; requires a data type that the simulator cannot write.</source>
         <translation>Тип «%1» требует тип данных, запись которого симулятор не поддерживает.</translation>
     </message>
     <message>
-        <source>Type '%1' does not accept %2 values.</source>
+        <source>Type &apos;%1&apos; does not accept %2 values.</source>
         <translation>Тип «%1» не допускает значения %2.</translation>
     </message>
     <message>
-        <source>Type '%1' requires a scalar value.</source>
+        <source>Type &apos;%1&apos; requires a scalar value.</source>
         <translation>Тип «%1» требует скалярное значение.</translation>
     </message>
     <message>
-        <source>Type '%1' requires a one-dimensional array.</source>
+        <source>Type &apos;%1&apos; requires a one-dimensional array.</source>
         <translation>Тип «%1» требует одномерный массив.</translation>
     </message>
     <message>
-        <source>Type '%1' requires an array of %2 elements.</source>
+        <source>Type &apos;%1&apos; requires an array of %2 elements.</source>
         <translation>Тип «%1» требует массив из %2 элементов.</translation>
     </message>
     <message>
-        <source>Type '%1' is not loaded.</source>
+        <source>Type &apos;%1&apos; is not loaded.</source>
         <translation>Тип «%1» не загружен.</translation>
     </message>
     <message>
-        <source>Type '%1' is not a data variable type.</source>
+        <source>Type &apos;%1&apos; is not a data variable type.</source>
         <translation>Тип «%1» не является типом переменной данных.</translation>
     </message>
 </context>

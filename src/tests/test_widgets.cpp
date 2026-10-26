@@ -46,6 +46,7 @@
 #include "propertynodewidget.h"
 #include "statusindicator.h"
 #include "treemodel.h"
+#include "valuepreviewdelegate.h"
 #include "variablepropertieswidget.h"
 #include "variablesmodel.h"
 #include "viewsetup.h"
@@ -124,6 +125,7 @@ private slots:
     void fitColumnsWhenFilledCapsLongValues();
     void fitColumnsWhenFilledScrollsToLastColumn();
     void elidedCellShowsFullTextTooltip();
+    void valuePreviewOffersFullValue();
     void elidedLineEditElidesUnfocusedText();
     void elidedLineEditShowsShortTextPlainly();
     void elidedLineEditKeepsTypingOrder();
@@ -795,6 +797,46 @@ void TestWidgets::elidedCellShowsFullTextTooltip()
 
     hover(1);
     QTRY_VERIFY(!QToolTip::isVisible());
+}
+
+void TestWidgets::valuePreviewOffersFullValue()
+{
+    const QString full = QStringLiteral("first line\nsecond line with a < b");
+    QStandardItemModel model(0, 1);
+    auto *preview = new QStandardItem(QStringLiteral("first line"));
+    preview->setData(full, Qt::UserRole);
+    auto *complete = new QStandardItem(QStringLiteral("short"));
+    complete->setData(QStringLiteral("short"), Qt::UserRole);
+    model.appendRow(preview);
+    model.appendRow(complete);
+    model.appendRow(new QStandardItem(QStringLiteral("plain")));
+    QTableView view;
+    view.setModel(&model);
+    auto *delegate = new ValuePreviewDelegate(&view);
+    view.setItemDelegate(delegate);
+    view.setColumnWidth(0, 300);
+    view.resize(400, 200);
+    view.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&view));
+    QSignalSpy expand(delegate, &ValuePreviewDelegate::expandRequested);
+    const auto buttonPoint = [&view](int row) {
+        const QRect cell = view.visualRect(view.model()->index(row, 0));
+        return QPoint(cell.right() - 8, cell.center().y());
+    };
+
+    QTest::mouseClick(view.viewport(), Qt::LeftButton, {}, buttonPoint(1));
+    QTest::mouseClick(view.viewport(), Qt::LeftButton, {}, buttonPoint(2));
+    QCOMPARE(expand.count(), 0);
+    QTest::mouseClick(view.viewport(), Qt::LeftButton, {}, buttonPoint(0));
+    QCOMPARE(expand.count(), 1);
+    QCOMPARE(expand.first().first().toModelIndex().row(), 0);
+
+    const QPoint pos = view.visualRect(model.index(0, 0)).center();
+    QHelpEvent event(QEvent::ToolTip, pos, view.viewport()->mapToGlobal(pos));
+    QCoreApplication::sendEvent(view.viewport(), &event);
+    QTRY_VERIFY(QToolTip::isVisible());
+    QVERIFY(QToolTip::text().contains(QStringLiteral("white-space:pre-wrap")));
+    QVERIFY(QToolTip::text().contains(QStringLiteral("a &lt; b")));
 }
 
 void TestWidgets::elidedLineEditElidesUnfocusedText()

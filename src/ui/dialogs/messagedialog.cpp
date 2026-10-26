@@ -98,6 +98,19 @@ MessageDialog *MessageDialog::confirmation(const QString &title, const QString &
 }
 
 ///
+/// \brief Opens a warning without blocking the event loop; it deletes itself when closed.
+/// \param title Window title.
+/// \param text Message.
+/// \param parent Owning widget.
+///
+void MessageDialog::warning(const QString &title, const QString &text, QWidget *parent)
+{
+    auto *dialog = new MessageDialog(QStyle::SP_MessageBoxWarning, title, text, QString(), parent);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->open();
+}
+
+///
 /// \brief Shows a third button on the left of the footer that finishes with Alternative.
 /// \param text Button text, e.g. "Don't Save".
 ///

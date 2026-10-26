@@ -61,6 +61,14 @@ public:
                                        const QString &action, QWidget *parent = nullptr);
 
     ///
+    /// \brief Opens a warning without blocking the event loop; it deletes itself when closed.
+    /// \param title Window title.
+    /// \param text Message.
+    /// \param parent Owning widget.
+    ///
+    static void warning(const QString &title, const QString &text, QWidget *parent);
+
+    ///
     /// \brief Shows a third button on the left of the footer that finishes with Alternative.
     /// \param text Button text, e.g. "Don't Save".
     ///

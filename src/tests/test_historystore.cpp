@@ -8,6 +8,7 @@
 namespace {
 
 const QUaNodeId kLevel(QStringLiteral("ns=1;s=Tank.Level"));
+const QUaNodeId kPressure(QStringLiteral("ns=1;s=Tank.Pressure"));
 const QDateTime kStart = QDateTime(QDate(2026, 1, 1), QTime(12, 0), QTimeZone::UTC);
 
 QDateTime at(int seconds)
@@ -15,19 +16,26 @@ QDateTime at(int seconds)
     return kStart.addSecs(seconds);
 }
 
-void write(HistoryStore &store, int seconds, const QVariant &value, quint32 status = 0)
+void write(HistoryStore &store, const QUaNodeId &nodeId, int seconds, const QVariant &value, quint32 status = 0)
 {
     QQueue<QUaLog> log;
-    QVERIFY(store.writeHistoryData(kLevel, { at(seconds), value, status }, log));
+    QVERIFY(store.writeHistoryData(nodeId, { at(seconds), value, status }, log));
 }
 
-QVariantList values(const HistoryStore &store)
+void write(HistoryStore &store, int seconds, const QVariant &value, quint32 status = 0)
+{
+    write(store, kLevel, seconds, value, status);
+}
+
+QVariantList values(const HistoryStore &store, const QUaNodeId &nodeId = kLevel)
 {
     QQueue<QUaLog> log;
-    const QDateTime first = store.firstTimestamp(kLevel, log);
-    const quint64 count = store.numDataPointsInRange(kLevel, first, QDateTime(), log);
+    const QDateTime first = store.firstTimestamp(nodeId, log);
+    if (!first.isValid())
+        return {};
+    const quint64 count = store.numDataPointsInRange(nodeId, first, QDateTime(), log);
     QVariantList result;
-    for (const QUaHistoryDataPoint &point : store.readHistoryData(kLevel, first, 0, count, log))
+    for (const QUaHistoryDataPoint &point : store.readHistoryData(nodeId, first, 0, count, log))
         result.append(point.value);
     return result;
 }
@@ -40,6 +48,7 @@ class TestHistoryStore : public QObject
 
 private slots:
     void recordsValuesInTimeOrder();
+    void insertsValueBetweenRecordedOnes();
     void replacesValueWithSameTimestamp();
     void dropsOldestBeyondCount();
     void dropsValuesOlderThanAge();
@@ -50,6 +59,12 @@ private slots:
     void readsPagesAndPadsMissingValues();
     void removesRange();
     void clearDropsEverything();
+    void budgetDropsOldestValueOfAnyVariable();
+    void budgetCountsArrayLength();
+    void budgetKeepsWrittenValue();
+    void replacedValueReleasesBudget();
+    void removedValuesReleaseBudget();
+    void clearReleasesBudget();
 };
 
 void TestHistoryStore::recordsValuesInTimeOrder()
@@ -67,6 +82,16 @@ void TestHistoryStore::recordsValuesInTimeOrder()
     QCOMPARE(first.first().timestamp, at(1));
     QCOMPARE(first.first().status, 0x80000000u);
     QVERIFY(log.isEmpty());
+}
+
+void TestHistoryStore::insertsValueBetweenRecordedOnes()
+{
+    HistoryStore store;
+    write(store, 1, 10.0);
+    write(store, 3, 30.0);
+    write(store, 2, 20.0);
+    write(store, 3, 31.0);
+    QCOMPARE(values(store), QVariantList({ 10.0, 20.0, 31.0 }));
 }
 
 void TestHistoryStore::replacesValueWithSameTimestamp()
@@ -208,6 +233,79 @@ void TestHistoryStore::clearDropsEverything()
     store.clear();
     QQueue<QUaLog> log;
     QVERIFY(!store.firstTimestamp(kLevel, log).isValid());
+}
+
+void TestHistoryStore::budgetDropsOldestValueOfAnyVariable()
+{
+    HistoryStore store(4);
+    write(store, kLevel, 1, 1.0);
+    write(store, kLevel, 2, 2.0);
+    write(store, kPressure, 3, 3.0);
+    write(store, kPressure, 4, 4.0);
+    write(store, kLevel, 5, 5.0);
+    QCOMPARE(values(store, kLevel), QVariantList({ 2.0, 5.0 }));
+    QCOMPARE(values(store, kPressure), QVariantList({ 3.0, 4.0 }));
+
+    write(store, kPressure, 6, 6.0);
+    QCOMPARE(values(store, kLevel), QVariantList({ QVariant(5.0) }));
+    QCOMPARE(values(store, kPressure), QVariantList({ 3.0, 4.0, 6.0 }));
+}
+
+void TestHistoryStore::budgetCountsArrayLength()
+{
+    HistoryStore store(5);
+    write(store, 1, QVariantList({ 1.0, 2.0, 3.0 }));
+    write(store, 2, QVariant::fromValue(QList<double>({ 4.0, 5.0, 6.0 })));
+    QQueue<QUaLog> log;
+    QCOMPARE(store.firstTimestamp(kLevel, log), at(2));
+    QCOMPARE(store.numDataPointsInRange(kLevel, at(0), QDateTime(), log), 1u);
+
+    write(store, 3, QStringLiteral("text counts once"));
+    write(store, 4, QByteArray("bytes"));
+    QCOMPARE(store.numDataPointsInRange(kLevel, at(0), QDateTime(), log), 3u);
+}
+
+void TestHistoryStore::budgetKeepsWrittenValue()
+{
+    HistoryStore store(2);
+    write(store, kLevel, 1, QVariantList({ 1.0, 2.0, 3.0, 4.0, 5.0 }));
+    QCOMPARE(values(store, kLevel).size(), 1);
+
+    write(store, kPressure, 2, 2.0);
+    QVERIFY(values(store, kLevel).isEmpty());
+    QCOMPARE(values(store, kPressure), QVariantList({ QVariant(2.0) }));
+}
+
+void TestHistoryStore::replacedValueReleasesBudget()
+{
+    HistoryStore store(2);
+    write(store, 1, QVariantList({ 1.0, 2.0 }));
+    write(store, 1, 10.0);
+    write(store, 2, 20.0);
+    QCOMPARE(values(store), QVariantList({ 10.0, 20.0 }));
+}
+
+void TestHistoryStore::removedValuesReleaseBudget()
+{
+    HistoryStore store(3);
+    for (int second = 1; second <= 3; ++second)
+        write(store, second, second * 10.0);
+    QQueue<QUaLog> log;
+    QVERIFY(store.removeHistoryData(kLevel, at(1), at(2), log));
+    write(store, 4, 40.0);
+    write(store, 5, 50.0);
+    QCOMPARE(values(store), QVariantList({ 30.0, 40.0, 50.0 }));
+}
+
+void TestHistoryStore::clearReleasesBudget()
+{
+    HistoryStore store(2);
+    write(store, 1, 10.0);
+    write(store, 2, 20.0);
+    store.clear();
+    write(store, 3, 30.0);
+    write(store, 4, 40.0);
+    QCOMPARE(values(store), QVariantList({ 30.0, 40.0 }));
 }
 
 QTEST_GUILESS_MAIN(TestHistoryStore)

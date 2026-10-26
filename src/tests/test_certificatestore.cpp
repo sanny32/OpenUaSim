@@ -12,6 +12,7 @@
 
 #include "pki/certificategenerator.h"
 #include "pki/certificatestore.h"
+#include "pki/pkiservice.h"
 #include "server/servercontroller.h"
 #include "testport.h"
 #include "testproject.h"
@@ -53,6 +54,7 @@ private slots:
     void skipsGarbageFiles();
     void materialCollectsFolders();
     void controllerAnnouncesChanges();
+    void serviceRequiresRestartOnlyForServerCertificate();
     void secureEndpointRunsWithInstalledCertificate();
     void startCreatesMissingServerCertificate();
     void userCertificateLogsInByCommonName_data();
@@ -375,29 +377,57 @@ void TestCertificateStore::controllerAnnouncesChanges()
     ProjectConfig project = TestProject::create();
     project.endpoints.first().port = TestPort::freePort();
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
+    controller.pki().store().setRoot(_directory->path());
     controller.setProject(project);
     QVERIFY(controller.start());
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
 
-    QVERIFY(controller.importCertificate(testData(QStringLiteral("client.der")), Category::Rejected));
+    QVERIFY(controller.pki().importCertificate(testData(QStringLiteral("client.der")), Category::Rejected));
     QCOMPARE(changed.count(), 1);
     QVERIFY(!controller.isRestartRequired());
     QCOMPARE(controller.snapshot().certificates.size(), 1);
 
-    const QString stored = controller.certificates().first().filePath;
-    QVERIFY(controller.moveCertificate(stored, Category::Trusted));
-    QVERIFY(controller.removeCertificate(controller.certificates().first().filePath));
+    const QString stored = controller.pki().certificates().first().filePath;
+    QVERIFY(controller.pki().moveCertificate(stored, Category::Trusted));
+    QVERIFY(controller.pki().removeCertificate(controller.pki().certificates().first().filePath));
     QCOMPARE(changed.count(), 3);
 
     QString error;
-    QVERIFY(!controller.removeCertificate(stored, &error));
+    QVERIFY(!controller.pki().removeCertificate(stored, &error));
     QCOMPARE(changed.count(), 3);
     QVERIFY(!controller.isRestartRequired());
 
-    QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
-                                                testData(QStringLiteral("server.key.pem"))));
+    QVERIFY(controller.pki().installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                                      testData(QStringLiteral("server.key.pem"))));
     QVERIFY(controller.isRestartRequired());
+}
+
+void TestCertificateStore::serviceRequiresRestartOnlyForServerCertificate()
+{
+    ProjectConfig project = TestProject::create();
+    project.endpoints.first().port = TestPort::freePort();
+    SimServer server;
+    PkiService pki(server);
+    pki.store().setRoot(_directory->path());
+    QSignalSpy restart(&pki, &PkiService::restartRequired);
+    QSignalSpy changed(&pki, &PkiService::certificatesChanged);
+
+    QVERIFY(pki.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                         testData(QStringLiteral("server.key.pem"))));
+    QCOMPARE(restart.count(), 0);
+    QVERIFY(server.start(project));
+
+    QVERIFY(pki.importCertificate(testData(QStringLiteral("client.der")), Category::Trusted));
+    QCOMPARE(restart.count(), 0);
+    QVERIFY(!pki.importCertificate(testData(QStringLiteral("missing.der")), Category::Trusted));
+    QCOMPARE(changed.count(), 2);
+
+    for (const CertificateInfo &info : pki.certificates()) {
+        if (info.category == Category::Application)
+            QVERIFY(pki.removeCertificate(info.filePath));
+    }
+    QCOMPARE(restart.count(), 1);
+    QCOMPARE(changed.count(), 3);
 }
 
 void TestCertificateStore::secureEndpointRunsWithInstalledCertificate()
@@ -412,13 +442,13 @@ void TestCertificateStore::secureEndpointRunsWithInstalledCertificate()
     endpoint.securityMode = QStringLiteral("Sign & Encrypt");
 
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
-    QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
-                                                testData(QStringLiteral("server.key.pem"))));
-    const PkiMaterial installed = controller.certificateStore().material();
+    controller.pki().store().setRoot(_directory->path());
+    QVERIFY(controller.pki().installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                                      testData(QStringLiteral("server.key.pem"))));
+    const PkiMaterial installed = controller.pki().store().material();
     controller.setProject(project);
     QVERIFY(controller.start());
-    QCOMPARE(controller.certificateStore().material().certificate, installed.certificate);
+    QCOMPARE(controller.pki().store().material().certificate, installed.certificate);
 #endif
 }
 
@@ -434,13 +464,13 @@ void TestCertificateStore::startCreatesMissingServerCertificate()
     endpoint.securityMode = QStringLiteral("Sign & Encrypt");
 
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
-    QVERIFY(controller.importCertificate(testData(QStringLiteral("stranger.der")), Category::Trusted));
+    controller.pki().store().setRoot(_directory->path());
+    QVERIFY(controller.pki().importCertificate(testData(QStringLiteral("stranger.der")), Category::Trusted));
     controller.setProject(project);
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
     QSignalSpy warned(&controller, &ServerController::startWarning);
     QVERIFY(controller.start());
-    QVERIFY(controller.certificateStore().hasServerCertificate());
+    QVERIFY(controller.pki().store().hasServerCertificate());
     QCOMPARE(changed.count(), 1);
     QCOMPARE(warned.count(), 0);
 
@@ -485,8 +515,8 @@ void TestCertificateStore::userCertificateLogsInByCommonName()
     project.users = { { QStringLiteral("operator"), QStringLiteral("secret") } };
 
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
-    QVERIFY(controller.importCertificate(testData(QStringLiteral("stranger.der")), Category::Trusted));
+    controller.pki().store().setRoot(_directory->path());
+    QVERIFY(controller.pki().importCertificate(testData(QStringLiteral("stranger.der")), Category::Trusted));
     controller.setProject(project);
     QVERIFY(controller.start());
 
@@ -520,11 +550,11 @@ void TestCertificateStore::defaultProjectStartsWithEveryEndpoint()
         endpoint.port = port;
 
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
+    controller.pki().store().setRoot(_directory->path());
     controller.setProject(project);
     QSignalSpy warned(&controller, &ServerController::startWarning);
     QVERIFY(controller.start());
-    QVERIFY(controller.certificateStore().hasServerCertificate());
+    QVERIFY(controller.pki().store().hasServerCertificate());
     QCOMPARE(warned.count(), 0);
 
     UaTestClient anonymous;
@@ -543,7 +573,7 @@ void TestCertificateStore::defaultProjectStartsWithEveryEndpoint()
 void TestCertificateStore::generateReplacesServerCertificate()
 {
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
+    controller.pki().store().setRoot(_directory->path());
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
     QString error;
     if (!CertificateGenerator::isAvailable()) {
@@ -552,14 +582,14 @@ void TestCertificateStore::generateReplacesServerCertificate()
         QCOMPARE(changed.count(), 0);
         return;
     }
-    QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
-                                                testData(QStringLiteral("server.key.pem"))));
-    const QByteArray installed = controller.certificateStore().material().certificate;
+    QVERIFY(controller.pki().installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                                      testData(QStringLiteral("server.key.pem"))));
+    const QByteArray installed = controller.pki().store().material().certificate;
     QVERIFY(controller.generateServerCertificate(&error));
     QCOMPARE(changed.count(), 2);
-    QVERIFY(controller.certificateStore().material().certificate != installed);
-    QCOMPARE(controller.certificates().size(), 1);
-    QCOMPARE(QFileInfo(controller.certificates().first().filePath).fileName(),
+    QVERIFY(controller.pki().store().material().certificate != installed);
+    QCOMPARE(controller.pki().certificates().size(), 1);
+    QCOMPARE(QFileInfo(controller.pki().certificates().first().filePath).fileName(),
              QStringLiteral("OpenUaSim@%1.der").arg(QHostInfo::localHostName()));
 }
 
@@ -588,20 +618,20 @@ void TestCertificateStore::ensuresCertificateBeforeServerStart()
         project.endpoints.first().securityMode = QStringLiteral("None");
     }
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
+    controller.pki().store().setRoot(_directory->path());
     controller.setProject(project);
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
     controller.ensureServerCertificate();
     QVERIFY(!controller.isRunning());
     if (!CertificateGenerator::isAvailable()) {
-        QVERIFY(!controller.certificateStore().hasServerCertificate());
+        QVERIFY(!controller.pki().store().hasServerCertificate());
         QCOMPARE(changed.count(), 0);
         QSKIP("Built without OUASIM_WITH_ENCRYPTION");
     }
-    QVERIFY(controller.certificateStore().hasServerCertificate());
+    QVERIFY(controller.pki().store().hasServerCertificate());
     QCOMPARE(changed.count(), 1);
-    QCOMPARE(controller.certificates().size(), 1);
-    const CertificateInfo info = controller.certificates().first();
+    QCOMPARE(controller.pki().certificates().size(), 1);
+    const CertificateInfo info = controller.pki().certificates().first();
     QVERIFY(info.details.contains(project.server.applicationUri));
     QVERIFY(info.subjectAlternativeNames.contains(project.server.applicationUri));
     QVERIFY(info.extendedKeyUsage.contains(QStringLiteral("TLS Web Server Authentication")));
@@ -614,13 +644,13 @@ void TestCertificateStore::ensuresCertificateBeforeServerStart()
     QCOMPARE(controller.log().last().level, LogEntry::Level::Info);
     QVERIFY(!controller.isRestartRequired());
 
-    const PkiMaterial material = controller.certificateStore().material();
+    const PkiMaterial material = controller.pki().store().material();
     const qsizetype logSize = controller.log().size();
     controller.ensureServerCertificate();
     QCOMPARE(changed.count(), 1);
     QCOMPARE(controller.log().size(), logSize);
-    QCOMPARE(controller.certificateStore().material().certificate, material.certificate);
-    QCOMPARE(controller.certificateStore().material().privateKey, material.privateKey);
+    QCOMPARE(controller.pki().store().material().certificate, material.certificate);
+    QCOMPARE(controller.pki().store().material().privateKey, material.privateKey);
 }
 
 ///
@@ -629,18 +659,18 @@ void TestCertificateStore::ensuresCertificateBeforeServerStart()
 void TestCertificateStore::ensureKeepsInstalledCertificate()
 {
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
+    controller.pki().store().setRoot(_directory->path());
     controller.setProject(TestProject::create());
-    QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
-                                                testData(QStringLiteral("server.key.pem"))));
-    const PkiMaterial material = controller.certificateStore().material();
+    QVERIFY(controller.pki().installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                                      testData(QStringLiteral("server.key.pem"))));
+    const PkiMaterial material = controller.pki().store().material();
     const qsizetype logSize = controller.log().size();
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
     controller.ensureServerCertificate();
     QCOMPARE(changed.count(), 0);
     QCOMPARE(controller.log().size(), logSize);
-    QCOMPARE(controller.certificateStore().material().certificate, material.certificate);
-    QCOMPARE(controller.certificateStore().material().privateKey, material.privateKey);
+    QCOMPARE(controller.pki().store().material().certificate, material.certificate);
+    QCOMPARE(controller.pki().store().material().privateKey, material.privateKey);
     QVERIFY(!controller.isRunning());
 }
 
@@ -655,11 +685,11 @@ void TestCertificateStore::ensureReportsGenerationFailure()
     QVERIFY(blocked.open(QIODevice::WriteOnly));
     blocked.close();
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
+    controller.pki().store().setRoot(_directory->path());
     controller.setProject(TestProject::create());
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
     controller.ensureServerCertificate();
-    QVERIFY(!controller.certificateStore().hasServerCertificate());
+    QVERIFY(!controller.pki().store().hasServerCertificate());
     QCOMPARE(changed.count(), 0);
     QCOMPARE(controller.log().last().category, LogEntry::Category::Security);
     QCOMPARE(controller.log().last().level, LogEntry::Level::Error);
@@ -712,10 +742,10 @@ void TestCertificateStore::rejectedClientLandsInRejectedFolder()
     endpoint.trustedClientsOnly = true;
 
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
-    QVERIFY(controller.installServerCertificate(testData(QStringLiteral("server.cert.pem")),
-                                                testData(QStringLiteral("server.key.pem"))));
-    QVERIFY(controller.importCertificate(testData(QStringLiteral("client.der")), Category::Trusted));
+    controller.pki().store().setRoot(_directory->path());
+    QVERIFY(controller.pki().installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                                      testData(QStringLiteral("server.key.pem"))));
+    QVERIFY(controller.pki().importCertificate(testData(QStringLiteral("client.der")), Category::Trusted));
     controller.setProject(project);
     QVERIFY(controller.start());
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
@@ -730,7 +760,7 @@ void TestCertificateStore::rejectedClientLandsInRejectedFolder()
 
     QTRY_VERIFY(changed.count() >= 1);
     QList<CertificateInfo> rejected;
-    for (const CertificateInfo &info : controller.certificates()) {
+    for (const CertificateInfo &info : controller.pki().certificates()) {
         if (info.category == Category::Rejected)
             rejected << info;
     }
@@ -787,13 +817,13 @@ void TestCertificateStore::trustedClientsOnlyRejectsClientsWithEmptyTrustList()
     QSKIP("Built without OUASIM_WITH_ENCRYPTION");
 #else
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
+    controller.pki().store().setRoot(_directory->path());
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
     QVERIFY(connectStranger(controller, true) != UA_STATUSCODE_GOOD);
 
     QTRY_VERIFY(changed.count() >= 2);
     QStringList rejected;
-    for (const CertificateInfo &info : controller.certificates()) {
+    for (const CertificateInfo &info : controller.pki().certificates()) {
         if (info.category == Category::Rejected)
             rejected << info.commonName;
     }
@@ -807,8 +837,8 @@ void TestCertificateStore::anyClientConnectsWithoutTrustedClientsOnly()
     QSKIP("Built without OUASIM_WITH_ENCRYPTION");
 #else
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
-    QVERIFY(controller.importCertificate(testData(QStringLiteral("client.der")), Category::Trusted));
+    controller.pki().store().setRoot(_directory->path());
+    QVERIFY(controller.pki().importCertificate(testData(QStringLiteral("client.der")), Category::Trusted));
     QCOMPARE(connectStranger(controller, false), UA_STATUSCODE_GOOD);
 #endif
 }
@@ -819,13 +849,13 @@ void TestCertificateStore::unverifiedClientLandsInRejectedFolder()
     QSKIP("Built without OUASIM_WITH_ENCRYPTION");
 #else
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
+    controller.pki().store().setRoot(_directory->path());
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
     QCOMPARE(connectStranger(controller, false), UA_STATUSCODE_GOOD);
 
     QTRY_VERIFY(!controller.sessions().isEmpty());
     QStringList rejected;
-    for (const CertificateInfo &info : controller.certificates()) {
+    for (const CertificateInfo &info : controller.pki().certificates()) {
         if (info.category == Category::Rejected)
             rejected << info.commonName;
     }
@@ -844,13 +874,13 @@ void TestCertificateStore::unverifiedClientAlreadyStoredIsNotCopied()
     QSKIP("Built without OUASIM_WITH_ENCRYPTION");
 #else
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
-    QVERIFY(controller.importCertificate(testData(QStringLiteral("stranger.der")), Category::Trusted));
+    controller.pki().store().setRoot(_directory->path());
+    QVERIFY(controller.pki().importCertificate(testData(QStringLiteral("stranger.der")), Category::Trusted));
     QCOMPARE(connectStranger(controller, false), UA_STATUSCODE_GOOD);
 
     QTRY_VERIFY(!controller.sessions().isEmpty());
     QList<Category> categories;
-    for (const CertificateInfo &info : controller.certificates()) {
+    for (const CertificateInfo &info : controller.pki().certificates()) {
         if (info.commonName == QStringLiteral("Stranger Client"))
             categories << info.category;
     }
@@ -864,7 +894,7 @@ void TestCertificateStore::trustingRejectedClientAppliesWithoutRestart()
     QSKIP("Built without OUASIM_WITH_ENCRYPTION");
 #else
     ServerController controller;
-    controller.certificateStore().setRoot(_directory->path());
+    controller.pki().store().setRoot(_directory->path());
     QSignalSpy changed(&controller, &ServerController::certificatesChanged);
     QVERIFY(connectStranger(controller, true) != UA_STATUSCODE_GOOD);
     QTRY_VERIFY(changed.count() >= 2);
@@ -874,7 +904,7 @@ void TestCertificateStore::trustingRejectedClientAppliesWithoutRestart()
     }));
     QString rejected;
     int rejectedCount = 0;
-    for (const CertificateInfo &info : controller.certificates()) {
+    for (const CertificateInfo &info : controller.pki().certificates()) {
         if (info.category == Category::Rejected) {
             rejected = info.filePath;
             ++rejectedCount;
@@ -882,11 +912,11 @@ void TestCertificateStore::trustingRejectedClientAppliesWithoutRestart()
     }
     QCOMPARE(rejectedCount, 1);
 
-    QVERIFY(controller.moveCertificate(rejected, Category::Trusted));
+    QVERIFY(controller.pki().moveCertificate(rejected, Category::Trusted));
     QVERIFY(!controller.isRestartRequired());
     QCOMPARE(connectStrangerTo(controller), UA_STATUSCODE_GOOD);
     QList<Category> categories;
-    for (const CertificateInfo &info : controller.certificates()) {
+    for (const CertificateInfo &info : controller.pki().certificates()) {
         if (info.commonName == QStringLiteral("Stranger Client"))
             categories << info.category;
     }

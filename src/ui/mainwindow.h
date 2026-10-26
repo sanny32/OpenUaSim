@@ -12,7 +12,6 @@
 #include <QMainWindow>
 #include <QStringList>
 
-#include "data/certificateinfo.h"
 #include "data/typeinfo.h"
 #include "data/variableinfo.h"
 
@@ -21,8 +20,10 @@ class MainWindow;
 }
 
 class AppTheme;
+class CertificateActions;
 class LogModel;
 class MainStatusBarWidget;
+class ModelActions;
 class QAction;
 class QActionGroup;
 class ProjectDocument;
@@ -95,28 +96,6 @@ public:
     bool confirmDiscardChanges();
 
     ///
-    /// \brief Imports a NodeSet2 model, reporting a file that cannot be loaded.
-    /// \param fileName NodeSet2 file.
-    /// \return True when the model was loaded.
-    ///
-    bool importModelFrom(const QString &fileName);
-
-    ///
-    /// \brief Exports the project nodes as NodeSet2, reporting a file that cannot be written.
-    /// \param fileName Target path.
-    /// \return True when the file was written.
-    ///
-    bool exportModelTo(const QString &fileName);
-
-    ///
-    /// \brief Exports the nodes of one namespace as NodeSet2, reporting a file that cannot be written.
-    /// \param fileName Target path.
-    /// \param namespaceUri URI of the namespace to export.
-    /// \return True when the file was written.
-    ///
-    bool exportNamespaceTo(const QString &fileName, const QString &namespaceUri);
-
-    ///
     /// \brief Writes log entries to a CSV file, reporting a file that cannot be written.
     /// \param fileName Target path.
     /// \param entries Entries to write.
@@ -125,26 +104,22 @@ public:
     bool exportLogTo(const QString &fileName, const QList<LogEntry> &entries);
 
     ///
-    /// \brief Adds a client or issuer certificate to the PKI store, reporting a refused file.
-    /// \param fileName PEM or DER certificate.
-    /// \param category Trusted, Rejected or Issuer folder.
-    /// \return True when the certificate was stored.
-    ///
-    bool importCertificateFrom(const QString &fileName, CertificateInfo::Category category);
-
-    ///
-    /// \brief Installs the server certificate and key, reporting refused files.
-    /// \param certificateFile PEM or DER certificate.
-    /// \param keyFile PEM or DER private key.
-    /// \return True when both were stored.
-    ///
-    bool installServerCertificateFrom(const QString &certificateFile, const QString &keyFile);
-
-    ///
     /// \brief Returns the log shared by the event log panel and the log page.
     /// \return Server log model.
     ///
     LogModel *logModel() const;
+
+    ///
+    /// \brief Returns the actions of the Certificates page.
+    /// \return Actions created by setController(), or null before.
+    ///
+    CertificateActions *certificateActions() const;
+
+    ///
+    /// \brief Returns the actions on NodeSet2 models.
+    /// \return Actions created by setController(), or null before.
+    ///
+    ModelActions *modelActions() const;
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -202,21 +177,8 @@ private:
     bool saveProject();
     bool saveProjectAs();
     void updateWindowTitle();
-    void importModel();
-    void exportModel();
-    void exportNamespace(const QString &namespaceUri);
     void exportLog(const QList<LogEntry> &entries);
     void showSubscriptions(const SessionInfo &session);
-    void confirmRemoveModel(const QString &fileName);
-    void removePendingModel();
-    void importCertificate(CertificateInfo::Category category);
-    void exportCertificate(const QString &filePath);
-    void moveCertificate(const QString &filePath, CertificateInfo::Category category);
-    void confirmDeleteCertificate(const QString &filePath);
-    void deletePendingCertificate();
-    void confirmGenerateServerCertificate();
-    void generateServerCertificate();
-    void reloadCertificates();
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_statusWidget;
@@ -232,8 +194,8 @@ private:
     QHash<QString, TypeInfo> _types;
     QStringList _namespaces;
     QString _pendingRenameId;
-    QString _pendingModelFile;
-    QString _pendingCertificate;
     QActionGroup *_pageActions = nullptr;
+    CertificateActions *_certificateActions = nullptr;
+    ModelActions *_modelActions = nullptr;
     bool _contentSplitApplied = false;
 };

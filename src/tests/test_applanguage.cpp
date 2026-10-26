@@ -26,7 +26,7 @@ namespace {
 
 QString modelNotImported()
 {
-    return QCoreApplication::translate("MainWindow", "Model not imported");
+    return QCoreApplication::translate("ModelActions", "Model not imported");
 }
 
 }

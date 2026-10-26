@@ -6,9 +6,38 @@
 /// \brief Implements the in-memory value history clients read with HistoryRead.
 ///
 
-#include <iterator>
+#include <algorithm>
+
+#include <QSequentialIterable>
 
 #include "historystore.h"
+#include "simulation/valuecast.h"
+
+namespace {
+
+///
+/// \brief Returns how much of the history budget a value takes.
+/// \param value Recorded value.
+/// \return Length of an array value, at least 1; 1 for a scalar.
+///
+qsizetype costOf(const QVariant &value)
+{
+    if (!ValueCast::isArray(value))
+        return 1;
+    return std::max<qsizetype>(1, value.value<QSequentialIterable>().size());
+}
+
+}
+
+///
+/// \brief Creates an empty history.
+/// \param budget Values kept across all variables, an array value counting as its length; clamped to at
+///        least 1.
+///
+HistoryStore::HistoryStore(qint64 budget)
+    : _budget(std::max<qint64>(1, budget))
+{
+}
 
 ///
 /// \brief Changes how much history is kept and drops what the new limits exclude.
@@ -37,10 +66,12 @@ HistoryLimits HistoryStore::limits() const
 void HistoryStore::clear()
 {
     _tables.clear();
+    _cost = 0;
 }
 
 ///
-/// \brief Records a value and drops the values the limits exclude.
+/// \brief Records a value and drops the values the limits exclude, then the oldest values of any variable
+///        while the budget is exceeded; the recorded value itself is kept.
 /// \param nodeId Variable node id.
 /// \param dataPoint Value with its source timestamp and status; replaces a value with the same timestamp.
 /// \param logOut Unused; recording cannot fail.
@@ -51,8 +82,19 @@ bool HistoryStore::writeHistoryData(const QUaNodeId &nodeId, const QUaHistoryDat
 {
     Q_UNUSED(logOut);
     Table &table = _tables[nodeId];
-    table.insert(dataPoint.timestamp, { dataPoint.value, dataPoint.status });
+    Sample sample { dataPoint.timestamp, dataPoint.value, dataPoint.status, costOf(dataPoint.value) };
+    _cost += sample.cost;
+    const qsizetype index = table.isEmpty() || table.constLast().timestamp < sample.timestamp
+        ? table.size()
+        : lowerIndex(table, sample.timestamp);
+    if (index < table.size() && table.at(index).timestamp == sample.timestamp) {
+        _cost -= table.at(index).cost;
+        table[index] = std::move(sample);
+    } else {
+        table.insert(index, std::move(sample));
+    }
     trim(table);
+    enforceBudget(nodeId);
     return true;
 }
 
@@ -85,10 +127,8 @@ bool HistoryStore::removeHistoryData(const QUaNodeId &nodeId, const QDateTime &t
     if (found == _tables.end())
         return false;
     Table &table = *found;
-    const auto first = table.lowerBound(timeStart);
-    const auto last = timeEnd.isValid() ? table.upperBound(timeEnd) : table.end();
     if (!timeEnd.isValid() || timeStart <= timeEnd)
-        table.erase(first, last);
+        erase(table, lowerIndex(table, timeStart), timeEnd.isValid() ? upperIndex(table, timeEnd) : table.size());
     return true;
 }
 
@@ -102,7 +142,7 @@ QDateTime HistoryStore::firstTimestamp(const QUaNodeId &nodeId, QQueue<QUaLog> &
 {
     Q_UNUSED(logOut);
     const Table *values = table(nodeId);
-    return values ? values->firstKey() : QDateTime();
+    return values ? values->constFirst().timestamp : QDateTime();
 }
 
 ///
@@ -115,7 +155,7 @@ QDateTime HistoryStore::lastTimestamp(const QUaNodeId &nodeId, QQueue<QUaLog> &l
 {
     Q_UNUSED(logOut);
     const Table *values = table(nodeId);
-    return values ? values->lastKey() : QDateTime();
+    return values ? values->constLast().timestamp : QDateTime();
 }
 
 ///
@@ -129,7 +169,10 @@ bool HistoryStore::hasTimestamp(const QUaNodeId &nodeId, const QDateTime &timest
 {
     Q_UNUSED(logOut);
     const Table *values = table(nodeId);
-    return values && values->contains(timestamp);
+    if (!values)
+        return false;
+    const qsizetype index = lowerIndex(*values, timestamp);
+    return index < values->size() && values->at(index).timestamp == timestamp;
 }
 
 ///
@@ -149,11 +192,11 @@ QDateTime HistoryStore::findTimestamp(const QUaNodeId &nodeId, const QDateTime &
     if (!values)
         return {};
     if (match == QUaHistoryBackend::TimeMatch::ClosestFromAbove) {
-        const auto later = values->upperBound(timestamp);
-        return later == values->cend() ? values->lastKey() : later.key();
+        const qsizetype later = upperIndex(*values, timestamp);
+        return later == values->size() ? values->constLast().timestamp : values->at(later).timestamp;
     }
-    const auto notEarlier = values->lowerBound(timestamp);
-    return notEarlier == values->cbegin() ? values->firstKey() : std::prev(notEarlier).key();
+    const qsizetype notEarlier = lowerIndex(*values, timestamp);
+    return notEarlier == 0 ? values->constFirst().timestamp : values->at(notEarlier - 1).timestamp;
 }
 
 ///
@@ -171,8 +214,8 @@ quint64 HistoryStore::numDataPointsInRange(const QUaNodeId &nodeId, const QDateT
     const Table *values = table(nodeId);
     if (!values || (timeEnd.isValid() && timeEnd < timeStart))
         return 0;
-    const auto last = timeEnd.isValid() ? values->upperBound(timeEnd) : values->cend();
-    return quint64(std::distance(values->lowerBound(timeStart), last));
+    const qsizetype last = timeEnd.isValid() ? upperIndex(*values, timeEnd) : values->size();
+    return quint64(last - lowerIndex(*values, timeStart));
 }
 
 ///
@@ -195,14 +238,12 @@ QVector<QUaHistoryDataPoint> HistoryStore::readHistoryData(const QUaNodeId &node
     const Table *values = table(nodeId);
     if (!values)
         return points;
-    auto it = values->lowerBound(timeStart);
-    for (quint64 skipped = 0; skipped < numPointsOffset && it != values->cend(); ++skipped)
-        ++it;
-    for (QUaHistoryDataPoint &point : points) {
-        if (it == values->cend())
-            break;
-        point = { it.key(), it->value, it->status };
-        ++it;
+    const quint64 start = quint64(lowerIndex(*values, timeStart)) + numPointsOffset;
+    const quint64 available = start < quint64(values->size()) ? quint64(values->size()) - start : 0;
+    const qsizetype count = qsizetype(std::min(available, numPointsToRead));
+    for (qsizetype i = 0; i < count; ++i) {
+        const Sample &sample = values->at(qsizetype(start) + i);
+        points[i] = { sample.timestamp, sample.value, sample.status };
     }
     return points;
 }
@@ -272,15 +313,82 @@ const HistoryStore::Table *HistoryStore::table(const QUaNodeId &nodeId) const
 }
 
 ///
+/// \brief Finds the first value not earlier than a timestamp.
+/// \param table Values of one variable.
+/// \param timestamp Timestamp to look for.
+/// \return Index of the value, or the table size when every value is earlier.
+///
+qsizetype HistoryStore::lowerIndex(const Table &table, const QDateTime &timestamp)
+{
+    const auto found = std::lower_bound(table.cbegin(), table.cend(), timestamp,
+                                        [](const Sample &sample, const QDateTime &time) {
+                                            return sample.timestamp < time;
+                                        });
+    return found - table.cbegin();
+}
+
+///
+/// \brief Finds the first value later than a timestamp.
+/// \param table Values of one variable.
+/// \param timestamp Timestamp to look for.
+/// \return Index of the value, or the table size when no value is later.
+///
+qsizetype HistoryStore::upperIndex(const Table &table, const QDateTime &timestamp)
+{
+    const auto found = std::upper_bound(table.cbegin(), table.cend(), timestamp,
+                                        [](const QDateTime &time, const Sample &sample) {
+                                            return time < sample.timestamp;
+                                        });
+    return found - table.cbegin();
+}
+
+///
+/// \brief Drops a range of values and releases their share of the budget.
+/// \param table Values of one variable.
+/// \param first Index of the first value to drop.
+/// \param last Index past the last value to drop.
+///
+void HistoryStore::erase(Table &table, qsizetype first, qsizetype last)
+{
+    for (qsizetype i = first; i < last; ++i)
+        _cost -= table.at(i).cost;
+    table.remove(first, last - first);
+}
+
+///
 /// \brief Drops the oldest values beyond the count limit and those older than the age limit.
 /// \param table Values of one variable.
 ///
-void HistoryStore::trim(Table &table) const
+void HistoryStore::trim(Table &table)
 {
-    while (table.size() > _limits.maxValues)
-        table.erase(table.begin());
+    if (table.size() > _limits.maxValues)
+        erase(table, 0, table.size() - _limits.maxValues);
     if (_limits.maxAgeMinutes > 0 && !table.isEmpty()) {
-        const QDateTime oldest = table.lastKey().addSecs(-qint64(_limits.maxAgeMinutes) * 60);
-        table.erase(table.begin(), table.lowerBound(oldest));
+        const QDateTime oldest = table.constLast().timestamp.addSecs(-qint64(_limits.maxAgeMinutes) * 60);
+        erase(table, 0, lowerIndex(table, oldest));
+    }
+}
+
+///
+/// \brief Drops the oldest value of any variable until the history fits its budget, never the newest value of
+///        the variable just written.
+/// \param written Node id of the variable just written.
+///
+void HistoryStore::enforceBudget(const QUaNodeId &written)
+{
+    while (_cost > _budget) {
+        auto oldest = _tables.end();
+        for (auto it = _tables.begin(); it != _tables.end(); ++it) {
+            const qsizetype keep = it.key() == written ? 1 : 0;
+            if (it->size() <= keep)
+                continue;
+            if (oldest == _tables.end() || it->constFirst().timestamp < oldest->constFirst().timestamp)
+                oldest = it;
+        }
+        if (oldest == _tables.end())
+            return;
+        erase(*oldest, 0, 1);
+        if (oldest->isEmpty())
+            _tables.erase(oldest);
     }
 }

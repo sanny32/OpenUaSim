@@ -66,6 +66,9 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 - QUaServer serves a single listener, so all enabled endpoints share one TCP
   port; endpoint changes on a running server apply on restart.
 - Secure endpoints need an installed server certificate.
+- The value history holds at most 5 000 000 values across all variables, an
+  array value counting as its length; beyond that the oldest values of any
+  variable are dropped first.
 - Nodes of imported models are read-only on the Objects page, and their values
   there refresh only when the address space is rebuilt. Removing a model
   restarts a running server, which disconnects its clients.

@@ -51,6 +51,8 @@ add_library(ouasim_core STATIC
     pki/certificategenerator.h
     pki/certificatestore.cpp
     pki/certificatestore.h
+    pki/pkiservice.cpp
+    pki/pkiservice.h
 
     project/alarmrules.cpp
     project/alarmrules.h
@@ -85,6 +87,8 @@ add_library(ouasim_core STATIC
     server/logmapper.h
     server/modelvariables.cpp
     server/modelvariables.h
+    server/nodesetloader.cpp
+    server/nodesetloader.h
     server/servercontroller.cpp
     server/servercontroller.h
     server/sessiontracker.cpp

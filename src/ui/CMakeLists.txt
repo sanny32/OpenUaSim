@@ -35,6 +35,10 @@ add_library(ouasim_ui STATIC
     application.h
     apptheme.cpp
     apptheme.h
+    certificateactions.cpp
+    certificateactions.h
+    modelactions.cpp
+    modelactions.h
 
     dialogs/alarmdialog.cpp
     dialogs/alarmdialog.h

@@ -10,7 +10,7 @@
 
 #include <QDateTime>
 #include <QHash>
-#include <QMap>
+#include <QList>
 #include <QQueue>
 #include <QVariant>
 #include <QVector>
@@ -29,6 +29,13 @@ class HistoryStore
 {
 public:
     ///
+    /// \brief Creates an empty history.
+    /// \param budget Values kept across all variables, an array value counting as its length; clamped to at
+    ///        least 1.
+    ///
+    explicit HistoryStore(qint64 budget = kHistoryBudgetElements);
+
+    ///
     /// \brief Changes how much history is kept and drops what the new limits exclude.
     /// \param limits Value count and age; clamped to 1..kMaxHistoryValues and 0..kMaxHistoryAgeMinutes.
     ///
@@ -46,7 +53,8 @@ public:
     void clear();
 
     ///
-    /// \brief Records a value and drops the values the limits exclude.
+    /// \brief Records a value and drops the values the limits exclude, then the oldest values of any variable
+    ///        while the budget is exceeded; the recorded value itself is kept.
     /// \param nodeId Variable node id.
     /// \param dataPoint Value with its source timestamp and status; replaces a value with the same timestamp.
     /// \param logOut Unused; recording cannot fail.
@@ -179,14 +187,22 @@ public:
 private:
     struct Sample
     {
+        QDateTime timestamp;
         QVariant value;
         quint32 status = 0;
+        qsizetype cost = 1;
     };
-    using Table = QMap<QDateTime, Sample>;
+    using Table = QList<Sample>;
 
     const Table *table(const QUaNodeId &nodeId) const;
-    void trim(Table &table) const;
+    static qsizetype lowerIndex(const Table &table, const QDateTime &timestamp);
+    static qsizetype upperIndex(const Table &table, const QDateTime &timestamp);
+    void erase(Table &table, qsizetype first, qsizetype last);
+    void trim(Table &table);
+    void enforceBudget(const QUaNodeId &written);
 
     QHash<QUaNodeId, Table> _tables;
     HistoryLimits _limits;
+    qint64 _budget;
+    qint64 _cost = 0;
 };

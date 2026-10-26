@@ -91,7 +91,7 @@
        <widget class="QPushButton" name="actionButton">
         <property name="minimumSize"><size><width>96</width><height>0</height></size></property>
         <property name="text"><string>OK</string></property>
-        <property name="accent" stdset="0"><string>primary</string></property>
+        <property name="accent" stdset="0"><string notr="true">primary</string></property>
        </widget>
       </item>
      </layout>

@@ -47,6 +47,7 @@
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
 #include "mock/mockdata.h"
+#include "modelactions.h"
 #include "objectspage.h"
 #include "project/projectdocument.h"
 #include "project/projectnodes.h"
@@ -884,10 +885,10 @@ void TestMainWindow::importsAndExportsModels()
 
     QTemporaryDir directory;
     const QString exported = directory.filePath(QStringLiteral("model.xml"));
-    QVERIFY(window.exportModelTo(exported));
+    QVERIFY(window.modelActions()->exportModelTo(exported));
     QVERIFY(QFile::exists(exported));
 
-    QVERIFY(!window.importModelFrom(directory.filePath(QStringLiteral("missing.xml"))));
+    QVERIFY(!window.modelActions()->importModelFrom(directory.filePath(QStringLiteral("missing.xml"))));
     auto *box = window.findChild<MessageDialog *>();
     QVERIFY(box);
     QVERIFY(!messageText(box).isEmpty());
@@ -922,11 +923,11 @@ void TestMainWindow::deletesCertificateAfterConfirmation()
 {
     QTemporaryDir directory;
     ServerController controller;
-    controller.certificateStore().setRoot(directory.path());
+    controller.pki().store().setRoot(directory.path());
     controller.setProject(TestProject::create());
-    QVERIFY(controller.importCertificate(QStringLiteral(OUASIM_TEST_DATA_DIR "/pki/client.der"),
-                                         CertificateInfo::Category::Trusted));
-    const CertificateInfo certificate = controller.certificates().first();
+    QVERIFY(controller.pki().importCertificate(QStringLiteral(OUASIM_TEST_DATA_DIR "/pki/client.der"),
+                                               CertificateInfo::Category::Trusted));
+    const CertificateInfo certificate = controller.pki().certificates().first();
     MainWindow window;
     window.setController(&controller);
 
@@ -939,12 +940,12 @@ void TestMainWindow::deletesCertificateAfterConfirmation()
     QCOMPARE(child<QLabel>(*question, "detailsLabel")->text(), QStringLiteral("The client will no longer be trusted."));
     QCOMPARE(child<QPushButton>(*question, "actionButton")->text(), QStringLiteral("Delete"));
     child<QPushButton>(*question, "cancelButton")->click();
-    QCOMPARE(controller.certificates().size(), 1);
+    QCOMPARE(controller.pki().certificates().size(), 1);
 
     QTRY_VERIFY(!window.findChild<MessageDialog *>());
     child<QToolButton>(window, "deleteButton")->click();
     child<QPushButton>(*window.findChild<MessageDialog *>(), "actionButton")->click();
-    QVERIFY(controller.certificates().isEmpty());
+    QVERIFY(controller.pki().certificates().isEmpty());
 }
 
 void TestMainWindow::exportsNamespaceAndLog()
@@ -956,7 +957,7 @@ void TestMainWindow::exportsNamespaceAndLog()
 
     QTemporaryDir directory;
     const QString model = directory.filePath(QStringLiteral("namespace.xml"));
-    QVERIFY(window.exportNamespaceTo(model, controller.snapshot().namespaces.value(1).uri));
+    QVERIFY(window.modelActions()->exportNamespaceTo(model, controller.snapshot().namespaces.value(1).uri));
     QVERIFY(QFile::exists(model));
 
     const QString log = directory.filePath(QStringLiteral("log.csv"));

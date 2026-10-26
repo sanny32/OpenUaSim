@@ -19,7 +19,6 @@
 #include "listenersettings.h"
 #include "logmapper.h"
 #include "modelvariables.h"
-#include "pki/certificategenerator.h"
 #include "project/alarmrules.h"
 #include "project/projectnodes.h"
 #include "project/serversettingsrules.h"
@@ -38,6 +37,8 @@ ServerController::ServerController(QObject *parent)
     : QObject(parent)
     , _addressSpace(_server.uaServer())
     , _engine(&_addressSpace)
+    , _nodeSets(_server)
+    , _pki(_server)
 {
     connect(&_server, &SimServer::runningChanged, this, &ServerController::runningChanged);
     connect(&_server, &SimServer::logAppended, this, &ServerController::appendLog);
@@ -50,8 +51,10 @@ ServerController::ServerController(QObject *parent)
     connect(&_addressSpace, &AddressSpace::valuesSetByMethod, this, &ServerController::valuesChanged);
     connect(&_addressSpace, &AddressSpace::methodCalled, this, &ServerController::logMethodCall);
     connect(&_addressSpace, &AddressSpace::alarmChanged, this, &ServerController::handleAlarmChanged);
-    connect(&_server, &SimServer::clientCertificateRejected, this, &ServerController::handleCertificateRejected);
-    connect(&_server, &SimServer::unverifiedClientConnected, this, &ServerController::handleUnverifiedClient);
+    connect(&_nodeSets, &NodeSetLoader::logAppended, this, &ServerController::appendLog);
+    connect(&_pki, &PkiService::certificatesChanged, this, &ServerController::certificatesChanged);
+    connect(&_pki, &PkiService::restartRequired, this, [this] { setRestartRequired(true); });
+    connect(&_pki, &PkiService::logAppended, this, &ServerController::appendLog);
 }
 
 ///
@@ -72,13 +75,14 @@ void ServerController::setProject(const ProjectConfig &project)
 {
     _project = project;
     ProjectNodes::assignMissingNodeIds(_project.nodes);
-    const bool unusedModels = std::any_of(_loadedNodeSets.cbegin(), _loadedNodeSets.cend(),
+    const QStringList loaded = _nodeSets.loaded();
+    const bool unusedModels = std::any_of(loaded.cbegin(), loaded.cend(),
                                           [this](const QString &file) { return !_project.nodeSetFiles.contains(file); });
     if (unusedModels) {
         reloadServer();
         return;
     }
-    loadProjectNodeSets();
+    _nodeSets.loadAll(_project.nodeSetFiles);
     rebuildNodes();
 }
 
@@ -96,8 +100,9 @@ bool ServerController::removeNodeSet(const QString &fileName, QString *error)
             *error = tr("'%1' is not imported").arg(fileName);
         return false;
     }
-    _project.modelVariables.removeIf([this, &fileName](const ModelVariable &variable) {
-        return _modelNamespaces.value(variable.namespaceUri) == fileName;
+    const QHash<QString, QString> modelFiles = _nodeSets.modelNamespaces();
+    _project.modelVariables.removeIf([&modelFiles, &fileName](const ModelVariable &variable) {
+        return modelFiles.value(variable.namespaceUri) == fileName;
     });
     reloadServer();
     emit projectEdited();
@@ -111,12 +116,9 @@ bool ServerController::removeNodeSet(const QString &fileName, QString *error)
 ///
 void ServerController::renameNodeSetFiles(const QHash<QString, QString> &movedFiles)
 {
-    for (QStringList *files : { &_project.nodeSetFiles, &_loadedNodeSets }) {
-        for (QString &file : *files)
-            file = movedFiles.value(file, file);
-    }
-    for (QString &file : _modelNamespaces)
+    for (QString &file : _project.nodeSetFiles)
         file = movedFiles.value(file, file);
+    _nodeSets.renameFiles(movedFiles);
 }
 
 ///
@@ -125,7 +127,7 @@ void ServerController::renameNodeSetFiles(const QHash<QString, QString> &movedFi
 ///
 QHash<QString, QString> ServerController::modelNamespaces() const
 {
-    return _modelNamespaces;
+    return _nodeSets.modelNamespaces();
 }
 
 ///
@@ -142,7 +144,7 @@ bool ServerController::importNodeSet(const QString &fileName, QString *error)
             *error = tr("'%1' is already imported").arg(path);
         return false;
     }
-    if (!loadNodeSet(path, error))
+    if (!_nodeSets.load(path, error))
         return false;
     _project.nodeSetFiles.append(path);
     rebuildNodes();
@@ -158,7 +160,7 @@ bool ServerController::importNodeSet(const QString &fileName, QString *error)
 ///
 bool ServerController::exportNodeSet(const QString &fileName, QString *error)
 {
-    return exportNamespace(fileName, _server.uaServer()->namespaces().value(1), error);
+    return _nodeSets.exportApplicationNamespace(fileName, error);
 }
 
 ///
@@ -170,18 +172,7 @@ bool ServerController::exportNodeSet(const QString &fileName, QString *error)
 ///
 bool ServerController::exportNamespace(const QString &fileName, const QString &namespaceUri, QString *error)
 {
-    if (namespaceUri.isEmpty() || namespaceUri == _server.uaServer()->namespaces().value(0)) {
-        if (error)
-            *error = tr("The standard OPC UA namespace cannot be exported");
-        return false;
-    }
-    const QUaNodeSetExportResult result = _server.uaServer()->exportNodeSet(fileName, { namespaceUri });
-    for (const QString &warning : result.warnings)
-        appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
-                                   tr("Model export: %1").arg(warning)));
-    if (!result.isOk() && error)
-        *error = result.errorString;
-    return result.isOk();
+    return _nodeSets.exportNamespace(fileName, namespaceUri, error);
 }
 
 ///
@@ -566,7 +557,7 @@ bool ServerController::setServerSettings(const ServerSettings &settings, QString
 
     const bool uriChanged = settings.applicationUri != _project.server.applicationUri;
     _project.server = settings;
-    if (uriChanged && _certificates.hasServerCertificate())
+    if (uriChanged && _pki.store().hasServerCertificate())
         appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Security,
                                    tr("The server certificate names the former application URI; "
                                       "create a new one on the Certificates page")));
@@ -631,46 +622,12 @@ bool ServerController::isRestartRequired() const
 }
 
 ///
-/// \brief Returns the PKI store, e.g. to point tests at a temporary directory.
-/// \return Store owned by the controller.
+/// \brief Returns the PKI operations: certificate store changes and client certificate reviews.
+/// \return Service owned by the controller.
 ///
-CertificateStore &ServerController::certificateStore()
+PkiService &ServerController::pki()
 {
-    return _certificates;
-}
-
-///
-/// \brief Lists the certificates of the PKI store.
-/// \return Certificates of every folder.
-///
-QList<CertificateInfo> ServerController::certificates() const
-{
-    return _certificates.certificates();
-}
-
-///
-/// \brief Adds a client or issuer certificate to the PKI store.
-/// \param fileName PEM or DER certificate.
-/// \param category Trusted, Rejected or Issuer folder.
-/// \param error Receives the reason on failure; may be null.
-/// \return True when the certificate was stored.
-///
-bool ServerController::importCertificate(const QString &fileName, CertificateInfo::Category category, QString *error)
-{
-    return finishCertificateChange(!_certificates.importCertificate(fileName, category, error).isEmpty());
-}
-
-///
-/// \brief Installs the server certificate and private key used by secure endpoints.
-/// \param certificateFile PEM or DER certificate.
-/// \param keyFile PEM or DER private key.
-/// \param error Receives the reason on failure; may be null.
-/// \return True when both were stored.
-///
-bool ServerController::installServerCertificate(const QString &certificateFile, const QString &keyFile,
-                                                QString *error)
-{
-    return finishCertificateChange(_certificates.installServerCertificate(certificateFile, keyFile, error));
+    return _pki;
 }
 
 ///
@@ -680,37 +637,7 @@ bool ServerController::installServerCertificate(const QString &certificateFile, 
 ///
 bool ServerController::generateServerCertificate(QString *error)
 {
-    QStringList hostnames;
-    for (const EndpointInfo &endpoint : std::as_const(_project.endpoints))
-        hostnames.append(endpoint.hostname);
-    const GeneratedCertificate generated =
-        CertificateGenerator::generate(_project.server.applicationUri, hostnames, error);
-    return finishCertificateChange(!generated.certificate.isEmpty()
-                                   && _certificates.storeServerCertificate(generated.certificate,
-                                                                           generated.privateKey, error));
-}
-
-///
-/// \brief Moves a stored certificate, e.g. to trust a rejected client.
-/// \param filePath Stored certificate file.
-/// \param category Target folder.
-/// \param error Receives the reason on failure; may be null.
-/// \return True when the certificate was moved.
-///
-bool ServerController::moveCertificate(const QString &filePath, CertificateInfo::Category category, QString *error)
-{
-    return finishCertificateChange(!_certificates.move(filePath, category, error).isEmpty());
-}
-
-///
-/// \brief Deletes a stored certificate.
-/// \param filePath Stored certificate file.
-/// \param error Receives the reason on failure; may be null.
-/// \return True when the certificate was deleted.
-///
-bool ServerController::removeCertificate(const QString &filePath, QString *error)
-{
-    return finishCertificateChange(_certificates.remove(filePath, error));
+    return _pki.generateServerCertificate(_project.server.applicationUri, certificateHostnames(), error);
 }
 
 ///
@@ -739,10 +666,11 @@ bool ServerController::isRunning() const
 ServerSnapshot ServerController::snapshot(const QDateTime &now) const
 {
     ServerSnapshot result = SnapshotBuilder::build(_project, _server, _addressSpace, now);
+    const QHash<QString, QString> modelFiles = _nodeSets.modelNamespaces();
     for (NamespaceInfo &ns : result.namespaces)
-        ns.modelFile = _modelNamespaces.value(ns.uri);
+        ns.modelFile = modelFiles.value(ns.uri);
     result.log = _log;
-    result.certificates = _certificates.certificates();
+    result.certificates = _pki.certificates();
     return result;
 }
 
@@ -800,7 +728,7 @@ bool ServerController::start()
 {
     if (ListenerSettingsBuilder::usesSecurity(_project.endpoints))
         ensureServerCertificate();
-    _server.setPkiMaterial(_certificates.material());
+    _server.setPkiMaterial(_pki.store().material());
     if (!_server.start(_project))
         return false;
     _engine.start();
@@ -849,47 +777,6 @@ void ServerController::rebuildNodes()
 }
 
 ///
-/// \brief Loads a NodeSet2 file into the server once and logs its outcome.
-/// \param fileName Absolute path.
-/// \param error Receives the reason on failure; may be null.
-/// \return True when the file is loaded, now or before.
-///
-bool ServerController::loadNodeSet(const QString &fileName, QString *error)
-{
-    if (_loadedNodeSets.contains(fileName))
-        return true;
-    const QStringList namespacesBefore = _server.uaServer()->namespaces();
-    const QUaNodeSetResult result = _server.uaServer()->loadNodeSet(fileName);
-    if (!result.isOk()) {
-        appendLog(LogMapper::entry(LogEntry::Level::Error, LogEntry::Category::Server,
-                                   tr("Model '%1' not loaded: %2").arg(fileName, result.errorString)));
-        if (error)
-            *error = result.errorString;
-        return false;
-    }
-    for (const QString &warning : result.warnings)
-        appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
-                                   tr("Model '%1': %2").arg(fileName, warning)));
-    appendLog(LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::Server,
-                               tr("Model '%1' loaded with %2 nodes").arg(fileName).arg(result.addedNodes.size())));
-    _loadedNodeSets.append(fileName);
-    for (const QString &uri : _server.uaServer()->namespaces()) {
-        if (!namespacesBefore.contains(uri))
-            _modelNamespaces.insert(uri, fileName);
-    }
-    return true;
-}
-
-///
-/// \brief Loads the project's NodeSet2 files that are not loaded yet.
-///
-void ServerController::loadProjectNodeSets()
-{
-    for (const QString &fileName : std::as_const(_project.nodeSetFiles))
-        loadNodeSet(fileName, nullptr);
-}
-
-///
 /// \brief Recreates the server with the project's models and nodes only; a running server restarts.
 ///
 void ServerController::reloadServer()
@@ -899,43 +786,31 @@ void ServerController::reloadServer()
     _addressSpace.clear();
     _server.reset();
     _addressSpace.setServer(_server.uaServer());
-    _loadedNodeSets.clear();
-    _modelNamespaces.clear();
-    loadProjectNodeSets();
+    _nodeSets.clear();
+    _nodeSets.loadAll(_project.nodeSetFiles);
     rebuildNodes();
     if (wasRunning)
         start();
 }
 
 ///
-/// \brief Creates a missing server certificate when generation is available and logs the result.
+/// \brief Creates a missing server certificate for the project when generation is available and logs the result.
 ///
 void ServerController::ensureServerCertificate()
 {
-    if (!CertificateGenerator::isAvailable() || _certificates.hasServerCertificate())
-        return;
-    QString error;
-    if (generateServerCertificate(&error))
-        appendLog(LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::Security,
-                                   tr("Created a self-signed server certificate")));
-    else
-        appendLog(LogMapper::entry(LogEntry::Level::Error, LogEntry::Category::Security, error));
+    _pki.ensureServerCertificate(_project.server.applicationUri, certificateHostnames());
 }
 
 ///
-/// \brief Gives a successful PKI change to the server and announces it; a running server applies the trust
-///        lists at once and needs a restart only for another server certificate.
-/// \param changed Whether the store changed.
-/// \return The value of changed, so callers can return it directly.
+/// \brief Lists the host names of the endpoints, which the server certificate names.
+/// \return Host name of every endpoint.
 ///
-bool ServerController::finishCertificateChange(bool changed)
+QStringList ServerController::certificateHostnames() const
 {
-    if (!changed)
-        return false;
-    if (!_server.setPkiMaterial(_certificates.material()))
-        setRestartRequired(true);
-    emit certificatesChanged();
-    return true;
+    QStringList hostnames;
+    for (const EndpointInfo &endpoint : std::as_const(_project.endpoints))
+        hostnames.append(endpoint.hostname);
+    return hostnames;
 }
 
 ///
@@ -1003,56 +878,4 @@ void ServerController::handleClientWrite(const QString &nodeId, const QVariant &
     appendLog(LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::DataChanges,
                                tr("Client wrote %1 to %2").arg(Formatting::value(value), nodeId)));
     emit valuesChanged({ { nodeId, value } });
-}
-
-///
-/// \brief Keeps a rejected client certificate in the rejected folder, where it can be reviewed and trusted;
-///        a certificate the store already holds is not copied, and the log says why a trusted one failed.
-/// \param certificate Rejected DER certificate.
-/// \param reason Status code name of the rejection.
-///
-void ServerController::handleCertificateRejected(const QByteArray &certificate, const QString &reason)
-{
-    if (const std::optional<CertificateInfo> known = _certificates.find(certificate)) {
-        const QString message = known->category == CertificateInfo::Category::Trusted
-            ? tr("Client certificate '%1' rejected (%2) although it is trusted")
-            : tr("Client certificate '%1' rejected again (%2)");
-        appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Security,
-                                   message.arg(known->commonName, reason)));
-        return;
-    }
-    QString error;
-    const QString stored = _certificates.addCertificate(certificate, CertificateInfo::Category::Rejected, &error);
-    if (stored.isEmpty()) {
-        appendLog(LogMapper::entry(LogEntry::Level::Error, LogEntry::Category::Security,
-                                   tr("A rejected client certificate could not be kept: %1").arg(error)));
-        return;
-    }
-    appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Security,
-                               tr("Client certificate '%1' rejected (%2); it was moved to the rejected folder")
-                                   .arg(QFileInfo(stored).completeBaseName(), reason)));
-    emit certificatesChanged();
-}
-
-///
-/// \brief Keeps the unknown certificate of a client accepted without a trust check in the rejected folder,
-///        so it shows up for review and is not trusted until the user says so.
-/// \param certificate DER application certificate of the client.
-///
-void ServerController::handleUnverifiedClient(const QByteArray &certificate)
-{
-    if (_certificates.find(certificate))
-        return;
-    QString error;
-    const QString stored = _certificates.addCertificate(certificate, CertificateInfo::Category::Rejected, &error);
-    if (stored.isEmpty()) {
-        appendLog(LogMapper::entry(LogEntry::Level::Error, LogEntry::Category::Security,
-                                   tr("The certificate of a connected client could not be kept: %1").arg(error)));
-        return;
-    }
-    appendLog(LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::Security,
-                               tr("Client certificate '%1' accepted without a trust check; "
-                                  "it was added to the rejected folder")
-                                   .arg(QFileInfo(stored).completeBaseName())));
-    emit certificatesChanged();
 }

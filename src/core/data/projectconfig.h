@@ -109,12 +109,17 @@ constexpr int kMaxHistoryValues = 1000000;
 /// \brief Longest time the history keeps a value, one week.
 constexpr int kMaxHistoryAgeMinutes = 7 * 24 * 60;
 
+/// \brief Values the history keeps across all variables, an array value counting as its length; the oldest
+///        values of any variable are dropped beyond it.
+constexpr qint64 kHistoryBudgetElements = 5000000;
+
 ///
 /// \brief How much of the value history of historizing variables the server keeps in memory.
 ///
 struct HistoryLimits
 {
-    /// \brief Values kept per variable, the oldest dropped first; bounds the memory whatever the update rate.
+    /// \brief Values kept per variable, the oldest dropped first; kHistoryBudgetElements bounds all variables
+    ///        together.
     int maxValues = 1000;
     /// \brief Minutes a value is kept, counted back from the newest value of its variable; 0 keeps values until
     ///        maxValues drops them.

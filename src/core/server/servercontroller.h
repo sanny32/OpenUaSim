@@ -16,6 +16,8 @@
 #include "addressspace.h"
 #include "data/projectconfig.h"
 #include "data/serversnapshot.h"
+#include "nodesetloader.h"
+#include "pki/pkiservice.h"
 #include "simserver.h"
 #include "simulation/simulationengine.h"
 
@@ -181,34 +183,10 @@ public:
     bool isRestartRequired() const;
 
     ///
-    /// \brief Returns the PKI store, e.g. to point tests at a temporary directory.
-    /// \return Store owned by the controller.
+    /// \brief Returns the PKI operations: certificate store changes and client certificate reviews.
+    /// \return Service owned by the controller.
     ///
-    CertificateStore &certificateStore();
-
-    ///
-    /// \brief Lists the certificates of the PKI store.
-    /// \return Certificates of every folder.
-    ///
-    QList<CertificateInfo> certificates() const;
-
-    ///
-    /// \brief Adds a client or issuer certificate to the PKI store.
-    /// \param fileName PEM or DER certificate.
-    /// \param category Trusted, Rejected or Issuer folder.
-    /// \param error Receives the reason on failure; may be null.
-    /// \return True when the certificate was stored.
-    ///
-    bool importCertificate(const QString &fileName, CertificateInfo::Category category, QString *error = nullptr);
-
-    ///
-    /// \brief Installs the server certificate and private key used by secure endpoints.
-    /// \param certificateFile PEM or DER certificate.
-    /// \param keyFile PEM or DER private key.
-    /// \param error Receives the reason on failure; may be null.
-    /// \return True when both were stored.
-    ///
-    bool installServerCertificate(const QString &certificateFile, const QString &keyFile, QString *error = nullptr);
+    PkiService &pki();
 
     ///
     /// \brief Creates a self-signed server certificate for the project and installs it, replacing an earlier one.
@@ -218,26 +196,9 @@ public:
     bool generateServerCertificate(QString *error = nullptr);
 
     ///
-    /// \brief Creates a missing server certificate when generation is available and logs the result.
+    /// \brief Creates a missing server certificate for the project when generation is available and logs the result.
     ///
     void ensureServerCertificate();
-
-    ///
-    /// \brief Moves a stored certificate, e.g. to trust a rejected client.
-    /// \param filePath Stored certificate file.
-    /// \param category Target folder.
-    /// \param error Receives the reason on failure; may be null.
-    /// \return True when the certificate was moved.
-    ///
-    bool moveCertificate(const QString &filePath, CertificateInfo::Category category, QString *error = nullptr);
-
-    ///
-    /// \brief Deletes a stored certificate.
-    /// \param filePath Stored certificate file.
-    /// \param error Receives the reason on failure; may be null.
-    /// \return True when the certificate was deleted.
-    ///
-    bool removeCertificate(const QString &filePath, QString *error = nullptr);
 
     ///
     /// \brief Returns the served project.
@@ -394,16 +355,12 @@ private:
     VariableInfo variableInfo(const NodeDefinition &node) const;
     void rebuildNodes();
     void setRestartRequired(bool required);
-    bool loadNodeSet(const QString &fileName, QString *error);
-    void loadProjectNodeSets();
     void reloadServer();
-    bool finishCertificateChange(bool changed);
+    QStringList certificateHostnames() const;
     void appendLog(const LogEntry &entry);
     void handleClientWrite(const QString &nodeId, const QVariant &value);
     void logMethodCall(const QString &methodId, const QString &result);
     void handleAlarmChanged(const QString &nodeId, const QString &state);
-    void handleCertificateRejected(const QByteArray &certificate, const QString &reason);
-    void handleUnverifiedClient(const QByteArray &certificate);
 
     SimServer _server;
     AddressSpace _addressSpace;
@@ -411,8 +368,7 @@ private:
     ProjectConfig _project;
     QList<LogEntry> _log;
     bool _restartRequired = false;
-    QStringList _loadedNodeSets;
-    QHash<QString, QString> _modelNamespaces;
     QList<NodeDefinition> _modelSettings;
-    CertificateStore _certificates;
+    NodeSetLoader _nodeSets;
+    PkiService _pki;
 };
