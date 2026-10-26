@@ -44,6 +44,7 @@ ouasim_add_ui_test(ouasim_tests_pages           test_pages.cpp)
 ouasim_add_ui_test(ouasim_tests_mainwindow      test_mainwindow.cpp)
 ouasim_add_ui_test(ouasim_tests_add_node_dialog test_addnodedialog.cpp)
 ouasim_add_ui_test(ouasim_tests_alarm_dialog    test_alarmdialog.cpp)
+ouasim_add_ui_test(ouasim_tests_confirm_dialog  test_confirmdialog.cpp)
 ouasim_add_ui_test(ouasim_tests_server_settings_dialog test_serversettingsdialog.cpp)
 ouasim_add_ui_test(ouasim_tests_users_dialog    test_usersdialog.cpp)
 

@@ -20,7 +20,8 @@ class QStyleOptionButton;
 /// - \c panelBody (bool) on a QScrollArea inside a panel lets the panel colour show through;
 /// - \c separator (bool) on a one-pixel StyledPanel QFrame draws a line in the mid colour,
 ///   which stays subtle in both themes unlike QFrame::HLine;
-/// - \c accent ("success") on a QPushButton draws a tinted, outlined button;
+/// - \c accent ("success") on a QPushButton draws a tinted, outlined button; ("primary") fills it with
+///   a gradient of the palette accent for the main action of a dialog;
 /// - \c toolbar (bool) on a QPushButton, QToolButton or QLineEdit makes it larger, for the main toolbar.
 ///
 /// Tab bars draw separate tabs with the selected one filled in the accent colour, and check
@@ -59,7 +60,7 @@ public:
                        const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Draws tab shapes and labels and toolbar button labels; defers everything else to Fusion.
+    /// \brief Draws tab shapes and labels and toolbar and primary button labels; defers everything else to Fusion.
     /// \param element Control element to draw.
     /// \param option Style option of the element.
     /// \param painter Painter to draw with.
@@ -111,7 +112,18 @@ public:
                          const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Adds vertical space to message boxes and makes panel scroll areas transparent.
+    /// \brief Replaces the platform message box icons with status-coloured badges.
+    /// \param standardIcon Icon to return.
+    /// \param option Style option of the requesting control.
+    /// \param widget Requesting widget.
+    /// \return Application icon for message boxes, the Fusion icon otherwise.
+    ///
+    QIcon standardIcon(StandardPixmap standardIcon, const QStyleOption *option = nullptr,
+                       const QWidget *widget = nullptr) const override;
+
+    ///
+    /// \brief Adds vertical space, a minimum width and a text hierarchy to message boxes and makes panel
+    ///        scroll areas transparent.
     /// \param widget Widget being polished.
     ///
     void polish(QWidget *widget) override;
@@ -160,6 +172,7 @@ private:
     void drawPanel(const QStyleOption *option, QPainter *painter) const;
     void drawCheckIndicator(const QStyleOption *option, QPainter *painter) const;
     void drawAccentButton(const QStyleOption *option, QPainter *painter, const QColor &accent) const;
+    void drawPrimaryButton(const QStyleOption *option, QPainter *painter) const;
     void drawTabShape(const QStyleOption *option, QPainter *painter) const;
     void drawToolbarButtonLabel(const QStyleOptionButton *button, QPainter *painter) const;
     void setKeyboardCues(bool on);

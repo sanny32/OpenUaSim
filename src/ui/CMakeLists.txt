@@ -2,6 +2,7 @@ set(UI_FILES
     mainwindow.ui
 
     dialogs/alarmdialog.ui
+    dialogs/confirmdialog.ui
     dialogs/addnodedialog.ui
     dialogs/serversettingsdialog.ui
     dialogs/subscriptionsdialog.ui
@@ -37,6 +38,8 @@ add_library(ouasim_ui STATIC
 
     dialogs/alarmdialog.cpp
     dialogs/alarmdialog.h
+    dialogs/confirmdialog.cpp
+    dialogs/confirmdialog.h
     dialogs/addnodedialog.cpp
     dialogs/addnodedialog.h
     dialogs/serversettingsdialog.cpp

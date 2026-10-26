@@ -12,6 +12,7 @@
 #include <QComboBox>
 #include <QKeyEvent>
 #include <QGridLayout>
+#include <QLabel>
 #include <QMessageBox>
 #include <QMenu>
 #include <QMenuBar>
@@ -26,6 +27,7 @@
 #include <QWidget>
 
 #include "appcolors.h"
+#include "appicons.h"
 #include "appstyle.h"
 
 namespace {
@@ -48,7 +50,9 @@ constexpr int kItemIconSize = 18;
 constexpr int kItemIconTextGap = 6;
 constexpr int kTreeIndentation = 22;
 constexpr int kCheckIndicatorSize = 14;
-constexpr int kMessageBoxIconSize = 24;
+constexpr int kMessageBoxIconSize = 32;
+constexpr int kMessageBoxMinimumWidth = 360;
+constexpr const char *kMessageBoxWidenedProperty = "appStyleWidened";
 
 ///
 /// \brief Reports whether a widget sits in the main toolbar.
@@ -58,6 +62,26 @@ constexpr int kMessageBoxIconSize = 24;
 bool isToolbarWidget(const QWidget *widget)
 {
     return widget && widget->property(AppStyle::toolbarProperty).toBool();
+}
+
+///
+/// \brief Sets the main message box text in semibold and the informative text in the secondary colour.
+/// \param widget Widget being polished; anything but a message box text label is left alone.
+///
+void polishMessageBoxText(QWidget *widget)
+{
+    // Object names given by QMessageBox to its text labels.
+    if (!qobject_cast<QLabel *>(widget) || !qobject_cast<QMessageBox *>(widget->parentWidget()))
+        return;
+    if (widget->objectName() == QLatin1String("qt_msgbox_label")) {
+        QFont font = widget->font();
+        font.setWeight(QFont::DemiBold);
+        widget->setFont(font);
+    } else if (widget->objectName() == QLatin1String("qt_msgbox_informativelabel")) {
+        QPalette palette = widget->palette();
+        palette.setColor(QPalette::WindowText, AppColors::secondaryText(QGuiApplication::palette()));
+        widget->setPalette(palette);
+    }
 }
 
 ///
@@ -98,6 +122,16 @@ QColor accentFor(const QWidget *widget)
     if (accent == QLatin1String("success"))
         return AppColors::status(StatusKind::Good);
     return {};
+}
+
+///
+/// \brief Reports whether a button is the filled main action of a dialog.
+/// \param widget Button being drawn.
+/// \return True when the button's accent is "primary".
+///
+bool isPrimaryButton(const QWidget *widget)
+{
+    return widget && widget->property(AppStyle::accentProperty).toString() == QLatin1String("primary");
 }
 
 ///
@@ -146,6 +180,10 @@ void AppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *optio
         return;
     }
     if (element == PE_PanelButtonCommand && option->state.testFlag(State_Enabled)) {
+        if (isPrimaryButton(widget)) {
+            drawPrimaryButton(option, painter);
+            return;
+        }
         const QColor accent = accentFor(widget);
         if (accent.isValid()) {
             drawAccentButton(option, painter, accent);
@@ -156,7 +194,7 @@ void AppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *optio
 }
 
 ///
-/// \brief Draws tab shapes and labels and toolbar button labels; defers everything else to Fusion.
+/// \brief Draws tab shapes and labels and toolbar and primary button labels; defers everything else to Fusion.
 /// \param element Control element to draw.
 /// \param option Style option of the element.
 /// \param painter Painter to draw with.
@@ -179,6 +217,14 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option, Q
                 focus.rect = subElementRect(SE_PushButtonFocusRect, button, widget);
                 proxy()->drawPrimitive(PE_FrameFocusRect, &focus, painter, widget);
             }
+            return;
+        }
+    }
+    if (element == CE_PushButtonLabel && option->state.testFlag(State_Enabled) && isPrimaryButton(widget)) {
+        if (const auto *button = qstyleoption_cast<const QStyleOptionButton *>(option)) {
+            QStyleOptionButton label(*button);
+            label.palette.setColor(QPalette::ButtonText, button->palette.color(QPalette::HighlightedText));
+            QProxyStyle::drawControl(element, &label, painter, widget);
             return;
         }
     }
@@ -355,7 +401,21 @@ QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option, c
 }
 
 ///
-/// \brief Adds vertical space to message boxes and makes panel scroll areas transparent.
+/// \brief Replaces the platform message box icons with status-coloured badges.
+/// \param standardIcon Icon to return.
+/// \param option Style option of the requesting control.
+/// \param widget Requesting widget.
+/// \return Application icon for message boxes, the Fusion icon otherwise.
+///
+QIcon AppStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *option, const QWidget *widget) const
+{
+    const QIcon icon = AppIcons::messageIcon(standardIcon);
+    return icon.isNull() ? QProxyStyle::standardIcon(standardIcon, option, widget) : icon;
+}
+
+///
+/// \brief Adds vertical space, a minimum width and a text hierarchy to message boxes and makes panel
+///        scroll areas transparent.
 /// \param widget Widget being polished.
 ///
 void AppStyle::polish(QWidget *widget)
@@ -368,8 +428,15 @@ void AppStyle::polish(QWidget *widget)
             margins.setBottom(20);
             layout->setContentsMargins(margins);
             layout->setVerticalSpacing(14);
+            // QMessageBox sizes itself to its layout's minimum width, which otherwise follows the shortest text.
+            if (!box->property(kMessageBoxWidenedProperty).toBool()) {
+                box->setProperty(kMessageBoxWidenedProperty, true);
+                layout->addItem(new QSpacerItem(kMessageBoxMinimumWidth, 0, QSizePolicy::Fixed, QSizePolicy::Minimum),
+                                layout->rowCount(), 0, 1, layout->columnCount());
+            }
         }
     }
+    polishMessageBoxText(widget);
     auto *scroll = qobject_cast<QScrollArea *>(widget);
     if (!scroll || !scroll->property(panelBodyProperty).toBool())
         return;
@@ -525,6 +592,38 @@ void AppStyle::drawAccentButton(const QStyleOption *option, QPainter *painter, c
     painter->setPen(accent);
     painter->setBrush(withAlpha(accent, alpha));
     painter->drawRoundedRect(QRectF(option->rect).adjusted(0.5, 0.5, -0.5, -0.5), 3, 3);
+    painter->restore();
+}
+
+///
+/// \brief Draws a push button filled with the palette accent, with the gradient, border and top highlight
+///        that give Fusion buttons their depth; darker while pressed and lighter on hover.
+/// \param option Style option of the button.
+/// \param painter Painter to draw with.
+///
+void AppStyle::drawPrimaryButton(const QStyleOption *option, QPainter *painter) const
+{
+    const bool sunken = option->state.testFlag(State_Sunken) || option->state.testFlag(State_On);
+    QColor fill = option->palette.color(QPalette::Accent);
+    if (sunken)
+        fill = fill.darker(115);
+    else if (option->state.testFlag(State_MouseOver))
+        fill = fill.lighter(110);
+
+    const QRectF frame = QRectF(option->rect).adjusted(0.5, 0.5, -0.5, -0.5);
+    QLinearGradient gradient(frame.topLeft(), frame.bottomLeft());
+    gradient.setColorAt(0.0, sunken ? fill : fill.lighter(112));
+    gradient.setColorAt(1.0, sunken ? fill.lighter(106) : fill.darker(108));
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    painter->setPen(fill.darker(135));
+    painter->setBrush(gradient);
+    painter->drawRoundedRect(frame, 3, 3);
+    if (!sunken) {
+        painter->setPen(withAlpha(Qt::white, 60));
+        painter->drawLine(QPointF(frame.left() + 3, frame.top() + 1), QPointF(frame.right() - 3, frame.top() + 1));
+    }
     painter->restore();
 }
 

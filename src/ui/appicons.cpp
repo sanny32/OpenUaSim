@@ -212,6 +212,47 @@ QIcon statusDot(StatusKind kind)
 }
 
 ///
+/// \brief Builds a message box icon: a status-coloured badge with a glyph.
+/// \param pixmap SP_MessageBoxInformation, SP_MessageBoxQuestion, SP_MessageBoxWarning or SP_MessageBoxCritical.
+/// \return Icon; null for any other pixmap.
+///
+QIcon messageIcon(QStyle::StandardPixmap pixmap)
+{
+    static const QByteArray circle = QByteArrayLiteral("<circle cx=\"12\" cy=\"12\" r=\"11\" fill=\"currentColor\"/>");
+    static const QByteArray glyph = QByteArrayLiteral(
+        "fill=\"none\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"");
+    QByteArray body;
+    StatusKind kind = StatusKind::Info;
+    switch (pixmap) {
+    case QStyle::SP_MessageBoxInformation:
+        body = circle + "<path d=\"M12 11v6\" stroke=\"#fff\" " + glyph + "/>"
+                        "<circle cx=\"12\" cy=\"7.4\" r=\"1.5\" fill=\"#fff\"/>";
+        break;
+    case QStyle::SP_MessageBoxQuestion:
+        body = circle + "<path d=\"M9.1 9a3 3 0 0 1 5.8 1c0 2-2.9 2.6-2.9 4.2\" stroke=\"#fff\" " + glyph + "/>"
+                        "<circle cx=\"12\" cy=\"17.6\" r=\"1.4\" fill=\"#fff\"/>";
+        break;
+    case QStyle::SP_MessageBoxWarning:
+        kind = StatusKind::Warning;
+        // A white glyph is unreadable on yellow, so the warning glyph is dark in both themes.
+        body = QByteArrayLiteral("<path d=\"M10.27 2.5a2 2 0 0 1 3.46 0l9.5 16.5a2 2 0 0 1-1.73 3H2.5a2 2 0 0 1-1.73-3z\" "
+                                 "fill=\"currentColor\"/>")
+             + "<path d=\"M12 8.5v5.5\" stroke=\"#1f2937\" " + glyph + "/>"
+               "<circle cx=\"12\" cy=\"17.8\" r=\"1.4\" fill=\"#1f2937\"/>";
+        break;
+    case QStyle::SP_MessageBoxCritical:
+        kind = StatusKind::Error;
+        body = circle + "<path d=\"M8.5 8.5l7 7M15.5 8.5l-7 7\" stroke=\"#fff\" " + glyph + "/>";
+        break;
+    default:
+        return {};
+    }
+    return tinted("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">"
+                      + body + "</svg>",
+                  Tint::Status, kind);
+}
+
+///
 /// \brief Lists the icons a variable can be given.
 /// \return Icons in picker order.
 ///

@@ -54,4 +54,21 @@ QColor statusText(StatusKind kind)
     }
 }
 
+///
+/// \brief Returns the colour of supporting text, quieter than the main text but still legible.
+/// \param palette Palette whose text and window colours are blended.
+/// \return Opaque text colour.
+///
+QColor secondaryText(const QPalette &palette)
+{
+    constexpr double kTextWeight = 0.72;
+    const QColor text = palette.color(QPalette::WindowText);
+    const QColor window = palette.color(QPalette::Window);
+    const auto blend = [](int foreground, int background) {
+        return qRound(foreground * kTextWeight + background * (1.0 - kTextWeight));
+    };
+    return QColor(blend(text.red(), window.red()), blend(text.green(), window.green()),
+                  blend(text.blue(), window.blue()));
+}
+
 }

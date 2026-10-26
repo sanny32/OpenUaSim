@@ -11,6 +11,7 @@
 #include <QIcon>
 #include <QList>
 #include <QString>
+#include <QStyle>
 
 #include "data/statuskind.h"
 
@@ -44,6 +45,13 @@ QIcon icon(const QString &name);
 /// \return Filled dot in the status colour; null for StatusKind::None.
 ///
 QIcon statusDot(StatusKind kind);
+
+///
+/// \brief Builds a message box icon: a status-coloured badge with a glyph.
+/// \param pixmap SP_MessageBoxInformation, SP_MessageBoxQuestion, SP_MessageBoxWarning or SP_MessageBoxCritical.
+/// \return Icon; null for any other pixmap.
+///
+QIcon messageIcon(QStyle::StandardPixmap pixmap);
 
 ///
 /// \brief Lists the icons a variable can be given.

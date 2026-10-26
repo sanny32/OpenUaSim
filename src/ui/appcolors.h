@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QColor>
+#include <QPalette>
 
 #include "data/statuskind.h"
 
@@ -27,5 +28,12 @@ QColor status(StatusKind kind);
 /// \return Text colour; the palette text colour for StatusKind::None.
 ///
 QColor statusText(StatusKind kind);
+
+///
+/// \brief Returns the colour of supporting text, quieter than the main text but still legible.
+/// \param palette Palette whose text and window colours are blended.
+/// \return Opaque text colour.
+///
+QColor secondaryText(const QPalette &palette);
 
 }

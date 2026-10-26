@@ -39,6 +39,7 @@
 #include "apppalette.h"
 #include "appstyle.h"
 #include "apptheme.h"
+#include "confirmdialog.h"
 #include "endpointspage.h"
 #include "elidedlineedit.h"
 #include "eventlogwidget.h"
@@ -117,6 +118,7 @@ private slots:
     void closingAsksAboutUnsavedChanges();
     void importsAndExportsModels();
     void removesModelAfterConfirmation();
+    void deletesCertificateAfterConfirmation();
     void exportsNamespaceAndLog();
     void panelsFitTheDefaultWindow_data();
     void panelsFitTheDefaultWindow();
@@ -913,6 +915,35 @@ void TestMainWindow::removesModelAfterConfirmation()
     window.findChild<QMessageBox *>()->button(QMessageBox::Yes)->click();
     QVERIFY(controller.project().nodeSetFiles.isEmpty());
     QCOMPARE(view->model()->rowCount(), controller.snapshot().namespaces.size());
+}
+
+void TestMainWindow::deletesCertificateAfterConfirmation()
+{
+    QTemporaryDir directory;
+    ServerController controller;
+    controller.certificateStore().setRoot(directory.path());
+    controller.setProject(TestProject::create());
+    QVERIFY(controller.importCertificate(QStringLiteral(OUASIM_TEST_DATA_DIR "/pki/client.der"),
+                                         CertificateInfo::Category::Trusted));
+    const CertificateInfo certificate = controller.certificates().first();
+    MainWindow window;
+    window.setController(&controller);
+
+    child<QToolButton>(window, "deleteButton")->click();
+    auto *question = window.findChild<ConfirmDialog *>();
+    QVERIFY(question);
+    QCOMPARE(question->windowTitle(), QStringLiteral("Delete Certificate"));
+    QCOMPARE(child<QLabel>(*question, "questionLabel")->text(),
+             QStringLiteral("Delete the certificate '%1'?").arg(certificate.commonName));
+    QCOMPARE(child<QLabel>(*question, "detailsLabel")->text(), QStringLiteral("The client will no longer be trusted."));
+    QCOMPARE(child<QPushButton>(*question, "actionButton")->text(), QStringLiteral("Delete"));
+    child<QPushButton>(*question, "cancelButton")->click();
+    QCOMPARE(controller.certificates().size(), 1);
+
+    QTRY_VERIFY(!window.findChild<ConfirmDialog *>());
+    child<QToolButton>(window, "deleteButton")->click();
+    child<QPushButton>(*window.findChild<ConfirmDialog *>(), "actionButton")->click();
+    QVERIFY(controller.certificates().isEmpty());
 }
 
 void TestMainWindow::exportsNamespaceAndLog()

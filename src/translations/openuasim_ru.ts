@@ -577,6 +577,13 @@
     </message>
 </context>
 <context>
+    <name>ConfirmDialog</name>
+    <message>
+        <source>Cancel</source>
+        <translation>Отмена</translation>
+    </message>
+</context>
+<context>
     <name>EndpointsModel</name>
     <message>
         <source>Yes</source>
@@ -1351,8 +1358,28 @@
         <translation>Удаление сертификата</translation>
     </message>
     <message>
-        <source>Delete &apos;%1&apos;?</source>
-        <translation>Удалить «%1»?</translation>
+        <source>Delete the certificate &apos;%1&apos;?</source>
+        <translation>Удалить сертификат «%1»?</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Удалить</translation>
+    </message>
+    <message>
+        <source>The server creates a new certificate on its next start. Clients that trust the current one will have to trust the new one.</source>
+        <translation>При следующем запуске сервер создаст новый сертификат. Клиентам, доверяющим текущему, придётся доверять новому.</translation>
+    </message>
+    <message>
+        <source>The client will no longer be trusted.</source>
+        <translation>Клиент больше не будет доверенным.</translation>
+    </message>
+    <message>
+        <source>If the client connects again, its certificate appears again.</source>
+        <translation>Если клиент подключится снова, его сертификат появится опять.</translation>
+    </message>
+    <message>
+        <source>Client certificates signed by this issuer will no longer be validated through it.</source>
+        <translation>Сертификаты клиентов, подписанные этим издателем, больше не будут проверяться через него.</translation>
     </message>
     <message>
         <source>Certificate not deleted</source>

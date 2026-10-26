@@ -15,6 +15,7 @@
 #include <QInputDialog>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QTimer>
 
 #include "addnodedialog.h"
@@ -22,6 +23,7 @@
 #include "appicons.h"
 #include "applanguage.h"
 #include "apptheme.h"
+#include "confirmdialog.h"
 #include "data/serversnapshot.h"
 #include "logexport.h"
 #include "logmodel.h"
@@ -51,6 +53,28 @@ constexpr int kStatusRefreshMs = 1000;
 QString nodeSetFilter()
 {
     return QCoreApplication::translate("MainWindow", "NodeSet2 XML (*.xml)");
+}
+
+///
+/// \brief Explains what deleting a certificate from a store folder changes.
+/// \param category Folder of the certificate.
+/// \return One or two sentences for the confirmation.
+///
+QString deletionConsequence(CertificateInfo::Category category)
+{
+    switch (category) {
+    case CertificateInfo::Category::Application:
+        return QCoreApplication::translate("MainWindow", "The server creates a new certificate on its next start. "
+                                                         "Clients that trust the current one will have to trust the new one.");
+    case CertificateInfo::Category::Trusted:
+        return QCoreApplication::translate("MainWindow", "The client will no longer be trusted.");
+    case CertificateInfo::Category::Rejected:
+        return QCoreApplication::translate("MainWindow", "If the client connects again, its certificate appears again.");
+    case CertificateInfo::Category::Issuer:
+        return QCoreApplication::translate("MainWindow", "Client certificates signed by this issuer will no longer "
+                                                         "be validated through it.");
+    }
+    return {};
 }
 
 }
@@ -1169,22 +1193,28 @@ void MainWindow::moveCertificate(const QString &filePath, CertificateInfo::Categ
 ///
 void MainWindow::confirmDeleteCertificate(const QString &filePath)
 {
+    if (!_controller)
+        return;
+    const QList<CertificateInfo> certificates = _controller->certificates();
+    const auto certificate = std::find_if(certificates.cbegin(), certificates.cend(),
+                                          [&filePath](const CertificateInfo &info) { return info.filePath == filePath; });
+    if (certificate == certificates.cend())
+        return;
     _pendingCertificate = filePath;
-    auto *box = new QMessageBox(QMessageBox::Question, tr("Delete Certificate"),
-                                tr("Delete '%1'?").arg(QFileInfo(filePath).fileName()),
-                                QMessageBox::Yes | QMessageBox::Cancel, this);
-    box->setAttribute(Qt::WA_DeleteOnClose);
-    connect(box, &QDialog::finished, this, &MainWindow::deletePendingCertificate);
-    box->open();
+    auto *dialog = new ConfirmDialog(tr("Delete Certificate"),
+                                     tr("Delete the certificate '%1'?").arg(certificate->commonName),
+                                     deletionConsequence(certificate->category), tr("Delete"), this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &QDialog::accepted, this, &MainWindow::deletePendingCertificate);
+    dialog->open();
 }
 
 ///
-/// \brief Deletes the certificate the Delete Certificate question was answered Yes for.
+/// \brief Deletes the certificate the Delete Certificate question was confirmed for.
 ///
 void MainWindow::deletePendingCertificate()
 {
-    const auto *box = qobject_cast<const QMessageBox *>(sender());
-    if (!_controller || !box || box->standardButton(box->clickedButton()) != QMessageBox::Yes)
+    if (!_controller)
         return;
     QString error;
     if (!_controller->removeCertificate(_pendingCertificate, &error))

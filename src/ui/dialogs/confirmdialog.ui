@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ConfirmDialog</class>
+ <widget class="QDialog" name="ConfirmDialog">
+  <property name="minimumSize">
+   <size><width>520</width><height>0</height></size>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <property name="spacing"><number>0</number></property>
+   <property name="leftMargin"><number>0</number></property>
+   <property name="topMargin"><number>0</number></property>
+   <property name="rightMargin"><number>0</number></property>
+   <property name="bottomMargin"><number>0</number></property>
+   <item>
+    <widget class="QWidget" name="contentArea" native="true">
+     <property name="autoFillBackground"><bool>true</bool></property>
+     <layout class="QHBoxLayout" name="contentLayout">
+      <property name="spacing"><number>16</number></property>
+      <property name="leftMargin"><number>24</number></property>
+      <property name="topMargin"><number>24</number></property>
+      <property name="rightMargin"><number>24</number></property>
+      <property name="bottomMargin"><number>24</number></property>
+      <item alignment="Qt::AlignTop">
+       <widget class="QLabel" name="iconLabel">
+        <property name="minimumSize"><size><width>40</width><height>40</height></size></property>
+        <property name="maximumSize"><size><width>40</width><height>40</height></size></property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="textLayout">
+        <property name="spacing"><number>12</number></property>
+        <item>
+         <widget class="QLabel" name="questionLabel">
+          <property name="wordWrap"><bool>true</bool></property>
+          <property name="textFormat"><enum>Qt::PlainText</enum></property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="detailsLabel">
+          <property name="wordWrap"><bool>true</bool></property>
+          <property name="textFormat"><enum>Qt::PlainText</enum></property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="textSpacer">
+          <property name="orientation"><enum>Qt::Vertical</enum></property>
+          <property name="sizeHint" stdset="0"><size><width>0</width><height>0</height></size></property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="footerSeparator">
+     <property name="frameShape"><enum>QFrame::StyledPanel</enum></property>
+     <property name="minimumSize"><size><width>0</width><height>1</height></size></property>
+     <property name="maximumSize"><size><width>16777215</width><height>1</height></size></property>
+     <property name="separator" stdset="0"><bool>true</bool></property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="footer" native="true">
+     <layout class="QHBoxLayout" name="footerLayout">
+      <property name="spacing"><number>10</number></property>
+      <property name="leftMargin"><number>16</number></property>
+      <property name="topMargin"><number>14</number></property>
+      <property name="rightMargin"><number>16</number></property>
+      <property name="bottomMargin"><number>14</number></property>
+      <item>
+       <spacer name="footerSpacer">
+        <property name="orientation"><enum>Qt::Horizontal</enum></property>
+        <property name="sizeHint" stdset="0"><size><width>40</width><height>0</height></size></property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="cancelButton">
+        <property name="minimumSize"><size><width>96</width><height>0</height></size></property>
+        <property name="text"><string>Cancel</string></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="actionButton">
+        <property name="minimumSize"><size><width>96</width><height>0</height></size></property>
+        <property name="accent" stdset="0"><string>primary</string></property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

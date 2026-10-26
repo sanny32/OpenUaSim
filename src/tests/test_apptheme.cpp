@@ -47,6 +47,8 @@ private slots:
     void paletteIconsFollowTheTheme_data();
     void paletteIconsFollowTheTheme();
     void statusDots();
+    void messageIcons_data();
+    void messageIcons();
 };
 
 void TestAppTheme::palettesDifferInBrightness()
@@ -170,6 +172,27 @@ void TestAppTheme::statusDots()
     const QIcon error = AppIcons::statusDot(StatusKind::Error);
     QVERIFY(!error.isNull());
     QCOMPARE(error.pixmap(24).toImage().pixelColor(12, 12), AppColors::status(StatusKind::Error));
+}
+
+void TestAppTheme::messageIcons_data()
+{
+    QTest::addColumn<QStyle::StandardPixmap>("pixmap");
+    QTest::addColumn<StatusKind>("kind");
+    QTest::newRow("information") << QStyle::SP_MessageBoxInformation << StatusKind::Info;
+    QTest::newRow("question") << QStyle::SP_MessageBoxQuestion << StatusKind::Info;
+    QTest::newRow("warning") << QStyle::SP_MessageBoxWarning << StatusKind::Warning;
+    QTest::newRow("critical") << QStyle::SP_MessageBoxCritical << StatusKind::Error;
+}
+
+void TestAppTheme::messageIcons()
+{
+    QFETCH(QStyle::StandardPixmap, pixmap);
+    QFETCH(StatusKind, kind);
+    const QIcon icon = AppIcons::messageIcon(pixmap);
+    QVERIFY(!icon.isNull());
+    // Sampled below the glyph, inside both the circle and the warning triangle.
+    QCOMPARE(icon.pixmap(24).toImage().pixelColor(6, 19), AppColors::status(kind));
+    QVERIFY(AppIcons::messageIcon(QStyle::SP_DirIcon).isNull());
 }
 
 QTEST_MAIN(TestAppTheme)
