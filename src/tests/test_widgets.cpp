@@ -92,6 +92,8 @@ class TestWidgets : public QObject
 
 private slots:
     void statusIndicator();
+    void statusIndicatorFitsTextAtSizeHint_data();
+    void statusIndicatorFitsTextAtSizeHint();
     void statusIndicatorShowsOverflowTooltip();
     void delegateDecoratesIconNames();
     void delegateDecoratesStatus();
@@ -169,6 +171,36 @@ void TestWidgets::statusIndicator()
     indicator.setColoredText(true);
     indicator.resize(indicator.sizeHint());
     QVERIFY(!indicator.grab().isNull());
+}
+
+void TestWidgets::statusIndicatorFitsTextAtSizeHint_data()
+{
+    QTest::addColumn<QString>("text");
+    QTest::newRow("good") << QStringLiteral("Good");
+    QTest::newRow("bad") << QStringLiteral("Bad");
+    QTest::newRow("uncertain") << QStringLiteral("Uncertain");
+    QTest::newRow("running") << QStringLiteral("Server running");
+}
+
+void TestWidgets::statusIndicatorFitsTextAtSizeHint()
+{
+    QFETCH(QString, text);
+    QFont font = QApplication::font();
+    font.setPointSizeF(9.3);
+    font.setHintingPreference(QFont::PreferNoHinting);
+    for (qreal letterSpacing : { 0.0, 0.2, 0.4, 0.6, 0.8 }) {
+        font.setLetterSpacing(QFont::AbsoluteSpacing, letterSpacing);
+        StatusIndicator fitted;
+        fitted.setFont(font);
+        fitted.setStatus(StatusKind::Good, text);
+        fitted.resize(fitted.sizeHint());
+        StatusIndicator wide;
+        wide.setFont(font);
+        wide.setStatus(StatusKind::Good, text);
+        wide.resize(fitted.sizeHint() + QSize(50, 0));
+        const QImage expected = wide.grab().toImage().copy(QRect(QPoint(), fitted.size()));
+        QCOMPARE(fitted.grab().toImage(), expected);
+    }
 }
 
 void TestWidgets::statusIndicatorShowsOverflowTooltip()

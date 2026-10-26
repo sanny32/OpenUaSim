@@ -6,8 +6,10 @@
 /// \brief Implements the coloured dot-and-label status indicator.
 ///
 
+#include <QFontMetricsF>
 #include <QHelpEvent>
 #include <QPainter>
+#include <QtMath>
 #include <QToolTip>
 
 #include "appcolors.h"
@@ -77,9 +79,8 @@ void StatusIndicator::setColoredText(bool colored)
 ///
 QSize StatusIndicator::sizeHint() const
 {
-    const QFontMetrics metrics = fontMetrics();
-    const int textWidth = _text.isEmpty() ? 0 : kSpacing + metrics.horizontalAdvance(_text);
-    return { dotDiameter() + textWidth, qMax(metrics.height(), dotDiameter()) };
+    const int textWidth = _text.isEmpty() ? 0 : kSpacing + qCeil(textAdvance());
+    return { dotDiameter() + textWidth, qMax(fontMetrics().height(), dotDiameter()) };
 }
 
 ///
@@ -99,7 +100,7 @@ QSize StatusIndicator::minimumSizeHint() const
 bool StatusIndicator::event(QEvent *event)
 {
     if (event->type() == QEvent::ToolTip && toolTip().isEmpty()) {
-        if (fontMetrics().horizontalAdvance(_text) > textRect().width())
+        if (textAdvance() > textRect().width())
             TextToolTip::show(static_cast<QHelpEvent *>(event), this, _text);
         else
             QToolTip::hideText();
@@ -140,6 +141,15 @@ void StatusIndicator::paintEvent(QPaintEvent *event)
 int StatusIndicator::dotDiameter() const
 {
     return qRound(fontMetrics().height() * 0.85);
+}
+
+///
+/// \brief Returns the unrounded label width, which elidedText() compares against.
+/// \return Label advance in pixels.
+///
+qreal StatusIndicator::textAdvance() const
+{
+    return QFontMetricsF(font()).horizontalAdvance(_text);
 }
 
 ///

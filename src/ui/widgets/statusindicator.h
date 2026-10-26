@@ -69,6 +69,7 @@ protected:
 
 private:
     int dotDiameter() const;
+    qreal textAdvance() const;
     QRect textRect() const;
 
     StatusKind _status = StatusKind::None;
