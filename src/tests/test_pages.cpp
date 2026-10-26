@@ -895,6 +895,7 @@ void TestPages::endpointsPageAppliesEdits()
     child<QComboBox>(page, "hostnameCombo")->setEditText(QStringLiteral("  edited-host  "));
     child<QSpinBox>(page, "portSpin")->setValue(4900);
     child<QCheckBox>(page, "usernamePasswordCheck")->setChecked(true);
+    child<QCheckBox>(page, "userCertificateCheck")->setChecked(true);
     child<QPushButton>(page, "applyButton")->click();
 
     QCOMPARE(requested.count(), 1);
@@ -906,8 +907,11 @@ void TestPages::endpointsPageAppliesEdits()
         QCOMPARE(endpoint.port, 4900);
     }
     QVERIFY(applied[0].usernamePassword);
-    for (qsizetype i = 1; i < applied.size(); ++i)
+    QVERIFY(applied[0].userCertificate);
+    for (qsizetype i = 1; i < applied.size(); ++i) {
         QCOMPARE(applied[i].usernamePassword, endpoints[i].usernamePassword);
+        QCOMPARE(applied[i].userCertificate, endpoints[i].userCertificate);
+    }
 }
 
 void TestPages::endpointsPageAddsAndRemoves()

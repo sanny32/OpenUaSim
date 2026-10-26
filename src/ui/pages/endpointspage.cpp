@@ -247,6 +247,7 @@ void EndpointsPage::showEndpoint(const QModelIndex &current)
     }
     ui->allowAnonymousCheck->setChecked(endpoint.allowAnonymous);
     ui->usernamePasswordCheck->setChecked(endpoint.usernamePassword);
+    ui->userCertificateCheck->setChecked(endpoint.userCertificate);
     ui->trustedClientsOnlyCheck->setChecked(endpoint.trustedClientsOnly);
     ui->enabledCheck->setChecked(endpoint.enabled);
     ui->applyButton->setEnabled(false);
@@ -306,6 +307,8 @@ void EndpointsPage::restrictSecurityChoices()
     const QString reason = tr("This build has no encryption support");
     disableAllButNone(ui->securityPolicyCombo, reason);
     disableAllButNone(ui->securityModeCombo, reason);
+    ui->userCertificateCheck->setEnabled(false);
+    ui->userCertificateCheck->setToolTip(reason);
 #endif
 }
 
@@ -333,6 +336,7 @@ EndpointInfo EndpointsPage::editedEndpoint(int row) const
     endpoint.securityMode = ui->securityModeCombo->currentText();
     endpoint.allowAnonymous = ui->allowAnonymousCheck->isChecked();
     endpoint.usernamePassword = ui->usernamePasswordCheck->isChecked();
+    endpoint.userCertificate = ui->userCertificateCheck->isChecked();
     endpoint.trustedClientsOnly = ui->trustedClientsOnlyCheck->isChecked();
     endpoint.enabled = ui->enabledCheck->isChecked();
     return endpoint;

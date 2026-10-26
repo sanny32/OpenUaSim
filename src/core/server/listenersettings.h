@@ -30,6 +30,8 @@ struct ListenerSettings
     bool trustedClientsOnly = false;
     /// \brief Whether any enabled endpoint accepts username/password tokens.
     bool usernameAllowed = false;
+    /// \brief Whether any enabled endpoint accepts X.509 user certificates.
+    bool userCertificateAllowed = false;
     /// \brief Distinct security policy names of the enabled endpoints, e.g. "Basic256Sha256".
     QStringList securityPolicies;
     /// \brief Distinct message security mode names of the enabled endpoints, e.g. "Sign & Encrypt".

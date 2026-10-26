@@ -162,6 +162,7 @@ ListenerSettings build(const QList<EndpointInfo> &endpoints)
         settings.anonymousAllowed = settings.anonymousAllowed || endpoint.allowAnonymous;
         settings.trustedClientsOnly = settings.trustedClientsOnly || endpoint.trustedClientsOnly;
         settings.usernameAllowed = settings.usernameAllowed || endpoint.usernamePassword;
+        settings.userCertificateAllowed = settings.userCertificateAllowed || endpoint.userCertificate;
     }
     if (first)
         return failure(tr("No endpoint is enabled"));

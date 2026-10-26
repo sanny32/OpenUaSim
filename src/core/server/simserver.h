@@ -10,6 +10,7 @@
 
 #include <QDateTime>
 #include <QObject>
+#include <QSet>
 
 #include "data/logentry.h"
 #include "data/projectconfig.h"
@@ -153,6 +154,9 @@ private:
     bool configure(const ProjectConfig &project, const ListenerSettings &listener);
     bool configureSecurity(const ListenerSettings &listener);
     void applyUsers(const QList<UserAccount> &users);
+#ifdef OUASIM_HAVE_ENCRYPTION
+    QString certificateUserName(const QByteArray &certificate);
+#endif
     bool fail(const QString &reason);
     void log(LogEntry::Level level, LogEntry::Category category, const QString &message);
     void handleLog(const QUaLog &log);
@@ -169,4 +173,5 @@ private:
     QDateTime _startTime;
     QString _endpointUrl;
     PkiMaterial _pki;
+    QSet<QString> _certificateUsers;
 };

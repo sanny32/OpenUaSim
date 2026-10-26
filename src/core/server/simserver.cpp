@@ -6,6 +6,7 @@
 /// \brief Implements the OPC UA server the simulator runs.
 ///
 
+#include <QSslCertificate>
 #include <QTimer>
 
 #include <QUaServer>
@@ -36,9 +37,10 @@ QString securityModeName(QUaMessageSecurityMode mode)
 /// \brief Describes a QUaServer session for the sessions page.
 /// \param session Session reported by QUaServer.
 /// \param endpointUrl URL the server listens on, used when the session does not report the one it asked for.
+/// \param certificateUsers User names that logged in with an X.509 certificate.
 /// \return Active session description.
 ///
-SessionInfo sessionInfo(const QUaSession *session, const QString &endpointUrl)
+SessionInfo sessionInfo(const QUaSession *session, const QString &endpointUrl, const QSet<QString> &certificateUsers)
 {
     SessionInfo info;
     info.sessionId = session->sessionId();
@@ -51,7 +53,12 @@ SessionInfo sessionInfo(const QUaSession *session, const QString &endpointUrl)
     info.applicationUri = session->applicationUri();
     info.endpointUrl = session->endpointUrl().isEmpty() ? endpointUrl : session->endpointUrl();
     info.securityMode = securityModeName(session->securityMode());
-    info.userIdentity = session->isAnonymous() ? QStringLiteral("Anonymous") : QStringLiteral("Username");
+    if (session->isAnonymous())
+        info.userIdentity = QStringLiteral("Anonymous");
+    else if (certificateUsers.contains(session->userName()))
+        info.userIdentity = QStringLiteral("Certificate");
+    else
+        info.userIdentity = QStringLiteral("Username");
     return info;
 }
 
@@ -332,11 +339,24 @@ bool SimServer::configureSecurity(const ListenerSettings &listener)
     _server->setRejectUntrustedCertificates(listener.trustedClientsOnly);
     _server->setSecurityPolicies(securityPolicies(listener.securityPolicies));
     _server->setSecurityModes(securityModes(listener.securityModes));
+    _certificateUsers.clear();
+    if (listener.userCertificateAllowed)
+        _server->setUserCertificateCallback([this](const QByteArray &certificate) {
+            return certificateUserName(certificate);
+        });
+    else
+        _server->setUserCertificateCallback();
     const bool secureAvailable = !_server->certificate().isEmpty() && !_server->privateKey().isEmpty();
     const QString missing = tr("Secure endpoints need a server certificate and private key");
+    if (listener.userCertificateAllowed && !secureAvailable)
+        log(LogEntry::Level::Warning, LogEntry::Category::Security,
+            tr("User certificates need a server certificate and private key; they are not accepted"));
 #else
     const bool secureAvailable = false;
     const QString missing = tr("Secure endpoints need a build with encryption support");
+    if (listener.userCertificateAllowed)
+        log(LogEntry::Level::Warning, LogEntry::Category::Security,
+            tr("User certificates need a build with encryption support; they are not accepted"));
 #endif
     if (!wantsSecure || secureAvailable)
         return true;
@@ -347,6 +367,22 @@ bool SimServer::configureSecurity(const ListenerSettings &listener)
     emit startWarning(warning);
     return true;
 }
+
+#ifdef OUASIM_HAVE_ENCRYPTION
+///
+/// \brief Names the user of an X.509 certificate that open62541 already checked against the trust list.
+/// \param certificate DER user certificate.
+/// \return Common name, or another subject field when it has none; empty, which rejects the user, for an
+///         unreadable certificate.
+///
+QString SimServer::certificateUserName(const QByteArray &certificate)
+{
+    const QString name = QSslCertificate(certificate, QSsl::Der).subjectDisplayName();
+    if (!name.isEmpty())
+        _certificateUsers.insert(name);
+    return name;
+}
+#endif
 
 ///
 /// \brief Replaces the server's user accounts.
@@ -400,7 +436,7 @@ void SimServer::handleLog(const QUaLog &log)
 ///
 void SimServer::handleClientConnected(const QUaSession *session)
 {
-    const SessionInfo info = sessionInfo(session, _endpointUrl);
+    const SessionInfo info = sessionInfo(session, _endpointUrl, _certificateUsers);
     _sessions.open(info);
     log(LogEntry::Level::Info, LogEntry::Category::Session,
         tr("Session '%1' opened by %2").arg(info.name, info.user));

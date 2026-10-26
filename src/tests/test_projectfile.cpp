@@ -86,6 +86,7 @@ private slots:
     void preservesExplicitHostname_data();
     void preservesExplicitHostname();
     void keepsTrustedClientsOnlyKey();
+    void keepsUserCertificateFlag();
     void rejectsMalformedJson();
     void rejectsNonObjectRoot();
     void rejectsMissingVersion();
@@ -433,6 +434,24 @@ void TestProjectFile::keepsTrustedClientsOnlyKey()
     const QByteArray json = ProjectFile::toJson(original);
     QVERIFY(json.contains("requireClientCertificate"));
     QVERIFY(ProjectFile::fromJson(json).project.endpoints.first().trustedClientsOnly);
+}
+
+void TestProjectFile::keepsUserCertificateFlag()
+{
+    ProjectConfig original = DefaultProject::create();
+    original.endpoints.last().userCertificate = true;
+    const ProjectConfig loaded = ProjectFile::fromJson(ProjectFile::toJson(original)).project;
+    QVERIFY(!loaded.endpoints.first().userCertificate);
+    QVERIFY(loaded.endpoints.last().userCertificate);
+
+    QJsonObject json = QJsonDocument::fromJson(ProjectFile::toJson(original)).object();
+    QJsonArray endpoints = json.value(QStringLiteral("endpoints")).toArray();
+    QJsonObject first = endpoints.first().toObject();
+    first.remove(QStringLiteral("userCertificate"));
+    endpoints.replace(0, first);
+    json.insert(QStringLiteral("endpoints"), endpoints);
+    QVERIFY2(!ProjectFile::fromJson(QJsonDocument(json).toJson()).project.endpoints.first().userCertificate,
+             "projects saved before the flag existed keep certificates off");
 }
 
 void TestProjectFile::rejectsMalformedJson()

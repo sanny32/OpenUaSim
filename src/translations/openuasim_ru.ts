@@ -694,16 +694,16 @@
         <translation>Имя и пароль</translation>
     </message>
     <message>
-        <source>Accept the logins listed under Server → User Accounts.</source>
-        <translation>Принимать учётные записи из меню Сервер → Учётные записи.</translation>
-    </message>
-    <message>
         <source>Edit the user accounts that username/password endpoints accept.</source>
         <translation>Изменить учётные записи, которые принимают конечные точки со входом по имени и паролю.</translation>
     </message>
     <message>
         <source>Users...</source>
         <translation>Учётные записи...</translation>
+    </message>
+    <message>
+        <source>X.509 Certificate</source>
+        <translation>Сертификат X.509</translation>
     </message>
     <message>
         <source>Trusted Clients Only</source>
@@ -2082,6 +2082,14 @@
     <message>
         <source>Secure endpoints need a build with encryption support</source>
         <translation>Защищённым конечным точкам нужна сборка с поддержкой шифрования</translation>
+    </message>
+    <message>
+        <source>User certificates need a server certificate and private key; they are not accepted</source>
+        <translation>Для сертификатов пользователей нужны сертификат сервера и закрытый ключ; они не принимаются</translation>
+    </message>
+    <message>
+        <source>User certificates need a build with encryption support; they are not accepted</source>
+        <translation>Для сертификатов пользователей нужна сборка с поддержкой шифрования; они не принимаются</translation>
     </message>
     <message>
         <source>%1; only unsecured endpoints are offered</source>

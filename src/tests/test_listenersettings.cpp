@@ -29,6 +29,7 @@ private slots:
     void mergesEnabledEndpoints();
     void skipsDisabledEndpoints();
     void usernameWhenAnyEnabledEndpointAcceptsIt();
+    void userCertificateWhenAnyEnabledEndpointAcceptsIt();
     void anonymousWhenAnyEndpointAllowsIt();
     void trustedClientsOnlyWhenAnyEnabledEndpointIs();
     void rejectsNoEnabledEndpoint();
@@ -77,6 +78,16 @@ void TestListenerSettings::usernameWhenAnyEnabledEndpointAcceptsIt()
     QVERIFY(ListenerSettingsBuilder::build({ endpoint(QStringLiteral("b")), secured }).usernameAllowed);
     secured.enabled = false;
     QVERIFY(!ListenerSettingsBuilder::build({ endpoint(QStringLiteral("b")), secured }).usernameAllowed);
+}
+
+void TestListenerSettings::userCertificateWhenAnyEnabledEndpointAcceptsIt()
+{
+    EndpointInfo secured = endpoint(QStringLiteral("a"));
+    secured.userCertificate = true;
+    QVERIFY(!ListenerSettingsBuilder::build({ endpoint(QStringLiteral("a")) }).userCertificateAllowed);
+    QVERIFY(ListenerSettingsBuilder::build({ endpoint(QStringLiteral("b")), secured }).userCertificateAllowed);
+    secured.enabled = false;
+    QVERIFY(!ListenerSettingsBuilder::build({ endpoint(QStringLiteral("b")), secured }).userCertificateAllowed);
 }
 
 void TestListenerSettings::anonymousWhenAnyEndpointAllowsIt()

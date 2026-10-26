@@ -156,6 +156,35 @@ UA_StatusCode UaTestClient::setEncryption(const QByteArray &certificate, const Q
 }
 
 ///
+/// \brief Opens a session authenticated with an X.509 user certificate over the channel set up by
+///        setEncryption(); encryption builds only.
+/// \param url Endpoint URL.
+/// \param certificate DER user certificate.
+/// \param privateKey DER private key that signs the user token.
+/// \return Service result.
+///
+UA_StatusCode UaTestClient::connectCertificate(const QString &url, const QByteArray &certificate,
+                                               const QByteArray &privateKey)
+{
+#ifdef UA_ENABLE_ENCRYPTION
+    UA_ByteString uaCertificate { static_cast<size_t>(certificate.size()),
+                                  reinterpret_cast<UA_Byte *>(const_cast<char *>(certificate.constData())) };
+    UA_ByteString uaPrivateKey { static_cast<size_t>(privateKey.size()),
+                                 reinterpret_cast<UA_Byte *>(const_cast<char *>(privateKey.constData())) };
+    const UA_StatusCode status =
+        UA_ClientConfig_setAuthenticationCert(UA_Client_getConfig(_client), uaCertificate, uaPrivateKey);
+    if (status != UA_STATUSCODE_GOOD)
+        return status;
+    return connect(url);
+#else
+    Q_UNUSED(url);
+    Q_UNUSED(certificate);
+    Q_UNUSED(privateKey);
+    return UA_STATUSCODE_BADNOTSUPPORTED;
+#endif
+}
+
+///
 /// \brief Reads the Value attribute of a node.
 /// \param nodeId Node id in XML notation, e.g. "ns=1;s=Motor_01.Speed".
 /// \param value Receives the value on success.

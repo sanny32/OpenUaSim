@@ -55,6 +55,8 @@ private slots:
     void controllerAnnouncesChanges();
     void secureEndpointRunsWithInstalledCertificate();
     void startCreatesMissingServerCertificate();
+    void userCertificateLogsInByCommonName_data();
+    void userCertificateLogsInByCommonName();
     void defaultProjectStartsWithEveryEndpoint();
     void ensuresCertificateBeforeServerStart_data();
     void ensuresCertificateBeforeServerStart();
@@ -440,6 +442,61 @@ void TestCertificateStore::startCreatesMissingServerCertificate()
     QCOMPARE(client.setEncryption(certificate.readAll(), key.readAll(), QStringLiteral("urn:openuasim:test:stranger")),
              UA_STATUSCODE_GOOD);
     QCOMPARE(client.connect(controller.server().endpointUrl()), UA_STATUSCODE_GOOD);
+#endif
+}
+
+void TestCertificateStore::userCertificateLogsInByCommonName_data()
+{
+    QTest::addColumn<bool>("userCertificate");
+    QTest::addColumn<bool>("trustedClientsOnly");
+    QTest::addColumn<bool>("accepted");
+
+    QTest::newRow("any certificate without trust list") << true << false << true;
+    QTest::newRow("trusted certificate") << true << true << true;
+    QTest::newRow("certificates not accepted") << false << false << false;
+}
+
+void TestCertificateStore::userCertificateLogsInByCommonName()
+{
+#ifndef OUASIM_HAVE_ENCRYPTION
+    QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+#else
+    QFETCH(bool, userCertificate);
+    QFETCH(bool, trustedClientsOnly);
+    QFETCH(bool, accepted);
+    ProjectConfig project = TestProject::create();
+    EndpointInfo &endpoint = project.endpoints.first();
+    endpoint.port = TestPort::freePort();
+    endpoint.securityPolicy = QStringLiteral("Aes256_Sha256_RsaPss");
+    endpoint.securityMode = QStringLiteral("Sign & Encrypt");
+    endpoint.allowAnonymous = false;
+    endpoint.usernamePassword = true;
+    endpoint.userCertificate = userCertificate;
+    endpoint.trustedClientsOnly = trustedClientsOnly;
+    project.users = { { QStringLiteral("operator"), QStringLiteral("secret") } };
+
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    QVERIFY(controller.importCertificate(testData(QStringLiteral("stranger.der")), Category::Trusted));
+    controller.setProject(project);
+    QVERIFY(controller.start());
+
+    QFile certificate(testData(QStringLiteral("stranger.der")));
+    QFile key(testData(QStringLiteral("stranger.key.der")));
+    QVERIFY(certificate.open(QIODevice::ReadOnly) && key.open(QIODevice::ReadOnly));
+    const QByteArray der = certificate.readAll();
+    const QByteArray privateKey = key.readAll();
+    UaTestClient client;
+    QCOMPARE(client.setEncryption(der, privateKey, QStringLiteral("urn:openuasim:test:stranger")), UA_STATUSCODE_GOOD);
+    const UA_StatusCode status = client.connectCertificate(controller.server().endpointUrl(), der, privateKey);
+
+    QCOMPARE(status == UA_STATUSCODE_GOOD, accepted);
+    if (!accepted)
+        return;
+    QTRY_COMPARE(controller.server().clientCount(), 1);
+    const SessionInfo session = controller.server().sessions().first();
+    QCOMPARE(session.user, QStringLiteral("Stranger Client"));
+    QCOMPARE(session.userIdentity, QStringLiteral("Certificate"));
 #endif
 }
 

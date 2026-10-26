@@ -74,6 +74,17 @@ public:
                                 const QString &applicationUri);
 
     ///
+    /// \brief Opens a session authenticated with an X.509 user certificate over the channel set up by
+    ///        setEncryption(); encryption builds only.
+    /// \param url Endpoint URL.
+    /// \param certificate DER user certificate.
+    /// \param privateKey DER private key that signs the user token.
+    /// \return Service result.
+    ///
+    UA_StatusCode connectCertificate(const QString &url, const QByteArray &certificate,
+                                     const QByteArray &privateKey);
+
+    ///
     /// \brief Reads the Value attribute of a node.
     /// \param nodeId Node id in XML notation, e.g. "ns=1;s=Motor_01.Speed".
     /// \param value Receives the value on success.

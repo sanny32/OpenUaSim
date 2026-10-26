@@ -37,6 +37,8 @@ struct EndpointInfo
     bool allowAnonymous = true;
     /// \brief Whether username/password user tokens of the project's user accounts are accepted.
     bool usernamePassword = false;
+    /// \brief Whether X.509 user certificates are accepted; the user name is the certificate's common name.
+    bool userCertificate = false;
     /// \brief Whether only clients with a trusted certificate are accepted; untrusted ones are rejected.
     bool trustedClientsOnly = false;
 
