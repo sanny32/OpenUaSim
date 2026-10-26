@@ -577,10 +577,14 @@
     </message>
 </context>
 <context>
-    <name>ConfirmDialog</name>
+    <name>MessageDialog</name>
     <message>
         <source>Cancel</source>
         <translation>Отмена</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
     </message>
 </context>
 <context>
@@ -1238,8 +1242,8 @@
         <translation>О программе %1</translation>
     </message>
     <message>
-        <source>&lt;h3&gt;%1 %2&lt;/h3&gt;&lt;p&gt;OPC UA simulation server.&lt;/p&gt;</source>
-        <translation>&lt;h3&gt;%1 %2&lt;/h3&gt;&lt;p&gt;Сервер-симулятор OPC UA.&lt;/p&gt;</translation>
+        <source>OPC UA simulation server.</source>
+        <translation>Сервер-симулятор OPC UA.</translation>
     </message>
     <message>
         <source>Log entries: %1</source>
@@ -1326,8 +1330,16 @@
         <translation>Удаление модели</translation>
     </message>
     <message>
-        <source>Remove the model &apos;%1&apos; with its nodes and namespaces? A running server restarts and disconnects its clients.</source>
-        <translation>Удалить модель «%1» вместе с её узлами и пространствами имён? Работающий сервер перезапустится и отключит клиентов.</translation>
+        <source>Remove the model &apos;%1&apos; with its nodes and namespaces?</source>
+        <translation>Удалить модель «%1» вместе с её узлами и пространствами имён?</translation>
+    </message>
+    <message>
+        <source>A running server restarts and disconnects its clients.</source>
+        <translation>Работающий сервер перезапустится и отключит клиентов.</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Удалить</translation>
     </message>
     <message>
         <source>Model not removed</source>
@@ -1414,8 +1426,24 @@
         <translation>Создание сертификата сервера</translation>
     </message>
     <message>
-        <source>Replace the installed server certificate? Clients that trust it will have to trust the new one.</source>
-        <translation>Заменить установленный сертификат сервера? Клиентам, которые ему доверяют, придётся доверять новому.</translation>
+        <source>Replace the installed server certificate?</source>
+        <translation>Заменить установленный сертификат сервера?</translation>
+    </message>
+    <message>
+        <source>Clients that trust it will have to trust the new one.</source>
+        <translation>Клиентам, которые ему доверяют, придётся доверять новому.</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>Заменить</translation>
+    </message>
+    <message>
+        <source>Your changes will be lost if you don&apos;t save them.</source>
+        <translation>Если не сохранить изменения, они будут потеряны.</translation>
+    </message>
+    <message>
+        <source>Don&apos;t Save</source>
+        <translation>Не сохранять</translation>
     </message>
     <message>
         <source>Server certificate not created</source>

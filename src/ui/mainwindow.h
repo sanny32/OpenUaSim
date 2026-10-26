@@ -215,7 +215,6 @@ private:
     void confirmDeleteCertificate(const QString &filePath);
     void deletePendingCertificate();
     void confirmGenerateServerCertificate();
-    void generateAfterConfirmation();
     void generateServerCertificate();
     void reloadCertificates();
 

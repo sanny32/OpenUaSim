@@ -30,7 +30,6 @@
 #include <QStyleFactory>
 #include <QTabBar>
 
-#include "appcolors.h"
 #include "appicons.h"
 #include "apppalette.h"
 #include "appstyle.h"
@@ -107,7 +106,6 @@ private slots:
     void eventLogKeepsPositionWhenScrolledUp();
     void eventLogCloseButtonRequestsClose();
     void appStyleMessageBoxIconSize();
-    void appStyleMessageBoxTextHierarchy();
     void appStyleMessageBoxVerticalSpace();
     void appStylePanelsAndSeparators();
     void appStyleAccentButton();
@@ -410,35 +408,7 @@ void TestWidgets::appStyleMessageBoxVerticalSpace()
         QVERIFY(buttons);
         QVERIFY(box.height() - buttons->geometry().bottom() >= 20);
         QCOMPARE(box.iconPixmap().deviceIndependentSize(), QSizeF(32, 32));
-        QVERIFY(box.width() >= 360);
     }
-}
-
-///
-/// \brief Sets the question above its explanation: semibold main text, quieter informative text.
-///
-void TestWidgets::appStyleMessageBoxTextHierarchy()
-{
-    AppStyle style;
-    QApplication::setPalette(AppPalette::build(false));
-    QMessageBox box(QMessageBox::Warning, QStringLiteral("Delete Certificate"), QStringLiteral("Delete it?"),
-                    QMessageBox::Yes | QMessageBox::Cancel);
-    box.setInformativeText(QStringLiteral("The client will no longer be trusted."));
-    box.setStyle(&style);
-    for (QWidget *child : box.findChildren<QWidget *>())
-        child->setStyle(&style);
-    box.show();
-    const auto *text = box.findChild<QLabel *>(QStringLiteral("qt_msgbox_label"));
-    const auto *informative = box.findChild<QLabel *>(QStringLiteral("qt_msgbox_informativelabel"));
-    QVERIFY(text && informative);
-    QCOMPARE(text->font().weight(), QFont::DemiBold);
-    QVERIFY(informative->font().weight() < QFont::DemiBold);
-    const QColor main = text->palette().color(QPalette::WindowText);
-    const QColor secondary = informative->palette().color(QPalette::WindowText);
-    QCOMPARE(secondary, AppColors::secondaryText(QApplication::palette()));
-    const int background = QApplication::palette().color(QPalette::Window).lightness();
-    QVERIFY(qAbs(secondary.lightness() - background) < qAbs(main.lightness() - background));
-    QVERIFY(qAbs(secondary.lightness() - background) > 100);
 }
 
 void TestWidgets::appStylePanelsAndSeparators()

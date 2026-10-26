@@ -14,7 +14,6 @@
 #include <QLineEdit>
 #include <QLocale>
 #include <QMenu>
-#include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScrollArea>
@@ -49,6 +48,7 @@
 #include "logfilterproxymodel.h"
 #include "logmodel.h"
 #include "logpage.h"
+#include "messagedialog.h"
 #include "mock/mockdata.h"
 #include "namespacesmodel.h"
 #include "namespacespage.h"
@@ -94,6 +94,11 @@ T *child(const QWidget &parent, const char *name)
     if (!found)
         qFatal("Missing child %s", name);
     return found;
+}
+
+QString messageText(const MessageDialog *dialog)
+{
+    return child<QLabel>(*dialog, "textLabel")->text();
 }
 
 QString text(const QWidget &parent, const char *name)
@@ -1111,14 +1116,14 @@ void TestPages::endpointsPageRejectsUsedSecurityPair()
     QCOMPARE(mode->currentText(), none);
     apply->click();
     QCOMPARE(requested.count(), 0);
-    auto *warning = page.findChild<QMessageBox *>();
+    auto *warning = page.findChild<MessageDialog *>();
     QVERIFY(warning);
     QVERIFY(warning->isVisible());
-    QVERIFY(warning->text().contains(none));
+    QVERIFY(messageText(warning).contains(none));
     QCOMPARE(policy->currentText(), none);
     child<QSpinBox>(page, "portSpin")->setValue(4900);
-    warning->button(QMessageBox::Ok)->click();
-    QTRY_VERIFY(!page.findChild<QMessageBox *>());
+    child<QPushButton>(*warning, "actionButton")->click();
+    QTRY_VERIFY(!page.findChild<MessageDialog *>());
     QCOMPARE(policy->currentText(), basic256);
     QCOMPARE(mode->currentText(), sign);
     QCOMPARE(child<QSpinBox>(page, "portSpin")->value(), EndpointInfo().port);
@@ -1126,14 +1131,14 @@ void TestPages::endpointsPageRejectsUsedSecurityPair()
     policy->setCurrentText(QStringLiteral("Basic256Sha256"));
     apply->click();
     QCOMPARE(requested.count(), 1);
-    QVERIFY(!page.findChild<QMessageBox *>());
+    QVERIFY(!page.findChild<MessageDialog *>());
 
     policy->setCurrentText(basic256);
     child<QCheckBox>(page, "enabledCheck")->setChecked(false);
     apply->click();
     QCOMPARE(requested.count(), 2);
     QVERIFY(!requested.last().first().value<QList<EndpointInfo>>().at(1).enabled);
-    QVERIFY(!page.findChild<QMessageBox *>());
+    QVERIFY(!page.findChild<MessageDialog *>());
 #endif
 }
 

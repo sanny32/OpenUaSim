@@ -122,8 +122,7 @@ public:
                        const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Adds vertical space, a minimum width and a text hierarchy to message boxes and makes panel
-    ///        scroll areas transparent.
+    /// \brief Adds vertical space to message boxes and makes panel scroll areas transparent.
     /// \param widget Widget being polished.
     ///
     void polish(QWidget *widget) override;

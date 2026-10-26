@@ -13,7 +13,6 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
-#include <QMessageBox>
 #include <QPainter>
 #include <QStyleOptionToolButton>
 #include <QPushButton>
@@ -39,7 +38,7 @@
 #include "apppalette.h"
 #include "appstyle.h"
 #include "apptheme.h"
-#include "confirmdialog.h"
+#include "messagedialog.h"
 #include "endpointspage.h"
 #include "elidedlineedit.h"
 #include "eventlogwidget.h"
@@ -68,6 +67,11 @@ T *child(const QWidget &parent, const char *name)
     if (!found)
         qFatal("Missing child %s", name);
     return found;
+}
+
+QString messageText(const MessageDialog *dialog)
+{
+    return child<QLabel>(*dialog, "textLabel")->text();
 }
 
 }
@@ -455,9 +459,9 @@ void TestMainWindow::startFailureShowsMessage()
     window.setController(&controller);
 
     child<QAction>(window, "actionStartServer")->trigger();
-    auto *box = window.findChild<QMessageBox *>();
+    auto *box = window.findChild<MessageDialog *>();
     QVERIFY(box);
-    QCOMPARE(box->text(), QStringLiteral("No endpoint is enabled"));
+    QCOMPARE(messageText(box), QStringLiteral("No endpoint is enabled"));
     box->close();
 }
 
@@ -468,9 +472,9 @@ void TestMainWindow::startWarningShowsMessage()
     window.setController(&controller);
 
     emit controller.startWarning(QStringLiteral("Secure endpoints dropped"));
-    auto *box = window.findChild<QMessageBox *>();
+    auto *box = window.findChild<MessageDialog *>();
     QVERIFY(box);
-    QCOMPARE(box->text(), QStringLiteral("Secure endpoints dropped"));
+    QCOMPARE(messageText(box), QStringLiteral("Secure endpoints dropped"));
     box->close();
 }
 
@@ -505,14 +509,14 @@ void TestMainWindow::deleteNodeAfterConfirmation()
     QVERIFY(child<ObjectsPage>(window, "objectsPage")->selectNode(QStringLiteral("ns=1;s=Pump_01")));
 
     child<QAction>(window, "actionDeleteNode")->trigger();
-    auto *question = window.findChild<QMessageBox *>();
+    auto *question = window.findChild<MessageDialog *>();
     QVERIFY(question);
-    question->button(QMessageBox::Cancel)->click();
+    child<QPushButton>(*question, "cancelButton")->click();
     QVERIFY(ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Pump_01")));
 
-    QTRY_VERIFY(!window.findChild<QMessageBox *>());
+    QTRY_VERIFY(!window.findChild<MessageDialog *>());
     child<QAction>(window, "actionDeleteNode")->trigger();
-    window.findChild<QMessageBox *>()->button(QMessageBox::Yes)->click();
+    child<QPushButton>(*window.findChild<MessageDialog *>(), "actionButton")->click();
     QVERIFY(!ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Pump_01")));
 }
 
@@ -577,10 +581,10 @@ void TestMainWindow::deletesSelectedNodes()
     QCOMPARE(page->selectedNodeIds().size(), 2);
 
     child<QAction>(window, "actionDeleteNode")->trigger();
-    auto *question = window.findChild<QMessageBox *>();
+    auto *question = window.findChild<MessageDialog *>();
     QVERIFY(question);
-    QVERIFY(question->text().contains(QStringLiteral("2 nodes")));
-    question->button(QMessageBox::Yes)->click();
+    QVERIFY(messageText(question).contains(QStringLiteral("2 nodes")));
+    child<QPushButton>(*question, "actionButton")->click();
     QVERIFY(!ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Motor_01")));
     QVERIFY(!ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Pump_01")));
     QVERIFY(ProjectNodes::find(controller.project().nodes, QStringLiteral("ns=1;s=Tank_01")));
@@ -610,9 +614,9 @@ void TestMainWindow::renamesNodeFromDialog()
     dialog = window.findChild<QInputDialog *>();
     dialog->setTextValue(QStringLiteral("Pump_01"));
     dialog->accept();
-    auto *box = window.findChild<QMessageBox *>();
+    auto *box = window.findChild<MessageDialog *>();
     QVERIFY(box);
-    QVERIFY(box->text().contains(QStringLiteral("Pump_01")));
+    QVERIFY(messageText(box).contains(QStringLiteral("Pump_01")));
     box->close();
     QCOMPARE(ProjectNodes::find(controller.project().nodes, motor)->browseName, QStringLiteral("Drive"));
 }
@@ -735,9 +739,9 @@ void TestMainWindow::refusedVariableChangeShowsMessage()
 
     child<QLineEdit>(*page, "displayNameEdit")->setText(QStringLiteral("Running"));
     child<QPushButton>(*page, "applyButton")->click();
-    auto *box = window.findChild<QMessageBox *>();
+    auto *box = window.findChild<MessageDialog *>();
     QVERIFY(box);
-    QCOMPARE(box->text(), QStringLiteral("A sibling is already named 'Running'"));
+    QCOMPARE(messageText(box), QStringLiteral("A sibling is already named 'Running'"));
     box->close();
 }
 
@@ -786,9 +790,9 @@ void TestMainWindow::refusedEndpointChangeShowsMessage()
     child<QSpinBox>(*endpoints, "portSpin")->setValue(4999);
     child<QPushButton>(*endpoints, "applyButton")->click();
 
-    auto *box = window.findChild<QMessageBox *>();
+    auto *box = window.findChild<MessageDialog *>();
     QVERIFY(box);
-    QVERIFY(box->text().contains(QStringLiteral("pairs security policy")));
+    QVERIFY(messageText(box).contains(QStringLiteral("pairs security policy")));
     box->close();
     QCOMPARE(controller.project().endpoints.first().port, project.endpoints.first().port);
 }
@@ -842,9 +846,9 @@ void TestMainWindow::openFailureShowsMessage()
     window.setDocument(&document);
 
     QVERIFY(!window.openProjectFile(QStringLiteral("missing.ouasim")));
-    auto *box = window.findChild<QMessageBox *>();
+    auto *box = window.findChild<MessageDialog *>();
     QVERIFY(box);
-    QVERIFY(box->text().startsWith(QStringLiteral("Cannot open")));
+    QVERIFY(messageText(box).startsWith(QStringLiteral("Cannot open")));
     box->close();
 }
 
@@ -860,13 +864,13 @@ void TestMainWindow::closingAsksAboutUnsavedChanges()
     QVERIFY(controller.removeNode(QStringLiteral("ns=1;s=Pump_01")));
 
     QTimer::singleShot(0, &window, [&window] {
-        window.findChild<QMessageBox *>()->button(QMessageBox::Cancel)->click();
+        child<QPushButton>(*window.findChild<MessageDialog *>(), "cancelButton")->click();
     });
     QVERIFY(!window.close());
     QVERIFY(window.isVisible());
 
     QTimer::singleShot(0, &window, [&window] {
-        window.findChild<QMessageBox *>()->button(QMessageBox::Discard)->click();
+        child<QPushButton>(*window.findChild<MessageDialog *>(), "alternativeButton")->click();
     });
     QVERIFY(window.close());
 }
@@ -884,13 +888,10 @@ void TestMainWindow::importsAndExportsModels()
     QVERIFY(QFile::exists(exported));
 
     QVERIFY(!window.importModelFrom(directory.filePath(QStringLiteral("missing.xml"))));
-    auto *box = window.findChild<QMessageBox *>();
+    auto *box = window.findChild<MessageDialog *>();
     QVERIFY(box);
-    QCOMPARE(box->icon(), QMessageBox::Warning);
-    QVERIFY(!box->text().isEmpty());
-#ifndef Q_OS_MACOS // QMessageBox drops the window title on macOS.
+    QVERIFY(!messageText(box).isEmpty());
     QCOMPARE(box->windowTitle(), QStringLiteral("Model not imported"));
-#endif
     box->close();
 }
 
@@ -905,14 +906,14 @@ void TestMainWindow::removesModelAfterConfirmation()
     ViewSetup::selectRow(view, view->model()->rowCount() - 1);
 
     child<QPushButton>(window, "removeModelButton")->click();
-    auto *question = window.findChild<QMessageBox *>();
+    auto *question = window.findChild<MessageDialog *>();
     QVERIFY(question);
-    question->button(QMessageBox::Cancel)->click();
+    child<QPushButton>(*question, "cancelButton")->click();
     QCOMPARE(controller.project().nodeSetFiles.size(), 1);
 
-    QTRY_VERIFY(!window.findChild<QMessageBox *>());
+    QTRY_VERIFY(!window.findChild<MessageDialog *>());
     child<QPushButton>(window, "removeModelButton")->click();
-    window.findChild<QMessageBox *>()->button(QMessageBox::Yes)->click();
+    child<QPushButton>(*window.findChild<MessageDialog *>(), "actionButton")->click();
     QVERIFY(controller.project().nodeSetFiles.isEmpty());
     QCOMPARE(view->model()->rowCount(), controller.snapshot().namespaces.size());
 }
@@ -930,19 +931,19 @@ void TestMainWindow::deletesCertificateAfterConfirmation()
     window.setController(&controller);
 
     child<QToolButton>(window, "deleteButton")->click();
-    auto *question = window.findChild<ConfirmDialog *>();
+    auto *question = window.findChild<MessageDialog *>();
     QVERIFY(question);
     QCOMPARE(question->windowTitle(), QStringLiteral("Delete Certificate"));
-    QCOMPARE(child<QLabel>(*question, "questionLabel")->text(),
+    QCOMPARE(child<QLabel>(*question, "textLabel")->text(),
              QStringLiteral("Delete the certificate '%1'?").arg(certificate.commonName));
     QCOMPARE(child<QLabel>(*question, "detailsLabel")->text(), QStringLiteral("The client will no longer be trusted."));
     QCOMPARE(child<QPushButton>(*question, "actionButton")->text(), QStringLiteral("Delete"));
     child<QPushButton>(*question, "cancelButton")->click();
     QCOMPARE(controller.certificates().size(), 1);
 
-    QTRY_VERIFY(!window.findChild<ConfirmDialog *>());
+    QTRY_VERIFY(!window.findChild<MessageDialog *>());
     child<QToolButton>(window, "deleteButton")->click();
-    child<QPushButton>(*window.findChild<ConfirmDialog *>(), "actionButton")->click();
+    child<QPushButton>(*window.findChild<MessageDialog *>(), "actionButton")->click();
     QVERIFY(controller.certificates().isEmpty());
 }
 
@@ -963,12 +964,9 @@ void TestMainWindow::exportsNamespaceAndLog()
     QVERIFY(QFile::exists(log));
 
     QVERIFY(!window.exportLogTo(directory.filePath(QStringLiteral("no/such/dir/log.csv")), controller.log()));
-    auto *box = window.findChild<QMessageBox *>();
+    auto *box = window.findChild<MessageDialog *>();
     QVERIFY(box);
-    QCOMPARE(box->icon(), QMessageBox::Warning);
-#ifndef Q_OS_MACOS // QMessageBox drops the window title on macOS.
     QCOMPARE(box->windowTitle(), QStringLiteral("Log not exported"));
-#endif
     box->close();
 }
 

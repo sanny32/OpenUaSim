@@ -12,7 +12,6 @@
 #include <QComboBox>
 #include <QKeyEvent>
 #include <QGridLayout>
-#include <QLabel>
 #include <QMessageBox>
 #include <QMenu>
 #include <QMenuBar>
@@ -51,8 +50,6 @@ constexpr int kItemIconTextGap = 6;
 constexpr int kTreeIndentation = 22;
 constexpr int kCheckIndicatorSize = 14;
 constexpr int kMessageBoxIconSize = 32;
-constexpr int kMessageBoxMinimumWidth = 360;
-constexpr const char *kMessageBoxWidenedProperty = "appStyleWidened";
 
 ///
 /// \brief Reports whether a widget sits in the main toolbar.
@@ -62,26 +59,6 @@ constexpr const char *kMessageBoxWidenedProperty = "appStyleWidened";
 bool isToolbarWidget(const QWidget *widget)
 {
     return widget && widget->property(AppStyle::toolbarProperty).toBool();
-}
-
-///
-/// \brief Sets the main message box text in semibold and the informative text in the secondary colour.
-/// \param widget Widget being polished; anything but a message box text label is left alone.
-///
-void polishMessageBoxText(QWidget *widget)
-{
-    // Object names given by QMessageBox to its text labels.
-    if (!qobject_cast<QLabel *>(widget) || !qobject_cast<QMessageBox *>(widget->parentWidget()))
-        return;
-    if (widget->objectName() == QLatin1String("qt_msgbox_label")) {
-        QFont font = widget->font();
-        font.setWeight(QFont::DemiBold);
-        widget->setFont(font);
-    } else if (widget->objectName() == QLatin1String("qt_msgbox_informativelabel")) {
-        QPalette palette = widget->palette();
-        palette.setColor(QPalette::WindowText, AppColors::secondaryText(QGuiApplication::palette()));
-        widget->setPalette(palette);
-    }
 }
 
 ///
@@ -414,8 +391,7 @@ QIcon AppStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *op
 }
 
 ///
-/// \brief Adds vertical space, a minimum width and a text hierarchy to message boxes and makes panel
-///        scroll areas transparent.
+/// \brief Adds vertical space to message boxes and makes panel scroll areas transparent.
 /// \param widget Widget being polished.
 ///
 void AppStyle::polish(QWidget *widget)
@@ -428,15 +404,8 @@ void AppStyle::polish(QWidget *widget)
             margins.setBottom(20);
             layout->setContentsMargins(margins);
             layout->setVerticalSpacing(14);
-            // QMessageBox sizes itself to its layout's minimum width, which otherwise follows the shortest text.
-            if (!box->property(kMessageBoxWidenedProperty).toBool()) {
-                box->setProperty(kMessageBoxWidenedProperty, true);
-                layout->addItem(new QSpacerItem(kMessageBoxMinimumWidth, 0, QSizePolicy::Fixed, QSizePolicy::Minimum),
-                                layout->rowCount(), 0, 1, layout->columnCount());
-            }
         }
     }
-    polishMessageBoxText(widget);
     auto *scroll = qobject_cast<QScrollArea *>(widget);
     if (!scroll || !scroll->property(panelBodyProperty).toBool())
         return;

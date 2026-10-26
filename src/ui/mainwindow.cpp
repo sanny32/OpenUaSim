@@ -6,6 +6,8 @@
 /// \brief Implements the main application window.
 ///
 
+#include <memory>
+
 #include <QActionGroup>
 #include <QApplication>
 #include <QCloseEvent>
@@ -14,7 +16,6 @@
 #include <QFileInfo>
 #include <QInputDialog>
 #include <QLabel>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QTimer>
 
@@ -23,7 +24,7 @@
 #include "appicons.h"
 #include "applanguage.h"
 #include "apptheme.h"
-#include "confirmdialog.h"
+#include "messagedialog.h"
 #include "data/serversnapshot.h"
 #include "logexport.h"
 #include "logmodel.h"
@@ -260,12 +261,15 @@ bool MainWindow::confirmDiscardChanges()
 {
     if (!_document || !_document->isModified())
         return true;
-    const QMessageBox::StandardButton answer = QMessageBox::warning(
-        this, tr("Unsaved Changes"), tr("Save the changes to '%1'?").arg(_document->displayName()),
-        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
-    if (answer == QMessageBox::Save)
+    const std::unique_ptr<MessageDialog> dialog(MessageDialog::confirmation(
+        tr("Unsaved Changes"), tr("Save the changes to '%1'?").arg(_document->displayName()),
+        tr("Your changes will be lost if you don't save them."), tr("Save"), this));
+    dialog->setAlternative(tr("Don't Save"));
+    dialog->setActionDefault();
+    const int answer = dialog->exec();
+    if (answer == QDialog::Accepted)
         return saveProject();
-    return answer == QMessageBox::Discard;
+    return answer == MessageDialog::Alternative;
 }
 
 ///
@@ -470,9 +474,12 @@ void MainWindow::selectPage(QAction *action)
 ///
 void MainWindow::showAbout()
 {
-    QMessageBox::about(this, tr("About %1").arg(QStringLiteral(APP_NAME)),
-                       tr("<h3>%1 %2</h3><p>OPC UA simulation server.</p>")
-                           .arg(QStringLiteral(APP_NAME), QStringLiteral(APP_VERSION)));
+    auto *dialog = new MessageDialog(QStyle::SP_MessageBoxInformation, tr("About %1").arg(QStringLiteral(APP_NAME)),
+                                     QStringLiteral("%1 %2").arg(QStringLiteral(APP_NAME), QStringLiteral(APP_VERSION)),
+                                     tr("OPC UA simulation server."), this);
+    dialog->setIcon(windowIcon());
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->open();
 }
 
 ///
@@ -699,9 +706,9 @@ void MainWindow::showStartWarning(const QString &reason)
 ///
 void MainWindow::showError(const QString &title, const QString &text)
 {
-    auto *box = new QMessageBox(QMessageBox::Warning, title, text, QMessageBox::Ok, this);
-    box->setAttribute(Qt::WA_DeleteOnClose);
-    box->open();
+    auto *dialog = new MessageDialog(QStyle::SP_MessageBoxWarning, title, text, QString(), this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->open();
 }
 
 ///
@@ -821,11 +828,10 @@ void MainWindow::confirmDeleteNode()
     const QString question = _pendingDeleteIds.size() == 1
         ? tr("Delete '%1' and everything below it?").arg(ProjectNodes::find(nodes, _pendingDeleteIds.first())->browseName)
         : tr("Delete %n nodes and everything below them?", nullptr, int(_pendingDeleteIds.size()));
-    auto *box = new QMessageBox(QMessageBox::Question, tr("Delete Node"), question,
-                                QMessageBox::Yes | QMessageBox::Cancel, this);
-    box->setAttribute(Qt::WA_DeleteOnClose);
-    connect(box, &QDialog::finished, this, &MainWindow::deletePendingNode);
-    box->open();
+    auto *dialog = MessageDialog::confirmation(tr("Delete Node"), question, QString(), tr("Delete"), this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &QDialog::accepted, this, &MainWindow::deletePendingNode);
+    dialog->open();
 }
 
 ///
@@ -948,12 +954,11 @@ void MainWindow::applyUsersFromDialog()
 }
 
 ///
-/// \brief Deletes the nodes the Delete Node question was answered Yes for.
+/// \brief Deletes the nodes the Delete Node question was confirmed for.
 ///
 void MainWindow::deletePendingNode()
 {
-    const auto *box = qobject_cast<const QMessageBox *>(sender());
-    if (_controller && box && box->standardButton(box->clickedButton()) == QMessageBox::Yes)
+    if (_controller)
         _controller->removeNodes(_pendingDeleteIds);
 }
 
@@ -1105,23 +1110,21 @@ void MainWindow::showSubscriptions(const SessionInfo &session)
 void MainWindow::confirmRemoveModel(const QString &fileName)
 {
     _pendingModelFile = fileName;
-    auto *box = new QMessageBox(QMessageBox::Question, tr("Remove Model"),
-                                tr("Remove the model '%1' with its nodes and namespaces? "
-                                   "A running server restarts and disconnects its clients.")
-                                    .arg(QFileInfo(fileName).fileName()),
-                                QMessageBox::Yes | QMessageBox::Cancel, this);
-    box->setAttribute(Qt::WA_DeleteOnClose);
-    connect(box, &QDialog::finished, this, &MainWindow::removePendingModel);
-    box->open();
+    auto *dialog = MessageDialog::confirmation(
+        tr("Remove Model"),
+        tr("Remove the model '%1' with its nodes and namespaces?").arg(QFileInfo(fileName).fileName()),
+        tr("A running server restarts and disconnects its clients."), tr("Remove"), this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &QDialog::accepted, this, &MainWindow::removePendingModel);
+    dialog->open();
 }
 
 ///
-/// \brief Unloads the model the Remove Model question was answered Yes for.
+/// \brief Unloads the model the Remove Model question was confirmed for.
 ///
 void MainWindow::removePendingModel()
 {
-    const auto *box = qobject_cast<const QMessageBox *>(sender());
-    if (!_controller || !box || box->standardButton(box->clickedButton()) != QMessageBox::Yes)
+    if (!_controller)
         return;
     QString error;
     if (!_controller->removeNodeSet(_pendingModelFile, &error))
@@ -1201,9 +1204,9 @@ void MainWindow::confirmDeleteCertificate(const QString &filePath)
     if (certificate == certificates.cend())
         return;
     _pendingCertificate = filePath;
-    auto *dialog = new ConfirmDialog(tr("Delete Certificate"),
-                                     tr("Delete the certificate '%1'?").arg(certificate->commonName),
-                                     deletionConsequence(certificate->category), tr("Delete"), this);
+    auto *dialog = MessageDialog::confirmation(tr("Delete Certificate"),
+                                               tr("Delete the certificate '%1'?").arg(certificate->commonName),
+                                               deletionConsequence(certificate->category), tr("Delete"), this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     connect(dialog, &QDialog::accepted, this, &MainWindow::deletePendingCertificate);
     dialog->open();
@@ -1232,23 +1235,13 @@ void MainWindow::confirmGenerateServerCertificate()
         generateServerCertificate();
         return;
     }
-    auto *box = new QMessageBox(QMessageBox::Question, tr("Generate Server Certificate"),
-                                tr("Replace the installed server certificate? Clients that trust it "
-                                   "will have to trust the new one."),
-                                QMessageBox::Yes | QMessageBox::Cancel, this);
-    box->setAttribute(Qt::WA_DeleteOnClose);
-    connect(box, &QDialog::finished, this, &MainWindow::generateAfterConfirmation);
-    box->open();
-}
-
-///
-/// \brief Creates the server certificate when the replacement question was answered Yes.
-///
-void MainWindow::generateAfterConfirmation()
-{
-    const auto *box = qobject_cast<const QMessageBox *>(sender());
-    if (box && box->standardButton(box->clickedButton()) == QMessageBox::Yes)
-        generateServerCertificate();
+    auto *dialog = MessageDialog::confirmation(tr("Generate Server Certificate"),
+                                               tr("Replace the installed server certificate?"),
+                                               tr("Clients that trust it will have to trust the new one."),
+                                               tr("Replace"), this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &QDialog::accepted, this, &MainWindow::generateServerCertificate);
+    dialog->open();
 }
 
 ///

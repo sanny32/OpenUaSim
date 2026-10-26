@@ -6,7 +6,6 @@
 /// \brief Implements the endpoints page.
 ///
 
-#include <QMessageBox>
 #include <QNetworkInterface>
 #include <QSortFilterProxyModel>
 #include <QSysInfo>
@@ -16,6 +15,7 @@
 
 #include "endpointsmodel.h"
 #include "endpointspage.h"
+#include "messagedialog.h"
 #include "server/listenersettings.h"
 #include "ui_endpointspage.h"
 #include "viewsetup.h"
@@ -354,13 +354,13 @@ void EndpointsPage::applyEndpoint()
     QList<EndpointInfo> endpoints = _endpointsModel->items();
     const SecurityPair security = chosenSecurityPair();
     if (takesUsedSecurityPair(endpoints, row, security)) {
-        auto *box = new QMessageBox(QMessageBox::Warning, tr("Endpoint Properties"),
-                                    tr("Another endpoint already uses %1 with %2.")
-                                        .arg(security.first, security.second),
-                                    QMessageBox::Ok, this);
-        box->setAttribute(Qt::WA_DeleteOnClose);
-        connect(box, &QMessageBox::finished, this, &EndpointsPage::revertEndpoint);
-        box->open();
+        auto *dialog = new MessageDialog(QStyle::SP_MessageBoxWarning, tr("Endpoint Properties"),
+                                         tr("Another endpoint already uses %1 with %2.")
+                                             .arg(security.first, security.second),
+                                         QString(), this);
+        dialog->setAttribute(Qt::WA_DeleteOnClose);
+        connect(dialog, &QDialog::finished, this, &EndpointsPage::revertEndpoint);
+        dialog->open();
         return;
     }
     const EndpointInfo edited = editedEndpoint(row);

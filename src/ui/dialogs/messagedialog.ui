@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ConfirmDialog</class>
- <widget class="QDialog" name="ConfirmDialog">
+ <class>MessageDialog</class>
+ <widget class="QDialog" name="MessageDialog">
   <property name="minimumSize">
    <size><width>520</width><height>0</height></size>
   </property>
@@ -30,15 +30,17 @@
        <layout class="QVBoxLayout" name="textLayout">
         <property name="spacing"><number>12</number></property>
         <item>
-         <widget class="QLabel" name="questionLabel">
+         <widget class="QLabel" name="textLabel">
           <property name="wordWrap"><bool>true</bool></property>
           <property name="textFormat"><enum>Qt::PlainText</enum></property>
+          <property name="textInteractionFlags"><set>Qt::TextSelectableByMouse</set></property>
          </widget>
         </item>
         <item>
          <widget class="QLabel" name="detailsLabel">
           <property name="wordWrap"><bool>true</bool></property>
           <property name="textFormat"><enum>Qt::PlainText</enum></property>
+          <property name="textInteractionFlags"><set>Qt::TextSelectableByMouse</set></property>
          </widget>
         </item>
         <item>
@@ -69,6 +71,11 @@
       <property name="rightMargin"><number>16</number></property>
       <property name="bottomMargin"><number>14</number></property>
       <item>
+       <widget class="QPushButton" name="alternativeButton">
+        <property name="minimumSize"><size><width>96</width><height>0</height></size></property>
+       </widget>
+      </item>
+      <item>
        <spacer name="footerSpacer">
         <property name="orientation"><enum>Qt::Horizontal</enum></property>
         <property name="sizeHint" stdset="0"><size><width>40</width><height>0</height></size></property>
@@ -83,6 +90,7 @@
       <item>
        <widget class="QPushButton" name="actionButton">
         <property name="minimumSize"><size><width>96</width><height>0</height></size></property>
+        <property name="text"><string>OK</string></property>
         <property name="accent" stdset="0"><string>primary</string></property>
        </widget>
       </item>
