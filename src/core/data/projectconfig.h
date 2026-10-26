@@ -121,6 +121,25 @@ struct HistoryLimits
     int maxAgeMinutes = 0;
 };
 
+/// \brief Shortest time between two registrations at a discovery server.
+constexpr int kMinDiscoveryIntervalSeconds = 10;
+
+/// \brief Longest time between two registrations at a discovery server, one hour.
+constexpr int kMaxDiscoveryIntervalSeconds = 60 * 60;
+
+///
+/// \brief Registration at a Local Discovery Server, through which clients find the server.
+///
+struct DiscoveryRegistration
+{
+    /// \brief Whether the server registers while it runs.
+    bool enabled = false;
+    /// \brief URL of the discovery server.
+    QString url = QStringLiteral("opc.tcp://localhost:4840");
+    /// \brief Seconds between two registrations; must stay below the time the discovery server keeps a server.
+    int intervalSeconds = 10 * 60;
+};
+
 ///
 /// \brief Server description shared by every endpoint.
 ///
@@ -134,6 +153,8 @@ struct ServerSettings
     int maxSessions = 100;
     /// \brief Value history kept for historizing variables.
     HistoryLimits history;
+    /// \brief Registration at a discovery server.
+    DiscoveryRegistration discovery;
 };
 
 ///

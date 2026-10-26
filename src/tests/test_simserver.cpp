@@ -6,7 +6,9 @@
 
 #include <QUaServer>
 
+#include "pki/certificategenerator.h"
 #include "server/simserver.h"
+#include "testdiscoveryserver.h"
 #include "testport.h"
 #include "uatestclient.h"
 
@@ -34,6 +36,26 @@ bool containsMessage(const QSignalSpy &spy, const QString &text)
     return false;
 }
 
+int countMessages(const QSignalSpy &spy, const QString &text)
+{
+    int count = 0;
+    for (const QList<QVariant> &arguments : spy) {
+        if (arguments.first().value<LogEntry>().message.contains(text))
+            ++count;
+    }
+    return count;
+}
+
+LogEntry::Level levelOf(const QSignalSpy &spy, const QString &text)
+{
+    for (const QList<QVariant> &arguments : spy) {
+        const LogEntry entry = arguments.first().value<LogEntry>();
+        if (entry.message.contains(text))
+            return entry.level;
+    }
+    return LogEntry::Level::Error;
+}
+
 }
 
 Q_DECLARE_METATYPE(LogEntry)
@@ -59,6 +81,11 @@ private slots:
     void refusesUsernameEndpointsWithoutAccounts();
     void sessionDescribesSecurityAndEndpoint();
     void diagnosticsCountSubscriptions();
+    void registersAtDiscoveryServer();
+    void logsRegistrationOnlyWhenItChanges();
+    void warnsWhenDiscoveryServerIsUnreachable();
+    void explainsCertificateRejectedByDiscoveryServer();
+    void disabledDiscoveryRegistersNowhere();
 
 private:
     quint16 _port = 0;
@@ -316,6 +343,93 @@ void TestSimServer::diagnosticsCountSubscriptions()
 
     server.refreshSessionDiagnostics();
     QCOMPARE(sessions.count(), 1);
+}
+
+void TestSimServer::registersAtDiscoveryServer()
+{
+    TestDiscoveryServer lds;
+    QVERIFY(lds.start());
+    ProjectConfig config = project(_port);
+    config.server.discovery = { true, lds.url(), 600 };
+    SimServer server;
+    QSignalSpy log(&server, &SimServer::logAppended);
+
+    QVERIFY(server.start(config));
+    const QString registered = QStringLiteral("Registered at the discovery server %1").arg(lds.url());
+    QTRY_VERIFY(containsMessage(log, registered));
+    QCOMPARE(levelOf(log, registered), LogEntry::Level::Info);
+    QCOMPARE(lds.registeredServers(), QStringList { config.server.applicationUri });
+
+    server.stop();
+    QVERIFY(containsMessage(log, QStringLiteral("Unregistered from the discovery server %1").arg(lds.url())));
+    QVERIFY(lds.registeredServers().isEmpty());
+}
+
+void TestSimServer::logsRegistrationOnlyWhenItChanges()
+{
+    TestDiscoveryServer lds;
+    QVERIFY(lds.start());
+    ProjectConfig config = project(_port);
+    config.server.discovery = { true, lds.url(), 1 };
+    SimServer server;
+    QSignalSpy log(&server, &SimServer::logAppended);
+    QSignalSpy renewals(server.uaServer(), &QUaServer::discoveryRegistrationFinished);
+
+    QVERIFY(server.start(config));
+    QTRY_VERIFY_WITH_TIMEOUT(renewals.count() >= 3, 10000);
+    QCOMPARE(countMessages(log, QStringLiteral("Registered at the discovery server")), 1);
+}
+
+void TestSimServer::warnsWhenDiscoveryServerIsUnreachable()
+{
+    const QString url = QStringLiteral("opc.tcp://127.0.0.1:%1").arg(TestPort::freePort());
+    ProjectConfig config = project(_port);
+    config.server.discovery = { true, url, 600 };
+    SimServer server;
+    QSignalSpy log(&server, &SimServer::logAppended);
+
+    QVERIFY(server.start(config));
+    const QString failed = QStringLiteral("Could not register at the discovery server %1").arg(url);
+    QTRY_VERIFY_WITH_TIMEOUT(containsMessage(log, failed), 10000);
+    QCOMPARE(levelOf(log, failed), LogEntry::Level::Warning);
+    QVERIFY(server.isRunning());
+
+    server.stop();
+    QVERIFY(!containsMessage(log, QStringLiteral("Unregistered from the discovery server")));
+    QVERIFY(!containsMessage(log, QStringLiteral("Could not unregister from the discovery server")));
+}
+
+void TestSimServer::explainsCertificateRejectedByDiscoveryServer()
+{
+    if (!CertificateGenerator::isAvailable())
+        QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+    // the URI open62541 announces by default, so the discovery server certificate matches its description
+    const GeneratedCertificate ldsCertificate =
+        CertificateGenerator::generate(QStringLiteral("urn:open62541.unconfigured.application"), {});
+    const GeneratedCertificate unrelated = CertificateGenerator::generate(QStringLiteral("urn:openuasim:other"), {});
+    TestDiscoveryServer lds;
+    QVERIFY(lds.start(ldsCertificate.certificate, ldsCertificate.privateKey, { unrelated.certificate }));
+    ProjectConfig config = project(_port);
+    config.server.discovery = { true, lds.url(), 600 };
+    const GeneratedCertificate own = CertificateGenerator::generate(config.server.applicationUri, {});
+    SimServer server;
+    server.setPkiMaterial({ own.certificate, own.privateKey, {}, {} });
+    QSignalSpy log(&server, &SimServer::logAppended);
+
+    QVERIFY(server.start(config));
+    const QString rejected = QStringLiteral("The discovery server %1 rejected the server certificate").arg(lds.url());
+    QTRY_VERIFY_WITH_TIMEOUT(containsMessage(log, rejected), 10000);
+    QCOMPARE(levelOf(log, rejected), LogEntry::Level::Warning);
+    QVERIFY(lds.registeredServers().isEmpty());
+}
+
+void TestSimServer::disabledDiscoveryRegistersNowhere()
+{
+    ProjectConfig config = project(_port);
+    config.server.discovery = { false, QStringLiteral("opc.tcp://localhost:4840"), 600 };
+    SimServer server;
+    QVERIFY(server.start(config));
+    QCOMPARE(server.uaServer()->discoveryServerUrl(), QString());
 }
 
 QTEST_GUILESS_MAIN(TestSimServer)

@@ -1856,6 +1856,30 @@
         <source> min</source>
         <translation> мин</translation>
     </message>
+    <message>
+        <source>&amp;Discovery</source>
+        <translation>&amp;Обнаружение</translation>
+    </message>
+    <message>
+        <source>Register at a Local Discovery Server</source>
+        <translation>Регистрироваться на локальном сервере обнаружения (LDS)</translation>
+    </message>
+    <message>
+        <source>Discovery UR&amp;L</source>
+        <translation>&amp;Адрес сервера обнаружения</translation>
+    </message>
+    <message>
+        <source>Registration &amp;Interval</source>
+        <translation>Интервал р&amp;егистрации</translation>
+    </message>
+    <message>
+        <source>How often the server renews its registration; keep it below the time the discovery server keeps a server</source>
+        <translation>Как часто сервер продлевает регистрацию; интервал должен быть меньше срока, в течение которого сервер обнаружения хранит регистрацию</translation>
+    </message>
+    <message>
+        <source> s</source>
+        <translation> с</translation>
+    </message>
 </context>
 <context>
     <name>ServerSettingsRules</name>
@@ -1878,6 +1902,14 @@
     <message>
         <source>The history retention must be between 0 and %1 minutes</source>
         <translation>Срок хранения истории должен быть от 0 до %1 минут</translation>
+    </message>
+    <message>
+        <source>The discovery server URL must look like opc.tcp://host:port</source>
+        <translation>Адрес сервера обнаружения должен иметь вид opc.tcp://узел:порт</translation>
+    </message>
+    <message>
+        <source>The registration interval must be between %1 and %2 seconds</source>
+        <translation>Интервал регистрации должен быть от %1 до %2 секунд</translation>
     </message>
 </context>
 <context>
@@ -2102,6 +2134,26 @@
     <message>
         <source>Session &apos;%1&apos; closed</source>
         <translation>Сеанс «%1» закрыт</translation>
+    </message>
+    <message>
+        <source>Unregistered from the discovery server %1</source>
+        <translation>Регистрация на сервере обнаружения %1 снята</translation>
+    </message>
+    <message>
+        <source>Could not unregister from the discovery server %1: %2</source>
+        <translation>Не удалось снять регистрацию на сервере обнаружения %1: %2</translation>
+    </message>
+    <message>
+        <source>Registered at the discovery server %1</source>
+        <translation>Сервер зарегистрирован на сервере обнаружения %1</translation>
+    </message>
+    <message>
+        <source>The discovery server %1 rejected the server certificate (%2); trust it on the discovery server</source>
+        <translation>Сервер обнаружения %1 отклонил сертификат сервера (%2); добавьте его в доверенные на сервере обнаружения</translation>
+    </message>
+    <message>
+        <source>Could not register at the discovery server %1: %2</source>
+        <translation>Не удалось зарегистрироваться на сервере обнаружения %1: %2</translation>
     </message>
 </context>
 <context>

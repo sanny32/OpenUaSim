@@ -7,6 +7,7 @@
 ///
 
 #include <QCoreApplication>
+#include <QUrl>
 
 #include "serversettingsrules.h"
 
@@ -14,9 +15,10 @@ namespace ServerSettingsRules {
 
 ///
 /// \brief Returns why a server description cannot be served.
-/// \param settings Application name, application URI, session limit and history limits.
+/// \param settings Application name, application URI, session limit, history limits and discovery registration.
 /// \return Problem text, or empty when the name and URI are set, the session limit is within 1..65535, the
-///         history keeps 1..kMaxHistoryValues values and their age limit is within 0..kMaxHistoryAgeMinutes.
+///         history keeps 1..kMaxHistoryValues values, their age limit is within 0..kMaxHistoryAgeMinutes and an
+///         enabled discovery registration has an opc.tcp URL and an interval within the allowed range.
 ///
 QString problem(const ServerSettings &settings)
 {
@@ -34,6 +36,19 @@ QString problem(const ServerSettings &settings)
         return QCoreApplication::translate("ServerSettingsRules",
                                            "The history retention must be between 0 and %1 minutes")
             .arg(kMaxHistoryAgeMinutes);
+    const DiscoveryRegistration &discovery = settings.discovery;
+    if (!discovery.enabled)
+        return {};
+    const QUrl url(discovery.url.trimmed(), QUrl::StrictMode);
+    if (!url.isValid() || url.scheme() != QLatin1String("opc.tcp") || url.host().isEmpty())
+        return QCoreApplication::translate("ServerSettingsRules",
+                                           "The discovery server URL must look like opc.tcp://host:port");
+    if (discovery.intervalSeconds < kMinDiscoveryIntervalSeconds
+        || discovery.intervalSeconds > kMaxDiscoveryIntervalSeconds)
+        return QCoreApplication::translate("ServerSettingsRules",
+                                           "The registration interval must be between %1 and %2 seconds")
+            .arg(kMinDiscoveryIntervalSeconds)
+            .arg(kMaxDiscoveryIntervalSeconds);
     return {};
 }
 

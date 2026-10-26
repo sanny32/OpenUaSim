@@ -162,6 +162,7 @@ private:
     void handleLog(const QUaLog &log);
     void handleClientConnected(const QUaSession *session);
     void handleClientDisconnected(const QUaSession *session);
+    void handleDiscoveryRegistration(bool isOnline, const QUaStatusCode &statusCode);
 #ifdef OUASIM_HAVE_ENCRYPTION
     void handleCertificateRejected(const QByteArray &certificate, const QUaStatusCode &statusCode);
 #endif
@@ -172,6 +173,7 @@ private:
     SessionTracker _sessions;
     QDateTime _startTime;
     QString _endpointUrl;
+    QString _discoveryStatus;
     PkiMaterial _pki;
     QSet<QString> _certificateUsers;
 };

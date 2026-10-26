@@ -614,6 +614,9 @@ QByteArray toJson(const ProjectConfig &project)
         { QStringLiteral("maxSessions"), project.server.maxSessions },
         { QStringLiteral("historyMaxValues"), project.server.history.maxValues },
         { QStringLiteral("historyMaxAgeMinutes"), project.server.history.maxAgeMinutes },
+        { QStringLiteral("discoveryRegistration"), project.server.discovery.enabled },
+        { QStringLiteral("discoveryServerUrl"), project.server.discovery.url },
+        { QStringLiteral("discoveryIntervalSeconds"), project.server.discovery.intervalSeconds },
     };
 
     const QJsonObject root {
@@ -663,6 +666,11 @@ LoadResult fromJson(const QByteArray &json)
     HistoryLimits &history = project.server.history;
     history.maxValues = server.value(QStringLiteral("historyMaxValues")).toInt(history.maxValues);
     history.maxAgeMinutes = server.value(QStringLiteral("historyMaxAgeMinutes")).toInt(history.maxAgeMinutes);
+    DiscoveryRegistration &discovery = project.server.discovery;
+    discovery.enabled = server.value(QStringLiteral("discoveryRegistration")).toBool(discovery.enabled);
+    discovery.url = server.value(QStringLiteral("discoveryServerUrl")).toString(discovery.url);
+    discovery.intervalSeconds =
+        server.value(QStringLiteral("discoveryIntervalSeconds")).toInt(discovery.intervalSeconds);
 
     const QJsonArray users = root.value(QStringLiteral("users")).toArray();
     for (const QJsonValue &user : users)

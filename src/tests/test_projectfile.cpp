@@ -75,6 +75,7 @@ private slots:
     void preservesEveryDataTypeValue();
     void preservesQuality();
     void preservesHistorizingAndHistoryLimits();
+    void preservesDiscoveryRegistration();
     void preservesEveryQuality();
     void preservesSimulationValues();
     void preservesMethods();
@@ -369,6 +370,19 @@ void TestProjectFile::preservesHistorizingAndHistoryLimits()
     QCOMPARE(result.project.server.history.maxAgeMinutes, 30);
 }
 
+void TestProjectFile::preservesDiscoveryRegistration()
+{
+    ProjectConfig project;
+    project.server.discovery = { true, QStringLiteral("opc.tcp://lds.plant:4840"), 120 };
+
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(ProjectFile::toJson(project));
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    const DiscoveryRegistration &discovery = result.project.server.discovery;
+    QVERIFY(discovery.enabled);
+    QCOMPARE(discovery.url, QStringLiteral("opc.tcp://lds.plant:4840"));
+    QCOMPARE(discovery.intervalSeconds, 120);
+}
+
 void TestProjectFile::emptyProjectRoundTrips()
 {
     const ProjectFile::LoadResult result = ProjectFile::fromJson(ProjectFile::toJson(ProjectConfig()));
@@ -406,6 +420,10 @@ void TestProjectFile::missingFieldsUseDefaults()
     QVERIFY(!variable.historizing);
     QCOMPARE(result.project.server.history.maxValues, HistoryLimits().maxValues);
     QCOMPARE(result.project.server.history.maxAgeMinutes, 0);
+    const DiscoveryRegistration discovery = result.project.server.discovery;
+    QVERIFY(!discovery.enabled);
+    QCOMPARE(discovery.url, DiscoveryRegistration().url);
+    QCOMPARE(discovery.intervalSeconds, DiscoveryRegistration().intervalSeconds);
 }
 
 void TestProjectFile::preservesExplicitHostname_data()

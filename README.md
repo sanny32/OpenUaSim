@@ -34,6 +34,10 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
   anonymous logins or the username/password logins listed in **Server → User
   Accounts**. Set the application name, URI and
   session limit in **Server → Server Settings**.
+- Register the running server at a Local Discovery Server (LDS) so clients find
+  it with FindServers: **Server → Server Settings** sets the LDS URL and how
+  often the registration is renewed; stopping the server unregisters it. With
+  a server certificate the registration is encrypted, so the LDS must trust it.
 - Manage certificates in the built-in PKI store (own, trusted, rejected,
   issuers): install the server certificate with its key, import, trust, reject,
   export and delete certificates. Client certificates the server rejects land in

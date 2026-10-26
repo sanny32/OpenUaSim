@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 OpenUaSim contributors
 // SPDX-License-Identifier: MIT
 
+#include <QCheckBox>
 #include <QDialogButtonBox>
 #include <QLabel>
 #include <QLineEdit>
@@ -38,6 +39,9 @@ private slots:
     void refusesEmptyFields();
     void limitsSessionCount();
     void editsHistoryLimits();
+    void editsDiscoveryRegistration();
+    void validatesDiscoveryRegistration_data();
+    void validatesDiscoveryRegistration();
 };
 
 void TestServerSettingsDialog::showsSettings()
@@ -104,6 +108,58 @@ void TestServerSettingsDialog::editsHistoryLimits()
     const HistoryLimits history = dialog.settings().history;
     QCOMPARE(history.maxValues, 2500);
     QCOMPARE(history.maxAgeMinutes, 60);
+}
+
+void TestServerSettingsDialog::editsDiscoveryRegistration()
+{
+    ServerSettingsDialog dialog(ServerSettings {});
+    auto *check = child<QCheckBox>(dialog, "discoveryCheck");
+    auto *url = child<QLineEdit>(dialog, "discoveryUrlEdit");
+    auto *interval = child<QSpinBox>(dialog, "discoveryIntervalSpin");
+    QVERIFY(!check->isChecked());
+    QVERIFY(!url->isEnabled());
+    QVERIFY(!interval->isEnabled());
+    QCOMPARE(url->text(), DiscoveryRegistration().url);
+    QCOMPARE(interval->minimum(), kMinDiscoveryIntervalSeconds);
+    QCOMPARE(interval->maximum(), kMaxDiscoveryIntervalSeconds);
+
+    check->setChecked(true);
+    QVERIFY(url->isEnabled());
+    QVERIFY(interval->isEnabled());
+    url->setText(QStringLiteral(" opc.tcp://lds.plant:4840 "));
+    interval->setValue(90);
+    const DiscoveryRegistration discovery = dialog.settings().discovery;
+    QVERIFY(discovery.enabled);
+    QCOMPARE(discovery.url, QStringLiteral("opc.tcp://lds.plant:4840"));
+    QCOMPARE(discovery.intervalSeconds, 90);
+}
+
+void TestServerSettingsDialog::validatesDiscoveryRegistration_data()
+{
+    QTest::addColumn<bool>("enabled");
+    QTest::addColumn<QString>("url");
+    QTest::addColumn<bool>("accepted");
+
+    QTest::newRow("local discovery server") << true << QStringLiteral("opc.tcp://localhost:4840") << true;
+    QTest::newRow("without port") << true << QStringLiteral("opc.tcp://lds.plant") << true;
+    QTest::newRow("other scheme") << true << QStringLiteral("http://localhost:4840") << false;
+    QTest::newRow("no host") << true << QStringLiteral("opc.tcp://:4840") << false;
+    QTest::newRow("empty") << true << QString() << false;
+    QTest::newRow("disabled keeps a bad URL") << false << QStringLiteral("lds") << true;
+}
+
+void TestServerSettingsDialog::validatesDiscoveryRegistration()
+{
+    QFETCH(bool, enabled);
+    QFETCH(QString, url);
+    QFETCH(bool, accepted);
+
+    ServerSettingsDialog dialog(ServerSettings {});
+    child<QCheckBox>(dialog, "discoveryCheck")->setChecked(enabled);
+    child<QLineEdit>(dialog, "discoveryUrlEdit")->setText(url);
+    QCOMPARE(okButton(dialog)->isEnabled(), accepted);
+    QCOMPARE(child<QLabel>(dialog, "problemLabel")->text(),
+             accepted ? QString() : QStringLiteral("The discovery server URL must look like opc.tcp://host:port"));
 }
 
 QTEST_MAIN(TestServerSettingsDialog)

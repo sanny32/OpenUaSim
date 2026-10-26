@@ -174,6 +174,7 @@ void SimServer::createServer()
     connect(_server, &QUaServer::logMessage, this, &SimServer::handleLog);
     connect(_server, &QUaServer::clientConnected, this, &SimServer::handleClientConnected);
     connect(_server, &QUaServer::clientDisconnected, this, &SimServer::handleClientDisconnected);
+    connect(_server, &QUaServer::discoveryRegistrationFinished, this, &SimServer::handleDiscoveryRegistration);
 #ifdef OUASIM_HAVE_ENCRYPTION
     connect(_server, &QUaServer::clientCertificateRejected, this, &SimServer::handleCertificateRejected);
 #endif
@@ -214,6 +215,7 @@ bool SimServer::start(const ProjectConfig &project)
                         .arg(listener.port));
 
     _sessions.clear();
+    _discoveryStatus.clear();
     _startTime = QDateTime::currentDateTime();
     log(LogEntry::Level::Info, LogEntry::Category::Server, tr("Server started on %1").arg(_endpointUrl));
     emit sessionsChanged();
@@ -317,6 +319,9 @@ bool SimServer::configure(const ProjectConfig &project, const ListenerSettings &
     _server->setHostname(listener.hostname);
     _server->setPort(listener.port);
     _server->setAnonymousLoginAllowed(listener.anonymousAllowed);
+    const DiscoveryRegistration &discovery = project.server.discovery;
+    _server->setDiscoveryServerUrl(discovery.enabled ? discovery.url.trimmed() : QString());
+    _server->setDiscoveryRegistrationInterval(discovery.intervalSeconds * 1000);
     applyUsers(listener.usernameAllowed ? project.users : QList<UserAccount>());
     _endpointUrl = QStringLiteral("opc.tcp://%1:%2").arg(listener.hostname).arg(listener.port);
     return configureSecurity(listener);
@@ -454,6 +459,43 @@ void SimServer::handleClientDisconnected(const QUaSession *session)
     log(LogEntry::Level::Info, LogEntry::Category::Session,
         tr("Session '%1' closed").arg(session->applicationName()));
     emit sessionsChanged();
+}
+
+///
+/// \brief Logs a registration at the discovery server when its outcome changes, so renewals stay quiet, and the
+///        removal of a registration that succeeded.
+/// \param isOnline True for a registration, false for its removal on stop.
+/// \param statusCode Answer of the discovery server.
+///
+void SimServer::handleDiscoveryRegistration(bool isOnline, const QUaStatusCode &statusCode)
+{
+    const QString status = QString::fromLatin1(UA_StatusCode_name(UA_StatusCode(statusCode)));
+    const bool good = UA_StatusCode(statusCode) == UA_STATUSCODE_GOOD;
+    const QString url = _server->discoveryServerUrl();
+    if (!isOnline) {
+        if (_discoveryStatus != QLatin1String("Good"))
+            return;
+        _discoveryStatus.clear();
+        if (good)
+            log(LogEntry::Level::Info, LogEntry::Category::Server,
+                tr("Unregistered from the discovery server %1").arg(url));
+        else
+            log(LogEntry::Level::Warning, LogEntry::Category::Server,
+                tr("Could not unregister from the discovery server %1: %2").arg(url, status));
+        return;
+    }
+    if (status == _discoveryStatus)
+        return;
+    _discoveryStatus = status;
+    if (good)
+        log(LogEntry::Level::Info, LogEntry::Category::Server, tr("Registered at the discovery server %1").arg(url));
+    else if (UA_StatusCode(statusCode) == UA_STATUSCODE_BADSECURITYCHECKSFAILED)
+        log(LogEntry::Level::Warning, LogEntry::Category::Server,
+            tr("The discovery server %1 rejected the server certificate (%2); trust it on the discovery server")
+                .arg(url, status));
+    else
+        log(LogEntry::Level::Warning, LogEntry::Category::Server,
+            tr("Could not register at the discovery server %1: %2").arg(url, status));
 }
 
 ///

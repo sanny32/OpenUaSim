@@ -17,7 +17,7 @@ class ServerSettingsDialog;
 }
 
 ///
-/// \brief Edits the application name, application URI and session limit of the server.
+/// \brief Edits the application name and URI, session limit, history limits and discovery registration of the server.
 ///
 class ServerSettingsDialog : public QDialog
 {
@@ -38,7 +38,7 @@ public:
 
     ///
     /// \brief Returns the edited settings.
-    /// \return Settings with the name and URI trimmed.
+    /// \return Settings with the name, URI and discovery server URL trimmed.
     ///
     ServerSettings settings() const;
 
