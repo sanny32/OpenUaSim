@@ -743,9 +743,9 @@ void TestCertificateStore::rejectedClientLandsInRejectedFolder()
 namespace {
 
 ///
-/// rief Connects as the stranger client to a running server.
+/// \brief Connects as the stranger client to a running server.
 /// \param controller Running controller.
-/// eturn Connection status.
+/// \return Connection status.
 ///
 UA_StatusCode connectStrangerTo(ServerController &controller)
 {
@@ -760,10 +760,10 @@ UA_StatusCode connectStrangerTo(ServerController &controller)
 }
 
 ///
-/// rief Starts a server whose only endpoint is Basic256Sha256 / Sign & Encrypt, then connects as the stranger client.
+/// \brief Starts a server whose only endpoint is Basic256Sha256 / Sign & Encrypt, then connects as the stranger client.
 /// \param controller Controller to start; its store must already point at the test directory.
 /// \param trustedClientsOnly Whether the endpoint accepts only trusted clients.
-/// eturn Connection status.
+/// \return Connection status.
 ///
 UA_StatusCode connectStranger(ServerController &controller, bool trustedClientsOnly)
 {
