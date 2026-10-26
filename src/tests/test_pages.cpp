@@ -14,6 +14,7 @@
 #include <QLineEdit>
 #include <QLocale>
 #include <QMenu>
+#include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScrollArea>
@@ -228,6 +229,8 @@ private slots:
     void endpointsPageRevertsAndKeepsRow();
     void endpointsPageOffersSecurityOfTheBuild();
     void endpointsPageKeepsPolicyAndModePaired();
+    void endpointsPageEnablesApplyOnEdit();
+    void endpointsPageRejectsUsedSecurityPair();
     void endpointsPageShowsStoredMismatch();
     void endpointsPageFitsEveryEndpoint_data();
     void endpointsPageFitsEveryEndpoint();
@@ -313,7 +316,7 @@ void TestPages::propertiesActionsStayAtBottom()
     auto *scroll = child<QScrollArea>(page, "propertiesPanelScroll");
     auto *apply = child<QPushButton>(page, "applyButton");
     auto *revert = child<QPushButton>(page, "revertButton");
-    QVERIFY(apply->isEnabled());
+    QVERIFY(child<QWidget>(page, "propertiesActions")->isEnabled());
     QVERIFY(revert->isEnabled());
     QVERIFY(!scroll->isAncestorOf(apply));
     QVERIFY(!scroll->isAncestorOf(revert));
@@ -669,6 +672,7 @@ void TestPages::objectsPageKeepsUnlistedIcon()
     QCOMPARE(child<QComboBox>(page, "iconCombo")->currentIndex(), -1);
 
     QSignalSpy requested(&page, &ObjectsPage::variableChangeRequested);
+    child<QLineEdit>(page, "displayNameEdit")->setText(QStringLiteral("Rpm"));
     child<QPushButton>(page, "applyButton")->click();
     QCOMPARE(requested.count(), 1);
     QCOMPARE(requested.first().first().value<VariableInfo>().icon, QStringLiteral("custom-icon"));
@@ -1044,6 +1048,78 @@ void TestPages::endpointsPageKeepsPolicyAndModePaired()
 
     mode->setCurrentText(QStringLiteral("Sign"));
     QCOMPARE(policy->currentText(), QStringLiteral("Basic256Sha256"));
+}
+
+void TestPages::endpointsPageEnablesApplyOnEdit()
+{
+    EndpointsPage page;
+    page.setEndpoints(_snapshot.endpoints);
+    auto *apply = child<QPushButton>(page, "applyButton");
+    QVERIFY(!apply->isEnabled());
+
+    child<QSpinBox>(page, "portSpin")->setValue(4900);
+    QVERIFY(apply->isEnabled());
+    child<QPushButton>(page, "revertButton")->click();
+    QVERIFY(!apply->isEnabled());
+
+    child<QComboBox>(page, "hostnameCombo")->setEditText(QStringLiteral("edited-host"));
+    QVERIFY(apply->isEnabled());
+    ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 1);
+    QVERIFY(!apply->isEnabled());
+
+    child<QCheckBox>(page, "trustedClientsOnlyCheck")->toggle();
+    QVERIFY(apply->isEnabled());
+    child<QComboBox>(page, "securityPolicyCombo")->setCurrentText(QStringLiteral("None"));
+    QVERIFY(apply->isEnabled());
+    page.setEndpoints(_snapshot.endpoints);
+    QVERIFY(!apply->isEnabled());
+}
+
+void TestPages::endpointsPageRejectsUsedSecurityPair()
+{
+#ifndef OUASIM_HAVE_ENCRYPTION
+    QSKIP("Only the None pair exists without encryption support");
+#else
+    const QString none = QStringLiteral("None");
+    const QString sign = QStringLiteral("Sign");
+    const QString basic256 = QStringLiteral("Basic256");
+    EndpointsPage page;
+    page.setEndpoints({ securedEndpoint(none, none), securedEndpoint(basic256, sign),
+                        securedEndpoint(basic256, sign) });
+    QSignalSpy requested(&page, &EndpointsPage::endpointsChangeRequested);
+    auto *policy = child<QComboBox>(page, "securityPolicyCombo");
+    auto *mode = child<QComboBox>(page, "securityModeCombo");
+    auto *apply = child<QPushButton>(page, "applyButton");
+    ViewSetup::selectRow(child<QTableView>(page, "endpointsView"), 1);
+
+    policy->setCurrentText(none);
+    QCOMPARE(mode->currentText(), none);
+    apply->click();
+    QCOMPARE(requested.count(), 0);
+    auto *warning = page.findChild<QMessageBox *>();
+    QVERIFY(warning);
+    QVERIFY(warning->isVisible());
+    QVERIFY(warning->text().contains(none));
+    QCOMPARE(policy->currentText(), none);
+    child<QSpinBox>(page, "portSpin")->setValue(4900);
+    warning->button(QMessageBox::Ok)->click();
+    QTRY_VERIFY(!page.findChild<QMessageBox *>());
+    QCOMPARE(policy->currentText(), basic256);
+    QCOMPARE(mode->currentText(), sign);
+    QCOMPARE(child<QSpinBox>(page, "portSpin")->value(), EndpointInfo().port);
+
+    policy->setCurrentText(QStringLiteral("Basic256Sha256"));
+    apply->click();
+    QCOMPARE(requested.count(), 1);
+    QVERIFY(!page.findChild<QMessageBox *>());
+
+    policy->setCurrentText(basic256);
+    child<QCheckBox>(page, "enabledCheck")->setChecked(false);
+    apply->click();
+    QCOMPARE(requested.count(), 2);
+    QVERIFY(!requested.last().first().value<QList<EndpointInfo>>().at(1).enabled);
+    QVERIFY(!page.findChild<QMessageBox *>());
+#endif
 }
 
 void TestPages::endpointsPageShowsStoredMismatch()
@@ -1792,7 +1868,7 @@ void TestPages::objectsPageLocksModelVariableStructure()
     ObjectsPage page;
     page.setAddressSpace(_snapshot.addressSpace, variables);
     QVERIFY(child<QWidget>(page, "propertiesHost")->isEnabled());
-    QVERIFY(child<QPushButton>(page, "applyButton")->isEnabled());
+    QVERIFY(child<QWidget>(page, "propertiesActions")->isEnabled());
     QVERIFY(!child<QLineEdit>(page, "displayNameEdit")->isEnabled());
     QVERIFY(!child<QComboBox>(page, "dataTypeCombo")->isEnabled());
     QVERIFY(!child<QSpinBox>(page, "arrayLengthSpin")->isEnabled());

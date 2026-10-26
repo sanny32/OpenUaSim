@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QLineEdit>
 #include <QLabel>
@@ -84,6 +85,8 @@ void TestAppLanguage::accessValuesStayPortable()
     QCOMPARE(editedAccess->currentData().toString(), access);
     QVERIFY(editedAccess->currentText() != access);
     QSignalSpy applied(&editor, &VariablePropertiesWidget::applyRequested);
+    auto *historizing = editor.findChild<QCheckBox *>(QStringLiteral("historizingCheck"));
+    historizing->toggle();
     editor.findChild<QPushButton *>(QStringLiteral("applyButton"))->click();
     QCOMPARE(applied.size(), 1);
     QCOMPARE(applied.takeFirst().first().value<VariableInfo>().access, access);
@@ -101,6 +104,7 @@ void TestAppLanguage::accessValuesStayPortable()
     AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language::Russian);
     QCoreApplication::processEvents();
     QCOMPARE(editedAccess->currentData().toString(), access);
+    historizing->toggle();
     editor.findChild<QPushButton *>(QStringLiteral("applyButton"))->click();
     QCOMPARE(applied.takeFirst().first().value<VariableInfo>().access, access);
 }

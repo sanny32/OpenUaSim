@@ -729,6 +729,10 @@
         <source>This build has no encryption support</source>
         <translation>Эта сборка не поддерживает шифрование</translation>
     </message>
+    <message>
+        <source>Another endpoint already uses %1 with %2.</source>
+        <translation>Другая конечная точка уже использует %1 с %2.</translation>
+    </message>
 </context>
 <context>
     <name>EventLogWidget</name>

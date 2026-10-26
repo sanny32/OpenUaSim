@@ -43,6 +43,7 @@ VariablePropertiesWidget::VariablePropertiesWidget(QWidget *parent)
     connect(ui->applyButton, &QPushButton::clicked, this, &VariablePropertiesWidget::requestApply);
     connect(ui->alarmButton, &QPushButton::clicked, this, &VariablePropertiesWidget::requestAlarmEdit);
     connect(ui->revertButton, &QPushButton::clicked, this, &VariablePropertiesWidget::revert);
+    ViewSetup::enableOnEdit(ui->propertiesHost, ui->applyButton);
     updateSimulationFields();
     clear();
 }
@@ -88,6 +89,7 @@ void VariablePropertiesWidget::setVariable(const VariableInfo &variable)
     ui->offsetSpin->setValue(variable.simulation.offset);
     ui->valuesEdit->setText(variable.simulation.values.join(QStringLiteral("; ")));
     updateSimulationFields();
+    ui->applyButton->setEnabled(false);
 }
 
 ///
@@ -123,6 +125,7 @@ void VariablePropertiesWidget::clear()
     ui->displayNameEdit->clear();
     ui->initialValueEdit->clear();
     ui->qualityIndicator->setStatus(StatusKind::None, QString());
+    ui->applyButton->setEnabled(false);
     ui->propertiesHost->setEnabled(false);
     ui->propertiesActions->setEnabled(false);
 }

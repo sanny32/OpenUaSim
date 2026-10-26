@@ -20,6 +20,7 @@ class QSortFilterProxyModel;
 class QSplitter;
 class QTableView;
 class QTreeView;
+class QWidget;
 
 namespace ViewSetup {
 
@@ -134,6 +135,14 @@ void selectRow(QTableView *view, int row);
 /// \param source Line edit whose text is copied.
 ///
 void bindCopyButton(QAbstractButton *button, QLineEdit *source);
+
+///
+/// \brief Enables a button whenever an editor inside a container changes; the caller disables it again
+///        after loading or storing the values.
+/// \param editors Container whose line edits, combo boxes, spin boxes and check boxes count as editors.
+/// \param button Button to enable, typically Apply.
+///
+void enableOnEdit(QWidget *editors, QAbstractButton *button);
 
 ///
 /// \brief Adds a trailing copy button inside a line edit that copies its text to the clipboard,

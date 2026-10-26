@@ -6,6 +6,7 @@
 /// \brief Implements the endpoints page.
 ///
 
+#include <QMessageBox>
 #include <QNetworkInterface>
 #include <QSortFilterProxyModel>
 #include <QSysInfo>
@@ -120,6 +121,20 @@ bool everySecurityPairUsed(const QList<EndpointInfo> &endpoints)
 }
 
 ///
+/// \brief Tells whether moving an endpoint to a security pair would duplicate another endpoint.
+/// \param endpoints Configured endpoints.
+/// \param row Row of the edited endpoint.
+/// \param pair Security pair chosen for it.
+/// \return True when the pair differs from the stored one and another endpoint already uses it;
+///         a duplicate already stored stays editable.
+///
+bool takesUsedSecurityPair(const QList<EndpointInfo> &endpoints, int row, const SecurityPair &pair)
+{
+    const QList<SecurityPair> used = usedSecurityPairs(endpoints);
+    return used.at(row) != pair && used.contains(pair);
+}
+
+///
 /// \brief Picks the security pair for a new endpoint: the first one after the last endpoint's pair
 ///        that no endpoint uses yet, wrapping around the list.
 /// \param endpoints Configured endpoints.
@@ -171,6 +186,8 @@ EndpointsPage::EndpointsPage(QWidget *parent)
     connect(ui->addEndpointButton, &QPushButton::clicked, this, &EndpointsPage::addEndpoint);
     connect(ui->removeEndpointButton, &QPushButton::clicked, this, &EndpointsPage::removeEndpoint);
     connect(ui->usersButton, &QPushButton::clicked, this, &EndpointsPage::usersEditRequested);
+    ViewSetup::enableOnEdit(ui->propertiesHost, ui->applyButton);
+    ui->applyButton->setEnabled(false);
 }
 
 ///
@@ -232,6 +249,16 @@ void EndpointsPage::showEndpoint(const QModelIndex &current)
     ui->usernamePasswordCheck->setChecked(endpoint.usernamePassword);
     ui->trustedClientsOnlyCheck->setChecked(endpoint.trustedClientsOnly);
     ui->enabledCheck->setChecked(endpoint.enabled);
+    ui->applyButton->setEnabled(false);
+}
+
+///
+/// \brief Returns the security pair chosen in the properties panel.
+/// \return Policy and mode.
+///
+QPair<QString, QString> EndpointsPage::chosenSecurityPair() const
+{
+    return { ui->securityPolicyCombo->currentText(), ui->securityModeCombo->currentText() };
 }
 
 ///
@@ -320,6 +347,17 @@ void EndpointsPage::applyEndpoint()
     if (row < 0)
         return;
     QList<EndpointInfo> endpoints = _endpointsModel->items();
+    const SecurityPair security = chosenSecurityPair();
+    if (takesUsedSecurityPair(endpoints, row, security)) {
+        auto *box = new QMessageBox(QMessageBox::Warning, tr("Endpoint Properties"),
+                                    tr("Another endpoint already uses %1 with %2.")
+                                        .arg(security.first, security.second),
+                                    QMessageBox::Ok, this);
+        box->setAttribute(Qt::WA_DeleteOnClose);
+        connect(box, &QMessageBox::finished, this, &EndpointsPage::revertEndpoint);
+        box->open();
+        return;
+    }
     endpoints[row] = editedEndpoint(row);
     emit endpointsChangeRequested(endpoints);
 }

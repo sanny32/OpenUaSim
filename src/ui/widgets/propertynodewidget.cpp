@@ -45,6 +45,7 @@ PropertyNodeWidget::PropertyNodeWidget(QWidget *parent)
     connect(ui->propertyRevertButton, &QPushButton::clicked, this, &PropertyNodeWidget::revert);
     ui->propertyLowEdit->setValidator(limitValidator(this));
     ui->propertyHighEdit->setValidator(limitValidator(this));
+    ViewSetup::enableOnEdit(ui->propertyNodeHost, ui->propertyApplyButton);
     clear();
 }
 
@@ -84,6 +85,7 @@ void PropertyNodeWidget::setNode(const VariableInfo &property)
     ui->propertyValueEdit->setText(property.initialValue.toString());
     ui->propertyValueEdit->setReadOnly(property.readOnly);
     ui->propertyNodeActions->setEnabled(!property.readOnly);
+    ui->propertyApplyButton->setEnabled(false);
 }
 
 ///

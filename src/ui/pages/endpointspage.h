@@ -70,6 +70,7 @@ private:
     void showEndpoint(const QModelIndex &current);
     void matchModeToPolicy(const QString &policy);
     void matchPolicyToMode(const QString &mode);
+    QPair<QString, QString> chosenSecurityPair() const;
     void restrictSecurityChoices();
     int currentRow() const;
     EndpointInfo editedEndpoint(int row) const;

@@ -8,15 +8,18 @@
 
 #include <QAbstractButton>
 #include <QAction>
+#include <QCheckBox>
 #include <QCoreApplication>
 #include <QClipboard>
 #include <QComboBox>
+#include <QDoubleSpinBox>
 #include <QGuiApplication>
 #include <QHeaderView>
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QResizeEvent>
 #include <QSortFilterProxyModel>
+#include <QSpinBox>
 #include <QSplitter>
 #include <QTableView>
 #include <QToolButton>
@@ -482,6 +485,27 @@ void bindCopyButton(QAbstractButton *button, QLineEdit *source)
     button->setCursor(Qt::PointingHandCursor);
     QObject::connect(button, &QAbstractButton::clicked, source,
                      [button, source] { copyToClipboard(source->text(), button); });
+}
+
+///
+/// \brief Enables a button whenever an editor inside a container changes; the caller disables it again
+///        after loading or storing the values.
+/// \param editors Container whose line edits, combo boxes, spin boxes and check boxes count as editors.
+/// \param button Button to enable, typically Apply.
+///
+void enableOnEdit(QWidget *editors, QAbstractButton *button)
+{
+    const auto enable = [button] { button->setEnabled(true); };
+    for (QLineEdit *edit : editors->findChildren<QLineEdit *>())
+        QObject::connect(edit, &QLineEdit::textChanged, button, enable);
+    for (QComboBox *combo : editors->findChildren<QComboBox *>())
+        QObject::connect(combo, &QComboBox::currentIndexChanged, button, enable);
+    for (QSpinBox *spin : editors->findChildren<QSpinBox *>())
+        QObject::connect(spin, &QSpinBox::valueChanged, button, enable);
+    for (QDoubleSpinBox *spin : editors->findChildren<QDoubleSpinBox *>())
+        QObject::connect(spin, &QDoubleSpinBox::valueChanged, button, enable);
+    for (QCheckBox *check : editors->findChildren<QCheckBox *>())
+        QObject::connect(check, &QCheckBox::toggled, button, enable);
 }
 
 ///

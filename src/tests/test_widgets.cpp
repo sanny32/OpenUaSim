@@ -6,6 +6,7 @@
 #include <QClipboard>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QDoubleSpinBox>
 #include <QHeaderView>
 #include <QGridLayout>
 #include <QLabel>
@@ -24,6 +25,7 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSignalSpy>
+#include <QSpinBox>
 #include <QSplitter>
 #include <QStyleFactory>
 #include <QTabBar>
@@ -149,6 +151,9 @@ private slots:
     void variablePropertiesLocksReadOnlyAndModelVariables();
     void propertyNodeEditsValue();
     void propertyNodeEditsTextValue();
+    void variablePropertiesEnablesApplyOnEdit_data();
+    void variablePropertiesEnablesApplyOnEdit();
+    void propertyNodeEnablesApplyOnEdit();
     void propertyNodeLocksReadOnlyProperty();
 };
 
@@ -1328,6 +1333,7 @@ void TestWidgets::variablePropertiesShowsCurrentQuality()
     QCOMPARE(indicator->text(), cell.data().toString());
     QCOMPARE(combo->currentData().toUInt(), quint32(VariableInfo::Quality::BadSensorFailure));
     QSignalSpy applied(&editor, &VariablePropertiesWidget::applyRequested);
+    named<QCheckBox>(editor, "historizingCheck")->toggle();
     named<QPushButton>(editor, "applyButton")->click();
     QCOMPARE(applied.count(), 1);
     const VariableInfo edited = applied.first().first().value<VariableInfo>();
@@ -1389,8 +1395,7 @@ void TestWidgets::propertyNodeEditsValue()
 
     QSignalSpy applied(&editor, &PropertyNodeWidget::applyRequested);
     named<QPushButton>(editor, "propertyApplyButton")->click();
-    QCOMPARE(applied.count(), 1);
-    QVERIFY2(!applied.first().first().value<VariableInfo>().initialValue.isValid(), "nothing typed, nothing set");
+    QVERIFY2(applied.isEmpty(), "nothing typed, nothing applied");
 
     low->setText(QStringLiteral("-10.5"));
     low->setModified(true);
@@ -1403,6 +1408,59 @@ void TestWidgets::propertyNodeEditsValue()
     named<QPushButton>(editor, "propertyRevertButton")->click();
     QCOMPARE(low->text(), QStringLiteral("0"));
     QVERIFY(!low->isModified());
+}
+
+void TestWidgets::variablePropertiesEnablesApplyOnEdit_data()
+{
+    QTest::addColumn<QString>("editor");
+    for (const char *name : { "displayNameEdit", "iconCombo", "arrayLengthSpin", "amplitudeSpin", "historizingCheck" })
+        QTest::newRow(name) << QString::fromLatin1(name);
+}
+
+void TestWidgets::variablePropertiesEnablesApplyOnEdit()
+{
+    QFETCH(QString, editor);
+    VariablePropertiesWidget properties;
+    auto *apply = named<QPushButton>(properties, "applyButton");
+    QVERIFY(!apply->isEnabled());
+    properties.setVariable(speedVariable());
+    QVERIFY(!apply->isEnabled());
+
+    QWidget *edited = properties.findChild<QWidget *>(editor);
+    if (auto *edit = qobject_cast<QLineEdit *>(edited))
+        edit->setText(QStringLiteral("Rpm"));
+    else if (auto *combo = qobject_cast<QComboBox *>(edited))
+        combo->setCurrentIndex(combo->currentIndex() == 0 ? 1 : 0);
+    else if (auto *spin = qobject_cast<QSpinBox *>(edited))
+        spin->setValue(spin->value() + 1);
+    else if (auto *doubleSpin = qobject_cast<QDoubleSpinBox *>(edited))
+        doubleSpin->setValue(doubleSpin->value() + 1);
+    else if (auto *check = qobject_cast<QCheckBox *>(edited))
+        check->toggle();
+    QVERIFY(apply->isEnabled());
+
+    named<QPushButton>(properties, "revertButton")->click();
+    QVERIFY(!apply->isEnabled());
+    named<QCheckBox>(properties, "historizingCheck")->toggle();
+    properties.setVariable(speedVariable());
+    QVERIFY2(!apply->isEnabled(), "showing the stored variable after Apply leaves nothing to apply");
+}
+
+void TestWidgets::propertyNodeEnablesApplyOnEdit()
+{
+    PropertyNodeWidget editor;
+    auto *apply = named<QPushButton>(editor, "propertyApplyButton");
+    editor.setNode(rangeProperty());
+    QVERIFY(!apply->isEnabled());
+
+    named<QLineEdit>(editor, "propertyLowEdit")->setText(QStringLiteral("-1"));
+    QVERIFY(apply->isEnabled());
+    named<QPushButton>(editor, "propertyRevertButton")->click();
+    QVERIFY(!apply->isEnabled());
+
+    named<QLineEdit>(editor, "propertyHighEdit")->setText(QStringLiteral("50"));
+    editor.setNode(rangeProperty());
+    QVERIFY(!apply->isEnabled());
 }
 
 void TestWidgets::propertyNodeEditsTextValue()
