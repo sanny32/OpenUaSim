@@ -148,6 +148,12 @@ signals:
     ///
     void clientCertificateRejected(const QByteArray &certificate, const QString &reason);
 
+    ///
+    /// \brief Announces a client that secured its channel with a certificate the trust lists were not applied to.
+    /// \param certificate DER application certificate of the client.
+    ///
+    void unverifiedClientConnected(const QByteArray &certificate);
+
 private:
     void createServer();
     void releaseServer();
@@ -176,4 +182,5 @@ private:
     QString _discoveryStatus;
     PkiMaterial _pki;
     QSet<QString> _certificateUsers;
+    bool _trustedClientsOnly = false;
 };

@@ -63,6 +63,7 @@
 #include "subscriptionsdialog.h"
 #include "subscriptionsmodel.h"
 #include "subtypesmodel.h"
+#include "treebuilders.h"
 #include "typespage.h"
 #include "variablesmodel.h"
 #include "valuedialog.h"
@@ -1017,8 +1018,14 @@ void TestPages::certificatesPageRequestsActions()
     QSignalSpy moved(&page, &CertificatesPage::moveRequested);
     QSignalSpy deleted(&page, &CertificatesPage::deleteRequested);
     QSignalSpy exported(&page, &CertificatesPage::exportRequested);
-    const QString selected = page.certificatesModel()->item(0).filePath;
+    auto *categories = child<QTreeView>(page, "categoriesList");
 
+    QVERIFY(ViewSetup::selectById(categories, TreeBuilders::allCertificatesId()));
+    child<QPushButton>(page, "importButton")->click();
+    QCOMPARE(imported.count(), 0);
+
+    QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Trusted))));
+    const QString selected = page.certificatesModel()->item(0).filePath;
     child<QPushButton>(page, "importButton")->click();
     QCOMPARE(imported.first().first().value<CertificateInfo::Category>(), CertificateInfo::Category::Trusted);
     child<QPushButton>(page, "rejectButton")->click();
@@ -1189,8 +1196,17 @@ void TestPages::certificatesPage()
 {
     CertificatesPage page;
     page.setCertificates(_snapshot.certificates);
+    auto *categories = child<QTreeView>(page, "categoriesList");
 
+    QCOMPARE(ViewSetup::currentId(categories), TreeBuilders::allCertificatesId());
+    QCOMPARE(page.certificatesModel()->rowCount(), _snapshot.certificates.size());
+    QCOMPARE(child<QLabel>(page, "certificatesTitle")->text(), QStringLiteral("All Certificates"));
+    QVERIFY(!child<QPushButton>(page, "importButton")->isEnabled());
+    QVERIFY(!page.findChild<QLineEdit *>(QStringLiteral("searchEdit")));
+
+    QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Trusted))));
     QCOMPARE(page.certificatesModel()->rowCount(), 3);
+    QVERIFY(child<QPushButton>(page, "importButton")->isEnabled());
     const QHeaderView *columns = child<QTableView>(page, "certificatesView")->horizontalHeader();
     QCOMPARE(columns->sectionResizeMode(CertificatesModel::ColCommonName), QHeaderView::Interactive);
     QVERIFY(columns->sectionSize(CertificatesModel::ColCommonName) != columns->defaultSectionSize());

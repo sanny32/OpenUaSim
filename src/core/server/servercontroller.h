@@ -403,6 +403,7 @@ private:
     void logMethodCall(const QString &methodId, const QString &result);
     void handleAlarmChanged(const QString &nodeId, const QString &state);
     void handleCertificateRejected(const QByteArray &certificate, const QString &reason);
+    void handleUnverifiedClient(const QByteArray &certificate);
 
     SimServer _server;
     AddressSpace _addressSpace;

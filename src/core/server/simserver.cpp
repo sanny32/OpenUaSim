@@ -342,6 +342,7 @@ bool SimServer::configureSecurity(const ListenerSettings &listener)
     _server->setTrustedCertificates(listener.trustedClientsOnly ? _pki.trusted : QList<QByteArray>());
     _server->setIssuerCertificates(_pki.issuers);
     _server->setRejectUntrustedCertificates(listener.trustedClientsOnly);
+    _trustedClientsOnly = listener.trustedClientsOnly;
     _server->setSecurityPolicies(securityPolicies(listener.securityPolicies));
     _server->setSecurityModes(securityModes(listener.securityModes));
     _certificateUsers.clear();
@@ -446,6 +447,9 @@ void SimServer::handleClientConnected(const QUaSession *session)
     log(LogEntry::Level::Info, LogEntry::Category::Session,
         tr("Session '%1' opened by %2").arg(info.name, info.user));
     emit sessionsChanged();
+    // With trusted clients only, an accepted certificate passed the trust lists, possibly through a trusted CA.
+    if (!_trustedClientsOnly && !session->clientCertificate().isEmpty())
+        emit unverifiedClientConnected(session->clientCertificate());
 }
 
 ///

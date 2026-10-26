@@ -51,6 +51,7 @@ ServerController::ServerController(QObject *parent)
     connect(&_addressSpace, &AddressSpace::methodCalled, this, &ServerController::logMethodCall);
     connect(&_addressSpace, &AddressSpace::alarmChanged, this, &ServerController::handleAlarmChanged);
     connect(&_server, &SimServer::clientCertificateRejected, this, &ServerController::handleCertificateRejected);
+    connect(&_server, &SimServer::unverifiedClientConnected, this, &ServerController::handleUnverifiedClient);
 }
 
 ///
@@ -1020,5 +1021,28 @@ void ServerController::handleCertificateRejected(const QByteArray &certificate, 
     appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Security,
                                tr("Client certificate '%1' rejected (%2); it was moved to the rejected folder")
                                    .arg(QFileInfo(stored).completeBaseName(), reason)));
+    emit certificatesChanged();
+}
+
+///
+/// \brief Keeps the unknown certificate of a client accepted without a trust check in the rejected folder,
+///        so it shows up for review and is not trusted until the user says so.
+/// \param certificate DER application certificate of the client.
+///
+void ServerController::handleUnverifiedClient(const QByteArray &certificate)
+{
+    if (_certificates.isStored(certificate))
+        return;
+    QString error;
+    const QString stored = _certificates.addCertificate(certificate, CertificateInfo::Category::Rejected, &error);
+    if (stored.isEmpty()) {
+        appendLog(LogMapper::entry(LogEntry::Level::Error, LogEntry::Category::Security,
+                                   tr("The certificate of a connected client could not be kept: %1").arg(error)));
+        return;
+    }
+    appendLog(LogMapper::entry(LogEntry::Level::Info, LogEntry::Category::Security,
+                               tr("Client certificate '%1' accepted without a trust check; "
+                                  "it was added to the rejected folder")
+                                   .arg(QFileInfo(stored).completeBaseName())));
     emit certificatesChanged();
 }

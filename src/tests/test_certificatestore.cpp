@@ -64,9 +64,12 @@ private slots:
     void ensureReportsGenerationFailure();
     void generateReplacesServerCertificate();
     void addsCertificateFromMemory();
+    void findsStoredCertificateByContent();
     void rejectedClientLandsInRejectedFolder();
     void trustedClientsOnlyRejectsClientsWithEmptyTrustList();
     void anyClientConnectsWithoutTrustedClientsOnly();
+    void unverifiedClientLandsInRejectedFolder();
+    void unverifiedClientAlreadyStoredIsNotCopied();
 
 private:
     QTemporaryDir *_directory = nullptr;
@@ -671,6 +674,22 @@ void TestCertificateStore::addsCertificateFromMemory()
     QVERIFY(!error.isEmpty());
 }
 
+void TestCertificateStore::findsStoredCertificateByContent()
+{
+    QFile client(testData(QStringLiteral("client.der")));
+    QFile stranger(testData(QStringLiteral("stranger.der")));
+    QVERIFY(client.open(QIODevice::ReadOnly) && stranger.open(QIODevice::ReadOnly));
+    const QByteArray clientDer = client.readAll();
+    QVERIFY(!_store.isStored(clientDer));
+
+    const QString stored = _store.addCertificate(clientDer, Category::Issuer);
+    const QString renamed = QFileInfo(stored).absolutePath() + QStringLiteral("/renamed.der");
+    QVERIFY(QFile::rename(stored, renamed));
+    QVERIFY(_store.isStored(clientDer));
+    QVERIFY(!_store.isStored(stranger.readAll()));
+    QVERIFY(!_store.isStored(QByteArray("garbage")));
+}
+
 void TestCertificateStore::rejectedClientLandsInRejectedFolder()
 {
 #ifndef OUASIM_HAVE_ENCRYPTION
@@ -773,6 +792,51 @@ void TestCertificateStore::anyClientConnectsWithoutTrustedClientsOnly()
     controller.certificateStore().setRoot(_directory->path());
     QVERIFY(controller.importCertificate(testData(QStringLiteral("client.der")), Category::Trusted));
     QCOMPARE(connectStranger(controller, false), UA_STATUSCODE_GOOD);
+#endif
+}
+
+void TestCertificateStore::unverifiedClientLandsInRejectedFolder()
+{
+#ifndef OUASIM_HAVE_ENCRYPTION
+    QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+#else
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    QSignalSpy changed(&controller, &ServerController::certificatesChanged);
+    QCOMPARE(connectStranger(controller, false), UA_STATUSCODE_GOOD);
+
+    QTRY_VERIFY(!controller.sessions().isEmpty());
+    QStringList rejected;
+    for (const CertificateInfo &info : controller.certificates()) {
+        if (info.category == Category::Rejected)
+            rejected << info.commonName;
+    }
+    QCOMPARE(rejected, QStringList { QStringLiteral("Stranger Client") });
+    QVERIFY(changed.count() >= 1);
+    QVERIFY(std::any_of(controller.log().cbegin(), controller.log().cend(), [](const LogEntry &entry) {
+        return entry.category == LogEntry::Category::Security && entry.message.contains(QStringLiteral("Stranger"));
+    }));
+    QVERIFY(!controller.isRestartRequired());
+#endif
+}
+
+void TestCertificateStore::unverifiedClientAlreadyStoredIsNotCopied()
+{
+#ifndef OUASIM_HAVE_ENCRYPTION
+    QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+#else
+    ServerController controller;
+    controller.certificateStore().setRoot(_directory->path());
+    QVERIFY(controller.importCertificate(testData(QStringLiteral("stranger.der")), Category::Trusted));
+    QCOMPARE(connectStranger(controller, false), UA_STATUSCODE_GOOD);
+
+    QTRY_VERIFY(!controller.sessions().isEmpty());
+    QList<Category> categories;
+    for (const CertificateInfo &info : controller.certificates()) {
+        if (info.commonName == QStringLiteral("Stranger Client"))
+            categories << info.category;
+    }
+    QCOMPARE(categories, QList<Category> { Category::Trusted });
 #endif
 }
 

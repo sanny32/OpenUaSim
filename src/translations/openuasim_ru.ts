@@ -444,10 +444,6 @@
         <translation>Хранилище сертификатов</translation>
     </message>
     <message>
-        <source>Search categories...</source>
-        <translation>Поиск по категориям...</translation>
-    </message>
-    <message>
         <source>Certificates</source>
         <translation>Сертификаты</translation>
     </message>
@@ -1782,6 +1778,14 @@
         <translation>Сертификат клиента «%1» отклонён (%2) и перемещён в папку отклонённых</translation>
     </message>
     <message>
+        <source>The certificate of a connected client could not be kept: %1</source>
+        <translation>Не удалось сохранить сертификат подключившегося клиента: %1</translation>
+    </message>
+    <message>
+        <source>Client certificate &apos;%1&apos; accepted without a trust check; it was added to the rejected folder</source>
+        <translation>Сертификат клиента «%1» принят без проверки доверия и добавлен в папку отклонённых</translation>
+    </message>
+    <message>
         <source>Created a self-signed server certificate</source>
         <translation>Создан самоподписанный сертификат сервера</translation>
     </message>
@@ -2301,6 +2305,10 @@
 </context>
 <context>
     <name>TreeBuilders</name>
+    <message>
+        <source>All Certificates</source>
+        <translation>Все сертификаты</translation>
+    </message>
     <message>
         <source>Application Certificate</source>
         <translation>Сертификат приложения</translation>

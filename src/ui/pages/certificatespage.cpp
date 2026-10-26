@@ -92,7 +92,7 @@ CertificatesPage::CertificatesPage(QWidget *parent)
     fitDetailsWidth();
 
     ViewSetup::installDelegate(ui->categoriesList);
-    ViewSetup::attachSearch(ui->categoriesList, _categoriesModel, ui->searchEdit);
+    ui->categoriesList->setModel(_categoriesModel);
     ViewSetup::configureTable(ui->certificatesView);
     ui->certificatesView->setModel(_certificatesModel);
     ViewSetup::fitColumnsWhenFilled(ui->certificatesView);
@@ -143,8 +143,7 @@ void CertificatesPage::setCertificates(const QList<CertificateInfo> &certificate
     header->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->categoriesList->setCurrentIndex(QModelIndex());
 
-    const QString trusted = QString::number(static_cast<int>(CertificateInfo::Category::Trusted));
-    if (!ViewSetup::selectById(ui->categoriesList, previous.isEmpty() ? trusted : previous))
+    if (!ViewSetup::selectById(ui->categoriesList, previous.isEmpty() ? TreeBuilders::allCertificatesId() : previous))
         ViewSetup::applyInitialState(ui->categoriesList);
 }
 
@@ -188,26 +187,29 @@ void CertificatesPage::fitDetailsWidth()
 }
 
 ///
-/// \brief Lists the certificates of the selected store folder.
+/// \brief Lists the certificates of the selected store folder, or of every folder.
 /// \param current Selected folder index.
 ///
 void CertificatesPage::showCategory(const QModelIndex &current)
 {
+    const QString id = current.siblingAtColumn(0).data(ItemRoles::Id).toString();
+    const bool all = id == TreeBuilders::allCertificatesId();
     bool ok = false;
-    const int category = current.siblingAtColumn(0).data(ItemRoles::Id).toInt(&ok);
+    const int category = id.toInt(&ok);
     const bool ownFolder = ok && category == static_cast<int>(CertificateInfo::Category::Application);
     ui->generateButton->setVisible(ownFolder);
     ui->trustButton->setVisible(!ownFolder);
     ui->rejectButton->setVisible(!ownFolder);
+    ui->importButton->setEnabled(ok);
 
     QList<CertificateInfo> shown;
     for (const CertificateInfo &certificate : std::as_const(_certificates)) {
-        if (ok && static_cast<int>(certificate.category) == category)
+        if (all || (ok && static_cast<int>(certificate.category) == category))
             shown.append(certificate);
     }
     _certificatesModel->setItems(shown);
-    ui->certificatesTitle->setText(ok ? current.siblingAtColumn(0).data().toString()
-                                      : tr("Certificates"));
+    ui->certificatesTitle->setText(ok || all ? current.siblingAtColumn(0).data().toString()
+                                             : tr("Certificates"));
     ViewSetup::selectRow(ui->certificatesView, 0);
     if (shown.isEmpty())
         showCertificate(QModelIndex());

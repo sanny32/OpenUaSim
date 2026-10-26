@@ -52,13 +52,41 @@ QString categoryIcon(CertificateInfo::Category category)
     return {};
 }
 
+///
+/// \brief Builds a category node.
+/// \param text Display name.
+/// \param count Number of certificates it lists.
+/// \param icon Icon resource name.
+/// \param id Selection id.
+/// \return Node with the count as trailing text.
+///
+TreeNode categoryNode(const QString &text, qsizetype count, const QString &icon, const QString &id)
+{
+    TreeNode node;
+    node.text = text;
+    node.trailing = QString::number(count);
+    node.icon = icon;
+    node.id = id;
+    node.kind = TreeNode::Kind::Category;
+    return node;
+}
+
+}
+
+///
+/// \brief Returns the id of the node that lists the certificates of every folder.
+/// \return Id that is not a category number.
+///
+QString allCertificatesId()
+{
+    return QStringLiteral("all");
 }
 
 ///
 /// \brief Builds the certificate store folder list.
 /// \param certificates Certificates of every folder.
-/// \return One node per CertificateInfo::Category, in declaration order, with the
-///         certificate count as trailing text and the category number as id.
+/// \return A node of every certificate with allCertificatesId(), then one node per CertificateInfo::Category
+///         in declaration order with the category number as id; each has the certificate count as trailing text.
 ///
 QList<TreeNode> certificateCategories(const QList<CertificateInfo> &certificates)
 {
@@ -69,19 +97,15 @@ QList<TreeNode> certificateCategories(const QList<CertificateInfo> &certificates
         CertificateInfo::Category::Issuer,
     };
 
-    QList<TreeNode> nodes;
+    QList<TreeNode> nodes { categoryNode(QCoreApplication::translate("TreeBuilders", "All Certificates"),
+                                         certificates.size(), QStringLiteral("list"), allCertificatesId()) };
     for (CertificateInfo::Category category : categories) {
         const auto count = std::count_if(certificates.cbegin(), certificates.cend(),
                                          [category](const CertificateInfo &certificate) {
                                              return certificate.category == category;
                                          });
-        TreeNode node;
-        node.text = categoryName(category);
-        node.trailing = QString::number(count);
-        node.icon = categoryIcon(category);
-        node.id = QString::number(static_cast<int>(category));
-        node.kind = TreeNode::Kind::Category;
-        nodes.append(node);
+        nodes.append(categoryNode(categoryName(category), count, categoryIcon(category),
+                                  QString::number(static_cast<int>(category))));
     }
     return nodes;
 }
