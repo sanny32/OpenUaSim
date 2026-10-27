@@ -117,6 +117,7 @@ private slots:
     void appStyleSelectedTab();
     void appStyleEnlargesTabsAndToolbar();
     void appStyleSpacesToolbarButtonLabels();
+    void appStyleEnlargesMenuItems();
     void eventLogUsesCompactRows();
     void eventLogHeightShowsWholeRows();
     void appStyleMakesPanelScrollAreasTransparent();
@@ -587,6 +588,19 @@ void TestWidgets::appStyleEnlargesTabsAndToolbar()
     QVERIFY(toolbarSize.height() > plainSize.height());
     QVERIFY(toolbarSize.width() > plainSize.width());
     delete fusion;
+}
+
+void TestWidgets::appStyleEnlargesMenuItems()
+{
+    AppStyle style;
+    const QSize contents(50, 16);
+
+    QStyleOptionMenuItem item;
+    item.menuItemType = QStyleOptionMenuItem::Normal;
+    QCOMPARE(style.sizeFromContents(QStyle::CT_MenuItem, &item, contents).height(), 28);
+
+    item.menuItemType = QStyleOptionMenuItem::Separator;
+    QVERIFY(style.sizeFromContents(QStyle::CT_MenuItem, &item, contents).height() < 28);
 }
 
 void TestWidgets::appStyleSpacesToolbarButtonLabels()

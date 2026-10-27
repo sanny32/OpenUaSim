@@ -20,6 +20,7 @@
 #include <QScrollArea>
 #include <QStyleFactory>
 #include <QStyleOptionButton>
+#include <QStyleOptionMenuItem>
 #include <QStyleOptionToolButton>
 #include <QStyleOptionTab>
 #include <QStyleOptionViewItem>
@@ -42,6 +43,7 @@ constexpr int kToolbarIconGap = 10;
 // QPushButton::sizeHint() reserves this much between the icon and the text.
 constexpr int kPushButtonIconSpacing = 4;
 constexpr int kInputHeight = 30;
+constexpr int kMenuItemHeight = 28;
 constexpr int kButtonExtraWidth = 12;
 constexpr int kHeaderHeight = 29;
 constexpr int kHeaderMargin = 6;
@@ -271,7 +273,7 @@ void AppStyle::drawComplexControl(ComplexControl control, const QStyleOptionComp
 }
 
 ///
-/// \brief Raises tabs, input fields, buttons, header sections and toolbar controls to the design heights.
+/// \brief Raises tabs, input fields, buttons, header sections, menu items and toolbar controls to the design heights.
 /// \param type Contents type being measured.
 /// \param option Style option of the control.
 /// \param contentsSize Size requested by the contents.
@@ -310,6 +312,11 @@ QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
         break;
     case CT_HeaderSection:
         size.setHeight(qMax(size.height(), kHeaderHeight));
+        break;
+    case CT_MenuItem:
+        if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option);
+            item && item->menuItemType != QStyleOptionMenuItem::Separator)
+            size.setHeight(qMax(size.height(), kMenuItemHeight));
         break;
     case CT_LineEdit:
         // The editor inside a spin box or combo box grows with its owner instead.

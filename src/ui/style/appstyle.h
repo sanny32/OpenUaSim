@@ -80,7 +80,7 @@ public:
                             QPainter *painter, const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Raises tabs, input fields, buttons, header sections and toolbar controls to the design heights.
+    /// \brief Raises tabs, input fields, buttons, header sections, menu items and toolbar controls to the design heights.
     /// \param type Contents type being measured.
     /// \param option Style option of the control.
     /// \param contentsSize Size requested by the contents.
