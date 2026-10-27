@@ -7,6 +7,19 @@ function(ouasim_add_build_script_test)
     ouasim_configure_test_environment(ouasim_tests_build_scripts)
 endfunction()
 
+function(ouasim_add_app_metadata_test)
+    add_executable(ouasim_tests_app_metadata test_appmetadata.cpp)
+    target_link_libraries(ouasim_tests_app_metadata PRIVATE Qt6::Test)
+    if(WIN32)
+        add_dependencies(ouasim_tests_app_metadata ${PROJECT_NAME})
+        target_link_libraries(ouasim_tests_app_metadata PRIVATE version)
+        target_compile_definitions(ouasim_tests_app_metadata PRIVATE
+            OUASIM_EXECUTABLE_PATH="$<TARGET_FILE:${PROJECT_NAME}>")
+    endif()
+    add_test(NAME ouasim_tests_app_metadata COMMAND ouasim_tests_app_metadata)
+    ouasim_configure_test_environment(ouasim_tests_app_metadata)
+endfunction()
+
 function(ouasim_configure_test_environment test_name)
     set(environment_modifications
         "PATH=path_list_prepend:${QT_BINARY_DIR}"

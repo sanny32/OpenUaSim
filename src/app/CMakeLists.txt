@@ -10,9 +10,10 @@ ouasim_deploy_quaserver_runtime(${PROJECT_NAME})
 
 if(WIN32)
     enable_language(RC)
-    set_source_files_properties(res/windows/ouasim.rc PROPERTIES
+    configure_file(res/windows/ouasim.rc.in "${CMAKE_CURRENT_BINARY_DIR}/ouasim.rc" @ONLY)
+    set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/ouasim.rc" PROPERTIES
         OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/res/windows/ouasim.ico")
-    target_sources(${PROJECT_NAME} PRIVATE res/windows/ouasim.rc)
+    target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/ouasim.rc")
     set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE ON)
 elseif(APPLE)
     ouasim_configure_target_macos(${PROJECT_NAME})

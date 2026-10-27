@@ -3,6 +3,7 @@ include("${PROJECT_SOURCE_DIR}/cmake/tests.cmake")
 ouasim_configure_shared_test_objects()
 
 ouasim_add_build_script_test()
+ouasim_add_app_metadata_test()
 
 ouasim_add_test(ouasim_tests_formatting         test_formatting.cpp)
 ouasim_add_test(ouasim_tests_tree_model         test_treemodel.cpp)
