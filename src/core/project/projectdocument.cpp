@@ -7,13 +7,13 @@
 ///
 
 #include <QFileInfo>
-#include <QSettings>
 
 #include "defaultproject.h"
 #include "projectdocument.h"
 #include "projectfile.h"
 #include "projectmodels.h"
 #include "server/servercontroller.h"
+#include "settingsstore.h"
 
 namespace {
 
@@ -66,7 +66,7 @@ bool ProjectDocument::open(const QString &fileName, QString *error)
 ///
 bool ProjectDocument::openLast()
 {
-    const QString last = QSettings().value(kLastFileKey).toString();
+    const QString last = SettingsStore().value(kLastFileKey).toString();
     if (!last.isEmpty() && open(last))
         return true;
     newProject();
@@ -190,5 +190,5 @@ void ProjectDocument::markModified()
 ///
 void ProjectDocument::rememberFile(const QString &fileName) const
 {
-    QSettings().setValue(kLastFileKey, QFileInfo(fileName).absoluteFilePath());
+    SettingsStore().setValue(kLastFileKey, QFileInfo(fileName).absoluteFilePath());
 }

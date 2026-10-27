@@ -3,6 +3,8 @@ add_library(ouasim_core STATIC
     formatting.h
     logexport.cpp
     logexport.h
+    settingsstore.cpp
+    settingsstore.h
 
     data/certificateinfo.h
     data/endpointinfo.h
@@ -91,6 +93,8 @@ add_library(ouasim_core STATIC
     server/nodesetloader.h
     server/servercontroller.cpp
     server/servercontroller.h
+    server/serverlaunch.cpp
+    server/serverlaunch.h
     server/sessiontracker.cpp
     server/sessiontracker.h
     server/simserver.cpp

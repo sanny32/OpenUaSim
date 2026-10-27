@@ -51,6 +51,7 @@
 #include "project/projectdocument.h"
 #include "project/projectnodes.h"
 #include "server/servercontroller.h"
+#include "server/serverlaunch.h"
 #include "serversettingsdialog.h"
 #include "statusindicator.h"
 #include "testport.h"
@@ -107,6 +108,9 @@ private slots:
     void serverActionsFollowRunningState();
     void controllerDrivesWindow();
     void startFailureShowsMessage();
+    void serverActionsRememberState();
+    void failedStartRemembersStopped();
+    void restoreActionFollowsSetting();
     void startWarningShowsMessage();
     void addNodeThroughDialog();
     void deleteNodeAfterConfirmation();
@@ -472,6 +476,61 @@ void TestMainWindow::startFailureShowsMessage()
     QVERIFY(box);
     QCOMPARE(messageText(box), QStringLiteral("No endpoint is enabled"));
     box->close();
+}
+
+void TestMainWindow::serverActionsRememberState()
+{
+    ProjectConfig project = TestProject::create();
+    project.endpoints.first().port = TestPort::freePort();
+    ServerController controller;
+    controller.setProject(project);
+    MainWindow window;
+    window.setController(&controller);
+
+    child<QAction>(window, "actionStartServer")->trigger();
+    QVERIFY(controller.isRunning());
+    QVERIFY(ServerLaunch::shouldStart());
+
+    child<QAction>(window, "actionStopServer")->trigger();
+    QVERIFY(!controller.isRunning());
+    QVERIFY(!ServerLaunch::shouldStart());
+
+    child<QAction>(window, "actionStartServer")->trigger();
+    QVERIFY(ServerLaunch::shouldStart());
+}
+
+void TestMainWindow::failedStartRemembersStopped()
+{
+    ServerLaunch::remember(true);
+    ProjectConfig project = TestProject::create();
+    project.endpoints.clear();
+    ServerController controller;
+    controller.setProject(project);
+    MainWindow window;
+    window.setController(&controller);
+
+    child<QAction>(window, "actionStartServer")->trigger();
+    QVERIFY(!ServerLaunch::shouldStart());
+    if (auto *box = window.findChild<MessageDialog *>())
+        box->close();
+}
+
+void TestMainWindow::restoreActionFollowsSetting()
+{
+    ServerLaunch::setRestoreEnabled(true);
+    {
+        MainWindow window;
+        auto *action = child<QAction>(window, "actionRestoreServerState");
+        QVERIFY(action->isCheckable());
+        QVERIFY(action->isChecked());
+        action->trigger();
+        QVERIFY(!ServerLaunch::isRestoreEnabled());
+    }
+    MainWindow window;
+    auto *action = child<QAction>(window, "actionRestoreServerState");
+    QVERIFY(!action->isChecked());
+    action->trigger();
+    QVERIFY(ServerLaunch::isRestoreEnabled());
 }
 
 void TestMainWindow::startWarningShowsMessage()

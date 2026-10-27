@@ -9,10 +9,10 @@
 #include <QCoreApplication>
 #include <QLibraryInfo>
 #include <QLocale>
-#include <QSettings>
 #include <QTranslator>
 
 #include "applanguage.h"
+#include "settingsstore.h"
 
 namespace {
 
@@ -71,7 +71,7 @@ QList<Language> languages()
 ///
 Language saved()
 {
-    const QString stored = QSettings().value(kLanguageKey).toString();
+    const QString stored = SettingsStore().value(kLanguageKey).toString();
     for (Language language : languages()) {
         if (key(language) == stored)
             return language;
@@ -85,7 +85,7 @@ Language saved()
 ///
 void save(Language language)
 {
-    QSettings().setValue(kLanguageKey, key(language));
+    SettingsStore().setValue(kLanguageKey, key(language));
 }
 
 ///

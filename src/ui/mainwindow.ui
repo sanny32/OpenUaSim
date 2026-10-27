@@ -338,6 +338,8 @@
     <addaction name="actionStopServer"/>
     <addaction name="actionRestartServer"/>
     <addaction name="separator"/>
+    <addaction name="actionRestoreServerState"/>
+    <addaction name="separator"/>
     <addaction name="actionAddNode"/>
     <addaction name="actionRenameNode"/>
     <addaction name="actionDuplicateNode"/>
@@ -578,6 +580,14 @@
   <action name="actionUserAccounts">
    <property name="text">
     <string>&amp;User Accounts...</string>
+   </property>
+  </action>
+  <action name="actionRestoreServerState">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Restore Server State at &amp;Launch</string>
    </property>
   </action>
   <action name="actionEventLog">

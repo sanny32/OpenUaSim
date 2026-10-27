@@ -5,7 +5,6 @@
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QImage>
-#include <QSettings>
 #include <QSignalSpy>
 #include <QTest>
 
@@ -13,6 +12,7 @@
 #include "appicons.h"
 #include "apppalette.h"
 #include "apptheme.h"
+#include "settingsstore.h"
 
 namespace {
 
@@ -70,12 +70,12 @@ void TestAppTheme::setModeAppliesAndPersists()
     QCOMPARE(theme.mode(), AppTheme::Mode::Dark);
     QVERIFY(theme.isDark());
     QVERIFY(AppPalette::isDark(QApplication::palette()));
-    QCOMPARE(QSettings().value(QStringLiteral("appearance/theme")).toString(), QStringLiteral("Dark"));
+    QCOMPARE(SettingsStore().value(QStringLiteral("appearance/theme")).toString(), QStringLiteral("Dark"));
 
     theme.setMode(AppTheme::Mode::Light);
     QVERIFY(!theme.isDark());
     QVERIFY(!AppPalette::isDark(QApplication::palette()));
-    QCOMPARE(QSettings().value(QStringLiteral("appearance/theme")).toString(), QStringLiteral("Light"));
+    QCOMPARE(SettingsStore().value(QStringLiteral("appearance/theme")).toString(), QStringLiteral("Light"));
 }
 
 void TestAppTheme::setModeEmitsOnlyOnSchemeChange()
@@ -92,7 +92,7 @@ void TestAppTheme::setModeEmitsOnlyOnSchemeChange()
 
 void TestAppTheme::applySavedModeRestoresPreference()
 {
-    QSettings().setValue(QStringLiteral("appearance/theme"), QStringLiteral("Dark"));
+    SettingsStore().setValue(QStringLiteral("appearance/theme"), QStringLiteral("Dark"));
     AppTheme theme;
     theme.applySavedMode();
     QCOMPARE(theme.mode(), AppTheme::Mode::Dark);
@@ -101,7 +101,7 @@ void TestAppTheme::applySavedModeRestoresPreference()
 
 void TestAppTheme::applySavedModeFallsBackToSystem()
 {
-    QSettings().setValue(QStringLiteral("appearance/theme"), QStringLiteral("Purple"));
+    SettingsStore().setValue(QStringLiteral("appearance/theme"), QStringLiteral("Purple"));
     AppTheme theme;
     theme.applySavedMode();
     QCOMPARE(theme.mode(), AppTheme::Mode::System);

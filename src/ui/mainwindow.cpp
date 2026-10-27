@@ -33,6 +33,7 @@
 #include "project/projectfile.h"
 #include "project/projectnodes.h"
 #include "server/servercontroller.h"
+#include "server/serverlaunch.h"
 #include "serversettingsdialog.h"
 #include "subscriptionsdialog.h"
 #include "ui_mainwindow.h"
@@ -116,8 +117,8 @@ void MainWindow::setSnapshot(const ServerSnapshot &snapshot)
 void MainWindow::setController(ServerController *controller)
 {
     _controller = controller;
-    connect(ui->actionStartServer, &QAction::triggered, controller, &ServerController::start);
-    connect(ui->actionStopServer, &QAction::triggered, controller, &ServerController::stop);
+    connect(ui->actionStartServer, &QAction::triggered, this, &MainWindow::startServer);
+    connect(ui->actionStopServer, &QAction::triggered, this, &MainWindow::stopServer);
     connect(ui->actionRestartServer, &QAction::triggered, controller, &ServerController::restart);
 
     connect(controller, &ServerController::projectChanged, this, &MainWindow::reloadSnapshot);
@@ -336,6 +337,8 @@ void MainWindow::setupActions()
     ui->objectsPage->addActions({ ui->actionDuplicateNode, ui->actionCopyNode, ui->actionPasteNode });
     for (QAction *action : nodeActions.mid(1))
         action->setEnabled(false);
+    ui->actionRestoreServerState->setChecked(ServerLaunch::isRestoreEnabled());
+    connect(ui->actionRestoreServerState, &QAction::toggled, this, &ServerLaunch::setRestoreEnabled);
     connect(ui->actionEventLog, &QAction::toggled, this, &MainWindow::updateEventLogVisibility);
     connect(ui->eventLog, &EventLogWidget::closeRequested, this, &MainWindow::hideEventLog);
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
@@ -579,6 +582,23 @@ void MainWindow::refreshSessions()
         return;
     ui->sessionsPage->setSessions(_controller->sessions());
     refreshStatus();
+}
+
+///
+/// \brief Starts the server and remembers whether it runs, for the next application run.
+///
+void MainWindow::startServer()
+{
+    ServerLaunch::remember(_controller->start());
+}
+
+///
+/// \brief Stops the server and remembers to leave it stopped on the next application run.
+///
+void MainWindow::stopServer()
+{
+    _controller->stop();
+    ServerLaunch::remember(false);
 }
 
 ///

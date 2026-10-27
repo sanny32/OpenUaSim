@@ -5,7 +5,6 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QSet>
-#include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QSysInfo>
@@ -17,6 +16,7 @@
 #include "project/projectfile.h"
 #include "server/listenersettings.h"
 #include "server/servercontroller.h"
+#include "settingsstore.h"
 #include "testport.h"
 #include "testproject.h"
 
@@ -45,7 +45,7 @@ private:
 
 void TestProjectDocument::init()
 {
-    QSettings().clear();
+    SettingsStore().clear();
 }
 
 void TestProjectDocument::newProjectServesDefault()
@@ -252,7 +252,7 @@ void TestProjectDocument::openLastReopensSavedFile()
 
 void TestProjectDocument::openLastFallsBackToDefault()
 {
-    QSettings().setValue(QStringLiteral("project/lastFile"), _directory.filePath(QStringLiteral("gone.ouasim")));
+    SettingsStore().setValue(QStringLiteral("project/lastFile"), _directory.filePath(QStringLiteral("gone.ouasim")));
     ServerController controller;
     ProjectDocument document(&controller);
     QVERIFY(!document.openLast());

@@ -146,6 +146,8 @@ private:
     void reloadSnapshot();
     void appendLog(const LogEntry &entry);
     void refreshSessions();
+    void startServer();
+    void stopServer();
     void showStartFailure(const QString &reason);
     void showStartWarning(const QString &reason);
     void showError(const QString &title, const QString &text);

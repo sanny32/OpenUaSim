@@ -9,13 +9,13 @@
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QLocale>
-#include <QSettings>
 #include <QTest>
 #include <QTranslator>
 
 #include "applanguage.h"
 #include "addnodedialog.h"
 #include "project/projectfile.h"
+#include "settingsstore.h"
 #include "variablepropertieswidget.h"
 #include "statusindicator.h"
 #include "variablesmodel.h"
@@ -112,7 +112,7 @@ void TestAppLanguage::accessValuesStayPortable()
 void TestAppLanguage::cleanup()
 {
     AppLanguage::apply(*QCoreApplication::instance(), AppLanguage::Language::English);
-    QSettings().remove(QStringLiteral("appearance/language"));
+    SettingsStore().remove(QStringLiteral("appearance/language"));
 }
 
 void TestAppLanguage::savesPreference()
@@ -126,7 +126,7 @@ void TestAppLanguage::savesPreference()
 
 void TestAppLanguage::unknownPreferenceFallsBackToSystem()
 {
-    QSettings().setValue(QStringLiteral("appearance/language"), QStringLiteral("klingon"));
+    SettingsStore().setValue(QStringLiteral("appearance/language"), QStringLiteral("klingon"));
     QCOMPARE(AppLanguage::saved(), AppLanguage::Language::System);
 }
 

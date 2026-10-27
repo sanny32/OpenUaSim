@@ -1257,6 +1257,10 @@
         <translation>Ctrl+Shift+F5</translation>
     </message>
     <message>
+        <source>Restore Server State at &amp;Launch</source>
+        <translation>Восстанавливать &amp;состояние сервера при запуске</translation>
+    </message>
+    <message>
         <source>&amp;Add Node...</source>
         <translation>&amp;Добавить узел...</translation>
     </message>

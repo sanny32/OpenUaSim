@@ -22,7 +22,6 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QScopeGuard>
-#include <QSettings>
 #include <QSignalSpy>
 #include <QSpinBox>
 #include <QSplitter>
@@ -63,6 +62,7 @@
 #include "project/defaultproject.h"
 #include "sessionsmodel.h"
 #include "sessionspage.h"
+#include "settingsstore.h"
 #include "statusindicator.h"
 #include "statuspage.h"
 #include "subscriptionsdialog.h"
@@ -2127,7 +2127,7 @@ void TestPages::objectsPageShowsTypeOfVariables()
 
 void TestPages::objectsPageChoosesVisibleColumns()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.remove(QStringLiteral("objects/variableColumns"));
     const auto restore = qScopeGuard([&settings] { settings.remove(QStringLiteral("objects/variableColumns")); });
     ObjectsPage page;

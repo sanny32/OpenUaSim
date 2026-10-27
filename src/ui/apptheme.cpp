@@ -8,11 +8,11 @@
 
 #include <QApplication>
 #include <QMetaEnum>
-#include <QSettings>
 #include <QStyleHints>
 
 #include "apppalette.h"
 #include "apptheme.h"
+#include "settingsstore.h"
 
 namespace {
 
@@ -47,7 +47,7 @@ AppTheme::Mode AppTheme::mode() const
 void AppTheme::setMode(Mode mode)
 {
     _mode = mode;
-    QSettings().setValue(kModeKey, QString::fromLatin1(QMetaEnum::fromType<Mode>().valueToKey(int(mode))));
+    SettingsStore().setValue(kModeKey, QString::fromLatin1(QMetaEnum::fromType<Mode>().valueToKey(int(mode))));
     apply();
 }
 
@@ -56,7 +56,7 @@ void AppTheme::setMode(Mode mode)
 ///
 void AppTheme::applySavedMode()
 {
-    const QByteArray key = QSettings().value(kModeKey).toString().toLatin1();
+    const QByteArray key = SettingsStore().value(kModeKey).toString().toLatin1();
     bool ok = false;
     const int value = QMetaEnum::fromType<Mode>().keyToValue(key.constData(), &ok);
     _mode = ok ? static_cast<Mode>(value) : Mode::System;

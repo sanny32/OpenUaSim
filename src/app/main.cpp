@@ -5,6 +5,7 @@
 #include "mainwindow.h"
 #include "project/projectdocument.h"
 #include "server/servercontroller.h"
+#include "server/serverlaunch.h"
 
 ///
 /// \brief Application entry point.
@@ -25,6 +26,7 @@ int main(int argc, char *argv[])
     window.setController(&controller);
     window.setDocument(&document);
     window.show();
+    ServerLaunch::restore(controller);
 
     return app.exec();
 }

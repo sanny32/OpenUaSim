@@ -8,13 +8,13 @@
 
 #include <QAction>
 #include <QHeaderView>
-#include <QSettings>
 #include <QSet>
 
 #include "appicons.h"
 #include "itemroles.h"
 #include "objectspage.h"
 #include "propertynodewidget.h"
+#include "settingsstore.h"
 #include "treemodel.h"
 #include "ui_objectspage.h"
 #include "variablelisting.h"
@@ -43,7 +43,7 @@ ObjectsPage::ObjectsPage(QWidget *parent)
     ui->setupUi(this);
     ViewSetup::splitByStretch(ui->splitter);
     ui->nestedVariablesButton->setIcon(AppIcons::icon(QStringLiteral("list-tree")));
-    ui->nestedVariablesButton->setChecked(QSettings().value(kNestedVariablesKey, true).toBool());
+    ui->nestedVariablesButton->setChecked(SettingsStore().value(kNestedVariablesKey, true).toBool());
 
     ViewSetup::installDelegate(ui->addressTree);
     ViewSetup::attachSearch(ui->addressTree, _treeModel, ui->searchEdit);
@@ -282,7 +282,7 @@ void ObjectsPage::showContainer(const QString &containerId)
 ///
 void ObjectsPage::setNestedVariablesShown(bool shown)
 {
-    QSettings().setValue(kNestedVariablesKey, shown);
+    SettingsStore().setValue(kNestedVariablesKey, shown);
     const bool currentFromTable = _currentFromTable;
     const QString variableId = ViewSetup::currentId(ui->variablesView);
     showContainer(_containerId);
@@ -383,7 +383,7 @@ void ObjectsPage::configureVariableColumns()
     for (int column = 0; column < VariablesModel::ColCount; ++column) {
         const QString key = QLatin1String(kVariableColumnKeys[column]);
         const bool visible = column == VariablesModel::ColName
-            || QSettings().value(QLatin1String(kVariableColumnsKey) + key, true).toBool();
+            || SettingsStore().value(QLatin1String(kVariableColumnsKey) + key, true).toBool();
         auto *action = new QAction(_variablesModel->headerData(column, Qt::Horizontal).toString(), header);
         action->setObjectName(QStringLiteral("variableColumn_") + key);
         action->setData(column);
@@ -405,5 +405,5 @@ void ObjectsPage::setVariableColumnVisible(bool visible)
     const auto *action = qobject_cast<QAction *>(sender());
     const int column = action->data().toInt();
     ui->variablesView->setColumnHidden(column, !visible);
-    QSettings().setValue(QLatin1String(kVariableColumnsKey) + QLatin1String(kVariableColumnKeys[column]), visible);
+    SettingsStore().setValue(QLatin1String(kVariableColumnsKey) + QLatin1String(kVariableColumnKeys[column]), visible);
 }
