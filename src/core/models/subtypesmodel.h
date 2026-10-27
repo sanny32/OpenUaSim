@@ -3,7 +3,7 @@
 
 ///
 /// \file subtypesmodel.h
-/// \brief Declares the table model of a type's subtypes.
+/// \brief Declares the hierarchical model of a type's subtypes.
 ///
 
 #pragma once
@@ -11,12 +11,12 @@
 #include <QHash>
 
 #include "data/typeinfo.h"
-#include "itemtablemodel.h"
+#include "itemtreemodel.h"
 
 ///
-/// \brief Table of type definitions: name, node id, category and child count.
+/// \brief Hierarchy of type definitions below their supertype: name, node id, category and child count.
 ///
-class SubtypesModel : public ItemTableModel<TypeInfo>
+class SubtypesModel : public ItemTreeModel<TypeInfo>
 {
     Q_OBJECT
 
@@ -34,15 +34,17 @@ public:
 
     ///
     /// \brief Replaces the subtypes and the icons of their names.
-    /// \param subtypes Subtypes in row order.
+    /// \param subtypes Subtypes in row order; nested ones follow their supertype.
+    /// \param supertypes Supertype node ids keyed by the node id of a nested subtype; others are top-level rows.
     /// \param iconNames Icon resource names keyed by type node id; a type without one shows no icon.
     ///
-    void setSubtypes(const QList<TypeInfo> &subtypes, const QHash<QString, QString> &iconNames);
+    void setSubtypes(const QList<TypeInfo> &subtypes, const QHash<QString, QString> &supertypes,
+                     const QHash<QString, QString> &iconNames);
 
     ///
     /// \brief Returns the fixed column count.
-    /// \param parent Parent index; non-root parents have no columns.
-    /// \return Column count, or 0 for non-root parents.
+    /// \param parent Unused; every row has the same columns.
+    /// \return Column count.
     ///
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 

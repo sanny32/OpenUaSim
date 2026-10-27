@@ -62,8 +62,11 @@ private:
     void showTreeNode(const QModelIndex &current);
     void showSubtypesTitle();
     void showSubtype(const QModelIndex &current);
+    void setNestedSubtypesShown(bool shown);
     void showProperties(const QString &typeId);
-    QList<TypeInfo> subtypesOf(const QModelIndex &node) const;
+    QList<TypeInfo> subtypesOf(const QModelIndex &node, QHash<QString, QString> &supertypes) const;
+    void appendSubtypes(const QModelIndex &source, const QString &supertypeId, QList<TypeInfo> &subtypes,
+                        QHash<QString, QString> &supertypes) const;
 
     Ui::TypesPage *ui;
     TreeModel *_treeModel;

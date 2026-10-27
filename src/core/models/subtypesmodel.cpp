@@ -3,7 +3,7 @@
 
 ///
 /// \file subtypesmodel.cpp
-/// \brief Implements the table model of a type's subtypes.
+/// \brief Implements the hierarchical model of a type's subtypes.
 ///
 
 #include "itemroles.h"
@@ -14,29 +14,32 @@
 /// \param parent Owning QObject.
 ///
 SubtypesModel::SubtypesModel(QObject *parent)
-    : ItemTableModel(parent)
+    : ItemTreeModel(parent)
 {
 }
 
 ///
 /// \brief Replaces the subtypes and the icons of their names.
-/// \param subtypes Subtypes in row order.
+/// \param subtypes Subtypes in row order; nested ones follow their supertype.
+/// \param supertypes Supertype node ids keyed by the node id of a nested subtype; others are top-level rows.
 /// \param iconNames Icon resource names keyed by type node id; a type without one shows no icon.
 ///
-void SubtypesModel::setSubtypes(const QList<TypeInfo> &subtypes, const QHash<QString, QString> &iconNames)
+void SubtypesModel::setSubtypes(const QList<TypeInfo> &subtypes, const QHash<QString, QString> &supertypes,
+                                const QHash<QString, QString> &iconNames)
 {
     _iconNames = iconNames;
-    setItems(subtypes);
+    setItems(subtypes, supertypes);
 }
 
 ///
 /// \brief Returns the fixed column count.
-/// \param parent Parent index; non-root parents have no columns.
-/// \return Column count, or 0 for non-root parents.
+/// \param parent Unused; every row has the same columns.
+/// \return Column count.
 ///
 int SubtypesModel::columnCount(const QModelIndex &parent) const
 {
-    return parent.isValid() ? 0 : ColCount;
+    Q_UNUSED(parent)
+    return ColCount;
 }
 
 ///
@@ -49,7 +52,7 @@ QVariant SubtypesModel::data(const QModelIndex &index, int role) const
 {
     if (!hasItem(index))
         return {};
-    const TypeInfo &type = item(index.row());
+    const TypeInfo &type = item(sourceRow(index));
 
     if (role == ItemRoles::Id)
         return type.nodeId;
@@ -79,7 +82,7 @@ QVariant SubtypesModel::data(const QModelIndex &index, int role) const
 QVariant SubtypesModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole)
-        return ItemTableModel::headerData(section, orientation, role);
+        return ItemTreeModel::headerData(section, orientation, role);
     switch (section) {
     case ColName:     return tr("Name");
     case ColNodeId:   return tr("NodeId");

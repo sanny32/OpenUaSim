@@ -10,9 +10,11 @@
 
 #include <QAbstractProxyModel>
 
+#include "appicons.h"
 #include "itemroles.h"
 #include "referencesmodel.h"
 #include "server/typecatalog.h"
+#include "settingsstore.h"
 #include "subtypesmodel.h"
 #include "treemodel.h"
 #include "typespage.h"
@@ -22,6 +24,7 @@
 namespace {
 
 constexpr int kDescriptionLines = 2;
+const char *const kNestedSubtypesKey = "types/nestedSubtypes";
 
 }
 
@@ -41,6 +44,8 @@ TypesPage::TypesPage(QWidget *parent)
     ViewSetup::splitByStretch(ui->splitter);
     ViewSetup::bindCopyButton(ui->copyBrowseNameButton, ui->browseNameEdit);
     ViewSetup::bindCopyButton(ui->copyNodeIdButton, ui->nodeIdEdit);
+    ui->nestedSubtypesButton->setIcon(AppIcons::icon(QStringLiteral("list-tree")));
+    ui->nestedSubtypesButton->setChecked(SettingsStore().value(kNestedSubtypesKey, true).toBool());
 
     ViewSetup::installDelegate(ui->typesTree);
     ViewSetup::attachSearch(ui->typesTree, _treeModel, ui->searchEdit);
@@ -57,6 +62,7 @@ TypesPage::TypesPage(QWidget *parent)
     connect(ui->subtypesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &TypesPage::showSubtype);
     connect(ui->allTypesCheck, &QCheckBox::toggled, this, &TypesPage::showTree);
+    connect(ui->nestedSubtypesButton, &QToolButton::toggled, this, &TypesPage::setNestedSubtypesShown);
 }
 
 ///
@@ -103,11 +109,12 @@ const SubtypesModel *TypesPage::subtypesModel() const
 void TypesPage::showTreeNode(const QModelIndex &current)
 {
     const QString typeId = current.data(ItemRoles::Id).toString();
-    const QList<TypeInfo> subtypes = subtypesOf(current);
+    QHash<QString, QString> supertypes;
+    const QList<TypeInfo> subtypes = subtypesOf(current, supertypes);
     QHash<QString, QString> iconNames;
     for (const TypeInfo &subtype : subtypes)
         iconNames.insert(subtype.nodeId, TypeCatalog::typeIconName(_types, subtype.nodeId));
-    _subtypesModel->setSubtypes(subtypes, iconNames);
+    _subtypesModel->setSubtypes(subtypes, supertypes, iconNames);
     _shownTypeName = typeId.isEmpty() ? current.data().toString() : _types.value(typeId).browseName;
     showSubtypesTitle();
     showProperties(typeId);
@@ -139,12 +146,26 @@ void TypesPage::changeEvent(QEvent *event)
 
 ///
 /// \brief Shows the properties of the selected subtype.
-/// \param current Selected table index.
+/// \param current Selected subtype index.
 ///
 void TypesPage::showSubtype(const QModelIndex &current)
 {
     if (current.isValid())
-        showProperties(_subtypesModel->item(current.row()).nodeId);
+        showProperties(current.data(ItemRoles::Id).toString());
+}
+
+///
+/// \brief Lists the subtypes of the selected type again with or without their own subtypes, keeps the
+///        selected subtype when it is still listed and remembers the choice.
+/// \param shown Whether subtypes of subtypes are listed.
+///
+void TypesPage::setNestedSubtypesShown(bool shown)
+{
+    SettingsStore().setValue(kNestedSubtypesKey, shown);
+    const QString subtypeId = ViewSetup::currentId(ui->subtypesView);
+    showTreeNode(ui->typesTree->currentIndex());
+    if (!subtypeId.isEmpty())
+        ViewSetup::selectById(ui->subtypesView, subtypeId);
 }
 
 ///
@@ -175,22 +196,46 @@ void TypesPage::showProperties(const QString &typeId)
 }
 
 ///
-/// \brief Collects the subtypes a tree node shows, so the table follows the standard types filter
-///        but not the search.
+/// \brief Collects the subtypes a tree node shows, at every depth while nested subtypes are shown, so the
+///        list follows the standard types filter but not the search.
 /// \param node Tree index of a type or of the Types folder; invalid collects none.
-/// \return Subtypes ordered by browse name.
+/// \param supertypes Receives the supertype node ids keyed by the node id of each nested subtype.
+/// \return Subtypes depth-first, siblings ordered by browse name.
 ///
-QList<TypeInfo> TypesPage::subtypesOf(const QModelIndex &node) const
+QList<TypeInfo> TypesPage::subtypesOf(const QModelIndex &node, QHash<QString, QString> &supertypes) const
 {
     const auto *proxy = qobject_cast<const QAbstractProxyModel *>(node.model());
     const QModelIndex source = proxy ? proxy->mapToSource(node) : node;
     QList<TypeInfo> subtypes;
-    if (!source.isValid())
-        return subtypes;
-    for (int row = 0; row < _treeModel->rowCount(source); ++row)
-        subtypes.append(_types.value(_treeModel->index(row, 0, source).data(ItemRoles::Id).toString()));
-    std::sort(subtypes.begin(), subtypes.end(), [](const TypeInfo &a, const TypeInfo &b) {
-        return a.browseName < b.browseName;
-    });
+    if (source.isValid())
+        appendSubtypes(source, {}, subtypes, supertypes);
     return subtypes;
+}
+
+///
+/// \brief Appends the subtypes below a node of the type tree, each followed by its own subtypes while nested
+///        subtypes are shown.
+/// \param source Node of the unfiltered type tree.
+/// \param supertypeId Node id recorded as the supertype of the appended types; empty keeps them top-level.
+/// \param subtypes Receives the subtypes.
+/// \param supertypes Receives the supertype of each nested subtype.
+///
+void TypesPage::appendSubtypes(const QModelIndex &source, const QString &supertypeId, QList<TypeInfo> &subtypes,
+                               QHash<QString, QString> &supertypes) const
+{
+    QList<QModelIndex> children;
+    for (int row = 0; row < _treeModel->rowCount(source); ++row)
+        children.append(_treeModel->index(row, 0, source));
+    std::sort(children.begin(), children.end(), [this](const QModelIndex &a, const QModelIndex &b) {
+        return _types.value(a.data(ItemRoles::Id).toString()).browseName
+             < _types.value(b.data(ItemRoles::Id).toString()).browseName;
+    });
+    for (const QModelIndex &child : std::as_const(children)) {
+        const QString typeId = child.data(ItemRoles::Id).toString();
+        subtypes.append(_types.value(typeId));
+        if (!supertypeId.isEmpty())
+            supertypes.insert(typeId, supertypeId);
+        if (ui->nestedSubtypesButton->isChecked())
+            appendSubtypes(child, typeId, subtypes, supertypes);
+    }
 }

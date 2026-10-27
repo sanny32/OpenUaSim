@@ -242,6 +242,7 @@ private slots:
     void objectsPageValueColumnOnlyGrows();
     void objectsPageReportsCurrentNode();
     void typesPage();
+    void typesPageTogglesNestedSubtypes();
     void typesPageShowsAllStandardTypesOnRequest();
     void typesPageIgnoresSearchInSubtypes();
     void typesPageWidensReferenceTypeColumn();
@@ -798,7 +799,8 @@ void TestPages::typesPage()
     QCOMPARE(text(page, "isAbstractEdit"), QStringLiteral("false"));
     QCOMPARE(child<QTableView>(page, "referencesView")->model()->rowCount(), 4);
 
-    ViewSetup::selectRow(child<QTableView>(page, "subtypesView"), 0);
+    auto *subtypesView = child<QTreeView>(page, "subtypesView");
+    ViewSetup::selectRow(subtypesView, 0);
     QCOMPARE(text(page, "browseNameEdit"), QStringLiteral("MotorType"));
     QCOMPARE(text(page, "baseTypeEdit"), QStringLiteral("DeviceType"));
 
@@ -809,12 +811,21 @@ void TestPages::typesPage()
         QVERIFY2(child<QLineEdit>(page, name)->isReadOnly(), name);
     QVERIFY(child<QPlainTextEdit>(page, "descriptionEdit")->isReadOnly());
     QCOMPARE(page.subtypesModel()->rowCount(), 2);
+    const QModelIndex device = page.subtypesModel()->index(0, SubtypesModel::ColName);
+    QCOMPARE(device.data().toString(), QStringLiteral("DeviceType"));
+    QCOMPARE(page.subtypesModel()->rowCount(device), 3);
+    QVERIFY(ViewSetup::selectById(subtypesView, QStringLiteral("ns=2;i=1002")));
+    QCOMPARE(text(page, "browseNameEdit"), QStringLiteral("PumpType"));
 
     auto *tree = child<QTreeView>(page, "typesTree");
     tree->setCurrentIndex(tree->model()->index(0, 0));
+    const auto subtypeName = [&page](int row) {
+        return page.subtypesModel()->index(row, SubtypesModel::ColName).data().toString();
+    };
     QCOMPARE(page.subtypesModel()->rowCount(), 2);
-    QCOMPARE(page.subtypesModel()->item(0).browseName, QStringLiteral("BaseObjectType"));
-    QCOMPARE(page.subtypesModel()->item(1).browseName, QStringLiteral("BaseVariableType"));
+    QCOMPARE(subtypeName(0), QStringLiteral("BaseObjectType"));
+    QCOMPARE(subtypeName(1), QStringLiteral("BaseVariableType"));
+    QCOMPARE(page.subtypesModel()->items().size(), _snapshot.types.size());
     const auto subtypeIcon = [&page](int row) {
         return page.subtypesModel()->index(row, SubtypesModel::ColName).data(ItemRoles::IconName).toString();
     };
@@ -826,6 +837,31 @@ void TestPages::typesPage()
     tree->setCurrentIndex({});
     QCOMPARE(page.subtypesModel()->rowCount(), 0);
     QCOMPARE(child<QLabel>(page, "subtypesTitle")->text(), QStringLiteral("Subtype Definitions"));
+}
+
+void TestPages::typesPageTogglesNestedSubtypes()
+{
+    TypesPage page;
+    page.setTypes(_snapshot.types);
+    auto *button = child<QToolButton>(page, "nestedSubtypesButton");
+    auto *subtypesView = child<QTreeView>(page, "subtypesView");
+    QVERIFY(!button->icon().isNull());
+    QVERIFY(button->isChecked());
+    QVERIFY(ViewSetup::selectById(child<QTreeView>(page, "typesTree"), QStringLiteral("i=58")));
+    QVERIFY(ViewSetup::selectById(subtypesView, QStringLiteral("ns=2;i=1002")));
+
+    button->click();
+    QCOMPARE(page.subtypesModel()->items().size(), 2);
+    QCOMPARE(page.subtypesModel()->rowCount(page.subtypesModel()->index(0, 0)), 0);
+    QCOMPARE(text(page, "browseNameEdit"), QStringLiteral("BaseObjectType"));
+    QVERIFY(!TypesPage().findChild<QToolButton *>(QStringLiteral("nestedSubtypesButton"))->isChecked());
+
+    QVERIFY(ViewSetup::selectById(subtypesView, QStringLiteral("ns=2;i=1000")));
+    button->click();
+    QCOMPARE(page.subtypesModel()->rowCount(page.subtypesModel()->index(0, 0)), 3);
+    QCOMPARE(ViewSetup::currentId(subtypesView), QStringLiteral("ns=2;i=1000"));
+    QCOMPARE(text(page, "browseNameEdit"), QStringLiteral("DeviceType"));
+    QVERIFY(TypesPage().findChild<QToolButton *>(QStringLiteral("nestedSubtypesButton"))->isChecked());
 }
 
 void TestPages::typesPageShowsAllStandardTypesOnRequest()

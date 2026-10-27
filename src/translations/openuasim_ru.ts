@@ -2626,6 +2626,10 @@
         <translation>Определения подтипов</translation>
     </message>
     <message>
+        <source>Include Subtypes of Subtypes</source>
+        <translation>Включить подтипы подтипов</translation>
+    </message>
+    <message>
         <source>Properties</source>
         <translation>Свойства</translation>
     </message>

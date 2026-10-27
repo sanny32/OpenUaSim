@@ -126,6 +126,7 @@ private slots:
     void appStyleCheckBoxes();
     void appStyleKeepsItemTextNearDecoration();
     void appStyleShowsMnemonicsAfterAlt();
+    void appStylePullsTreeCellsTowardsBranch();
     void addCopyActionCopies();
     void configureTable();
     void fitColumnsWhenFilledFitsOnce();
@@ -791,6 +792,46 @@ void TestWidgets::appStyleKeepsItemTextNearDecoration()
     const QRect rtlDecoration = style.subElementRect(QStyle::SE_ItemViewItemDecoration, &option, &view);
     const QRect rtlText = style.subElementRect(QStyle::SE_ItemViewItemText, &option, &view);
     QCOMPARE(rtlDecoration.left() - (rtlText.right() + 1 - textPadding), 6);
+}
+
+void TestWidgets::appStylePullsTreeCellsTowardsBranch()
+{
+    AppStyle style;
+    QTreeView view;
+    QStyleOptionViewItem option;
+    option.initFrom(&view);
+    option.rect = QRect(22, 0, 200, 27);
+    option.text = QStringLiteral("DeviceType");
+    option.features = QStyleOptionViewItem::HasDisplay | QStyleOptionViewItem::HasDecoration;
+    option.decorationSize = QSize(18, 18);
+    option.icon = AppIcons::icon(QStringLiteral("object-type"));
+    const auto rects = [&style, &option, &view] {
+        return std::pair(style.subElementRect(QStyle::SE_ItemViewItemDecoration, &option, &view),
+                         style.subElementRect(QStyle::SE_ItemViewItemText, &option, &view));
+    };
+
+    option.viewItemPosition = QStyleOptionViewItem::Middle;
+    const auto [middleDecoration, middleText] = rects();
+    for (auto position : { QStyleOptionViewItem::Beginning, QStyleOptionViewItem::OnlyOne }) {
+        option.viewItemPosition = position;
+        const auto [decoration, text] = rects();
+        QCOMPARE(middleDecoration.left() - decoration.left(), 6);
+        QCOMPARE(middleText.left() - text.left(), 6);
+        QCOMPARE(text.right(), middleText.right());
+    }
+
+    option.direction = Qt::RightToLeft;
+    option.viewItemPosition = QStyleOptionViewItem::Middle;
+    const auto [rtlMiddleDecoration, rtlMiddleText] = rects();
+    option.viewItemPosition = QStyleOptionViewItem::Beginning;
+    const auto [rtlDecoration, rtlText] = rects();
+    QCOMPARE(rtlDecoration.left() - rtlMiddleDecoration.left(), 6);
+    QCOMPARE(rtlText.right() - rtlMiddleText.right(), 6);
+
+    view.setRootIsDecorated(false);
+    QCOMPARE(rects().first, rtlMiddleDecoration);
+    QTableView table;
+    QCOMPARE(style.subElementRect(QStyle::SE_ItemViewItemDecoration, &option, &table), rtlMiddleDecoration);
 }
 
 void TestWidgets::addCopyActionCopies()

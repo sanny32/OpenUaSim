@@ -24,6 +24,7 @@
 #include <QStyleOptionToolButton>
 #include <QStyleOptionTab>
 #include <QStyleOptionViewItem>
+#include <QTreeView>
 #include <QWidget>
 
 #include "appcolors.h"
@@ -51,6 +52,7 @@ constexpr int kItemTextMargin = 10;
 constexpr int kItemIconSize = 18;
 constexpr int kItemIconTextGap = 6;
 constexpr int kTreeIndentation = 22;
+constexpr int kBranchItemPull = 6;
 constexpr int kCheckIndicatorSize = 14;
 constexpr int kMessageBoxIconSize = 32;
 
@@ -364,7 +366,8 @@ int AppStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, const 
 }
 
 ///
-/// \brief Pulls item view text towards a decoration on its left.
+/// \brief Pulls item view text towards a decoration on its left, and the first cell of a tree row towards its
+///        branch indicator.
 /// \param element Sub-element to place.
 /// \param option Style option of the control.
 /// \param widget Widget being laid out.
@@ -374,18 +377,61 @@ QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option, c
 {
     QRect rect = QProxyStyle::subElementRect(element, option, widget);
     const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
-    if (element != SE_ItemViewItemText || !item
-        || !item->features.testFlag(QStyleOptionViewItem::HasDecoration)
-        || item->decorationPosition != QStyleOptionViewItem::Left)
+    if (!item)
         return rect;
-    // Fusion pads both the decoration and the text by the item margin, doubling the gap.
-    const QRect decoration = QProxyStyle::subElementRect(SE_ItemViewItemDecoration, option, widget);
-    const int textPadding = pixelMetric(PM_FocusFrameHMargin, option, widget) + 1;
-    if (item->direction == Qt::RightToLeft)
-        rect.setRight(decoration.left() - 1 - kItemIconTextGap + textPadding);
-    else
-        rect.setLeft(decoration.right() + 1 + kItemIconTextGap - textPadding);
+    if (element == SE_ItemViewItemText && item->features.testFlag(QStyleOptionViewItem::HasDecoration)
+        && item->decorationPosition == QStyleOptionViewItem::Left) {
+        // Fusion pads both the decoration and the text by the item margin, doubling the gap.
+        const QRect decoration = QProxyStyle::subElementRect(SE_ItemViewItemDecoration, option, widget);
+        const int textPadding = pixelMetric(PM_FocusFrameHMargin, option, widget) + 1;
+        if (item->direction == Qt::RightToLeft)
+            rect.setRight(decoration.left() - 1 - kItemIconTextGap + textPadding);
+        else
+            rect.setLeft(decoration.right() + 1 + kItemIconTextGap - textPadding);
+    }
+    if (followsBranchIndicator(item, widget))
+        pullTowardsBranch(element, item->direction, rect);
     return rect;
+}
+
+///
+/// \brief Reports whether an item cell sits right after the branch indicators of a tree.
+/// \param item Style option of the cell.
+/// \param widget Widget being laid out.
+/// \return True for the first column of a tree that draws branches for its top-level rows too.
+///
+bool AppStyle::followsBranchIndicator(const QStyleOptionViewItem *item, const QWidget *widget)
+{
+    const auto *tree = qobject_cast<const QTreeView *>(widget);
+    return tree && tree->rootIsDecorated()
+        && (item->viewItemPosition == QStyleOptionViewItem::Beginning
+            || item->viewItemPosition == QStyleOptionViewItem::OnlyOne);
+}
+
+///
+/// \brief Moves the content of a cell towards the branch indicator, which already sets it apart from the
+///        cell edge, keeping the text's far edge in place.
+/// \param element Sub-element being placed.
+/// \param direction Layout direction of the cell.
+/// \param rect Rectangle to adjust.
+///
+void AppStyle::pullTowardsBranch(SubElement element, Qt::LayoutDirection direction, QRect &rect)
+{
+    const int shift = direction == Qt::RightToLeft ? kBranchItemPull : -kBranchItemPull;
+    switch (element) {
+    case SE_ItemViewItemCheckIndicator:
+    case SE_ItemViewItemDecoration:
+        rect.translate(shift, 0);
+        break;
+    case SE_ItemViewItemText:
+        if (direction == Qt::RightToLeft)
+            rect.setRight(rect.right() + kBranchItemPull);
+        else
+            rect.setLeft(rect.left() - kBranchItemPull);
+        break;
+    default:
+        break;
+    }
 }
 
 ///

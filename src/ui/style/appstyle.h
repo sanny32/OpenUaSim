@@ -11,6 +11,7 @@
 #include <QProxyStyle>
 
 class QStyleOptionButton;
+class QStyleOptionViewItem;
 
 ///
 /// \brief Fusion-based proxy style adding the application's look without changing metrics.
@@ -102,7 +103,8 @@ public:
                     const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Pulls item view text towards a decoration on its left.
+    /// \brief Pulls item view text towards a decoration on its left, and the first cell of a tree row towards its
+    ///        branch indicator.
     /// \param element Sub-element to place.
     /// \param option Style option of the control.
     /// \param widget Widget being laid out.
@@ -175,6 +177,8 @@ private:
     void drawTabShape(const QStyleOption *option, QPainter *painter) const;
     void drawToolbarButtonLabel(const QStyleOptionButton *button, QPainter *painter) const;
     void setKeyboardCues(bool on);
+    static bool followsBranchIndicator(const QStyleOptionViewItem *item, const QWidget *widget);
+    static void pullTowardsBranch(SubElement element, Qt::LayoutDirection direction, QRect &rect);
 
     bool _keyboardCues = false;
 };

@@ -488,8 +488,22 @@ void TestTableModels::subtypesModel()
     gauge.nodeId = QStringLiteral("ns=2;i=1002");
     gauge.isAbstract = true;
 
+    TypeInfo servo;
+    servo.browseName = QStringLiteral("ServoType");
+    servo.nodeId = QStringLiteral("ns=2;i=1003");
+
     SubtypesModel model;
-    model.setSubtypes({ motor, gauge }, { { motor.nodeId, QStringLiteral("object") } });
+    QAbstractItemModelTester tester(&model, QAbstractItemModelTester::FailureReportingMode::QtTest);
+    model.setSubtypes({ motor, servo, gauge }, { { servo.nodeId, motor.nodeId } },
+                      { { motor.nodeId, QStringLiteral("object") } });
+    QCOMPARE(model.rowCount(), 2);
+    const QModelIndex motorIndex = model.index(0, SubtypesModel::ColName);
+    QCOMPARE(model.rowCount(motorIndex), 1);
+    QCOMPARE(model.rowCount(model.index(0, SubtypesModel::ColNodeId)), 0);
+    const QModelIndex servoIndex = model.index(0, SubtypesModel::ColName, motorIndex);
+    QCOMPARE(servoIndex.data().toString(), QStringLiteral("ServoType"));
+    QCOMPARE(model.parent(servoIndex), motorIndex);
+    QCOMPARE(model.indexForRow(model.rowOf(servo.nodeId)), servoIndex);
     QCOMPARE(model.columnCount(), int(SubtypesModel::ColCount));
     QCOMPARE(header(model, SubtypesModel::ColChildren), QStringLiteral("Children"));
     QCOMPARE(model.index(0, SubtypesModel::ColName).data().toString(), QStringLiteral("MotorType"));

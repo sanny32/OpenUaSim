@@ -26,6 +26,7 @@ add_library(ouasim_core STATIC
     models/endpointsmodel.h
     models/itemroles.h
     models/itemtablemodel.h
+    models/itemtreemodel.h
     models/logfilterproxymodel.cpp
     models/logfilterproxymodel.h
     models/logmodel.cpp
