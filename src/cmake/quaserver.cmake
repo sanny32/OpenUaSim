@@ -9,6 +9,10 @@ set(QUASERVER_ENCRYPTION ${OUASIM_WITH_ENCRYPTION} CACHE BOOL "" FORCE)
 # Limit and off-normal alarms on variables; QUaServer turns on events and the full namespace zero with them.
 set(QUASERVER_ALARMS_CONDITIONS ON CACHE BOOL "" FORCE)
 set(QUASERVER_HISTORIZING ON CACHE BOOL "" FORCE)
+# open62541 enables LTO when this is undefined; with GCC every test link would then recompile the whole stack.
+if(OUASIM_BUILD_TESTS)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+endif()
 
 FetchContent_Declare(QUaServer
     GIT_REPOSITORY "https://github.com/sanny32/QUaServer.git"
