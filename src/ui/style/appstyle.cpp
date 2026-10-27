@@ -42,6 +42,7 @@ constexpr int kToolbarIconGap = 10;
 // QPushButton::sizeHint() reserves this much between the icon and the text.
 constexpr int kPushButtonIconSpacing = 4;
 constexpr int kInputHeight = 30;
+constexpr int kButtonExtraWidth = 12;
 constexpr int kHeaderHeight = 29;
 constexpr int kHeaderMargin = 6;
 constexpr int kItemTextMargin = 10;
@@ -270,7 +271,7 @@ void AppStyle::drawComplexControl(ComplexControl control, const QStyleOptionComp
 }
 
 ///
-/// \brief Raises tabs, input fields, header sections and toolbar controls to the design heights.
+/// \brief Raises tabs, input fields, buttons, header sections and toolbar controls to the design heights.
 /// \param type Contents type being measured.
 /// \param option Style option of the control.
 /// \param contentsSize Size requested by the contents.
@@ -292,8 +293,11 @@ QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
                          qMax(size.height(), kToolbarHeight));
         break;
     case CT_PushButton:
-        if (!isToolbarWidget(widget))
+        if (!isToolbarWidget(widget)) {
+            size.setHeight(qMax(size.height(), kInputHeight));
+            size.rwidth() += kButtonExtraWidth;
             break;
+        }
         size.setHeight(qMax(size.height(), kToolbarHeight));
         if (const QStyleOptionButton *button = labelledToolbarButton(option, widget)) {
             if (button->features.testFlag(QStyleOptionButton::Flat)) {

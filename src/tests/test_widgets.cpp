@@ -522,7 +522,12 @@ void TestWidgets::appStyleEnlargesTabsAndToolbar()
     QStyleOptionButton button;
     const QSize plainSize = style.sizeFromContents(QStyle::CT_PushButton, &button, contents, &plain);
     const QSize toolbarSize = style.sizeFromContents(QStyle::CT_PushButton, &button, contents, &toolbar);
-    QCOMPARE(plainSize, fusion->sizeFromContents(QStyle::CT_PushButton, &button, contents, &plain));
+    const QSize fusionButton = fusion->sizeFromContents(QStyle::CT_PushButton, &button, contents, &plain);
+    QCOMPARE(plainSize.height(), qMax(fusionButton.height(), 30));
+    QVERIFY(plainSize.width() > fusionButton.width());
+    QLineEdit edit;
+    QStyleOptionFrame frame;
+    QCOMPARE(plainSize.height(), style.sizeFromContents(QStyle::CT_LineEdit, &frame, contents, &edit).height());
     QVERIFY(toolbarSize.height() > plainSize.height());
     QVERIFY(toolbarSize.width() > plainSize.width());
     delete fusion;
