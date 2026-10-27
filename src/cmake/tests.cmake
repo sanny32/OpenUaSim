@@ -91,3 +91,14 @@ function(ouasim_add_ui_test test_name source_file)
     ouasim_add_test_executable(${test_name} ${source_file} ouasim_ui)
     target_sources(${test_name} PRIVATE "${PROJECT_SOURCE_DIR}/app/resources.qrc")
 endfunction()
+
+function(ouasim_add_app_icon_test)
+    ouasim_add_ui_test(ouasim_tests_app_icon test_appicon.cpp)
+    target_compile_definitions(ouasim_tests_app_icon PRIVATE
+        OUASIM_MAC_ICON_PATH="${PROJECT_SOURCE_DIR}/app/res/macos/ouasim.icon/Assets/ouasim-mac.png")
+    if(WIN32)
+        add_dependencies(ouasim_tests_app_icon ${PROJECT_NAME})
+        target_compile_definitions(ouasim_tests_app_icon PRIVATE
+            OUASIM_EXECUTABLE_PATH="$<TARGET_FILE:${PROJECT_NAME}>")
+    endif()
+endfunction()

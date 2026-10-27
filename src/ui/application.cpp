@@ -23,7 +23,11 @@ Application::Application(int &argc, char **argv)
     setOrganizationName(QStringLiteral(APP_ORGANIZATION_NAME));
     setApplicationName(QStringLiteral(APP_NAME));
     setApplicationVersion(QStringLiteral(APP_VERSION));
+#ifdef Q_OS_WIN
+    setWindowIcon(QIcon(QStringLiteral(":/icons/app.ico")));
+#else
     setWindowIcon(QIcon(QStringLiteral(":/icons/app.svg")));
+#endif
     AppLanguage::apply(*this, AppLanguage::saved());
 
     // AppStyle draws on top of Fusion, which renders entirely from the palette: that is what

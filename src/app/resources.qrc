@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file alias="icons/add-circle.svg">res/icons/add-circle.svg</file>
         <file alias="icons/app.svg">res/icons/app.svg</file>
+        <file alias="icons/app.ico">res/windows/ouasim.ico</file>
         <file alias="icons/certificate.svg">res/icons/certificate.svg</file>
         <file alias="icons/certificates.svg">res/icons/certificates.svg</file>
         <file alias="icons/clock.svg">res/icons/clock.svg</file>
