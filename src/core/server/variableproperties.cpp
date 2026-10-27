@@ -16,6 +16,7 @@
 #include "importednodes.h"
 #include "modelvariables.h"
 #include "simulation/valuecast.h"
+#include "typecatalog.h"
 #include "variableproperties.h"
 
 namespace {
@@ -371,13 +372,14 @@ VariableInfo describeChild(const QUaServer &server, const QUaBaseVariable &node)
     VariableInfo info;
     info.nodeId = node.nodeId();
     info.displayName = node.browseName().name();
-    info.icon = qobject_cast<const QUaProperty *>(&node) ? QStringLiteral("property") : QStringLiteral("signal");
+    info.icon = qobject_cast<const QUaProperty *>(&node) ? QStringLiteral("property") : QString();
     info.dataType = dataType(node);
     info.value = ValueCast::isSupported(info.dataType) ? node.value() : QVariant(toText(node.value(), info.dataType));
     info.access = ModelVariables::accessText(node);
     info.quality = AddressSpace::qualityOf(node);
     info.configuredQuality = info.quality;
     info.typeName = node.typeDefinitionBrowseName().name();
+    info.typeIcon = TypeCatalog::variableTypeIcon(server, node.typeDefinitionNodeId().toXmlString());
     if (const auto *variable = qobject_cast<const QUaBaseDataVariable *>(&node))
         info.properties = describe(server, *variable);
     info.property = qobject_cast<const QUaProperty *>(&node) != nullptr;

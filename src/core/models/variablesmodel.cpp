@@ -51,7 +51,8 @@ QVariant VariablesModel::data(const QModelIndex &index, int role) const
             const QString location = _locations.value(variable.nodeId);
             return location.isEmpty() ? variable.displayName : location + QLatin1Char('/') + variable.displayName;
         }
-        if (role == ItemRoles::IconName) return variable.icon;
+        if (role == ItemRoles::IconName)
+            return variable.icon.isEmpty() ? variable.typeIcon : variable.icon;
         break;
     case ColValue:
         if (role == Qt::DisplayRole) return Formatting::value(variable.value);

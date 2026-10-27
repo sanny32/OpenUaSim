@@ -515,6 +515,17 @@ QString AddressSpace::typeName(const QString &nodeId) const
 }
 
 ///
+/// \brief Returns the UI icon of a variable's type without changing the served node.
+/// \param nodeId Variable node id.
+/// \return Type icon resource name; the base variable type icon for an unknown variable.
+///
+QString AddressSpace::typeIcon(const QString &nodeId) const
+{
+    const QUaBaseDataVariable *variable = _variables.value(nodeId);
+    return TypeCatalog::variableTypeIcon(*_server, variable ? variable->typeDefinitionNodeId().toXmlString() : QString());
+}
+
+///
 /// \brief Returns the properties of a built or attached variable.
 /// \param nodeId Variable node id.
 /// \return Properties as VariableProperties::describe() lists them; none for an unknown variable.

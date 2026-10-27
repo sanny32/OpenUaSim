@@ -41,7 +41,7 @@ struct NodeDefinition
     QString browseName;
     /// \brief String form of the requested node identifier; empty lets the server assign one.
     QString nodeId;
-    /// \brief Resource name of the icon shown in the address space tree.
+    /// \brief UI icon resource name; empty variables use their type's icon.
     QString icon;
     /// \brief ObjectType or VariableType to instantiate, its namespace named by URI as PortableNodeId writes it,
     ///        e.g. "nsu=urn:machines;i=1001" or "i=2368"; empty for FolderType, BaseObjectType or

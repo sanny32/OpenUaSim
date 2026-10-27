@@ -738,6 +738,13 @@ void TestPages::objectsPageUpdatesVariableIcon()
                                               Qt::MatchExactly | Qt::MatchRecursive);
     QCOMPARE(found.size(), 1);
     QCOMPARE(found.first().data(ItemRoles::IconName).toString(), icon);
+    speed.icon.clear();
+    speed.typeIcon = QStringLiteral("analog-type");
+    page.updateVariable(speed);
+    QVERIFY(child<QComboBox>(page, "iconCombo")->currentData().toString().isEmpty());
+    QCOMPARE(page.variablesModel()->index(0, VariablesModel::ColName).data(ItemRoles::IconName).toString(),
+             speed.typeIcon);
+    QCOMPARE(found.first().data(ItemRoles::IconName).toString(), speed.typeIcon);
 }
 
 void TestPages::objectsPageKeepsUnlistedIcon()

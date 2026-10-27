@@ -432,6 +432,12 @@ void TestTableModels::variablesModel()
 
     QCOMPARE(model.rowOf(QStringLiteral("ns=2;s=Motor.Running")), 1);
     QCOMPARE(model.rowOf(QStringLiteral("missing")), -1);
+    VariableInfo plain = variable(QStringLiteral("plain"), 0);
+    plain.icon.clear();
+    plain.typeIcon = QStringLiteral("analog-type");
+    model.setItems({ plain });
+    QCOMPARE(model.index(0, VariablesModel::ColName).data(ItemRoles::IconName).toString(),
+             QStringLiteral("analog-type"));
 }
 
 void TestTableModels::variablesModelQuality_data()

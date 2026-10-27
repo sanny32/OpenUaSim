@@ -49,7 +49,7 @@ QString iconOf(const NodeDefinition &node)
     if (!node.icon.isEmpty())
         return node.icon;
     switch (node.kind) {
-    case NodeDefinition::Kind::Variable: return QStringLiteral("signal");
+    case NodeDefinition::Kind::Variable: return {};
     case NodeDefinition::Kind::Method:   return QStringLiteral("play");
     default:                             return QStringLiteral("folder");
     }
@@ -146,6 +146,8 @@ void addVariableChildren(QUaServer &server, QList<TreeNode> &nodes, QHash<QStrin
         const auto *variable =
             node.kind == TreeNode::Kind::Variable ? server.nodeById<QUaBaseDataVariable>(QUaNodeId(node.id)) : nullptr;
         if (variable) {
+            if (node.icon.isEmpty())
+                node.icon = TypeCatalog::variableTypeIcon(server, variable->typeDefinitionNodeId().toXmlString());
             const QList<QUaNode *> children = variable->browseChildren();
             for (const QUaNode *child : children) {
                 const auto *served = qobject_cast<const QUaBaseVariable *>(child);
@@ -217,7 +219,7 @@ VariableInfo variableInfo(const NodeDefinition &node, const AddressSpace &addres
     VariableInfo info;
     info.nodeId = node.nodeId;
     info.displayName = node.browseName;
-    info.icon = iconOf(node);
+    info.icon = node.icon;
     info.value = built ? addressSpace.value(node.nodeId) : node.initialValue;
     info.dataType = node.dataType;
     info.arrayLength = node.arrayLength;
@@ -230,6 +232,7 @@ VariableInfo variableInfo(const NodeDefinition &node, const AddressSpace &addres
     info.alarmState = addressSpace.alarmState(node.nodeId);
     info.simulation = node.simulation;
     info.typeName = addressSpace.typeName(node.nodeId);
+    info.typeIcon = addressSpace.typeIcon(node.nodeId);
     info.properties = addressSpace.properties(node.nodeId);
     return info;
 }

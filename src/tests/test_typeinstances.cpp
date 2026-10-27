@@ -415,10 +415,15 @@ void TestTypeInstances::variablesShowTheirTypeAndProperties()
     QCOMPARE(servedRange->dataTypeNodeId(), QStringLiteral("ns=0;i=884"));
 
     const VariableInfo level = variable(controller, kTank, levelId);
+    QVERIFY(level.icon.isEmpty());
+    QCOMPARE(level.typeIcon, TypeCatalog::typeIconName(snapshot.types, QStringLiteral("i=2368")));
+    QCOMPARE(findTreeNode(snapshot.addressSpace, levelId)->icon, level.typeIcon);
     QCOMPARE(level.typeName, QStringLiteral("AnalogItemType"));
     QCOMPARE(findProperty(level, QStringLiteral("EURange")).dataType, QStringLiteral("Range"));
     QVERIFY(findProperty(level, QStringLiteral("EngineeringUnits")).editable);
     const VariableInfo plainInfo = variable(controller, kTank, plainId);
+    QCOMPARE(plainInfo.typeIcon, TypeCatalog::typeIconName(snapshot.types, QStringLiteral("i=63")));
+    QCOMPARE(findTreeNode(snapshot.addressSpace, plainId)->icon, plainInfo.typeIcon);
     QCOMPARE(plainInfo.typeName, QStringLiteral("BaseDataVariableType"));
     QVERIFY(plainInfo.properties.isEmpty());
     QCOMPARE(variable(controller, kPump, kSpeed).typeName, QStringLiteral("BaseDataVariableType"));
@@ -486,6 +491,10 @@ void TestTypeInstances::modelVariableKeepsEditedProperties()
     controller.setProject(pumpProject());
     VariableInfo info = variable(controller, station, pressure);
     QCOMPARE(info.typeName, QStringLiteral("AnalogItemType"));
+    QVERIFY(info.icon.isEmpty());
+    QCOMPARE(info.typeIcon, QStringLiteral("analog-type"));
+    const ServerSnapshot iconsSnapshot = controller.snapshot();
+    QCOMPARE(findTreeNode(iconsSnapshot.addressSpace, pressure)->icon, info.typeIcon);
     QCOMPARE(info.properties.size(), 5);
     QCOMPARE(findProperty(info, QStringLiteral("EURange")).value, QStringLiteral("0; 10"));
     QVERIFY(findProperty(info, QStringLiteral("EURange")).editable);

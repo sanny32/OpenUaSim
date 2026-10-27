@@ -132,7 +132,7 @@ void ObjectsPage::updateVariable(const VariableInfo &variable)
                 stored = variable;
         }
     }
-    _treeModel->setIcon(variable.nodeId, variable.icon);
+    _treeModel->setIcon(variable.nodeId, variable.icon.isEmpty() ? variable.typeIcon : variable.icon);
     const int row = _variablesModel->rowOf(variable.nodeId);
     if (row < 0)
         return;

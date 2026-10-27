@@ -149,7 +149,7 @@ void TestAppTheme::paletteIconsFollowTheTheme_data()
     QTest::newRow("reference-type") << QStringLiteral("reference-type");
     QTest::newRow("data-type") << QStringLiteral("data-type");
     for (const AppIcons::NamedIcon &icon : AppIcons::variableIcons()) {
-        if (!icon.name.startsWith(QStringLiteral("status-")))
+        if (!icon.name.isEmpty() && !icon.name.startsWith(QStringLiteral("status-")))
             QTest::newRow(qPrintable(icon.name)) << icon.name;
     }
 }

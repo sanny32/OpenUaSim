@@ -1261,12 +1261,18 @@ void TestWidgets::fillVariableIconComboListsResolvableIcons()
     QComboBox combo;
     ViewSetup::fillVariableIconCombo(&combo);
     QCOMPARE(combo.count(), AppIcons::variableIcons().size());
+    QCOMPARE(combo.currentData().toString(), QString());
+    QCOMPARE(combo.currentText(), QStringLiteral("None"));
+    QVERIFY(combo.itemIcon(combo.currentIndex()).isNull());
+    const QImage defaultIcon = AppIcons::icon(QStringLiteral("variable-type")).pixmap(24, 24).toImage();
+    QVERIFY(!defaultIcon.isNull());
+    QVERIFY(defaultIcon != AppIcons::icon(QStringLiteral("signal")).pixmap(24, 24).toImage());
     for (const QString &name : { QStringLiteral("signal"), QStringLiteral("image"),
                                  QStringLiteral("chart"), QStringLiteral("network"),
                                  QStringLiteral("database") })
         QVERIFY2(combo.findData(name) >= 0, qPrintable(name));
     for (int index = 0; index < combo.count(); ++index) {
-        QVERIFY2(!combo.itemIcon(index).isNull(), qPrintable(combo.itemData(index).toString()));
+        QCOMPARE(combo.itemIcon(index).isNull(), combo.itemData(index).toString().isEmpty());
         QVERIFY(!combo.itemText(index).isEmpty());
     }
 }
@@ -1508,10 +1514,13 @@ void TestWidgets::variablePropertiesEditsVariable()
     QSignalSpy applied(&editor, &VariablePropertiesWidget::applyRequested);
     QSignalSpy alarm(&editor, &VariablePropertiesWidget::alarmEditRequested);
     named<QLineEdit>(editor, "displayNameEdit")->setText(QStringLiteral(" Rpm "));
+    auto *icons = named<QComboBox>(editor, "iconCombo");
+    icons->setCurrentIndex(icons->findData(QString()));
     named<QPushButton>(editor, "applyButton")->click();
     QCOMPARE(applied.count(), 1);
     const VariableInfo edited = applied.first().first().value<VariableInfo>();
     QCOMPARE(edited.displayName, QStringLiteral("Rpm"));
+    QVERIFY(edited.icon.isEmpty());
     QVERIFY2(!edited.initialValue.isValid(), "an untouched initial value is kept");
     named<QPushButton>(editor, "alarmButton")->click();
     QCOMPARE(alarm.count(), 1);

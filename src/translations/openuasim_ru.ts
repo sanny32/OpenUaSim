@@ -288,6 +288,10 @@
 <context>
     <name>AppIcons</name>
     <message>
+        <source>None</source>
+        <translation>Нет</translation>
+    </message>
+    <message>
         <source>Signal</source>
         <translation>Сигнал</translation>
     </message>

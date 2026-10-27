@@ -89,7 +89,6 @@ ModelVariable describe(const QUaServer &server, const QUaBaseDataVariable &varia
     definition.kind = NodeDefinition::Kind::Variable;
     definition.nodeId = identifierOf(nodeId);
     definition.browseName = variable.browseName().name();
-    definition.icon = QStringLiteral("signal");
     definition.dataType = valueDataType(server, variable);
     const QVariant value = variable.value();
     definition.arrayLength = ValueCast::isArray(value) ? int(value.toList().size()) : 0;

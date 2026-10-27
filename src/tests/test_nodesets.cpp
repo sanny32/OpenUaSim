@@ -153,6 +153,7 @@ void TestNodeSets::writesVariableAttributes()
     fixed.dataType = QStringLiteral("Int16");
     fixed.access = QStringLiteral("Read");
     fixed.initialValue = 7;
+    fixed.icon = QStringLiteral("thermometer");
     ProjectConfig project;
     project.nodes = { fixed };
     ServerController controller;
@@ -171,6 +172,10 @@ void TestNodeSets::writesVariableAttributes()
     QVERIFY(loaded);
     QVERIFY(loaded->readAccess());
     QVERIFY(!loaded->writeAccess());
+    project.nodes.first().icon.clear();
+    controller.setProject(project);
+    QCOMPARE(controller.snapshot().addressSpace.first().children.first().icon, QStringLiteral("variable-type"));
+    QCOMPARE(QString::fromUtf8(exportProject(controller, fileName)), document);
 }
 
 void TestNodeSets::exportLoadsIntoAnotherServer()
@@ -309,6 +314,8 @@ void TestNodeSets::snapshotListsImportedNodes()
     const QList<VariableInfo> variables = snapshot.variables.value(mixer->id);
     QCOMPARE(variables.size(), 1);
     QCOMPARE(variables.first().displayName, QStringLiteral("Speed"));
+    QVERIFY(variables.first().icon.isEmpty());
+    QCOMPARE(variables.first().typeIcon, QStringLiteral("variable-type"));
     QCOMPARE(variables.first().dataType, QStringLiteral("Double"));
     QCOMPARE(variables.first().value.toDouble(), 42.5);
     QCOMPARE(variables.first().access, QStringLiteral("Read/Write"));
@@ -514,6 +521,13 @@ void TestNodeSets::updateModelVariableKeepsSettings()
     QCOMPARE(shown.access, QStringLiteral("Read/Write"));
     QCOMPARE(shown.simulation.function, SimulationFunction::Sine);
     QVERIFY(shown.fromModel);
+    level.icon.clear();
+    QVERIFY2(controller.updateVariable(level, &error), qPrintable(error));
+    QVERIFY(controller.project().modelVariables.first().variable.icon.isEmpty());
+    QVERIFY(modelVariable(controller, QStringLiteral("Level")).icon.isEmpty());
+    const ProjectConfig project = controller.project();
+    controller.setProject(project);
+    QVERIFY(modelVariable(controller, QStringLiteral("Level")).icon.isEmpty());
 }
 
 void TestNodeSets::updateModelVariableReplacesSettings()

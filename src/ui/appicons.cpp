@@ -294,6 +294,7 @@ QList<NamedIcon> variableIcons()
         return NamedIcon{ QString::fromLatin1(name), QCoreApplication::translate("AppIcons", label) };
     };
     return {
+        named("", QT_TRANSLATE_NOOP("AppIcons", "None")),
         named("signal", QT_TRANSLATE_NOOP("AppIcons", "Signal")),
         named("gauge", QT_TRANSLATE_NOOP("AppIcons", "Gauge")),
         named("thermometer", QT_TRANSLATE_NOOP("AppIcons", "Temperature")),

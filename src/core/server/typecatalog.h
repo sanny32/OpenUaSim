@@ -37,6 +37,14 @@ QString iconName(const QHash<QString, TypeInfo> &types, const QString &typeId);
 QString typeIconName(const QHash<QString, TypeInfo> &types, const QString &typeId);
 
 ///
+/// \brief Resolves a variable type's UI icon through its loaded supertype chain.
+/// \param server Server holding the type hierarchy.
+/// \param typeId Server node id of the variable type.
+/// \return Icon resource name, falling back to the base variable type icon.
+///
+QString variableTypeIcon(const QUaServer &server, const QString &typeId);
+
+///
 /// \brief Reads the object, variable, data and reference types of a server.
 /// \param server Server holding the standard types and the types of imported models.
 /// \return Types keyed by node id, e.g. "i=61" or "ns=2;i=1000", with their supertype, category, variable value

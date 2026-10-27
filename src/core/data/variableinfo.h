@@ -190,8 +190,10 @@ struct VariableInfo
     QString nodeId;
     /// \brief Display name.
     QString displayName;
-    /// \brief Resource name of the icon.
+    /// \brief Resource name of the custom icon; empty selects the variable type's UI icon.
     QString icon;
+    /// \brief UI-only icon of the variable type, separate from the saved custom icon.
+    QString typeIcon = QStringLiteral("variable-type");
     /// \brief Current value.
     QVariant value;
     /// \brief Built-in data type name; of the elements for an array.

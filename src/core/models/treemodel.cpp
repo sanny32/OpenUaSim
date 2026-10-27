@@ -198,6 +198,8 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
     case Qt::DisplayRole:
         return node.text;
     case ItemRoles::IconName:
+        if (node.icon.isEmpty() && node.kind == TreeNode::Kind::Variable)
+            return QStringLiteral("variable-type");
         return node.icon.isEmpty() ? QVariant() : QVariant(node.icon);
     case ItemRoles::Id:
         return node.id;

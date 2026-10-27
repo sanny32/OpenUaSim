@@ -167,6 +167,10 @@ void TestTreeModel::setIconChangesOneNode()
 
     QVERIFY(!model.setIcon(QStringLiteral("missing"), QStringLiteral("zap")));
     QCOMPARE(changed.count(), 1);
+    QVERIFY(model.setIcon(QStringLiteral("motor.speed"), QStringLiteral("zap")));
+    QVERIFY(model.setIcon(QStringLiteral("motor.speed"), QString()));
+    QCOMPARE(model.findById(QStringLiteral("motor.speed")).data(ItemRoles::IconName).toString(),
+             QStringLiteral("variable-type"));
 }
 
 void TestTreeModel::setNodesResetsModel()

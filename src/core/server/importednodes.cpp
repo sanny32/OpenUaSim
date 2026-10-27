@@ -12,6 +12,7 @@
 #include "importednodes.h"
 #include "modelvariables.h"
 #include "snapshotbuilder.h"
+#include "typecatalog.h"
 #include "variableproperties.h"
 
 namespace {
@@ -189,6 +190,7 @@ VariableInfo variableInfo(const QUaServer &server, const QUaBaseDataVariable &va
     }
     info.dataTypeName = ModelVariables::dataTypeName(server, variable);
     info.typeName = variable.typeDefinitionBrowseName().name();
+    info.typeIcon = TypeCatalog::variableTypeIcon(server, variable.typeDefinitionNodeId().toXmlString());
     info.properties = VariableProperties::describe(server, variable);
     info.fromModel = true;
     info.readOnly = !ModelVariables::isEditable(server, variable);

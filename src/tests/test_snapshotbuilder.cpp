@@ -37,6 +37,7 @@ private slots:
     void treeHasStandardRootsAndProjectNodes();
     void treeSelectsFirstVariable();
     void treeOfEmptyProject();
+    void variableWithoutCustomIconUsesDefault();
     void variablesCarryLiveValues();
     void unbuiltVariablesAreBad();
     void stoppedServerStatus();
@@ -102,6 +103,20 @@ void TestSnapshotBuilder::treeOfEmptyProject()
     const QList<TreeNode> tree = SnapshotBuilder::addressSpaceTree({});
     QCOMPARE(tree.size(), 3);
     QVERIFY(tree[0].children.isEmpty());
+}
+
+void TestSnapshotBuilder::variableWithoutCustomIconUsesDefault()
+{
+    NodeDefinition variable;
+    variable.kind = NodeDefinition::Kind::Variable;
+    variable.nodeId = QStringLiteral("ns=1;s=Plain");
+    variable.browseName = QStringLiteral("Plain");
+    const QList<TreeNode> tree = SnapshotBuilder::addressSpaceTree({ variable });
+    const TreeNode *leaf = findById(tree, variable.nodeId);
+    QVERIFY(leaf);
+    QVERIFY(leaf->icon.isEmpty());
+    QVERIFY(SnapshotBuilder::variableInfo(variable, *_space).icon.isEmpty());
+    QCOMPARE(SnapshotBuilder::variableInfo(variable, *_space).typeIcon, QStringLiteral("variable-type"));
 }
 
 void TestSnapshotBuilder::variablesCarryLiveValues()

@@ -304,6 +304,33 @@ QString typeIconName(const QHash<QString, TypeInfo> &types, const QString &typeI
 }
 
 ///
+/// \brief Resolves a variable type's UI icon through its loaded supertype chain.
+/// \param server Server holding the type hierarchy.
+/// \param typeId Server node id of the variable type.
+/// \return Icon resource name, falling back to the base variable type icon.
+///
+QString variableTypeIcon(const QUaServer &server, const QString &typeId)
+{
+    static const QUaNodeId hasSubtype(0, quint32(UA_NS0ID_HASSUBTYPE));
+    const QString start = typeId.isEmpty() ? kBaseDataVariableType : idText(QUaNodeId(typeId));
+    QHash<QString, TypeInfo> hierarchy;
+    for (QString id = start; !id.isEmpty() && !hierarchy.contains(id);) {
+        TypeInfo info;
+        info.category = QStringLiteral("VariableType");
+        const QList<QUaNodeReference> references = server.references(QUaNodeId(id));
+        for (const QUaNodeReference &reference : references) {
+            if (!reference.isForward && reference.referenceTypeId == hasSubtype) {
+                info.baseTypeId = idText(reference.targetNodeId);
+                break;
+            }
+        }
+        hierarchy.insert(id, info);
+        id = info.baseTypeId;
+    }
+    return typeIconName(hierarchy, start);
+}
+
+///
 /// \brief Reads the object, variable, data and reference types of a server.
 /// \param server Server holding the standard types and the types of imported models.
 /// \return Types keyed by node id, e.g. "i=61" or "ns=2;i=1000", with their supertype, category, variable value
