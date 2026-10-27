@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QIcon>
 #include <QWidget>
 
 #include "data/statuskind.h"
@@ -52,6 +53,18 @@ public:
     void setColoredText(bool colored);
 
     ///
+    /// \brief Sets an icon drawn instead of the dot.
+    /// \param icon Icon; a null icon brings the dot back.
+    ///
+    void setIcon(const QIcon &icon);
+
+    ///
+    /// \brief Returns the icon drawn instead of the dot.
+    /// \return Icon; null when the dot is drawn.
+    ///
+    QIcon icon() const;
+
+    ///
     /// \brief Returns the size fitting the dot and the label.
     /// \return Preferred size.
     ///
@@ -74,5 +87,6 @@ private:
 
     StatusKind _status = StatusKind::None;
     QString _text;
+    QIcon _icon;
     bool _coloredText = false;
 };

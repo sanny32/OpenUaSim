@@ -361,10 +361,12 @@ void TestSimServer::registersAtDiscoveryServer()
     QTRY_VERIFY(containsMessage(log, registered));
     QCOMPARE(levelOf(log, registered), LogEntry::Level::Info);
     QCOMPARE(lds.registeredServers(), QStringList { config.server.applicationUri });
+    QCOMPARE(server.discoveryStatus(), QStringLiteral("Good"));
 
     server.stop();
     QVERIFY(containsMessage(log, QStringLiteral("Unregistered from the discovery server %1").arg(lds.url())));
     QVERIFY(lds.registeredServers().isEmpty());
+    QVERIFY(server.discoveryStatus().isEmpty());
 }
 
 void TestSimServer::logsRegistrationOnlyWhenItChanges()
@@ -395,10 +397,12 @@ void TestSimServer::warnsWhenDiscoveryServerIsUnreachable()
     QTRY_VERIFY_WITH_TIMEOUT(containsMessage(log, failed), 10000);
     QCOMPARE(levelOf(log, failed), LogEntry::Level::Warning);
     QVERIFY(server.isRunning());
+    QVERIFY(server.discoveryStatus().startsWith(QLatin1String("Bad")));
 
     server.stop();
     QVERIFY(!containsMessage(log, QStringLiteral("Unregistered from the discovery server")));
     QVERIFY(!containsMessage(log, QStringLiteral("Could not unregister from the discovery server")));
+    QVERIFY(server.discoveryStatus().isEmpty());
 }
 
 void TestSimServer::explainsCertificateRejectedByDiscoveryServer()
@@ -487,6 +491,7 @@ void TestSimServer::disabledDiscoveryRegistersNowhere()
     SimServer server;
     QVERIFY(server.start(config));
     QCOMPARE(server.uaServer()->discoveryServerUrl(), QString());
+    QVERIFY(server.discoveryStatus().isEmpty());
 }
 
 QTEST_GUILESS_MAIN(TestSimServer)

@@ -11,6 +11,7 @@
 #include <QWidget>
 
 #include "data/serverstatus.h"
+#include "data/statuskind.h"
 
 namespace Ui {
 class StatusPage;
@@ -45,6 +46,9 @@ protected:
     void changeEvent(QEvent *event) override;
 
 private:
+    void showDiscovery(const ServerStatus &status);
+    void setDiscovery(StatusKind kind, const QString &iconName, const QString &text);
+
     Ui::StatusPage *ui;
     ServerStatus _status;
 };

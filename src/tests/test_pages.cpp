@@ -220,6 +220,8 @@ private slots:
     void propertiesActionsStayAtBottom_data();
     void propertiesActionsStayAtBottom();
     void statusPage();
+    void statusPageShowsDiscoveryRegistration_data();
+    void statusPageShowsDiscoveryRegistration();
     void objectsPageStartsOnCurrentVariable();
     void objectsPageFollowsVariableSelection();
     void objectsPageShowsObjects();
@@ -375,6 +377,7 @@ void TestPages::statusPage()
     QCOMPARE(child<QLabel>(page, "totalNodesValue")->text(), QString::number(_snapshot.status.totalNodes));
     QCOMPARE(child<QLabel>(page, "clientsValue")->text(), QStringLiteral("1"));
     QCOMPARE(child<QLabel>(page, "securityModesValue")->text(), QStringLiteral("None, Sign, Sign & Encrypt"));
+    QCOMPARE(child<StatusIndicator>(page, "discoveryIndicator")->status(), StatusKind::Good);
     QVERIFY(!page.findChild<QWidget *>(QStringLiteral("statisticsPanel")));
 
     const QList<QLabel *> labels = page.findChildren<QLabel *>();
@@ -383,6 +386,52 @@ void TestPages::statusPage()
             QVERIFY2(label->textInteractionFlags() & Qt::TextSelectableByMouse,
                      qPrintable(label->objectName()));
     }
+}
+
+void TestPages::statusPageShowsDiscoveryRegistration_data()
+{
+    QTest::addColumn<QString>("url");
+    QTest::addColumn<bool>("running");
+    QTest::addColumn<QString>("discoveryStatus");
+    QTest::addColumn<StatusKind>("kind");
+    QTest::addColumn<QString>("text");
+
+    const QString url = QStringLiteral("opc.tcp://lds:4840");
+    QTest::newRow("disabled") << QString() << true << QString() << StatusKind::Inactive << QStringLiteral("Disabled");
+    QTest::newRow("stopped") << url << false << QString() << StatusKind::None << QString();
+    QTest::newRow("disabled and stopped") << QString() << false << QString() << StatusKind::None << QString();
+    QTest::newRow("awaiting answer") << url << true << QString() << StatusKind::Info
+                                     << QStringLiteral("Registering at opc.tcp://lds:4840");
+    QTest::newRow("registered") << url << true << QStringLiteral("Good") << StatusKind::Good
+                                << QStringLiteral("Registered at opc.tcp://lds:4840");
+    QTest::newRow("failed") << url << true << QStringLiteral("BadTimeout") << StatusKind::Error
+                            << QStringLiteral("Not registered at opc.tcp://lds:4840: BadTimeout");
+}
+
+void TestPages::statusPageShowsDiscoveryRegistration()
+{
+    QFETCH(QString, url);
+    QFETCH(bool, running);
+    QFETCH(QString, discoveryStatus);
+    QFETCH(StatusKind, kind);
+    QFETCH(QString, text);
+
+    ServerStatus status;
+    status.running = running;
+    status.discoveryServerUrl = url;
+    status.discoveryStatus = discoveryStatus;
+    StatusPage page;
+    page.setStatus(status);
+
+    const auto *indicator = child<StatusIndicator>(page, "discoveryIndicator");
+    QCOMPARE(indicator->status(), kind);
+    QCOMPARE(indicator->text(), text);
+    QCOMPARE(indicator->icon().isNull(), !running);
+
+    status.running = false;
+    page.setStatus(status);
+    QVERIFY(indicator->icon().isNull());
+    QVERIFY(indicator->text().isEmpty());
 }
 
 void TestPages::objectsPageStartsOnCurrentVariable()

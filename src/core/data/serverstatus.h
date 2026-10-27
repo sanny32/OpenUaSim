@@ -35,4 +35,9 @@ struct ServerStatus
     int namespaces = 0;
     /// \brief Number of connected clients.
     int clientsConnected = 0;
+    /// \brief URL of the discovery server the server registers at; empty when registration is off.
+    QString discoveryServerUrl;
+    /// \brief Status code name of the last registration answer, "Good" when registered; empty while stopped or
+    ///        before the first answer.
+    QString discoveryStatus;
 };

@@ -6,6 +6,7 @@
 /// \brief Implements the server status page.
 ///
 
+#include "appicons.h"
 #include "data/serverstatus.h"
 #include "formatting.h"
 #include "statuspage.h"
@@ -48,6 +49,39 @@ void StatusPage::setStatus(const ServerStatus &status)
     ui->totalNodesValue->setNum(status.totalNodes);
     ui->namespacesValue->setNum(status.namespaces);
     ui->clientsValue->setNum(status.clientsConnected);
+    showDiscovery(status);
+}
+
+///
+/// \brief Shows whether the running server is registered at the discovery server and why not; blank while stopped.
+/// \param status Server summary.
+///
+void StatusPage::showDiscovery(const ServerStatus &status)
+{
+    const QString &url = status.discoveryServerUrl;
+    if (!status.running)
+        setDiscovery(StatusKind::None, QString(), QString());
+    else if (url.isEmpty())
+        setDiscovery(StatusKind::Inactive, QStringLiteral("x"), tr("Disabled"));
+    else if (status.discoveryStatus.isEmpty())
+        setDiscovery(StatusKind::Info, QStringLiteral("clock"), tr("Registering at %1").arg(url));
+    else if (status.discoveryStatus == QLatin1String("Good"))
+        setDiscovery(StatusKind::Good, QStringLiteral("check"), tr("Registered at %1").arg(url));
+    else
+        setDiscovery(StatusKind::Error, QStringLiteral("x"),
+                     tr("Not registered at %1: %2").arg(url, status.discoveryStatus));
+}
+
+///
+/// \brief Fills the discovery registration row.
+/// \param kind Status giving the icon colour.
+/// \param iconName Resource name of the icon; empty for none.
+/// \param text Label text.
+///
+void StatusPage::setDiscovery(StatusKind kind, const QString &iconName, const QString &text)
+{
+    ui->discoveryIndicator->setIcon(iconName.isEmpty() ? QIcon() : AppIcons::statusIcon(iconName, kind));
+    ui->discoveryIndicator->setStatus(kind, text);
 }
 
 ///

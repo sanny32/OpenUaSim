@@ -94,6 +94,7 @@ class TestWidgets : public QObject
 
 private slots:
     void statusIndicator();
+    void statusIndicatorDrawsIconInsteadOfDot();
     void statusIndicatorFitsTextAtSizeHint_data();
     void statusIndicatorFitsTextAtSizeHint();
     void statusIndicatorShowsOverflowTooltip();
@@ -176,6 +177,22 @@ void TestWidgets::statusIndicator()
     indicator.setColoredText(true);
     indicator.resize(indicator.sizeHint());
     QVERIFY(!indicator.grab().isNull());
+}
+
+void TestWidgets::statusIndicatorDrawsIconInsteadOfDot()
+{
+    StatusIndicator indicator;
+    indicator.setStatus(StatusKind::Good, QStringLiteral("Registered"));
+    indicator.resize(indicator.sizeHint());
+    const QImage dot = indicator.grab().toImage();
+
+    indicator.setIcon(AppIcons::statusIcon(QStringLiteral("check"), StatusKind::Good));
+    QVERIFY(!indicator.icon().isNull());
+    QCOMPARE(indicator.sizeHint(), indicator.size());
+    QVERIFY(indicator.grab().toImage() != dot);
+
+    indicator.setIcon(QIcon());
+    QCOMPARE(indicator.grab().toImage(), dot);
 }
 
 void TestWidgets::statusIndicatorFitsTextAtSizeHint_data()

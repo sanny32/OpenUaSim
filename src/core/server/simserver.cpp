@@ -321,6 +321,17 @@ int SimServer::clientCount() const
 }
 
 ///
+/// \brief Returns the answer of the discovery server to the last registration.
+/// \return Status code name, "Good" when registered; empty while stopped, before the first answer or without
+///         registration.
+///
+QString SimServer::discoveryStatus() const
+{
+    // stop() clears only a successful registration; start() clears a failed one.
+    return _server->isRunning() ? _discoveryStatus : QString();
+}
+
+///
 /// \brief Returns the wrapped server, for building and browsing its address space.
 /// \return QUaServer owned by this object.
 ///

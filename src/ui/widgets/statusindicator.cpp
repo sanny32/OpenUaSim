@@ -74,6 +74,25 @@ void StatusIndicator::setColoredText(bool colored)
 }
 
 ///
+/// \brief Sets an icon drawn instead of the dot.
+/// \param icon Icon; a null icon brings the dot back.
+///
+void StatusIndicator::setIcon(const QIcon &icon)
+{
+    _icon = icon;
+    update();
+}
+
+///
+/// \brief Returns the icon drawn instead of the dot.
+/// \return Icon; null when the dot is drawn.
+///
+QIcon StatusIndicator::icon() const
+{
+    return _icon;
+}
+
+///
 /// \brief Returns the size fitting the dot and the label.
 /// \return Preferred size.
 ///
@@ -110,7 +129,7 @@ bool StatusIndicator::event(QEvent *event)
 }
 
 ///
-/// \brief Draws the dot vertically centred, then the label.
+/// \brief Draws the dot or the icon vertically centred, then the label.
 /// \param event Unused.
 ///
 void StatusIndicator::paintEvent(QPaintEvent *event)
@@ -120,10 +139,14 @@ void StatusIndicator::paintEvent(QPaintEvent *event)
     painter.setRenderHint(QPainter::Antialiasing);
 
     const int diameter = dotDiameter();
-    const QRectF dot(0.5, (height() - diameter) / 2.0, diameter - 1, diameter - 1);
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(AppColors::status(_status));
-    painter.drawEllipse(dot);
+    if (!_icon.isNull()) {
+        _icon.paint(&painter, QRect(0, (height() - diameter) / 2, diameter, diameter));
+    } else {
+        const QRectF dot(0.5, (height() - diameter) / 2.0, diameter - 1, diameter - 1);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(AppColors::status(_status));
+        painter.drawEllipse(dot);
+    }
 
     if (_text.isEmpty())
         return;

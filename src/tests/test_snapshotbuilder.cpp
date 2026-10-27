@@ -41,6 +41,8 @@ private slots:
     void unbuiltVariablesAreBad();
     void stoppedServerStatus();
     void runningServerStatus();
+    void stoppedServerStatusShowsConfiguredDiscoveryServer();
+    void runningServerStatusShowsServedDiscoveryServer();
     void statusOfInvalidEndpoints();
     void listsNamespaces();
     void typeCatalogReadsServerTypes();
@@ -137,6 +139,25 @@ void TestSnapshotBuilder::stoppedServerStatus()
     QVERIFY(status.namespaces >= 2);
     QCOMPARE(status.uptimeSeconds, 0);
     QVERIFY(!status.startTime.isValid());
+    QVERIFY(status.discoveryServerUrl.isEmpty());
+    QVERIFY(status.discoveryStatus.isEmpty());
+}
+
+void TestSnapshotBuilder::stoppedServerStatusShowsConfiguredDiscoveryServer()
+{
+    _project.server.discovery = { true, QStringLiteral(" opc.tcp://lds:4840 "), 600 };
+    const ServerStatus status = SnapshotBuilder::status(_project, *_server, *_space, QDateTime::currentDateTime());
+    QCOMPARE(status.discoveryServerUrl, QStringLiteral("opc.tcp://lds:4840"));
+    QVERIFY(status.discoveryStatus.isEmpty());
+}
+
+void TestSnapshotBuilder::runningServerStatusShowsServedDiscoveryServer()
+{
+    _project.server.discovery = { true, QStringLiteral("opc.tcp://127.0.0.1:1"), 600 };
+    QVERIFY(_server->start(_project));
+    _project.server.discovery.url = QStringLiteral("opc.tcp://edited:4840");
+    const ServerStatus status = SnapshotBuilder::status(_project, *_server, *_space, QDateTime::currentDateTime());
+    QCOMPARE(status.discoveryServerUrl, QStringLiteral("opc.tcp://127.0.0.1:1"));
 }
 
 void TestSnapshotBuilder::runningServerStatus()

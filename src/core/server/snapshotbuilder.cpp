@@ -270,9 +270,14 @@ ServerStatus status(const ProjectConfig &project, const SimServer &server, const
     status.totalNodes = addressSpace.nodeCount();
     status.namespaces = int(server.uaServer()->namespaces().size());
     status.clientsConnected = server.clientCount();
+    const DiscoveryRegistration &discovery = project.server.discovery;
+    status.discoveryServerUrl = discovery.enabled ? discovery.url.trimmed() : QString();
+    status.discoveryStatus = server.discoveryStatus();
     if (status.running) {
         status.startTime = server.startTime();
         status.uptimeSeconds = qMax<qint64>(0, server.startTime().secsTo(now));
+        // Settings edited while running apply on the next start.
+        status.discoveryServerUrl = server.uaServer()->discoveryServerUrl();
     }
     return status;
 }

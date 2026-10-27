@@ -2400,6 +2400,26 @@
         <translation>Подключено клиентов</translation>
     </message>
     <message>
+        <source>Discovery Registration</source>
+        <translation>Регистрация в LDS</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <translation>Выключена</translation>
+    </message>
+    <message>
+        <source>Registering at %1</source>
+        <translation>Регистрация на %1</translation>
+    </message>
+    <message>
+        <source>Registered at %1</source>
+        <translation>Зарегистрирован на %1</translation>
+    </message>
+    <message>
+        <source>Not registered at %1: %2</source>
+        <translation>Не зарегистрирован на %1: %2</translation>
+    </message>
+    <message>
         <source>Running</source>
         <translation>Работает</translation>
     </message>

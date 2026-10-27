@@ -559,6 +559,8 @@ ServerSnapshot snapshot()
     status.clientsConnected = static_cast<int>(
         std::count_if(snapshot.sessions.cbegin(), snapshot.sessions.cend(),
                       [](const SessionInfo &info) { return info.active; }));
+    status.discoveryServerUrl = QStringLiteral("opc.tcp://localhost:4840");
+    status.discoveryStatus = QStringLiteral("Good");
     return snapshot;
 }
 
