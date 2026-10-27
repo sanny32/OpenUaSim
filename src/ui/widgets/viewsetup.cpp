@@ -38,6 +38,7 @@ namespace {
 constexpr int kTableRowHeight = 34;
 constexpr int kMaxFittedColumnWidth = 320;
 constexpr int kSplitScale = 100;
+constexpr char kRestoredColumns[] = "ouasimRestoredColumns";
 
 ///
 /// \brief Keeps the side panes of a splitter at their widths once the splitter has been laid out,
@@ -210,7 +211,8 @@ void ColumnFitter::fitOnceFilled()
 {
     if (_view->model()->rowCount() == 0)
         return;
-    fitColumnsToContents(_view);
+    if (!columnHeader(_view)->property(kRestoredColumns).toBool())
+        fitColumnsToContents(_view);
     disconnect(_view->model(), nullptr, this, nullptr);
     deleteLater();
 }
@@ -262,6 +264,8 @@ void ColumnGrower::growOnChange(const QModelIndex &topLeft, const QModelIndex &b
 void ColumnGrower::grow()
 {
     QHeaderView *header = columnHeader(_view);
+    if (header->property(kRestoredColumns).toBool())
+        return;
     // QTableView narrows the public QAbstractItemView::sizeHintForColumn() override to protected.
     const QAbstractItemView *view = _view;
     const int needed = qMin(qMax(view->sizeHintForColumn(_column), header->sectionSizeHint(_column)),
@@ -298,6 +302,20 @@ void expandMarked(QTreeView *view, const QModelIndex &parent, QModelIndex &curre
 void installDelegate(QAbstractItemView *view)
 {
     view->setItemDelegate(new ItemDelegate(view));
+}
+
+///
+/// \brief Restores user column sizes and prevents automatic fitting from replacing them.
+/// \param header Column header to restore.
+/// \param state Previously saved header state.
+/// \return True when the state was restored.
+///
+bool restoreHeaderState(QHeaderView *header, const QByteArray &state)
+{
+    if (state.isEmpty() || !header->restoreState(state))
+        return false;
+    header->setProperty(kRestoredColumns, true);
+    return true;
 }
 
 ///

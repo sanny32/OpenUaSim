@@ -53,6 +53,7 @@
 #include "server/servercontroller.h"
 #include "server/serverlaunch.h"
 #include "serversettingsdialog.h"
+#include "settingsstore.h"
 #include "statusindicator.h"
 #include "testport.h"
 #include "testproject.h"
@@ -88,6 +89,7 @@ class TestMainWindow : public QObject
     Q_OBJECT
 
 private slots:
+    void init();
     void hasAllPages();
     void showsSnapshot();
     void statusRefreshKeepsEndpointSelection();
@@ -140,6 +142,14 @@ private slots:
     void panelsFitTheDefaultWindow_data();
     void panelsFitTheDefaultWindow();
 };
+
+///
+/// \brief Keeps each window test independent of layouts saved by earlier close events.
+///
+void TestMainWindow::init()
+{
+    SettingsStore().remove(QStringLiteral("ui/mainWindow"));
+}
 
 void TestMainWindow::hasAllPages()
 {

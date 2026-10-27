@@ -57,6 +57,8 @@ add_library(ouasim_ui STATIC
 
     mainwindow.cpp
     mainwindow.h
+    widgetlayout.cpp
+    widgetlayout.h
     ${UI_FILES}
 
     pages/certificatespage.cpp

@@ -126,6 +126,8 @@ protected:
     void changeEvent(QEvent *event) override;
 
 private:
+    void restoreSettings();
+    void saveSettings();
     void setupIcons();
     void setupActions();
     void setupViewMenu();

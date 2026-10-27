@@ -35,10 +35,12 @@
 #include "server/servercontroller.h"
 #include "server/serverlaunch.h"
 #include "serversettingsdialog.h"
+#include "settingsstore.h"
 #include "subscriptionsdialog.h"
 #include "ui_mainwindow.h"
 #include "usersdialog.h"
 #include "viewsetup.h"
+#include "widgetlayout.h"
 
 namespace {
 
@@ -80,6 +82,41 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     connect(ui->logPage, &LogPage::exportRequested, this, &MainWindow::exportLog);
     connect(ui->sessionsPage, &SessionsPage::subscriptionsRequested, this, &MainWindow::showSubscriptions);
     handleTabChange(ui->tabWidget->currentIndex());
+    restoreSettings();
+}
+
+///
+/// \brief Restores window geometry and navigation before the first layout.
+///
+void MainWindow::restoreSettings()
+{
+    SettingsStore settings;
+    settings.beginGroup(QStringLiteral("ui/mainWindow"));
+    restoreGeometry(settings.value(QStringLiteral("geometry")).toByteArray());
+    restoreState(settings.value(QStringLiteral("state")).toByteArray());
+    ui->actionEventLog->setChecked(settings.value(QStringLiteral("eventLogVisible"), true).toBool());
+    const QString page = settings.value(QStringLiteral("currentPage")).toString();
+    for (int i = 0; i < ui->tabWidget->count(); ++i) {
+        if (ui->tabWidget->widget(i)->objectName() == page) {
+            ui->tabWidget->setCurrentIndex(i);
+            break;
+        }
+    }
+}
+
+///
+/// \brief Persists the layout only after closing has been accepted.
+///
+void MainWindow::saveSettings()
+{
+    SettingsStore settings;
+    settings.beginGroup(QStringLiteral("ui/mainWindow"));
+    settings.setValue(QStringLiteral("geometry"), saveGeometry());
+    settings.setValue(QStringLiteral("state"), saveState());
+    settings.setValue(QStringLiteral("eventLogVisible"), ui->actionEventLog->isChecked());
+    settings.setValue(QStringLiteral("currentPage"), ui->tabWidget->currentWidget()->objectName());
+    WidgetLayout::save(*this, settings);
+    settings.sync();
 }
 
 ///
@@ -268,14 +305,16 @@ bool MainWindow::exportLogTo(const QString &fileName, const QList<LogEntry> &ent
 ///
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (confirmDiscardChanges())
+    if (confirmDiscardChanges()) {
         QMainWindow::closeEvent(event);
-    else
+        if (event->isAccepted())
+            saveSettings();
+    } else
         event->ignore();
 }
 
 ///
-/// \brief Splits the content between the pages and the event log on the first show, without a cut-off log row.
+/// \brief Applies default panel sizes and restores the saved layout on the first show.
 /// \param event Show event.
 ///
 void MainWindow::showEvent(QShowEvent *event)
@@ -290,6 +329,9 @@ void MainWindow::showEvent(QShowEvent *event)
     const int total = sizes.value(0) + sizes.value(1);
     const int log = ui->eventLog->heightForWholeRows(qRound(total * kEventLogShare));
     ui->contentSplitter->setSizes({ total - log, log });
+    SettingsStore settings;
+    settings.beginGroup(QStringLiteral("ui/mainWindow"));
+    WidgetLayout::restore(*this, settings);
 }
 
 ///

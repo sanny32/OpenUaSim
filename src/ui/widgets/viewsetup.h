@@ -14,6 +14,8 @@ class QAbstractButton;
 class QAbstractItemModel;
 class QAbstractItemView;
 class QComboBox;
+class QHeaderView;
+class QByteArray;
 class QLineEdit;
 class QPlainTextEdit;
 class QSortFilterProxyModel;
@@ -23,6 +25,14 @@ class QTreeView;
 class QWidget;
 
 namespace ViewSetup {
+
+///
+/// \brief Restores user column sizes and prevents automatic fitting from replacing them.
+/// \param header Column header to restore.
+/// \param state Previously saved header state.
+/// \return True when the state was restored.
+///
+bool restoreHeaderState(QHeaderView *header, const QByteArray &state);
 
 ///
 /// \brief Installs the application item delegate on a view.
