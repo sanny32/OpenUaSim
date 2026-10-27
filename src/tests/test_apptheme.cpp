@@ -46,6 +46,7 @@ private slots:
     void unknownIconIsNull();
     void paletteIconsFollowTheTheme_data();
     void paletteIconsFollowTheTheme();
+    void accentIconsKeepTheirColour();
     void statusDots();
     void statusIconsGreyOutWhenDisabled();
     void messageIcons_data();
@@ -165,6 +166,21 @@ void TestAppTheme::paletteIconsFollowTheTheme()
     QVERIFY(onDark.isValid());
     QVERIFY(onLight.isValid());
     QVERIFY(onDark.lightness() > onLight.lightness());
+}
+
+void TestAppTheme::accentIconsKeepTheirColour()
+{
+    const QColor accent(0x0d9488);
+    const QIcon icon = AppIcons::icon(QStringLiteral("variable-type"));
+    QApplication::setPalette(AppPalette::build(false));
+    QCOMPARE(strokeColor(icon), accent);
+    QCOMPARE(strokeColor(icon, QIcon::Selected), QApplication::palette().color(QPalette::HighlightedText));
+    QCOMPARE(strokeColor(icon, QIcon::Disabled),
+             QApplication::palette().color(QPalette::Disabled, QPalette::WindowText));
+
+    QApplication::setPalette(AppPalette::build(true));
+    QVERIFY(strokeColor(icon).lightness() > accent.lightness());
+    QCOMPARE(strokeColor(icon).hue(), accent.hue());
 }
 
 void TestAppTheme::statusDots()

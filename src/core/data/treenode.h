@@ -37,6 +37,8 @@ struct TreeNode
     bool current = false;
     /// \brief Whether the view draws a line above the node, setting it apart from the nodes before it.
     bool separatorAbove = false;
+    /// \brief Whether the view shows the text quieter, e.g. for an abstract type.
+    bool muted = false;
     /// \brief Child nodes.
     QList<TreeNode> children;
 };

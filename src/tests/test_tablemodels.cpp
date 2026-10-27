@@ -483,13 +483,23 @@ void TestTableModels::subtypesModel()
     motor.category = QStringLiteral("ObjectType");
     motor.children = 8;
 
+    TypeInfo gauge;
+    gauge.browseName = QStringLiteral("GaugeType");
+    gauge.nodeId = QStringLiteral("ns=2;i=1002");
+    gauge.isAbstract = true;
+
     SubtypesModel model;
-    model.setItems({ motor });
+    model.setSubtypes({ motor, gauge }, { { motor.nodeId, QStringLiteral("object") } });
     QCOMPARE(model.columnCount(), int(SubtypesModel::ColCount));
     QCOMPARE(header(model, SubtypesModel::ColChildren), QStringLiteral("Children"));
     QCOMPARE(model.index(0, SubtypesModel::ColName).data().toString(), QStringLiteral("MotorType"));
     QCOMPARE(model.index(0, SubtypesModel::ColName).data(ItemRoles::IconName).toString(),
-             QStringLiteral("folder"));
+             QStringLiteral("object"));
+    QVERIFY(!model.index(0, SubtypesModel::ColNodeId).data(ItemRoles::IconName).isValid());
+    QVERIFY(model.index(1, SubtypesModel::ColName).data(ItemRoles::IconName).toString().isEmpty());
+    QVERIFY(!model.index(0, SubtypesModel::ColName).data(ItemRoles::Muted).toBool());
+    QVERIFY(model.index(1, SubtypesModel::ColName).data(ItemRoles::Muted).toBool());
+    QVERIFY(model.index(1, SubtypesModel::ColChildren).data(ItemRoles::Muted).toBool());
     QCOMPARE(model.index(0, SubtypesModel::ColNodeId).data().toString(), QStringLiteral("ns=2;i=1001"));
     QCOMPARE(model.index(0, SubtypesModel::ColCategory).data().toString(), QStringLiteral("ObjectType"));
     QCOMPARE(model.index(0, SubtypesModel::ColChildren).data().toInt(), 8);

@@ -50,6 +50,7 @@ TypesPage::TypesPage(QWidget *parent)
     ViewSetup::configureTable(ui->referencesView);
     ui->referencesView->setModel(_referencesModel);
     ViewSetup::fitColumnsWhenFilled(ui->referencesView);
+    ViewSetup::growColumnWithContents(ui->referencesView, ReferencesModel::ColReferenceType);
 
     connect(ui->typesTree->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &TypesPage::showTreeNode);
@@ -102,7 +103,11 @@ const SubtypesModel *TypesPage::subtypesModel() const
 void TypesPage::showTreeNode(const QModelIndex &current)
 {
     const QString typeId = current.data(ItemRoles::Id).toString();
-    _subtypesModel->setItems(subtypesOf(current));
+    const QList<TypeInfo> subtypes = subtypesOf(current);
+    QHash<QString, QString> iconNames;
+    for (const TypeInfo &subtype : subtypes)
+        iconNames.insert(subtype.nodeId, TypeCatalog::typeIconName(_types, subtype.nodeId));
+    _subtypesModel->setSubtypes(subtypes, iconNames);
     _shownTypeName = typeId.isEmpty() ? current.data().toString() : _types.value(typeId).browseName;
     showSubtypesTitle();
     showProperties(typeId);

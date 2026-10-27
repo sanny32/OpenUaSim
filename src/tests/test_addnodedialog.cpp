@@ -117,6 +117,7 @@ class TestAddNodeDialog : public QObject
 
 private slots:
     void typeFamilyIcons();
+    void typeDefinitionIcons();
     void typeCategoryIcons_data();
     void typeCategoryIcons();
     void showsParentAndStartsInvalid();
@@ -168,6 +169,8 @@ void TestAddNodeDialog::typeFamilyIcons()
         const int index = combo->findText(info.browseName);
         QVERIFY(index >= 0);
         QVERIFY(!combo->itemIcon(index).isNull());
+        QCOMPARE(combo->itemIcon(index).pixmap(24, 24).toImage(),
+                 AppIcons::icon(TypeCatalog::typeIconName(types, info.nodeId)).pixmap(24, 24).toImage());
         const QString customId = "ns=2;s=Custom" + info.nodeId;
         types.insert(customId, type("Custom", customId, info.nodeId));
         QCOMPARE(TypeCatalog::iconName(types, customId), icon);
@@ -178,6 +181,56 @@ void TestAddNodeDialog::typeFamilyIcons()
     QCOMPARE(TypeCatalog::iconName(types, "missing"), QStringLiteral("variable"));
     types.insert("cycle", type("Cycle", "cycle", "cycle"));
     QCOMPARE(TypeCatalog::iconName(types, "cycle"), QStringLiteral("variable"));
+}
+
+void TestAddNodeDialog::typeDefinitionIcons()
+{
+    QUaServer server;
+    auto types = TypeCatalog::types(server);
+    const QHash<QString, QString> expected {
+        { "BaseObjectType", "object-type" }, { "FolderType", "folder" },
+        { "BaseEventType", "event-type" }, { "AuditEventType", "event-type" },
+        { "BaseInterfaceType", "interface-type" },
+        { "BaseVariableType", "variable-type" }, { "BaseDataVariableType", "variable-type" },
+        { "PropertyType", "property-type" }, { "AnalogItemType", "analog-type" },
+        { "XYArrayItemType", "array-type" }, { "ImageItemType", "matrix-type" },
+        { "TwoStateDiscreteType", "discrete-type" }, { "MultiStateDictionaryEntryDiscreteType", "dictionary-type" },
+        { "BaseDataType", "simple-type" }, { "Double", "simple-type" },
+        { "Structure", "data-type" }, { "Argument", "data-type" },
+        { "Enumeration", "enum-type" }, { "NodeClass", "enum-type" },
+        { "HasSubtype", "reference-type" },
+    };
+    QSet<QString> checked;
+    for (const TypeInfo &info : std::as_const(types)) {
+        const auto found = expected.constFind(info.browseName);
+        if (found == expected.cend())
+            continue;
+        QCOMPARE(TypeCatalog::typeIconName(types, info.nodeId), *found);
+        checked.insert(info.browseName);
+    }
+    QCOMPARE(checked.size(), expected.size());
+
+    QList<QImage> rendered;
+    for (const QString &icon :
+         { "object-type", "event-type", "interface-type", "variable-type", "property-type", "analog-type", "array-type",
+           "matrix-type", "discrete-type", "dictionary-type", "data-type", "enum-type", "simple-type",
+           "reference-type" }) {
+        const QImage image = AppIcons::icon(icon).pixmap(24, 24).toImage();
+        QVERIFY2(!image.isNull(), qPrintable(icon));
+        QVERIFY2(!rendered.contains(image), qPrintable(icon));
+        rendered.append(image);
+    }
+
+    TypeInfo nameplate = type("INameplateType", "ns=2;s=INameplateType", "i=17602");
+    nameplate.category = QStringLiteral("ObjectType");
+    types.insert(nameplate.nodeId, nameplate);
+    QCOMPARE(TypeCatalog::typeIconName(types, nameplate.nodeId), QStringLiteral("interface-type"));
+
+    QCOMPARE(TypeCatalog::typeIconName(types, "missing"), QStringLiteral("variable"));
+    TypeInfo cycle = type("Cycle", "cycle", "cycle");
+    cycle.category = QStringLiteral("ObjectType");
+    types.insert(cycle.nodeId, cycle);
+    QCOMPARE(TypeCatalog::typeIconName(types, cycle.nodeId), QStringLiteral("object-type"));
 }
 
 void TestAddNodeDialog::typeCategoryIcons_data()
@@ -227,10 +280,10 @@ void TestAddNodeDialog::typeCategoryIcons()
     for (const TreeNode &root : tree.first().children) {
         if (root.id != rootId)
             continue;
-        QCOMPARE(root.icon, icon);
+        QCOMPARE(root.icon, TypeCatalog::typeIconName(types, root.id));
         QVERIFY(!root.children.isEmpty());
         for (const TreeNode &child : root.children)
-            QCOMPARE(child.icon, icon);
+            QCOMPARE(child.icon, TypeCatalog::typeIconName(types, child.id));
         found = true;
     }
     QVERIFY(found);

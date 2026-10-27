@@ -26,6 +26,9 @@ const QString kBaseObjectType = QStringLiteral("i=58");
 const QString kBaseDataVariableType = QStringLiteral("i=63");
 const QString kDataItemType = QStringLiteral("i=2365");
 const QString kBaseEventType = QStringLiteral("i=2041");
+const QString kBaseInterfaceType = QStringLiteral("i=%1").arg(UA_NS0ID_BASEINTERFACETYPE);
+const QString kEnumeration = QStringLiteral("i=%1").arg(UA_NS0ID_ENUMERATION);
+const QString kStructure = QStringLiteral("i=%1").arg(UA_NS0ID_STRUCTURE);
 
 ///
 /// \brief A hierarchy of the type system, walked down from its root type.
@@ -169,13 +172,15 @@ QString TypeReader::referenceName(const QUaNodeId &referenceTypeId)
 /// \param types Types keyed by node id.
 /// \param typeId Type to check.
 /// \param superTypeId Possible supertype.
-/// \return True when the supertype chain of typeId reaches superTypeId.
+/// \return True when the supertype chain of typeId reaches superTypeId; false for a cyclic chain that does not.
 ///
 bool derivesFrom(const QHash<QString, TypeInfo> &types, const QString &typeId, const QString &superTypeId)
 {
-    for (QString id = typeId; !id.isEmpty(); id = types.value(id).baseTypeId) {
+    QSet<QString> visited;
+    for (QString id = typeId; !id.isEmpty() && !visited.contains(id); id = types.value(id).baseTypeId) {
         if (id == superTypeId)
             return true;
+        visited.insert(id);
     }
     return false;
 }
@@ -190,9 +195,10 @@ TreeNode typeNode(const TypeInfo &info, const QHash<QString, TypeInfo> &types)
 {
     TreeNode node;
     node.text = info.browseName;
-    node.icon = TypeCatalog::iconName(types, info.nodeId);
+    node.icon = TypeCatalog::typeIconName(types, info.nodeId);
     node.id = info.nodeId;
     node.kind = TreeNode::Kind::Type;
+    node.muted = info.isAbstract;
     node.current = info.nodeId == kFolderType;
     return node;
 }
@@ -262,6 +268,39 @@ QString iconName(const QHash<QString, TypeInfo> &types, const QString &typeId)
     if (category == QLatin1String("ReferenceType"))
         return QStringLiteral("reference-type");
     return QStringLiteral("variable");
+}
+
+///
+/// \brief Selects the icon of a type definition by its category and the standard family it derives from.
+/// \param types Types keyed by server node id.
+/// \param typeId Type to show.
+/// \return Icon resource name; a variable type takes the "-type" variant of its iconName() family, a type of
+///         unknown category the instance icon itself.
+///
+QString typeIconName(const QHash<QString, TypeInfo> &types, const QString &typeId)
+{
+    const QString category = types.value(typeId).category;
+    if (category == QLatin1String("ObjectType")) {
+        if (derivesFrom(types, typeId, kBaseEventType))
+            return QStringLiteral("event-type");
+        if (derivesFrom(types, typeId, kBaseInterfaceType))
+            return QStringLiteral("interface-type");
+        if (derivesFrom(types, typeId, kFolderType))
+            return QStringLiteral("folder");
+        return QStringLiteral("object-type");
+    }
+    if (category == QLatin1String("VariableType"))
+        return iconName(types, typeId) + QStringLiteral("-type");
+    if (category == QLatin1String("DataType")) {
+        if (derivesFrom(types, typeId, kEnumeration))
+            return QStringLiteral("enum-type");
+        if (derivesFrom(types, typeId, kStructure))
+            return QStringLiteral("data-type");
+        return QStringLiteral("simple-type");
+    }
+    if (category == QLatin1String("ReferenceType"))
+        return QStringLiteral("reference-type");
+    return iconName(types, typeId);
 }
 
 ///

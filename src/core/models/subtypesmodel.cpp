@@ -19,6 +19,17 @@ SubtypesModel::SubtypesModel(QObject *parent)
 }
 
 ///
+/// \brief Replaces the subtypes and the icons of their names.
+/// \param subtypes Subtypes in row order.
+/// \param iconNames Icon resource names keyed by type node id; a type without one shows no icon.
+///
+void SubtypesModel::setSubtypes(const QList<TypeInfo> &subtypes, const QHash<QString, QString> &iconNames)
+{
+    _iconNames = iconNames;
+    setItems(subtypes);
+}
+
+///
 /// \brief Returns the fixed column count.
 /// \param parent Parent index; non-root parents have no columns.
 /// \return Column count, or 0 for non-root parents.
@@ -29,7 +40,7 @@ int SubtypesModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief Returns cell text and the type icon.
+/// \brief Returns cell text and the type icon; abstract types are muted.
 /// \param index Cell to query.
 /// \param role Requested data role.
 /// \return Value for the role, or an invalid variant.
@@ -42,8 +53,10 @@ QVariant SubtypesModel::data(const QModelIndex &index, int role) const
 
     if (role == ItemRoles::Id)
         return type.nodeId;
+    if (role == ItemRoles::Muted)
+        return type.isAbstract;
     if (role == ItemRoles::IconName && index.column() == ColName)
-        return QStringLiteral("folder");
+        return _iconNames.value(type.nodeId);
     if (role != Qt::DisplayRole)
         return {};
 

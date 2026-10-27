@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <QHash>
+
 #include "data/typeinfo.h"
 #include "itemtablemodel.h"
 
@@ -31,6 +33,13 @@ public:
     explicit SubtypesModel(QObject *parent = nullptr);
 
     ///
+    /// \brief Replaces the subtypes and the icons of their names.
+    /// \param subtypes Subtypes in row order.
+    /// \param iconNames Icon resource names keyed by type node id; a type without one shows no icon.
+    ///
+    void setSubtypes(const QList<TypeInfo> &subtypes, const QHash<QString, QString> &iconNames);
+
+    ///
     /// \brief Returns the fixed column count.
     /// \param parent Parent index; non-root parents have no columns.
     /// \return Column count, or 0 for non-root parents.
@@ -38,7 +47,7 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
     ///
-    /// \brief Returns cell text and the type icon.
+    /// \brief Returns cell text and the type icon; abstract types are muted.
     /// \param index Cell to query.
     /// \param role Requested data role.
     /// \return Value for the role, or an invalid variant.
@@ -54,4 +63,7 @@ public:
     ///
     QVariant headerData(int section, Qt::Orientation orientation,
                         int role = Qt::DisplayRole) const override;
+
+private:
+    QHash<QString, QString> _iconNames;
 };

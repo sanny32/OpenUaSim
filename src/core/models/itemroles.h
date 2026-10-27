@@ -31,7 +31,9 @@ enum Role {
     /// \brief Whether a tree node starts selected (bool).
     Current,
     /// \brief Whether a line sets the row apart from the rows above it (bool).
-    SeparatorAbove
+    SeparatorAbove,
+    /// \brief Whether the item text is shown quieter than the rest (bool).
+    Muted
 };
 
 ///

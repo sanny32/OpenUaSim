@@ -106,8 +106,12 @@ void TestTreeModel::exposesCustomRoles()
 
     TreeNode apart = node(QStringLiteral("All"), QStringLiteral("all"));
     apart.trailing = QStringLiteral("2");
+    QVERIFY(!objects.data(ItemRoles::Muted).toBool());
+
     apart.separatorAbove = true;
+    apart.muted = true;
     model.setNodes({ apart });
+    QVERIFY(model.index(0, 0).data(ItemRoles::Muted).toBool());
     QVERIFY(model.index(0, 0).data(ItemRoles::SeparatorAbove).toBool());
     QVERIFY(model.index(0, 1).data(ItemRoles::SeparatorAbove).toBool());
 }

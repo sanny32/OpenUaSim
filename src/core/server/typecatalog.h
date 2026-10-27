@@ -28,6 +28,15 @@ namespace TypeCatalog {
 QString iconName(const QHash<QString, TypeInfo> &types, const QString &typeId);
 
 ///
+/// \brief Selects the icon of a type definition by its category and the standard family it derives from.
+/// \param types Types keyed by server node id.
+/// \param typeId Type to show.
+/// \return Icon resource name; a variable type takes the "-type" variant of its iconName() family, a type of
+///         unknown category the instance icon itself.
+///
+QString typeIconName(const QHash<QString, TypeInfo> &types, const QString &typeId);
+
+///
 /// \brief Reads the object, variable, data and reference types of a server.
 /// \param server Server holding the standard types and the types of imported models.
 /// \return Types keyed by node id, e.g. "i=61" or "ns=2;i=1000", with their supertype, category, variable value

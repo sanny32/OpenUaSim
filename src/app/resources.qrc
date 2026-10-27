@@ -48,5 +48,17 @@
         <file alias="icons/discrete.svg">res/icons/discrete.svg</file>
         <file alias="icons/dictionary.svg">res/icons/dictionary.svg</file>
         <file alias="icons/analog.svg">res/icons/analog.svg</file>
+        <file alias="icons/object-type.svg">res/icons/object-type.svg</file>
+        <file alias="icons/event-type.svg">res/icons/event-type.svg</file>
+        <file alias="icons/variable-type.svg">res/icons/variable-type.svg</file>
+        <file alias="icons/interface-type.svg">res/icons/interface-type.svg</file>
+        <file alias="icons/property-type.svg">res/icons/property-type.svg</file>
+        <file alias="icons/analog-type.svg">res/icons/analog-type.svg</file>
+        <file alias="icons/array-type.svg">res/icons/array-type.svg</file>
+        <file alias="icons/matrix-type.svg">res/icons/matrix-type.svg</file>
+        <file alias="icons/discrete-type.svg">res/icons/discrete-type.svg</file>
+        <file alias="icons/dictionary-type.svg">res/icons/dictionary-type.svg</file>
+        <file alias="icons/enum-type.svg">res/icons/enum-type.svg</file>
+        <file alias="icons/simple-type.svg">res/icons/simple-type.svg</file>
     </qresource>
 </RCC>

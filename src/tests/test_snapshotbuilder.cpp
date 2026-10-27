@@ -224,7 +224,8 @@ void TestSnapshotBuilder::typeTreeHidesUnusedStandardTypes()
     for (const QString &id : types.keys()) {
         const TreeNode *node = findById(all, id);
         QVERIFY2(node, qPrintable(id));
-        QCOMPARE(node->icon, TypeCatalog::iconName(types, id));
+        QCOMPARE(node->icon, TypeCatalog::typeIconName(types, id));
+        QCOMPARE(node->muted, types.value(id).isAbstract);
     }
 }
 

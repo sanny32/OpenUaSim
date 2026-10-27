@@ -207,6 +207,8 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
         return node.expanded;
     case ItemRoles::Current:
         return node.current;
+    case ItemRoles::Muted:
+        return node.muted;
     default:
         return {};
     }

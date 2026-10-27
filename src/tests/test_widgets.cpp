@@ -31,6 +31,7 @@
 #include <QStyleFactory>
 #include <QTabBar>
 
+#include "appcolors.h"
 #include "appicons.h"
 #include "apppalette.h"
 #include "appstyle.h"
@@ -101,6 +102,7 @@ private slots:
     void delegateDecoratesIconNames();
     void delegateDecoratesStatus();
     void delegateLeavesPlainCellsAlone();
+    void delegateMutesText();
     void delegateDropsFocusFrame();
     void delegateRaisesRowHeight();
     void delegateDrawsSeparatorAboveRow();
@@ -274,6 +276,22 @@ void TestWidgets::delegateLeavesPlainCellsAlone()
     const QStyleOptionViewItem option = delegate.optionFor(model.index(0, 0));
     QVERIFY(!option.features.testFlag(QStyleOptionViewItem::HasDecoration));
     QVERIFY(option.icon.isNull());
+}
+
+void TestWidgets::delegateMutesText()
+{
+    QStandardItemModel model(2, 1);
+    model.setData(model.index(0, 0), QStringLiteral("plain"));
+    model.setData(model.index(1, 0), QStringLiteral("muted"));
+    model.setData(model.index(1, 0), true, ItemRoles::Muted);
+    model.setData(model.index(1, 0), QStringLiteral("folder"), ItemRoles::IconName);
+    InspectableDelegate delegate;
+    const QStyleOptionViewItem plain = delegate.optionFor(model.index(0, 0));
+    const QStyleOptionViewItem muted = delegate.optionFor(model.index(1, 0));
+    QCOMPARE(plain.palette.color(QPalette::Text), QApplication::palette().color(QPalette::Text));
+    QCOMPARE(muted.palette.color(QPalette::Text), AppColors::secondaryText(plain.palette));
+    QVERIFY(muted.palette.color(QPalette::Text) != plain.palette.color(QPalette::Text));
+    QVERIFY(muted.features.testFlag(QStyleOptionViewItem::HasDecoration));
 }
 
 void TestWidgets::delegateDropsFocusFrame()

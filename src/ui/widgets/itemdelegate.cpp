@@ -12,6 +12,7 @@
 #include <QHelpEvent>
 #include <QPainter>
 
+#include "appcolors.h"
 #include "appicons.h"
 #include "itemdelegate.h"
 #include "itemroles.h"
@@ -131,8 +132,8 @@ void ItemDelegate::showTextTip(const QHelpEvent *event, QAbstractItemView *view,
 }
 
 ///
-/// \brief Adds the icon or status dot the model describes through the custom roles and drops the
-///        focus frame of the current cell.
+/// \brief Adds the icon or status dot the model describes through the custom roles, mutes the text of
+///        muted items and drops the focus frame of the current cell.
 /// \param option Option to fill.
 /// \param index Cell index.
 ///
@@ -141,6 +142,8 @@ void ItemDelegate::initStyleOption(QStyleOptionViewItem *option, const QModelInd
     QStyledItemDelegate::initStyleOption(option, index);
     // Rows are selected whole; a focus frame around the current cell alone reads as a stray selection.
     option->state &= ~QStyle::State_HasFocus;
+    if (index.data(ItemRoles::Muted).toBool())
+        option->palette.setColor(QPalette::Text, AppColors::secondaryText(option->palette));
 
     const QVariant iconName = index.data(ItemRoles::IconName);
     if (iconName.isValid()) {

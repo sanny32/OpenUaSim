@@ -15,14 +15,17 @@
 #include <QPainter>
 #include <QPalette>
 #include <QPixmap>
+#include <QRegularExpression>
 #include <QSvgRenderer>
 
 #include "appcolors.h"
 #include "appicons.h"
+#include "apppalette.h"
 
 namespace {
 
 const QByteArray kCurrentColor = QByteArrayLiteral("currentColor");
+constexpr int kDarkAccentLightening = 140;
 
 ///
 /// \brief Where an icon takes the colour that replaces \c currentColor; Accent is the status colour while enabled.
@@ -36,7 +39,7 @@ class TintedSvgEngine : public QIconEngine
 {
 public:
     TintedSvgEngine(const QByteArray &svg, Tint tint, StatusKind status)
-        : _svg(svg), _tint(tint), _status(status)
+        : _svg(svg), _tint(tint), _status(status), _accent(declaredColor(svg))
     {
     }
 
@@ -47,13 +50,27 @@ public:
     bool isNull() override;
 
 private:
+    static QColor declaredColor(const QByteArray &svg);
     QColor colorFor(QIcon::Mode mode) const;
     QByteArray renderedSvg(QIcon::Mode mode) const;
 
     QByteArray _svg;
     Tint _tint;
     StatusKind _status;
+    QColor _accent;
 };
+
+///
+/// \brief Reads the accent an icon declares with the \c color attribute of its root element.
+/// \param svg SVG source.
+/// \return Declared colour; invalid when the icon has none.
+///
+QColor TintedSvgEngine::declaredColor(const QByteArray &svg)
+{
+    static const QRegularExpression rootColor(QStringLiteral("<svg\\b[^>]*\\scolor=\"(#[0-9a-fA-F]{6})\""));
+    const QRegularExpressionMatch match = rootColor.match(QString::fromLatin1(svg));
+    return match.hasMatch() ? QColor(match.captured(1)) : QColor();
+}
 
 ///
 /// \brief Draws the icon directly with the painter, keeping it vector-sharp.
@@ -125,7 +142,7 @@ bool TintedSvgEngine::isNull()
 ///
 /// \brief Resolves the colour replacing \c currentColor.
 /// \param mode Icon mode; disabled palette and accent icons use the disabled text colour.
-/// \return Colour to render with.
+/// \return Colour to render with; a palette icon's declared accent unless selected, lightened on a dark palette.
 ///
 QColor TintedSvgEngine::colorFor(QIcon::Mode mode) const
 {
@@ -138,6 +155,8 @@ QColor TintedSvgEngine::colorFor(QIcon::Mode mode) const
         return AppColors::status(_status);
     if (mode == QIcon::Selected)
         return palette.color(QPalette::HighlightedText);
+    if (_accent.isValid())
+        return AppPalette::isDark(palette) ? _accent.lighter(kDarkAccentLightening) : _accent;
     return palette.color(QPalette::WindowText);
 }
 

@@ -67,6 +67,7 @@
 #include "statuspage.h"
 #include "subscriptionsdialog.h"
 #include "subscriptionsmodel.h"
+#include "referencesmodel.h"
 #include "subtypesmodel.h"
 #include "treebuilders.h"
 #include "typespage.h"
@@ -243,6 +244,7 @@ private slots:
     void typesPage();
     void typesPageShowsAllStandardTypesOnRequest();
     void typesPageIgnoresSearchInSubtypes();
+    void typesPageWidensReferenceTypeColumn();
     void namespacesPage();
     void endpointsPage();
     void endpointsPageAppliesEdits();
@@ -813,6 +815,11 @@ void TestPages::typesPage()
     QCOMPARE(page.subtypesModel()->rowCount(), 2);
     QCOMPARE(page.subtypesModel()->item(0).browseName, QStringLiteral("BaseObjectType"));
     QCOMPARE(page.subtypesModel()->item(1).browseName, QStringLiteral("BaseVariableType"));
+    const auto subtypeIcon = [&page](int row) {
+        return page.subtypesModel()->index(row, SubtypesModel::ColName).data(ItemRoles::IconName).toString();
+    };
+    QCOMPARE(subtypeIcon(0), QStringLiteral("object-type"));
+    QCOMPARE(subtypeIcon(1), QStringLiteral("variable-type"));
     QCOMPARE(child<QLabel>(page, "subtypesTitle")->text(), QStringLiteral("Subtype Definitions (Types)"));
     QVERIFY(!child<QWidget>(page, "propertiesHost")->isEnabled());
 
@@ -863,6 +870,25 @@ void TestPages::typesPageIgnoresSearchInSubtypes()
     QVERIFY(ViewSetup::selectById(tree, QStringLiteral("ns=2;i=1000")));
     QCOMPARE(tree->model()->rowCount(tree->currentIndex()), 1);
     QCOMPARE(page.subtypesModel()->rowCount(), 3);
+}
+
+void TestPages::typesPageWidensReferenceTypeColumn()
+{
+    QHash<QString, TypeInfo> types = _snapshot.types;
+    types[QStringLiteral("i=61")].references = { { QStringLiteral("HasSubtype"), 1 } };
+    types[QStringLiteral("ns=2;i=1000")].references = {
+        { QStringLiteral("HasLongReferenceTypeName"), 2 }
+    };
+    TypesPage page;
+    page.setTypes(types);
+    auto *view = child<QTableView>(page, "referencesView");
+    const int initial = view->horizontalHeader()->sectionSize(ReferencesModel::ColReferenceType);
+
+    QVERIFY(ViewSetup::selectById(child<QTreeView>(page, "typesTree"), QStringLiteral("ns=2;i=1000")));
+    const QAbstractItemView *table = view;
+    const int needed = table->sizeHintForColumn(ReferencesModel::ColReferenceType);
+    QVERIFY(needed > initial);
+    QCOMPARE(view->horizontalHeader()->sectionSize(ReferencesModel::ColReferenceType), needed);
 }
 
 void TestPages::namespacesPage()
