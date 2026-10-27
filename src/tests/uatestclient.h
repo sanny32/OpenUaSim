@@ -93,6 +93,14 @@ public:
     UA_StatusCode readValue(const QString &nodeId, QVariant &value);
 
     ///
+    /// \brief Reads the DataType attribute of a variable.
+    /// \param nodeId Node id in XML notation.
+    /// \param dataType Receives the data type node id on success.
+    /// \return Service result.
+    ///
+    UA_StatusCode readDataType(const QString &nodeId, QUaNodeId &dataType);
+
+    ///
     /// \brief Writes the Value attribute of a node.
     /// \param nodeId Node id in XML notation.
     /// \param value Value to write; its Qt type selects the OPC UA type.

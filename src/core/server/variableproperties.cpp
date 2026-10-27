@@ -26,6 +26,7 @@ const QString kRange = QStringLiteral("Range");
 const QString kEUInformation = QStringLiteral("EUInformation");
 const QString kLocalizedText = QStringLiteral("LocalizedText");
 const QString kEnumValueType = QStringLiteral("EnumValueType");
+const QString kIcon = QStringLiteral("Icon");
 const QString kUnitsNamespace = QStringLiteral("http://www.opcfoundation.org/UA/units/un/cefact");
 constexpr qint32 kUnknownUnitId = -1;
 
@@ -277,7 +278,7 @@ QList<PropertyInfo> describe(const QUaServer &server, const QUaBaseDataVariable 
     const QList<QUaNode *> children = variable.browseChildren();
     for (const QUaNode *child : children) {
         const auto *property = qobject_cast<const QUaProperty *>(child);
-        if (!property || listed.contains(child->browseName().name()))
+        if (!property || listed.contains(child->browseName().name()) || isIcon(*child))
             continue;
         PropertyInfo info;
         info.browseName = child->browseName().name();
@@ -339,6 +340,47 @@ QStringList apply(const QUaServer &server, QUaBaseDataVariable &variable, const 
             property->setValue(value);
     }
     return problems;
+}
+
+///
+/// \brief Publishes the image of a variable as its Icon property of OPC UA Part 3, which clients may show next to it.
+/// \param variable Served variable.
+/// \param png PNG image; an empty one leaves the variable as it is, keeping an Icon a model gives it.
+///
+void setIcon(QUaBaseDataVariable &variable, const QByteArray &png)
+{
+    if (png.isEmpty())
+        return;
+    QUaProperty *icon = findProperty(variable, kIcon);
+    if (!icon)
+        icon = variable.addProperty(QUaQualifiedName(0, kIcon), propertyNodeId(variable, kIcon));
+    if (!icon)
+        return;
+    icon->setDataTypeNodeId(QUaNodeId(0, quint32(UA_NS0ID_IMAGEPNG)));
+    icon->setValue(png);
+}
+
+///
+/// \brief Removes the Icon property of a variable, so clients show their own icon for it again.
+/// \param variable Served variable.
+///
+void removeIcon(QUaBaseDataVariable &variable)
+{
+    const QList<QUaNode *> children = variable.browseChildren();
+    for (QUaNode *child : children) {
+        if (isIcon(*child))
+            delete child;
+    }
+}
+
+///
+/// \brief Tells whether a node is the Icon property of its variable, which the icon setting of the variable stands for.
+/// \param node Child of a variable.
+/// \return True for a property named Icon in namespace 0.
+///
+bool isIcon(const QUaNode &node)
+{
+    return qobject_cast<const QUaProperty *>(&node) && node.browseName() == QUaQualifiedName(0, kIcon);
 }
 
 ///

@@ -18,6 +18,7 @@
 
 class QUaBaseDataVariable;
 class QUaBaseVariable;
+class QUaNode;
 class QUaServer;
 
 namespace VariableProperties {
@@ -47,6 +48,26 @@ void addDeclared(const QUaServer &server, QUaBaseDataVariable &variable);
 /// \return Why values were skipped: the variable has no such property or the text is no value of its data type.
 ///
 QStringList apply(const QUaServer &server, QUaBaseDataVariable &variable, const QMap<QString, QString> &values);
+
+///
+/// \brief Publishes the image of a variable as its Icon property of OPC UA Part 3, which clients may show next to it.
+/// \param variable Served variable.
+/// \param png PNG image; an empty one leaves the variable as it is, keeping an Icon a model gives it.
+///
+void setIcon(QUaBaseDataVariable &variable, const QByteArray &png);
+
+///
+/// \brief Removes the Icon property of a variable, so clients show their own icon for it again.
+/// \param variable Served variable.
+///
+void removeIcon(QUaBaseDataVariable &variable);
+
+///
+/// \brief Tells whether a node is the Icon property of its variable, which the icon setting of the variable stands for.
+/// \param node Child of a variable.
+/// \return True for a property named Icon in namespace 0.
+///
+bool isIcon(const QUaNode &node);
 
 ///
 /// \brief Returns the data type name of a variable from its DataType attribute and value.

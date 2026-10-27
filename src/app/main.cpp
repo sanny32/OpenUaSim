@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 OpenUaSim contributors
 // SPDX-License-Identifier: MIT
 
+#include "appicons.h"
 #include "application.h"
 #include "mainwindow.h"
 #include "project/projectdocument.h"
@@ -18,6 +19,7 @@ int main(int argc, char *argv[])
     Application app(argc, argv);
 
     ServerController controller;
+    controller.addressSpace().setIconImages(&AppIcons::imagePng);
     ProjectDocument document(&controller);
     document.openLast();
     controller.ensureServerCertificate();

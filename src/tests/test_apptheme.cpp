@@ -47,6 +47,7 @@ private slots:
     void paletteIconsFollowTheTheme_data();
     void paletteIconsFollowTheTheme();
     void accentIconsKeepTheirColour();
+    void variableIconsRenderAsGreyPng();
     void statusDots();
     void statusIconsGreyOutWhenDisabled();
     void messageIcons_data();
@@ -181,6 +182,35 @@ void TestAppTheme::accentIconsKeepTheirColour()
     QApplication::setPalette(AppPalette::build(true));
     QVERIFY(strokeColor(icon).lightness() > accent.lightness());
     QCOMPARE(strokeColor(icon).hue(), accent.hue());
+}
+
+void TestAppTheme::variableIconsRenderAsGreyPng()
+{
+    QApplication::setPalette(AppPalette::build(true));
+    for (const AppIcons::NamedIcon &icon : AppIcons::variableIcons()) {
+        const QByteArray png = AppIcons::imagePng(icon.name);
+        if (icon.name.isEmpty()) {
+            QVERIFY(png.isEmpty());
+            continue;
+        }
+        QVERIFY2(png.startsWith("\x89PNG"), qPrintable(icon.name));
+        const QImage image = QImage::fromData(png, "PNG");
+        QCOMPARE(image.size(), QSize(32, 32));
+        const bool monochrome = !icon.name.startsWith(QStringLiteral("status-"));
+        bool drawn = false;
+        for (int y = 0; y < image.height(); ++y) {
+            for (int x = 0; x < image.width(); ++x) {
+                const QColor color = image.pixelColor(x, y);
+                if (color.alpha() == 255) {
+                    if (monochrome)
+                        QCOMPARE(color, QColor(0x808080));
+                    drawn = true;
+                }
+            }
+        }
+        QVERIFY2(drawn, qPrintable(icon.name));
+    }
+    QVERIFY(AppIcons::imagePng(QStringLiteral("does-not-exist")).isEmpty());
 }
 
 void TestAppTheme::statusDots()

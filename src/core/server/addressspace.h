@@ -9,11 +9,14 @@
 #pragma once
 
 #include <QHash>
+#include <QSet>
 #include <QList>
 #include <QObject>
 #include <QPointer>
 #include <QStringList>
 #include <QVariant>
+
+#include <functional>
 
 #include "data/projectconfig.h"
 #include "simulation/valuesink.h"
@@ -44,6 +47,11 @@ public:
         /// \brief Quality reported with every value.
         VariableInfo::Quality quality = VariableInfo::Quality::Good;
     };
+
+    ///
+    /// \brief Renders an icon resource name, e.g. "gauge", as a PNG image; empty for an unknown name.
+    ///
+    using IconImages = std::function<QByteArray(const QString &icon)>;
 
     ///
     /// \brief Creates an empty address space on a server.
@@ -84,6 +92,12 @@ public:
     /// \param server Server that receives the nodes; must outlive this object or the next call.
     ///
     void setServer(QUaServer *server);
+
+    ///
+    /// \brief Sets how icons become the images that variables built or attached later publish in their Icon property.
+    /// \param images Renderer; without one, variables publish no Icon.
+    ///
+    void setIconImages(const IconImages &images);
 
     ///
     /// \brief Returns the number of built nodes.
@@ -150,6 +164,15 @@ public:
     /// \return False for an unknown variable.
     ///
     bool setHistorizing(const QString &nodeId, bool historizing);
+
+    ///
+    /// \brief Publishes the image of an icon in the Icon property of a variable.
+    /// \param nodeId Variable node id.
+    /// \param icon Icon resource name; an empty one, the variable type's icon, removes an Icon published for the
+    ///        variable before, and an unknown one leaves the Icon as it is.
+    /// \return False for an unknown variable.
+    ///
+    bool setIcon(const QString &nodeId, const QString &icon);
 
     ///
     /// \brief Returns the active state of a variable's alarm.
@@ -235,7 +258,12 @@ private:
     void observeVariable(QUaBaseDataVariable *variable, const QString &nodeId);
     void handleValueChanged(const QVariant &value, const bool &networkChange);
 
+    void applyIcon(const QString &nodeId, QUaBaseDataVariable &variable, const QString &icon);
+
     QUaServer *_server;
+    IconImages _iconImages;
+    // Kept across clear(): attached model variables outlive a rebuild together with their Icon.
+    QSet<QString> _publishedIcons;
     QList<QPointer<QUaNode>> _roots;
     QHash<QString, QPointer<QUaBaseDataVariable>> _variables;
     QList<QPointer<QUaBaseDataVariable>> _observedVariables;

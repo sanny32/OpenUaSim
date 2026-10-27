@@ -151,7 +151,7 @@ void addVariableChildren(QUaServer &server, QList<TreeNode> &nodes, QHash<QStrin
             const QList<QUaNode *> children = variable->browseChildren();
             for (const QUaNode *child : children) {
                 const auto *served = qobject_cast<const QUaBaseVariable *>(child);
-                if (!served)
+                if (!served || VariableProperties::isIcon(*child))
                     continue;
                 const VariableInfo info = VariableProperties::describeChild(server, *served);
                 TreeNode leaf;

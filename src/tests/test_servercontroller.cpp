@@ -212,6 +212,7 @@ void TestServerController::copyNodeDuplicatesSubtree()
 void TestServerController::updateVariableAppliesLiveSettings()
 {
     ServerController controller;
+    controller.addressSpace().setIconImages([](const QString &icon) { return icon.toLatin1(); });
     controller.setProject(project());
     QVERIFY(controller.start());
     QSignalSpy structure(&controller, &ServerController::projectChanged);
@@ -237,6 +238,10 @@ void TestServerController::updateVariableAppliesLiveSettings()
     UaTestClient client;
     QCOMPARE(client.connect(controller.server().endpointUrl()), UA_STATUSCODE_GOOD);
     QVERIFY(client.writeValue(valve.nodeId, true) != UA_STATUSCODE_GOOD);
+    QVariant icon;
+    QCOMPARE(client.readValue(valve.nodeId + QStringLiteral(".Icon"), icon), UA_STATUSCODE_GOOD);
+    QCOMPARE(icon.toByteArray(), QByteArrayLiteral("droplet"));
+    QVERIFY(controller.snapshot().variables.value(valve.nodeId).isEmpty());
 }
 
 void TestServerController::updateVariableRenameRebuilds()

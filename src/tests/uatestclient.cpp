@@ -205,6 +205,26 @@ UA_StatusCode UaTestClient::readValue(const QString &nodeId, QVariant &value)
 }
 
 ///
+/// \brief Reads the DataType attribute of a variable.
+/// \param nodeId Node id in XML notation.
+/// \param dataType Receives the data type node id on success.
+/// \return Service result.
+///
+UA_StatusCode UaTestClient::readDataType(const QString &nodeId, QUaNodeId &dataType)
+{
+    UA_NodeId id = QUaNodeId(nodeId).toUaNodeId();
+    UA_NodeId uaDataType;
+    UA_NodeId_init(&uaDataType);
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
+    runInWorker([&] { status = UA_Client_readDataTypeAttribute(_client, id, &uaDataType); });
+    if (status == UA_STATUSCODE_GOOD)
+        dataType = QUaNodeId(uaDataType);
+    UA_NodeId_clear(&uaDataType);
+    UA_NodeId_clear(&id);
+    return status;
+}
+
+///
 /// \brief Calls a method of an object.
 /// \param objectId Node id of the object.
 /// \param methodId Node id of the method.

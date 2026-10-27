@@ -6,6 +6,7 @@
 /// \brief Implements the theme-aware application icons.
 ///
 
+#include <QBuffer>
 #include <QCoreApplication>
 #include <QFile>
 #include <QGuiApplication>
@@ -25,7 +26,9 @@
 namespace {
 
 const QByteArray kCurrentColor = QByteArrayLiteral("currentColor");
+const QByteArray kPublishedIconColor = QByteArrayLiteral("#808080");
 constexpr int kDarkAccentLightening = 140;
+constexpr int kPublishedIconSize = 32;
 
 ///
 /// \brief Where an icon takes the colour that replaces \c currentColor; Accent is the status colour while enabled.
@@ -282,6 +285,35 @@ QIcon messageIcon(QStyle::StandardPixmap pixmap)
     return tinted("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">"
                       + body + "</svg>",
                   Tint::Status, kind);
+}
+
+///
+/// \brief Renders an icon as the PNG image a variable publishes to clients, in a grey readable on light and dark
+///        backgrounds since clients do not know the application theme.
+/// \param name Resource name under ":/icons/", without the ".svg" extension.
+/// \return 32x32 PNG image; empty when the resource does not exist.
+///
+QByteArray imagePng(const QString &name)
+{
+    static QHash<QString, QByteArray> cache;
+    const auto cached = cache.constFind(name);
+    if (cached != cache.cend())
+        return *cached;
+
+    QByteArray png;
+    QByteArray svg = readSvg(name);
+    if (!svg.isEmpty()) {
+        QImage image(kPublishedIconSize, kPublishedIconSize, QImage::Format_ARGB32);
+        image.fill(Qt::transparent);
+        QPainter painter(&image);
+        QSvgRenderer(svg.replace(kCurrentColor, kPublishedIconColor)).render(&painter);
+        painter.end();
+        QBuffer buffer(&png);
+        buffer.open(QIODevice::WriteOnly);
+        image.save(&buffer, "PNG");
+    }
+    cache.insert(name, png);
+    return png;
 }
 
 ///

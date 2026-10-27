@@ -493,7 +493,7 @@ bool ServerController::applyPropertyEdits(const QList<PropertyInfo> &edited, QMa
 }
 
 ///
-/// \brief Applies the access, quality, historizing and simulation of a served variable without rebuilding the
+/// \brief Applies the access, quality, historizing, icon and simulation of a served variable without rebuilding the
 ///        address space.
 /// \param node Stored definition with the server node id.
 /// \param valueEdited Whether the initial value changed and becomes the current value.
@@ -503,6 +503,7 @@ void ServerController::applyLiveSettings(const NodeDefinition &node, bool valueE
     _addressSpace.setAccess(node.nodeId, node.access);
     _addressSpace.setQuality(node.nodeId, node.quality);
     _addressSpace.setHistorizing(node.nodeId, node.historizing);
+    _addressSpace.setIcon(node.nodeId, node.icon);
     if (valueEdited)
         _addressSpace.setValue(node.nodeId, node.initialValue);
     _engine.updateVariable({ node.nodeId, node.dataType, node.simulation, node.arrayLength });

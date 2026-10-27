@@ -52,6 +52,8 @@ private slots:
     void reportsUnknownPropertiesAndInvalidValues();
     void describesTwoStateDiscreteProperties();
     void baseVariableHasNoProperties();
+    void iconIsPublishedAsImagePng();
+    void emptyIconKeepsTheIconOfTheModel();
 };
 
 void TestVariableProperties::textRoundTrips_data()
@@ -198,6 +200,51 @@ void TestVariableProperties::baseVariableHasNoProperties()
     QCOMPARE(properties.first().value, QStringLiteral("spare"));
     QVERIFY(VariableProperties::apply(server, *plain, { { QStringLiteral("Note"), QStringLiteral("used") } }).isEmpty());
     QCOMPARE(note->value().toString(), QStringLiteral("used"));
+}
+
+void TestVariableProperties::iconIsPublishedAsImagePng()
+{
+    QUaServer server;
+    QUaBaseDataVariable *level = server.objectsFolder()->addBaseDataVariable(
+        QUaQualifiedName(1, QStringLiteral("Level")), QUaNodeId(1, QStringLiteral("Level")));
+    const QByteArray gauge = QByteArrayLiteral("\x89PNG gauge");
+    const QByteArray thermometer = QByteArrayLiteral("\x89PNG thermometer");
+
+    VariableProperties::setIcon(*level, gauge);
+    VariableProperties::setIcon(*level, thermometer);
+
+    const auto *icon = server.nodeById<QUaProperty>(QUaNodeId(1, QStringLiteral("Level.Icon")));
+    QVERIFY(icon);
+    QVERIFY(VariableProperties::isIcon(*icon));
+    QCOMPARE(icon->browseName(), QUaQualifiedName(0, QStringLiteral("Icon")));
+    QCOMPARE(icon->dataTypeNodeId(), QStringLiteral("ns=0;i=%1").arg(UA_NS0ID_IMAGEPNG));
+    QCOMPARE(icon->value().toByteArray(), thermometer);
+    QCOMPARE(level->browseChildren().size(), 1);
+    QVERIFY(VariableProperties::describe(server, *level).isEmpty());
+}
+
+void TestVariableProperties::emptyIconKeepsTheIconOfTheModel()
+{
+    QUaServer server;
+    QUaFolderObject *objects = server.objectsFolder();
+    QUaBaseDataVariable *level = objects->addBaseDataVariable(QUaQualifiedName(1, QStringLiteral("Level")));
+    VariableProperties::setIcon(*level, QByteArray());
+    QVERIFY(level->browseChildren().isEmpty());
+
+    QUaProperty *modelIcon = level->addProperty(QUaQualifiedName(0, QStringLiteral("Icon")));
+    modelIcon->setValue(QByteArrayLiteral("model"));
+    VariableProperties::setIcon(*level, QByteArray());
+    QCOMPARE(modelIcon->value().toByteArray(), QByteArrayLiteral("model"));
+
+    QUaBaseDataVariable *other = objects->addBaseDataVariable(QUaQualifiedName(1, QStringLiteral("Other")));
+    QUaProperty *note = other->addProperty(QUaQualifiedName(1, QStringLiteral("Icon")));
+    QVERIFY(!VariableProperties::isIcon(*note));
+    QVERIFY(!VariableProperties::isIcon(*level));
+
+    VariableProperties::removeIcon(*level);
+    VariableProperties::removeIcon(*other);
+    QVERIFY(level->browseChildren().isEmpty());
+    QCOMPARE(other->browseChildren(), QList<QUaNode *>({ note }));
 }
 
 QTEST_GUILESS_MAIN(TestVariableProperties)

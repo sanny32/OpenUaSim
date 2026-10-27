@@ -62,6 +62,14 @@ QIcon statusDot(StatusKind kind);
 QIcon messageIcon(QStyle::StandardPixmap pixmap);
 
 ///
+/// \brief Renders an icon as the PNG image a variable publishes to clients, in a grey readable on light and dark
+///        backgrounds since clients do not know the application theme.
+/// \param name Resource name under ":/icons/", without the ".svg" extension.
+/// \return 32x32 PNG image; empty when the resource does not exist.
+///
+QByteArray imagePng(const QString &name);
+
+///
 /// \brief Lists the icons a variable can be given.
 /// \return Icons in picker order.
 ///

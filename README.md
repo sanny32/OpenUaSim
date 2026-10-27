@@ -22,6 +22,8 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 - NodeSet2 companion model import, namespace export and instantiation of imported
   object types and standard variable types. Supported variables in imported
   models can use simulation, alarms and history.
+- Variable icons published to clients as the standard `Icon` property (32×32
+  PNG, `ImagePNG`).
 - `opc.tcp` endpoints with configurable security policies and message security
   modes, anonymous access, username/password and X.509 user certificate
   authentication, certificate trust validation and a configurable session limit.

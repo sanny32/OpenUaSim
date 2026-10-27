@@ -267,6 +267,15 @@ void AddressSpace::setServer(QUaServer *server)
 }
 
 ///
+/// \brief Sets how icons become the images that variables built or attached later publish in their Icon property.
+/// \param images Renderer; without one, variables publish no Icon.
+///
+void AddressSpace::setIconImages(const IconImages &images)
+{
+    _iconImages = images;
+}
+
+///
 /// \brief Returns the number of built nodes.
 /// \return Folders, objects and variables built by the last build().
 ///
@@ -376,6 +385,43 @@ bool AddressSpace::setHistorizing(const QString &nodeId, bool historizing)
         return false;
     applyHistorizing(variable, historizing);
     return true;
+}
+
+///
+/// \brief Publishes the image of an icon in the Icon property of a variable.
+/// \param nodeId Variable node id.
+/// \param icon Icon resource name; an empty one, the variable type's icon, removes an Icon published for the
+///        variable before, and an unknown one leaves the Icon as it is.
+/// \return False for an unknown variable.
+///
+bool AddressSpace::setIcon(const QString &nodeId, const QString &icon)
+{
+    QUaBaseDataVariable *variable = _variables.value(nodeId);
+    if (!variable)
+        return false;
+    applyIcon(nodeId, *variable, icon);
+    return true;
+}
+
+///
+/// \brief Publishes the image the icon renderer gives an icon in the Icon property of a variable.
+/// \param nodeId Variable node id.
+/// \param variable Served variable.
+/// \param icon Icon resource name; an empty one removes an Icon published for the variable before, keeping one a
+///        model gives it. Nothing is published for an unknown one or without a renderer.
+///
+void AddressSpace::applyIcon(const QString &nodeId, QUaBaseDataVariable &variable, const QString &icon)
+{
+    if (icon.isEmpty()) {
+        if (_publishedIcons.remove(nodeId))
+            VariableProperties::removeIcon(variable);
+        return;
+    }
+    const QByteArray png = _iconImages ? _iconImages(icon) : QByteArray();
+    if (png.isEmpty())
+        return;
+    VariableProperties::setIcon(variable, png);
+    _publishedIcons.insert(nodeId);
 }
 
 ///
@@ -759,7 +805,7 @@ QUaBaseDataVariable *AddressSpace::addVariable(QUaNode *parent, const NodeDefini
 }
 
 ///
-/// \brief Applies the historizing, value, quality, access and properties of a definition to a variable and serves
+/// \brief Applies the historizing, value, quality, access, icon and properties of a definition to a variable and serves
 ///        it by node id.
 /// \param variable Built or attached variable.
 /// \param node Variable definition; an invalid initial value keeps the current value.
@@ -777,6 +823,7 @@ void AddressSpace::registerVariable(QUaBaseDataVariable *variable, const NodeDef
     const VariableShape shape { node.dataType, node.arrayLength, node.quality };
     setTypedValue(variable, node.initialValue.isValid() ? node.initialValue : variable->value(), shape);
     applyAccess(variable, node.access);
+    applyIcon(node.nodeId, *variable, node.icon);
     _variables.insert(node.nodeId, variable);
     _shapes.insert(node.nodeId, shape);
     observeVariable(variable, node.nodeId);

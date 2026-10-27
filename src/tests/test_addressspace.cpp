@@ -4,6 +4,7 @@
 #include <QSignalSpy>
 #include <QTest>
 
+#include <QUaProperty>
 #include <QUaServer>
 
 #include "server/addressspace.h"
@@ -74,6 +75,8 @@ private slots:
     void mapsStatusCodesToQualities();
     void clientReadsHistoryWithinLimits();
     void setHistorizingStopsAndResumesRecording();
+    void publishesVariableIcons();
+    void clientReadsVariableIcon();
 };
 
 void TestAddressSpace::buildsDefaultProject()
@@ -573,6 +576,61 @@ void TestAddressSpace::setHistorizingStopsAndResumesRecording()
     QVariantList history;
     QCOMPARE(client.readHistory(level.nodeId, history), UA_STATUSCODE_GOOD);
     QCOMPARE(history, QVariantList({ 2.0, 4.0 }));
+}
+
+void TestAddressSpace::publishesVariableIcons()
+{
+    QUaServer server;
+    AddressSpace space(&server);
+    NodeDefinition level = variable(QStringLiteral("Level"), QStringLiteral("Double"));
+    level.icon = QStringLiteral("gauge");
+    const NodeDefinition plain = variable(QStringLiteral("Plain"), QStringLiteral("Double"));
+    const QUaNodeId levelIcon(QStringLiteral("ns=1;s=Test.Level.Icon"));
+
+    QVERIFY(space.build({ folder(QStringLiteral("Test"), { level, plain }) }).isEmpty());
+    QVERIFY(!server.nodeById<QUaProperty>(levelIcon));
+
+    space.setIconImages([](const QString &icon) { return icon == u"unknown" ? QByteArray() : icon.toLatin1(); });
+    QVERIFY(space.build({ folder(QStringLiteral("Test"), { level, plain }) }).isEmpty());
+    QCOMPARE(server.nodeById<QUaProperty>(levelIcon)->value().toByteArray(), QByteArrayLiteral("gauge"));
+    QVERIFY(server.nodeById<QUaBaseDataVariable>(QUaNodeId(plain.nodeId))->browseChildren().isEmpty());
+
+    QVERIFY(space.setIcon(level.nodeId, QStringLiteral("thermometer")));
+    QCOMPARE(server.nodeById<QUaProperty>(levelIcon)->value().toByteArray(), QByteArrayLiteral("thermometer"));
+    QVERIFY(space.setIcon(level.nodeId, QStringLiteral("unknown")));
+    QCOMPARE(server.nodeById<QUaProperty>(levelIcon)->value().toByteArray(), QByteArrayLiteral("thermometer"));
+    QVERIFY(!space.setIcon(QStringLiteral("ns=1;s=None"), QStringLiteral("gauge")));
+
+    QVERIFY(space.setIcon(level.nodeId, QString()));
+    QVERIFY(!server.nodeById<QUaProperty>(levelIcon));
+    auto *served = server.nodeById<QUaBaseDataVariable>(QUaNodeId(plain.nodeId));
+    QUaProperty *modelIcon = served->addProperty(QUaQualifiedName(0, QStringLiteral("Icon")));
+    QVERIFY(space.setIcon(plain.nodeId, QString()));
+    QCOMPARE(served->browseChildren(), QList<QUaNode *>({ modelIcon }));
+}
+
+void TestAddressSpace::clientReadsVariableIcon()
+{
+    ProjectConfig project = serverProject(TestPort::freePort());
+    NodeDefinition level = variable(QStringLiteral("Level"), QStringLiteral("Double"));
+    level.icon = QStringLiteral("gauge");
+    project.nodes = { folder(QStringLiteral("Test"), { level }) };
+    const QByteArray png = QByteArrayLiteral("\x89PNG\r\n\x1a\n");
+
+    SimServer server;
+    AddressSpace space(server.uaServer());
+    space.setIconImages([&png](const QString &) { return png; });
+    QVERIFY(space.build(project.nodes).isEmpty());
+    QVERIFY(server.start(project));
+
+    UaTestClient client;
+    QCOMPARE(client.connect(server.endpointUrl()), UA_STATUSCODE_GOOD);
+    QVariant value;
+    QCOMPARE(client.readValue(QStringLiteral("ns=1;s=Test.Level.Icon"), value), UA_STATUSCODE_GOOD);
+    QCOMPARE(value.toByteArray(), png);
+    QUaNodeId dataType;
+    QCOMPARE(client.readDataType(QStringLiteral("ns=1;s=Test.Level.Icon"), dataType), UA_STATUSCODE_GOOD);
+    QCOMPARE(dataType, QUaNodeId(0, quint32(UA_NS0ID_IMAGEPNG)));
 }
 
 QTEST_GUILESS_MAIN(TestAddressSpace)
