@@ -263,6 +263,7 @@ private slots:
     void certificatesPageOwnFolderActions();
     void certificatesPageImportsDroppedFiles();
     void certificatesPageShowsPem();
+    void certificatesPageKeepsSelectionAfterMove();
     void certificatesPageClearsDetailsOfEmptyFolder();
     void certificateDetailsShowEveryLine();
     void certificateDetailsKeepTheirWidth();
@@ -1294,6 +1295,45 @@ void TestPages::certificatesPageClearsDetailsOfEmptyFolder()
     QVERIFY(child<QTableWidget>(page, "detailsView")->rowCount() > 0);
     QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Trusted))));
     QCOMPARE(child<QTableWidget>(page, "detailsView")->rowCount(), 0);
+}
+
+///
+/// \brief Keeps the trusted or rejected certificate selected, or its neighbour when it left the shown folder.
+///
+void TestPages::certificatesPageKeepsSelectionAfterMove()
+{
+    CertificatesPage page;
+    page.setCertificates(_snapshot.certificates);
+    auto *view = child<QTableView>(page, "certificatesView");
+    auto *name = child<QLabel>(page, "cardNameLabel");
+    const auto moved = [this](const QString &commonName, CertificateInfo::Category category) {
+        QList<CertificateInfo> certificates = _snapshot.certificates;
+        for (qsizetype i = 0; i < certificates.size(); ++i) {
+            if (certificates.at(i).commonName != commonName)
+                continue;
+            CertificateInfo certificate = certificates.takeAt(i);
+            certificate.category = category;
+            certificate.filePath = QStringLiteral("moved/") + certificate.filePath;
+            certificates.append(certificate);
+            break;
+        }
+        return certificates;
+    };
+
+    ViewSetup::selectRow(view, 2);
+    QCOMPARE(name->text(), QStringLiteral("EngineeringTool"));
+    page.setCertificates(moved(QStringLiteral("EngineeringTool"), CertificateInfo::Category::Rejected));
+    QCOMPARE(view->currentIndex().row(), _snapshot.certificates.size() - 1);
+    QCOMPARE(name->text(), QStringLiteral("EngineeringTool"));
+
+    page.setCertificates(_snapshot.certificates);
+    QVERIFY(ViewSetup::selectById(child<QTreeView>(page, "categoriesList"),
+                                  QString::number(int(CertificateInfo::Category::Trusted))));
+    ViewSetup::selectRow(view, 1);
+    QCOMPARE(name->text(), QStringLiteral("EngineeringTool"));
+    page.setCertificates(moved(QStringLiteral("EngineeringTool"), CertificateInfo::Category::Rejected));
+    QCOMPARE(view->currentIndex().row(), 1);
+    QCOMPARE(name->text(), QStringLiteral("SCADA_System"));
 }
 
 void TestPages::certificatesPageShowsPem()

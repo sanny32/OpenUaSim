@@ -191,12 +191,15 @@ CertificatesPage::~CertificatesPage()
 }
 
 ///
-/// \brief Shows the certificates of every store folder.
+/// \brief Shows the certificates of every store folder, keeping the selected folder and certificate.
 /// \param certificates Certificates to show.
 ///
 void CertificatesPage::setCertificates(const QList<CertificateInfo> &certificates)
 {
     const QString previous = ViewSetup::currentId(ui->categoriesList);
+    const QModelIndex selected = ui->certificatesView->currentIndex();
+    const QString selectedFingerprint =
+        selected.isValid() ? _certificatesModel->item(selected.row()).fingerprint : QString();
     _certificates = certificates;
     _categoriesModel->setNodes(TreeBuilders::certificateCategories(certificates));
     QHeaderView *header = ui->categoriesList->header();
@@ -207,6 +210,27 @@ void CertificatesPage::setCertificates(const QList<CertificateInfo> &certificate
 
     if (!ViewSetup::selectById(ui->categoriesList, previous.isEmpty() ? TreeBuilders::allCertificatesId() : previous))
         ViewSetup::applyInitialState(ui->categoriesList);
+    if (selected.isValid())
+        reselectCertificate(selectedFingerprint, selected.row());
+}
+
+///
+/// \brief Selects a certificate again after the list was rebuilt, e.g. once it was trusted or rejected.
+/// \param fingerprint SHA-1 fingerprint of the certificate; it keeps it while it moves between folders.
+/// \param row Row it had; its neighbour is selected when the certificate left the shown folder.
+///
+void CertificatesPage::reselectCertificate(const QString &fingerprint, int row)
+{
+    const int rows = _certificatesModel->rowCount();
+    if (rows == 0)
+        return;
+    for (int i = 0; i < rows; ++i) {
+        if (_certificatesModel->item(i).fingerprint == fingerprint) {
+            ViewSetup::selectRow(ui->certificatesView, i);
+            return;
+        }
+    }
+    ViewSetup::selectRow(ui->certificatesView, qMin(row, rows - 1));
 }
 
 ///
@@ -229,10 +253,7 @@ void CertificatesPage::changeEvent(QEvent *event)
         buildImportMenu();
         if (!CertificateGenerator::isAvailable())
             ui->generateButton->setToolTip(tr("This build has no encryption support"));
-        const int certificateRow = ui->certificatesView->currentIndex().row();
         setCertificates(_certificates);
-        if (certificateRow > 0)
-            ViewSetup::selectRow(ui->certificatesView, certificateRow);
         _certificatesModel->retranslate();
         fitDetailsWidth();
     }

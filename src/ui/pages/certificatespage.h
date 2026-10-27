@@ -45,7 +45,7 @@ public:
     ~CertificatesPage() override;
 
     ///
-    /// \brief Shows the certificates of every store folder.
+    /// \brief Shows the certificates of every store folder, keeping the selected folder and certificate.
     /// \param certificates Certificates to show.
     ///
     void setCertificates(const QList<CertificateInfo> &certificates);
@@ -108,6 +108,7 @@ private:
     void fitDetailsWidth();
     void showCategory(const QModelIndex &current);
     void showCertificate(const QModelIndex &current);
+    void reselectCertificate(const QString &fingerprint, int row);
     void showDetailValue(const QModelIndex &index);
     void clearDetails();
     int currentCategory() const;
