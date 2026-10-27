@@ -8,58 +8,33 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 
 ## Features
 
-- Start, stop and restart the OPC UA server from the toolbar or the **Server**
-  menu; the status page and status bar show the endpoint, uptime, node count and
-  connected clients.
-- Build the address space under the Objects folder from folders, objects and
-  variables; duplicate, copy and paste whole subtrees, delete several nodes at
-  once, rename any node and edit a variable's data type, access level,
-  initial value, quality and simulation. Forcing a Bad or Uncertain quality
-  tests how clients handle it. Clients read and write the variables and call
-  methods added to folders and objects: Reset restores the variables next to
-  it to their initial values, SetValue(name, value) sets one of them.
-- Drive variables with sine, square, triangle, ramp, random and step waveforms
-  with configurable interval, period, amplitude and offset, toggle Booleans,
-  count up, or cycle through a list of values such as machine states; values
-  are converted to the variable's built-in data type. Array variables of up
-  to 1000 elements run the simulation with the phase spread across elements.
-- Raise OPC UA alarms from variables: exclusive level alarms with LowLow, Low,
-  High and HighHigh limits on numbers, off-normal alarms on Booleans. Clients
-  receive the alarm events and acknowledge them; the Objects page shows the
-  alarm state and the log records every activation.
-- Mark variables as Historizing to let clients read their recent values with
-  HistoryRead. The history lives in memory; **Server → Server Settings** sets
-  how many values each variable keeps and, optionally, for how many minutes.
-- Serve `opc.tcp` endpoints with a choice of security policy and mode, and accept
-  anonymous logins or the username/password logins listed in **Server → User
-  Accounts**. Set the application name, URI and
-  session limit in **Server → Server Settings**.
-- Register the running server at a Local Discovery Server (LDS) so clients find
-  it with FindServers: **Server → Server Settings** sets the LDS URL and how
-  often the registration is renewed; stopping the server unregisters it. With
-  a server certificate the registration is encrypted, so the LDS must trust it.
-- Manage certificates in the built-in PKI store (own, trusted, rejected,
-  issuers): install the server certificate with its key, import, trust, reject,
-  export and delete certificates. Client certificates the server rejects land in
-  the rejected folder for review.
-- Keep the simulation in `.ouasim` JSON projects — New, Open, Save and Save As;
-  the last project reopens on startup and unsaved changes are confirmed before
-  they are dropped.
-- Import NodeSet2 companion models, browse their objects and variables on the
-  Objects page, and remove them again from the Namespaces page. Export the
-  project nodes, or any other served namespace, as NodeSet2.
-- Add instances of the object types of imported models and of standard
-  variable types such as AnalogItemType: the type adds its mandatory children,
-  whose variables are simulated and alarmed like any other. Variables of data
-  item types get the properties their type declares, such as the EURange,
-  EngineeringUnits and InstrumentRange of an analog item; the Objects page lists
-  them below their variable and edits their values.
-- Inspect the standard types in use, the namespace array, active and closed
-  sessions with their subscriptions, and the server log filtered by level and
-  category; export the filtered log to CSV.
-- Switch between light and dark application themes, or follow the system.
-- Use the interface in English or Russian; **View → Language** switches it at
-  once, without restarting.
+- Custom address spaces with folders, objects and typed scalar or array
+  variables, configurable access levels, initial values and Good, Bad or
+  Uncertain quality for testing client behavior.
+- Variable simulation with sine, square, triangle, ramp, random and step
+  waveforms, Boolean toggles, counters and value lists. Configurable update
+  interval, period, amplitude and offset; arrays of up to 1000 elements with
+  phase offsets between elements.
+- Callable OPC UA methods on folders and objects: `Reset` restores sibling
+  variables to their initial values; `SetValue(name, value)` sets a named
+  sibling variable.
+- Exclusive level alarms with LowLow, Low, High and HighHigh limits for numeric
+  variables, and off-normal alarms for Booleans, with event notifications and
+  client acknowledgement.
+- In-memory value history accessible through `HistoryRead`, with configurable
+  retention by value count and age.
+- NodeSet2 companion model import and namespace export. Instances of imported
+  object types and standard variable types include mandatory children and
+  declared properties such as `EURange`, `EngineeringUnits` and
+  `InstrumentRange`. Supported variables in imported models can use simulation,
+  alarms and history.
+- `opc.tcp` endpoints with configurable security policies and message security
+  modes, anonymous and username/password authentication, and a configurable
+  session limit.
+- Certificate trust validation through a PKI store with trusted, rejected and
+  issuer certificates.
+- Local Discovery Server (LDS) registration with automatic renewal, allowing
+  clients to find the server through `FindServers`.
 
 ### Limitations
 
@@ -69,9 +44,6 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 - The value history holds at most 5 000 000 values across all variables, an
   array value counting as its length; beyond that the oldest values of any
   variable are dropped first.
-- Nodes of imported models are read-only on the Objects page, and their values
-  there refresh only when the address space is rebuilt. Removing a model
-  restarts a running server, which disconnects its clients.
 
 ## Quick start
 
