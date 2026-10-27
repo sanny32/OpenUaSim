@@ -899,6 +899,10 @@
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
+    <message>
+        <source>&amp;Copy</source>
+        <translation>&amp;Копировать</translation>
+    </message>
 </context>
 <context>
     <name>ListenerSettingsBuilder</name>

@@ -108,6 +108,7 @@ private slots:
     void eventLogFollowsNewRowsAtBottom();
     void eventLogKeepsPositionWhenScrolledUp();
     void eventLogCloseButtonRequestsClose();
+    void eventLogCopiesSelectedMessage();
     void appStyleMessageBoxIconSize();
     void appStyleMessageBoxVerticalSpace();
     void appStylePanelsAndSeparators();
@@ -392,6 +393,39 @@ void TestWidgets::eventLogCloseButtonRequestsClose()
 
     close->click();
     QCOMPARE(closed.count(), 1);
+}
+
+void TestWidgets::eventLogCopiesSelectedMessage()
+{
+    LogModel model;
+    LogEntry first;
+    first.message = QStringLiteral("Socket closed");
+    LogEntry second;
+    second.message = QStringLiteral("Cannot validate the server certificate");
+    model.setItems({ first, second });
+    EventLogWidget widget;
+    widget.setLogModel(&model);
+    auto *view = widget.findChild<QTableView *>();
+    QCOMPARE(view->contextMenuPolicy(), Qt::ActionsContextMenu);
+    QCOMPARE(view->actions().size(), 1);
+    QAction *copy = view->actions().constFirst();
+    QCOMPARE(copy->shortcut(), QKeySequence(QKeySequence::Copy));
+    QVERIFY(!copy->icon().isNull());
+
+    QGuiApplication::clipboard()->setText(QStringLiteral("untouched"));
+    copy->trigger();
+    QCOMPARE(QGuiApplication::clipboard()->text(), QStringLiteral("untouched"));
+
+    view->selectRow(1);
+    copy->trigger();
+    QCOMPARE(QGuiApplication::clipboard()->text(), second.message);
+
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+    view->setFocus();
+    view->selectRow(0);
+    QTest::keySequence(view, QKeySequence::Copy);
+    QCOMPARE(QGuiApplication::clipboard()->text(), first.message);
 }
 
 ///

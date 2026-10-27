@@ -6,6 +6,8 @@
 /// \brief Implements the compact event log panel shown below the pages.
 ///
 
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QHeaderView>
 #include <QScrollBar>
 
@@ -32,12 +34,15 @@ EventLogWidget::EventLogWidget(QWidget *parent)
     ui->setupUi(this);
     ui->clearButton->setIcon(AppIcons::icon(QStringLiteral("trash")));
     ui->closeButton->setIcon(AppIcons::icon(QStringLiteral("x")));
+    ui->actionCopyMessage->setIcon(AppIcons::icon(QStringLiteral("copy")));
+    ui->logView->addAction(ui->actionCopyMessage);
     ViewSetup::configureTable(ui->logView);
     // A short strip under the pages: compact rows fit more entries than the delegate's default.
     ui->logView->verticalHeader()->setMinimumSectionSize(kCompactRowHeight);
     ui->logView->verticalHeader()->setDefaultSectionSize(kCompactRowHeight);
     connect(ui->clearButton, &QToolButton::clicked, this, &EventLogWidget::clearLog);
     connect(ui->closeButton, &QToolButton::clicked, this, &EventLogWidget::closeRequested);
+    connect(ui->actionCopyMessage, &QAction::triggered, this, &EventLogWidget::copyMessage);
 }
 
 ///
@@ -105,6 +110,17 @@ void EventLogWidget::clearLog()
 {
     if (_model)
         _model->clear();
+}
+
+///
+/// \brief Puts the message of the selected entry on the clipboard.
+///
+void EventLogWidget::copyMessage()
+{
+    const QModelIndex current = ui->logView->currentIndex();
+    if (!current.isValid() || !ui->logView->selectionModel()->isRowSelected(current.row()))
+        return;
+    QGuiApplication::clipboard()->setText(current.siblingAtColumn(LogModel::ColMessage).data().toString());
 }
 
 ///

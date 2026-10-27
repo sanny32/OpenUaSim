@@ -65,6 +65,7 @@ protected:
 
 private:
     void clearLog();
+    void copyMessage();
     void rememberScrollPosition();
     void followNewRows();
     void scrollToBottom();
