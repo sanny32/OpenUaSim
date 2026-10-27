@@ -108,7 +108,7 @@ private slots:
     void eventLogFollowsNewRowsAtBottom();
     void eventLogKeepsPositionWhenScrolledUp();
     void eventLogCloseButtonRequestsClose();
-    void eventLogCopiesSelectedMessage();
+    void eventLogCopiesSelectedEntry();
     void appStyleMessageBoxIconSize();
     void appStyleMessageBoxVerticalSpace();
     void appStylePanelsAndSeparators();
@@ -395,14 +395,19 @@ void TestWidgets::eventLogCloseButtonRequestsClose()
     QCOMPARE(closed.count(), 1);
 }
 
-void TestWidgets::eventLogCopiesSelectedMessage()
+void TestWidgets::eventLogCopiesSelectedEntry()
 {
     LogModel model;
+    const QDateTime time(QDate(2026, 10, 27), QTime(9, 5, 18, 982));
     LogEntry first;
+    first.time = time;
     first.message = QStringLiteral("Socket closed");
     LogEntry second;
+    second.time = time;
+    second.level = LogEntry::Level::Error;
     second.message = QStringLiteral("Cannot validate the server certificate");
     model.setItems({ first, second });
+    const QString stamp = Formatting::preciseDateTime(time);
     EventLogWidget widget;
     widget.setLogModel(&model);
     auto *view = widget.findChild<QTableView *>();
@@ -418,14 +423,14 @@ void TestWidgets::eventLogCopiesSelectedMessage()
 
     view->selectRow(1);
     copy->trigger();
-    QCOMPARE(QGuiApplication::clipboard()->text(), second.message);
+    QCOMPARE(QGuiApplication::clipboard()->text(), stamp + QStringLiteral("\tERROR\t") + second.message);
 
     widget.show();
     QVERIFY(QTest::qWaitForWindowExposed(&widget));
     view->setFocus();
     view->selectRow(0);
     QTest::keySequence(view, QKeySequence::Copy);
-    QCOMPARE(QGuiApplication::clipboard()->text(), first.message);
+    QCOMPARE(QGuiApplication::clipboard()->text(), stamp + QStringLiteral("\tINFO\t") + first.message);
 }
 
 ///

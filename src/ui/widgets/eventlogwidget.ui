@@ -179,7 +179,7 @@
     </widget>
    </item>
   </layout>
-  <action name="actionCopyMessage">
+  <action name="actionCopyEntry">
    <property name="text">
     <string>&amp;Copy</string>
    </property>

@@ -34,15 +34,15 @@ EventLogWidget::EventLogWidget(QWidget *parent)
     ui->setupUi(this);
     ui->clearButton->setIcon(AppIcons::icon(QStringLiteral("trash")));
     ui->closeButton->setIcon(AppIcons::icon(QStringLiteral("x")));
-    ui->actionCopyMessage->setIcon(AppIcons::icon(QStringLiteral("copy")));
-    ui->logView->addAction(ui->actionCopyMessage);
+    ui->actionCopyEntry->setIcon(AppIcons::icon(QStringLiteral("copy")));
+    ui->logView->addAction(ui->actionCopyEntry);
     ViewSetup::configureTable(ui->logView);
     // A short strip under the pages: compact rows fit more entries than the delegate's default.
     ui->logView->verticalHeader()->setMinimumSectionSize(kCompactRowHeight);
     ui->logView->verticalHeader()->setDefaultSectionSize(kCompactRowHeight);
     connect(ui->clearButton, &QToolButton::clicked, this, &EventLogWidget::clearLog);
     connect(ui->closeButton, &QToolButton::clicked, this, &EventLogWidget::closeRequested);
-    connect(ui->actionCopyMessage, &QAction::triggered, this, &EventLogWidget::copyMessage);
+    connect(ui->actionCopyEntry, &QAction::triggered, this, &EventLogWidget::copyEntry);
 }
 
 ///
@@ -113,14 +113,19 @@ void EventLogWidget::clearLog()
 }
 
 ///
-/// \brief Puts the message of the selected entry on the clipboard.
+/// \brief Puts the time, level and message of the selected entry on the clipboard, tab-separated.
 ///
-void EventLogWidget::copyMessage()
+void EventLogWidget::copyEntry()
 {
     const QModelIndex current = ui->logView->currentIndex();
     if (!current.isValid() || !ui->logView->selectionModel()->isRowSelected(current.row()))
         return;
-    QGuiApplication::clipboard()->setText(current.siblingAtColumn(LogModel::ColMessage).data().toString());
+    const QStringList fields = {
+        current.siblingAtColumn(LogModel::ColTime).data().toString(),
+        current.siblingAtColumn(LogModel::ColLevel).data().toString(),
+        current.siblingAtColumn(LogModel::ColMessage).data().toString(),
+    };
+    QGuiApplication::clipboard()->setText(fields.join(QLatin1Char('\t')));
 }
 
 ///
