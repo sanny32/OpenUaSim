@@ -51,6 +51,7 @@ void TestTreeBuilders::certificateCategories()
         QVERIFY(!nodes.at(i).separatorAbove);
     }
     QVERIFY(nodes.last().separatorAbove);
+    QCOMPARE(nodes.last().icon, QStringLiteral("certificates"));
     bool allIsCategory = true;
     TreeBuilders::allCertificatesId().toInt(&allIsCategory);
     QVERIFY(!allIsCategory);

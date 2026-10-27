@@ -108,7 +108,7 @@ QList<TreeNode> certificateCategories(const QList<CertificateInfo> &certificates
                                   QString::number(static_cast<int>(category))));
     }
     TreeNode all = categoryNode(QCoreApplication::translate("TreeBuilders", "All Certificates"), certificates.size(),
-                                QStringLiteral("list"), allCertificatesId());
+                                QStringLiteral("certificates"), allCertificatesId());
     all.separatorAbove = true;
     nodes.append(all);
     return nodes;
