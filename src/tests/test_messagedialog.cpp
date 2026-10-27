@@ -50,6 +50,7 @@ private slots:
     void contentSitsOnBaseAndActionIsFilled();
     void fitsShortTextWithoutEmptySpace();
     void wrapsLongTextAtTheMaximumWidth();
+    void shortNoticeKeepsTheMinimumWidth();
 };
 
 void TestMessageDialog::fitsShortTextWithoutEmptySpace()
@@ -117,7 +118,17 @@ void TestMessageDialog::hidesEmptyDetails()
     dialog->show();
     QVERIFY(!child<QLabel>(*dialog, "detailsLabel")->isVisible());
     QVERIFY(QTest::qWaitForWindowExposed(dialog.data()));
-    QVERIFY2(dialog->width() >= 520, qPrintable(QString::number(dialog->width())));
+    QVERIFY2(dialog->width() >= 360, qPrintable(QString::number(dialog->width())));
+}
+
+void TestMessageDialog::shortNoticeKeepsTheMinimumWidth()
+{
+    MessageDialog dialog(QStyle::SP_MessageBoxWarning, QStringLiteral("Node not added"),
+                         QStringLiteral("Enter a browse name."));
+    dialog.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+    QCOMPARE(dialog.width(), 360);
+    QCOMPARE(dialog.height(), dialog.layout()->totalHeightForWidth(dialog.width()));
 }
 
 void TestMessageDialog::confirmationDefaultsToCancel()

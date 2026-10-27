@@ -64,16 +64,20 @@ public:
 
     ///
     /// \brief Returns why the entered node cannot be added.
-    /// \return Problem text, or empty when OK may be pressed.
+    /// \return Problem text, or empty when the node can be added.
     ///
     QString problem() const;
+
+    ///
+    /// \brief Closes the dialog, or keeps it open and shows a warning when the entered node cannot be added.
+    ///
+    void accept() override;
 
 private:
     void fillParentCombo(const QList<NodeDefinition> &nodes, const QString &path);
     void fillTypeCombo();
     void updateKindFields();
     void updateTypeFields();
-    void validate();
 
     Ui::AddNodeDialog *ui;
     QList<NodeDefinition> _nodes;

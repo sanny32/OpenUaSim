@@ -6,12 +6,12 @@
 /// \brief Implements the dialog that describes a new folder, object, variable or method.
 ///
 
-#include <QPushButton>
 #include <QRegularExpression>
 #include <QSignalBlocker>
 
 #include "addnodedialog.h"
 #include "appicons.h"
+#include "messagedialog.h"
 #include "project/portablenodeid.h"
 #include "project/projectnodes.h"
 #include "server/typecatalog.h"
@@ -57,13 +57,8 @@ AddNodeDialog::AddNodeDialog(const QList<NodeDefinition> &nodes, const QString &
     ViewSetup::fillVariableIconCombo(ui->iconCombo);
     ui->arrayLengthSpin->setMaximum(kMaxArrayLength);
 
-    connect(ui->parentCombo, &QComboBox::currentIndexChanged, this, &AddNodeDialog::validate);
     connect(ui->kindCombo, &QComboBox::currentIndexChanged, this, &AddNodeDialog::updateKindFields);
-    connect(ui->browseNameEdit, &QLineEdit::textChanged, this, &AddNodeDialog::validate);
-    connect(ui->nodeIdEdit, &QLineEdit::textChanged, this, &AddNodeDialog::validate);
     connect(ui->typeCombo, &QComboBox::currentIndexChanged, this, &AddNodeDialog::updateTypeFields);
-    connect(ui->dataTypeCombo, &QComboBox::currentTextChanged, this, &AddNodeDialog::validate);
-    connect(ui->arrayLengthSpin, &QSpinBox::valueChanged, this, &AddNodeDialog::validate);
     updateKindFields();
 }
 
@@ -125,7 +120,7 @@ NodeDefinition AddNodeDialog::node() const
 
 ///
 /// \brief Returns why the entered node cannot be added.
-/// \return Problem text, or empty when OK may be pressed.
+/// \return Problem text, or empty when the node can be added.
 ///
 QString AddNodeDialog::problem() const
 {
@@ -226,15 +221,17 @@ void AddNodeDialog::updateTypeFields()
     ui->arrayLengthSpin->setRange(minimum, maximum);
     ui->arrayLengthSpin->setSpecialValueText(minimum == 0 ? tr("Scalar") : QString());
     ui->arrayLengthSpin->setEnabled(variable && minimum != maximum && type.valueRank <= 1);
-    validate();
 }
 
 ///
-/// \brief Shows the current problem and enables OK only without one.
+/// \brief Closes the dialog, or keeps it open and shows a warning when the entered node cannot be added.
 ///
-void AddNodeDialog::validate()
+void AddNodeDialog::accept()
 {
     const QString text = problem();
-    ui->problemLabel->setText(text);
-    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(text.isEmpty());
+    if (!text.isEmpty()) {
+        MessageDialog::warning(tr("Node not added"), text, this);
+        return;
+    }
+    QDialog::accept();
 }

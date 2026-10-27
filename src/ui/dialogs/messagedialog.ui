@@ -3,7 +3,7 @@
  <class>MessageDialog</class>
  <widget class="QDialog" name="MessageDialog">
   <property name="minimumSize">
-   <size><width>520</width><height>0</height></size>
+   <size><width>360</width><height>0</height></size>
   </property>
   <layout class="QVBoxLayout" name="mainLayout">
    <property name="spacing"><number>0</number></property>

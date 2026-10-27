@@ -84,6 +84,10 @@
         <translation>Объекты</translation>
     </message>
     <message>
+        <source>Node not added</source>
+        <translation>Узел не добавлен</translation>
+    </message>
+    <message>
         <source>Enter a browse name.</source>
         <translation>Введите имя узла.</translation>
     </message>

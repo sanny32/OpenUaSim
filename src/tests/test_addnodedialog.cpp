@@ -14,6 +14,7 @@
 #include "server/typecatalog.h"
 
 #include "addnodedialog.h"
+#include "messagedialog.h"
 
 namespace {
 
@@ -87,9 +88,25 @@ QStringList itemTexts(const QComboBox &combo)
     return texts;
 }
 
-bool okEnabled(const AddNodeDialog &dialog)
+///
+/// \brief Presses OK and closes the warning it raises.
+/// \return Warning text, or empty when no warning appeared.
+///
+QString pressOk(AddNodeDialog &dialog)
 {
-    return child<QDialogButtonBox>(dialog, "buttonBox")->button(QDialogButtonBox::Ok)->isEnabled();
+    dialog.setResult(QDialog::Rejected);
+    child<QDialogButtonBox>(dialog, "buttonBox")->button(QDialogButtonBox::Ok)->click();
+    MessageDialog *box = dialog.findChild<MessageDialog *>();
+    if (!box)
+        return {};
+    const QString warning = child<QLabel>(*box, "textLabel")->text();
+    delete box;
+    return warning;
+}
+
+bool okAccepts(AddNodeDialog &dialog)
+{
+    return pressOk(dialog).isEmpty() && dialog.result() == QDialog::Accepted;
 }
 
 }
@@ -224,8 +241,10 @@ void TestAddNodeDialog::showsParentAndStartsInvalid()
     AddNodeDialog dialog(sampleTree(), kTank);
     QCOMPARE(child<QComboBox>(dialog, "parentCombo")->currentText(), QStringLiteral("Objects / Line / Tank"));
     QCOMPARE(dialog.parentId(), kTank);
-    QVERIFY(!okEnabled(dialog));
+    QVERIFY(child<QDialogButtonBox>(dialog, "buttonBox")->button(QDialogButtonBox::Ok)->isEnabled());
     QCOMPARE(dialog.problem(), QStringLiteral("Enter a browse name."));
+    QCOMPARE(pressOk(dialog), QStringLiteral("Enter a browse name."));
+    QCOMPARE(dialog.result(), int(QDialog::Rejected));
 }
 
 void TestAddNodeDialog::offersOnlyContainersAsParents()
@@ -252,12 +271,12 @@ void TestAddNodeDialog::siblingCheckFollowsParent()
 {
     AddNodeDialog dialog(sampleTree(), kTank);
     child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("Level"));
-    QVERIFY(!okEnabled(dialog));
+    QVERIFY(!okAccepts(dialog));
 
     auto *parents = child<QComboBox>(dialog, "parentCombo");
     parents->setCurrentIndex(parents->findData(kPump));
     QVERIFY(dialog.problem().isEmpty());
-    QVERIFY(okEnabled(dialog));
+    QVERIFY(okAccepts(dialog));
     QCOMPARE(dialog.parentId(), kPump);
 }
 
@@ -267,11 +286,11 @@ void TestAddNodeDialog::methodNeedsContainer()
     child<QComboBox>(dialog, "kindCombo")->setCurrentText(QStringLiteral("Method"));
     child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("Start"));
     QCOMPARE(dialog.problem(), QStringLiteral("Choose a folder or object for the method."));
-    QVERIFY(!okEnabled(dialog));
+    QVERIFY(!okAccepts(dialog));
 
     auto *parents = child<QComboBox>(dialog, "parentCombo");
     parents->setCurrentIndex(parents->findData(kPump));
-    QVERIFY(okEnabled(dialog));
+    QVERIFY(okAccepts(dialog));
 }
 
 void TestAddNodeDialog::validatesInput_data()
@@ -299,8 +318,8 @@ void TestAddNodeDialog::validatesInput()
     child<QLineEdit>(dialog, "browseNameEdit")->setText(name);
     child<QLineEdit>(dialog, "nodeIdEdit")->setText(nodeId);
     QCOMPARE(dialog.problem(), problem);
-    QCOMPARE(child<QLabel>(dialog, "problemLabel")->text(), problem);
-    QCOMPARE(okEnabled(dialog), problem.isEmpty());
+    QCOMPARE(pressOk(dialog), problem);
+    QCOMPARE(dialog.result() == QDialog::Accepted, problem.isEmpty());
 }
 
 void TestAddNodeDialog::describesVariable()
@@ -391,7 +410,7 @@ void TestAddNodeDialog::withoutTypesKeepsStandardType()
     child<QLineEdit>(dialog, "browseNameEdit")->setText(QStringLiteral("Motor"));
     QVERIFY(!child<QComboBox>(dialog, "typeCombo")->isEnabled());
     QVERIFY(dialog.node().typeDefinition.isEmpty());
-    QVERIFY(okEnabled(dialog));
+    QVERIFY(okAccepts(dialog));
 }
 
 ///
@@ -413,8 +432,7 @@ void TestAddNodeDialog::allVariableTypesRespectConstraints()
         const NodeDefinition node = dialog.node();
         const QString problem = TypeCatalog::variableProblem(server, node);
         QCOMPARE(dialog.problem(), problem);
-        QCOMPARE(okEnabled(dialog), problem.isEmpty());
-        QCOMPARE(child<QLabel>(dialog, "problemLabel")->text(), problem);
+        QCOMPARE(pressOk(dialog), problem);
         if (problem.isEmpty()) {
             QVERIFY(node.initialValue.isValid());
             ++accepted;
@@ -430,12 +448,12 @@ void TestAddNodeDialog::allVariableTypesRespectConstraints()
     child<QSpinBox>(dialog, "arrayLengthSpin")->setValue(0);
     QCOMPARE(dialog.node().arrayLength, 0);
     QVERIFY(child<QSpinBox>(dialog, "arrayLengthSpin")->isEnabled());
-    QVERIFY(okEnabled(dialog));
+    QVERIFY(okAccepts(dialog));
     combo->setCurrentText(QStringLiteral("ImageItemType"));
-    QVERIFY(!okEnabled(dialog));
+    QVERIFY(!okAccepts(dialog));
     QVERIFY(dialog.problem().contains(QStringLiteral("multidimensional")));
     combo->setCurrentText(QStringLiteral("BaseDataVariableType"));
-    QVERIFY(okEnabled(dialog));
+    QVERIFY(okAccepts(dialog));
     QVERIFY(child<QSpinBox>(dialog, "arrayLengthSpin")->isEnabled());
     child<QSpinBox>(dialog, "arrayLengthSpin")->setValue(3);
     QCOMPARE(dialog.node().initialValue.toList().size(), 3);
@@ -467,13 +485,13 @@ void TestAddNodeDialog::importedFixedArraySelectsItsShape()
     QCOMPARE(child<QSpinBox>(dialog, "arrayLengthSpin")->text(), QStringLiteral("[3]"));
     QCOMPARE(node.initialValue.toList().size(), 3);
     QVERIFY(!child<QSpinBox>(dialog, "arrayLengthSpin")->isEnabled());
-    QVERIFY(okEnabled(dialog));
+    QVERIFY(okAccepts(dialog));
 
     fixed.arrayDimensions = { quint32(kMaxArrayLength + 1) };
     types.insert(fixed.nodeId, fixed);
     dialog.setTypes(types, kNamespaces);
     child<QComboBox>(dialog, "typeCombo")->setCurrentText(QStringLiteral("Fixed"));
-    QVERIFY(!okEnabled(dialog));
+    QVERIFY(!okAccepts(dialog));
     QVERIFY(dialog.problem().contains(QString::number(kMaxArrayLength + 1)));
 
     fixed.valueRank = -1;
@@ -484,7 +502,7 @@ void TestAddNodeDialog::importedFixedArraySelectsItsShape()
     QCOMPARE(dialog.node().arrayLength, 0);
     QCOMPARE(child<QSpinBox>(dialog, "arrayLengthSpin")->text(), QStringLiteral("Scalar"));
     QVERIFY(!child<QSpinBox>(dialog, "arrayLengthSpin")->isEnabled());
-    QVERIFY(okEnabled(dialog));
+    QVERIFY(okAccepts(dialog));
 }
 
 QTEST_MAIN(TestAddNodeDialog)
