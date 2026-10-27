@@ -617,6 +617,7 @@ QByteArray toJson(const ProjectConfig &project)
         { QStringLiteral("discoveryRegistration"), project.server.discovery.enabled },
         { QStringLiteral("discoveryServerUrl"), project.server.discovery.url },
         { QStringLiteral("discoveryIntervalSeconds"), project.server.discovery.intervalSeconds },
+        { QStringLiteral("discoveryVerifyCertificate"), project.server.discovery.verifyCertificate },
     };
 
     const QJsonObject root {
@@ -671,6 +672,8 @@ LoadResult fromJson(const QByteArray &json)
     discovery.url = server.value(QStringLiteral("discoveryServerUrl")).toString(discovery.url);
     discovery.intervalSeconds =
         server.value(QStringLiteral("discoveryIntervalSeconds")).toInt(discovery.intervalSeconds);
+    discovery.verifyCertificate =
+        server.value(QStringLiteral("discoveryVerifyCertificate")).toBool(discovery.verifyCertificate);
 
     const QJsonArray users = root.value(QStringLiteral("users")).toArray();
     for (const QJsonValue &user : users)

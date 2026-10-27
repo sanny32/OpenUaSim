@@ -151,6 +151,14 @@ signals:
     void clientCertificateRejected(const QByteArray &certificate, const QString &reason);
 
     ///
+    /// \brief Announces a discovery server certificate that failed the trust lists during registration;
+    ///        encryption builds only.
+    /// \param certificate Rejected DER certificate.
+    /// \param reason Status code name, e.g. BadCertificateUntrusted.
+    ///
+    void discoveryServerCertificateRejected(const QByteArray &certificate, const QString &reason);
+
+    ///
     /// \brief Announces a client that secured its channel with a certificate the trust lists were not applied to.
     /// \param certificate DER application certificate of the client.
     ///
@@ -174,6 +182,7 @@ private:
     void handleDiscoveryRegistration(bool isOnline, const QUaStatusCode &statusCode);
 #ifdef OUASIM_HAVE_ENCRYPTION
     void handleCertificateRejected(const QByteArray &certificate, const QUaStatusCode &statusCode);
+    void handleDiscoveryCertificateRejected(const QByteArray &certificate, const QUaStatusCode &statusCode);
 #endif
 
     HistoryStore _history;
@@ -186,4 +195,5 @@ private:
     PkiMaterial _pki;
     QSet<QString> _certificateUsers;
     bool _trustedClientsOnly = false;
+    bool _discoveryCertificateRejected = false;
 };

@@ -163,6 +163,16 @@
        </property>
       </widget>
      </item>
+     <item row="8" column="1">
+      <widget class="QCheckBox" name="discoveryVerifyCheck">
+       <property name="toolTip">
+        <string>Register only at a discovery server whose certificate is trusted on the Certificates page; an unknown one is moved to the rejected folder</string>
+       </property>
+       <property name="text">
+        <string>&amp;Verify the discovery server certificate</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>

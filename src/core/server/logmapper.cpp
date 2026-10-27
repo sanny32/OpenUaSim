@@ -6,6 +6,7 @@
 /// \brief Implements the conversion of QUaServer log messages into server log entries.
 ///
 
+#include <QCoreApplication>
 #include <QMetaEnum>
 
 #include <QUaServer>
@@ -30,6 +31,20 @@ LogEntry::Category category(QUaLogCategory category)
     default:
         return LogEntry::Category::Server;
     }
+}
+
+///
+/// \brief Returns the text of a QUaServer message, telling the messages of its only client, the one that registers
+///        the server at the discovery server, apart from those of the server.
+/// \param log Message emitted by QUaServer::logMessage().
+/// \return Message text, prefixed for the discovery registration client.
+///
+QString messageText(const QUaLog &log)
+{
+    const QString text = QString::fromUtf8(log.message);
+    if (log.category != QUaLogCategory::Client)
+        return text;
+    return QCoreApplication::translate("LogMapper", "[Discovery registration] %1").arg(text);
 }
 
 }
@@ -64,7 +79,7 @@ std::optional<LogEntry> fromQUaLog(const QUaLog &log)
     entry.time = log.timestamp.isValid() ? log.timestamp : QDateTime::currentDateTime();
     entry.level = level;
     entry.category = category(log.category);
-    entry.message = QString::fromUtf8(log.message);
+    entry.message = messageText(log);
     entry.source = QString::fromLatin1(QMetaEnum::fromType<QUaLogCategory>().valueToKey(int(log.category)));
     return entry;
 }

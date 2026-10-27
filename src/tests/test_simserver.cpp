@@ -85,6 +85,8 @@ private slots:
     void logsRegistrationOnlyWhenItChanges();
     void warnsWhenDiscoveryServerIsUnreachable();
     void explainsCertificateRejectedByDiscoveryServer();
+    void checksDiscoveryServerCertificateOnlyWhenAsked_data();
+    void checksDiscoveryServerCertificateOnlyWhenAsked();
     void disabledDiscoveryRegistersNowhere();
 
 private:
@@ -421,6 +423,61 @@ void TestSimServer::explainsCertificateRejectedByDiscoveryServer()
     QTRY_VERIFY_WITH_TIMEOUT(containsMessage(log, rejected), 10000);
     QCOMPARE(levelOf(log, rejected), LogEntry::Level::Warning);
     QVERIFY(lds.registeredServers().isEmpty());
+}
+
+void TestSimServer::checksDiscoveryServerCertificateOnlyWhenAsked_data()
+{
+    QTest::addColumn<bool>("verify");
+    QTest::addColumn<bool>("trustedClientsOnly");
+    QTest::addColumn<bool>("ldsTrusted");
+    QTest::addColumn<bool>("registered");
+
+    QTest::newRow("unchecked while clients must be trusted") << false << true << false << true;
+    QTest::newRow("checked, untrusted") << true << false << false << false;
+    QTest::newRow("checked, trusted") << true << false << true << true;
+}
+
+void TestSimServer::checksDiscoveryServerCertificateOnlyWhenAsked()
+{
+    if (!CertificateGenerator::isAvailable())
+        QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+    QFETCH(bool, verify);
+    QFETCH(bool, trustedClientsOnly);
+    QFETCH(bool, ldsTrusted);
+    QFETCH(bool, registered);
+
+    const GeneratedCertificate ldsCertificate =
+        CertificateGenerator::generate(QStringLiteral("urn:open62541.unconfigured.application"), {});
+    TestDiscoveryServer lds;
+    QVERIFY(lds.start(ldsCertificate.certificate, ldsCertificate.privateKey));
+    ProjectConfig config = project(_port);
+    config.server.discovery = { true, lds.url(), 600, verify };
+    EndpointInfo &endpoint = config.endpoints.first();
+    endpoint.securityPolicy = QStringLiteral("Basic256Sha256");
+    endpoint.securityMode = QStringLiteral("Sign & Encrypt");
+    endpoint.trustedClientsOnly = trustedClientsOnly;
+    const GeneratedCertificate own = CertificateGenerator::generate(config.server.applicationUri, {});
+    const QList<QByteArray> trusted = ldsTrusted ? QList<QByteArray> { ldsCertificate.certificate } : QList<QByteArray>();
+    SimServer server;
+    server.setPkiMaterial({ own.certificate, own.privateKey, trusted, {} });
+    QSignalSpy log(&server, &SimServer::logAppended);
+    QSignalSpy rejected(&server, &SimServer::discoveryServerCertificateRejected);
+
+    QVERIFY(server.start(config));
+    const QString success = QStringLiteral("Registered at the discovery server %1").arg(lds.url());
+    const QString untrusted =
+        QStringLiteral("The server does not trust the certificate of the discovery server %1").arg(lds.url());
+    QTRY_VERIFY_WITH_TIMEOUT(containsMessage(log, success) || containsMessage(log, untrusted), 10000);
+    QCOMPARE(containsMessage(log, success), registered);
+    if (registered) {
+        QCOMPARE(rejected.count(), 0);
+        return;
+    }
+    QCOMPARE(levelOf(log, untrusted), LogEntry::Level::Warning);
+    QCOMPARE(rejected.count(), 1);
+    QCOMPARE(rejected.first().at(0).toByteArray(), ldsCertificate.certificate);
+    QCOMPARE(rejected.first().at(1).toString(), QStringLiteral("BadCertificateUntrusted"));
+    QVERIFY(!containsMessage(log, QStringLiteral("Could not register at the discovery server")));
 }
 
 void TestSimServer::disabledDiscoveryRegistersNowhere()

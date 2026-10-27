@@ -24,6 +24,8 @@ PkiService::PkiService(SimServer &server, QObject *parent)
 {
     connect(&_server, &SimServer::clientCertificateRejected, this, &PkiService::handleCertificateRejected);
     connect(&_server, &SimServer::unverifiedClientConnected, this, &PkiService::handleUnverifiedClient);
+    connect(&_server, &SimServer::discoveryServerCertificateRejected, this,
+            &PkiService::handleDiscoveryCertificateRejected);
 }
 
 ///
@@ -172,14 +174,34 @@ void PkiService::handleCertificateRejected(const QByteArray &certificate, const 
         log(LogEntry::Level::Warning, message.arg(known->commonName, reason));
         return;
     }
-    QString error;
-    const QString stored = _store.addCertificate(certificate, CertificateInfo::Category::Rejected, &error);
-    if (stored.isEmpty()) {
-        log(LogEntry::Level::Error, tr("A rejected client certificate could not be kept: %1").arg(error));
+    const QString name = keepRejected(certificate, tr("A rejected client certificate could not be kept: %1"));
+    if (name.isEmpty())
+        return;
+    log(LogEntry::Level::Warning,
+        tr("Client certificate '%1' rejected (%2); it was moved to the rejected folder").arg(name, reason));
+    emit certificatesChanged();
+}
+
+///
+/// \brief Keeps a rejected discovery server certificate in the rejected folder, where it can be trusted so the
+///        next registration passes; one the store already holds is not copied again.
+/// \param certificate Rejected DER certificate.
+/// \param reason Status code name of the rejection.
+///
+void PkiService::handleDiscoveryCertificateRejected(const QByteArray &certificate, const QString &reason)
+{
+    if (const std::optional<CertificateInfo> known = _store.find(certificate)) {
+        if (known->category == CertificateInfo::Category::Trusted)
+            log(LogEntry::Level::Warning, tr("Discovery server certificate '%1' rejected (%2) although it is trusted")
+                                              .arg(known->commonName, reason));
         return;
     }
-    log(LogEntry::Level::Warning, tr("Client certificate '%1' rejected (%2); it was moved to the rejected folder")
-                                      .arg(QFileInfo(stored).completeBaseName(), reason));
+    const QString name =
+        keepRejected(certificate, tr("A rejected discovery server certificate could not be kept: %1"));
+    if (name.isEmpty())
+        return;
+    log(LogEntry::Level::Warning,
+        tr("Discovery server certificate '%1' rejected (%2); it was moved to the rejected folder").arg(name, reason));
     emit certificatesChanged();
 }
 
@@ -192,14 +214,29 @@ void PkiService::handleUnverifiedClient(const QByteArray &certificate)
 {
     if (_store.find(certificate))
         return;
+    const QString name =
+        keepRejected(certificate, tr("The certificate of a connected client could not be kept: %1"));
+    if (name.isEmpty())
+        return;
+    log(LogEntry::Level::Info, tr("Client certificate '%1' accepted without a trust check; "
+                                  "it was added to the rejected folder")
+                                   .arg(name));
+    emit certificatesChanged();
+}
+
+///
+/// \brief Copies a certificate into the rejected folder.
+/// \param certificate DER certificate.
+/// \param failure Error logged when the copy fails, with %1 for the reason.
+/// \return Name of the stored certificate, or an empty string when it could not be stored.
+///
+QString PkiService::keepRejected(const QByteArray &certificate, const QString &failure)
+{
     QString error;
     const QString stored = _store.addCertificate(certificate, CertificateInfo::Category::Rejected, &error);
     if (stored.isEmpty()) {
-        log(LogEntry::Level::Error, tr("The certificate of a connected client could not be kept: %1").arg(error));
-        return;
+        log(LogEntry::Level::Error, failure.arg(error));
+        return {};
     }
-    log(LogEntry::Level::Info, tr("Client certificate '%1' accepted without a trust check; "
-                                  "it was added to the rejected folder")
-                                   .arg(QFileInfo(stored).completeBaseName()));
-    emit certificatesChanged();
+    return QFileInfo(stored).completeBaseName();
 }

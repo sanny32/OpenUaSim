@@ -122,7 +122,9 @@ private:
     bool finishChange(bool changed);
     void log(LogEntry::Level level, const QString &message);
     void handleCertificateRejected(const QByteArray &certificate, const QString &reason);
+    void handleDiscoveryCertificateRejected(const QByteArray &certificate, const QString &reason);
     void handleUnverifiedClient(const QByteArray &certificate);
+    QString keepRejected(const QByteArray &certificate, const QString &failure);
 
     SimServer &_server;
     CertificateStore _store;

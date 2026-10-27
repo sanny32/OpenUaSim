@@ -373,7 +373,7 @@ void TestProjectFile::preservesHistorizingAndHistoryLimits()
 void TestProjectFile::preservesDiscoveryRegistration()
 {
     ProjectConfig project;
-    project.server.discovery = { true, QStringLiteral("opc.tcp://lds.plant:4840"), 120 };
+    project.server.discovery = { true, QStringLiteral("opc.tcp://lds.plant:4840"), 120, true };
 
     const ProjectFile::LoadResult result = ProjectFile::fromJson(ProjectFile::toJson(project));
     QVERIFY2(result.ok(), qPrintable(result.error));
@@ -381,6 +381,7 @@ void TestProjectFile::preservesDiscoveryRegistration()
     QVERIFY(discovery.enabled);
     QCOMPARE(discovery.url, QStringLiteral("opc.tcp://lds.plant:4840"));
     QCOMPARE(discovery.intervalSeconds, 120);
+    QVERIFY(discovery.verifyCertificate);
 }
 
 void TestProjectFile::emptyProjectRoundTrips()
@@ -424,6 +425,7 @@ void TestProjectFile::missingFieldsUseDefaults()
     QVERIFY(!discovery.enabled);
     QCOMPARE(discovery.url, DiscoveryRegistration().url);
     QCOMPARE(discovery.intervalSeconds, DiscoveryRegistration().intervalSeconds);
+    QVERIFY(!discovery.verifyCertificate);
 }
 
 void TestProjectFile::preservesExplicitHostname_data()

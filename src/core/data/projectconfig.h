@@ -143,6 +143,9 @@ struct DiscoveryRegistration
     QString url = QStringLiteral("opc.tcp://localhost:4840");
     /// \brief Seconds between two registrations; must stay below the time the discovery server keeps a server.
     int intervalSeconds = 10 * 60;
+    /// \brief Whether the certificate of the discovery server must be in the trusted folder, regardless of the
+    ///        trust required from clients.
+    bool verifyCertificate = false;
 };
 
 ///

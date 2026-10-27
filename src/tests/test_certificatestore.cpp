@@ -14,6 +14,7 @@
 #include "pki/certificatestore.h"
 #include "pki/pkiservice.h"
 #include "server/servercontroller.h"
+#include "testdiscoveryserver.h"
 #include "testport.h"
 #include "testproject.h"
 #include "uatestclient.h"
@@ -26,6 +27,19 @@ QString testData(const QString &name)
 }
 
 using Category = CertificateInfo::Category;
+
+///
+/// \brief Returns the common names of the certificates in the rejected folder.
+///
+QStringList rejectedNames(ServerController &controller)
+{
+    QStringList names;
+    for (const CertificateInfo &info : controller.pki().certificates()) {
+        if (info.category == Category::Rejected)
+            names << info.commonName;
+    }
+    return names;
+}
 
 }
 
@@ -73,6 +87,7 @@ private slots:
     void unverifiedClientLandsInRejectedFolder();
     void unverifiedClientAlreadyStoredIsNotCopied();
     void trustingRejectedClientAppliesWithoutRestart();
+    void untrustedDiscoveryServerLandsInRejectedFolder();
 
 private:
     QTemporaryDir *_directory = nullptr;
@@ -922,6 +937,40 @@ void TestCertificateStore::trustingRejectedClientAppliesWithoutRestart()
             categories << info.category;
     }
     QCOMPARE(categories, QList<Category> { Category::Trusted });
+#endif
+}
+
+void TestCertificateStore::untrustedDiscoveryServerLandsInRejectedFolder()
+{
+#ifndef OUASIM_HAVE_ENCRYPTION
+    QSKIP("Built without OUASIM_WITH_ENCRYPTION");
+#else
+    QFile certificate(testData(QStringLiteral("stranger.der")));
+    QFile key(testData(QStringLiteral("stranger.key.der")));
+    QVERIFY(certificate.open(QIODevice::ReadOnly) && key.open(QIODevice::ReadOnly));
+    TestDiscoveryServer lds;
+    QVERIFY(lds.start(certificate.readAll(), key.readAll()));
+    ProjectConfig project = TestProject::create();
+    EndpointInfo &endpoint = project.endpoints.first();
+    endpoint.port = TestPort::freePort();
+    endpoint.securityPolicy = QStringLiteral("Basic256Sha256");
+    endpoint.securityMode = QStringLiteral("Sign & Encrypt");
+    project.server.discovery = { true, lds.url(), 600, true };
+
+    ServerController controller;
+    controller.pki().store().setRoot(_directory->path());
+    QVERIFY(controller.pki().installServerCertificate(testData(QStringLiteral("server.cert.pem")),
+                                                      testData(QStringLiteral("server.key.pem"))));
+    controller.setProject(project);
+    QSignalSpy changed(&controller, &ServerController::certificatesChanged);
+    QVERIFY(controller.start());
+
+    QTRY_COMPARE_WITH_TIMEOUT(rejectedNames(controller), QStringList { QStringLiteral("Stranger Client") }, 10000);
+    QVERIFY(changed.count() >= 1);
+    QVERIFY(std::any_of(controller.log().cbegin(), controller.log().cend(), [](const LogEntry &entry) {
+        return entry.category == LogEntry::Category::Security
+            && entry.message.contains(QStringLiteral("Discovery server certificate 'Stranger"));
+    }));
 #endif
 }
 

@@ -21,6 +21,7 @@ private slots:
     void mapsCategory_data();
     void mapsCategory();
     void keepsMessageAndTime();
+    void namesDiscoveryRegistrationClient();
     void buildsOwnEntries();
 };
 
@@ -85,6 +86,17 @@ void TestLogMapper::keepsMessageAndTime()
     const std::optional<LogEntry> entry = LogMapper::fromQUaLog(log);
     QCOMPARE(entry->message, QStringLiteral("Connection opened"));
     QCOMPARE(entry->time, log.timestamp);
+}
+
+void TestLogMapper::namesDiscoveryRegistrationClient()
+{
+    const QByteArray text("Cannot validate the server certificate defined for the selected endpoint");
+    const std::optional<LogEntry> entry =
+        LogMapper::fromQUaLog(QUaLog(text, QUaLogLevel::Error, QUaLogCategory::Client));
+    QVERIFY(entry.has_value());
+    QCOMPARE(entry->message, QStringLiteral("[Discovery registration] ") + QString::fromLatin1(text));
+    QCOMPARE(entry->level, LogEntry::Level::Error);
+    QCOMPARE(entry->source, QStringLiteral("Client"));
 }
 
 void TestLogMapper::buildsOwnEntries()

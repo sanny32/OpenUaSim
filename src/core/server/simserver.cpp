@@ -6,6 +6,8 @@
 /// \brief Implements the OPC UA server the simulator runs.
 ///
 
+#include <utility>
+
 #include <QSslCertificate>
 #include <QTimer>
 
@@ -177,6 +179,8 @@ void SimServer::createServer()
     connect(_server, &QUaServer::discoveryRegistrationFinished, this, &SimServer::handleDiscoveryRegistration);
 #ifdef OUASIM_HAVE_ENCRYPTION
     connect(_server, &QUaServer::clientCertificateRejected, this, &SimServer::handleCertificateRejected);
+    connect(_server, &QUaServer::discoveryServerCertificateRejected, this,
+            &SimServer::handleDiscoveryCertificateRejected);
 #endif
 }
 
@@ -243,13 +247,15 @@ bool SimServer::setPkiMaterial(const PkiMaterial &material)
 }
 
 ///
-/// \brief Gives QUaServer the trusted and issuer certificates; a running server applies them to the next client.
+/// \brief Gives QUaServer the trusted and issuer certificates; a running server applies them to the next client
+///        and the next registration at the discovery server.
 ///
 void SimServer::applyTrustLists()
 {
 #ifdef OUASIM_HAVE_ENCRYPTION
     // An empty trusted list makes open62541 accept any client certificate.
     _server->setTrustedCertificates(_trustedClientsOnly ? _pki.trusted : QList<QByteArray>());
+    _server->setDiscoveryServerTrustedCertificates(_pki.trusted);
     _server->setIssuerCertificates(_pki.issuers);
 #endif
 }
@@ -343,6 +349,9 @@ bool SimServer::configure(const ProjectConfig &project, const ListenerSettings &
     const DiscoveryRegistration &discovery = project.server.discovery;
     _server->setDiscoveryServerUrl(discovery.enabled ? discovery.url.trimmed() : QString());
     _server->setDiscoveryRegistrationInterval(discovery.intervalSeconds * 1000);
+#ifdef OUASIM_HAVE_ENCRYPTION
+    _server->setVerifyDiscoveryServerCertificate(discovery.verifyCertificate);
+#endif
     applyUsers(listener.usernameAllowed ? project.users : QList<UserAccount>());
     _endpointUrl = QStringLiteral("opc.tcp://%1:%2").arg(listener.hostname).arg(listener.port);
     return configureSecurity(listener);
@@ -494,6 +503,7 @@ void SimServer::handleDiscoveryRegistration(bool isOnline, const QUaStatusCode &
 {
     const QString status = QString::fromLatin1(UA_StatusCode_name(UA_StatusCode(statusCode)));
     const bool good = UA_StatusCode(statusCode) == UA_STATUSCODE_GOOD;
+    const bool untrusted = std::exchange(_discoveryCertificateRejected, false);
     const QString url = _server->discoveryServerUrl();
     if (!isOnline) {
         if (_discoveryStatus != QLatin1String("Good"))
@@ -515,6 +525,11 @@ void SimServer::handleDiscoveryRegistration(bool isOnline, const QUaStatusCode &
     else if (UA_StatusCode(statusCode) == UA_STATUSCODE_BADSECURITYCHECKSFAILED)
         log(LogEntry::Level::Warning, LogEntry::Category::Server,
             tr("The discovery server %1 rejected the server certificate (%2); trust it on the discovery server")
+                .arg(url, status));
+    else if (untrusted)
+        log(LogEntry::Level::Warning, LogEntry::Category::Server,
+            tr("The server does not trust the certificate of the discovery server %1 (%2); "
+               "trust it on the Certificates page")
                 .arg(url, status));
     else
         log(LogEntry::Level::Warning, LogEntry::Category::Server,
@@ -548,5 +563,18 @@ void SimServer::refreshSessionDiagnostics()
 void SimServer::handleCertificateRejected(const QByteArray &certificate, const QUaStatusCode &statusCode)
 {
     emit clientCertificateRejected(certificate, QString::fromLatin1(UA_StatusCode_name(UA_StatusCode(statusCode))));
+}
+
+///
+/// \brief Forwards a discovery server certificate QUaServer rejected; the registration result that follows
+///        explains the failure with it.
+/// \param certificate Rejected DER certificate.
+/// \param statusCode Reason of the rejection.
+///
+void SimServer::handleDiscoveryCertificateRejected(const QByteArray &certificate, const QUaStatusCode &statusCode)
+{
+    _discoveryCertificateRejected = true;
+    emit discoveryServerCertificateRejected(certificate,
+                                            QString::fromLatin1(UA_StatusCode_name(UA_StatusCode(statusCode))));
 }
 #endif

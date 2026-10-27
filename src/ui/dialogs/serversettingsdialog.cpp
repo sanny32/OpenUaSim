@@ -34,6 +34,10 @@ ServerSettingsDialog::ServerSettingsDialog(const ServerSettings &settings, QWidg
     ui->discoveryCheck->setChecked(settings.discovery.enabled);
     ui->discoveryUrlEdit->setText(settings.discovery.url);
     ui->discoveryIntervalSpin->setValue(settings.discovery.intervalSeconds);
+    ui->discoveryVerifyCheck->setChecked(settings.discovery.verifyCertificate);
+#ifndef OUASIM_HAVE_ENCRYPTION
+    ui->discoveryVerifyCheck->hide();
+#endif
 
     connect(ui->applicationNameEdit, &QLineEdit::textChanged, this, &ServerSettingsDialog::validate);
     connect(ui->applicationUriEdit, &QLineEdit::textChanged, this, &ServerSettingsDialog::validate);
@@ -62,7 +66,7 @@ ServerSettings ServerSettingsDialog::settings() const
     settings.maxSessions = ui->maxSessionsSpin->value();
     settings.history = { ui->historyMaxValuesSpin->value(), ui->historyMaxAgeSpin->value() };
     settings.discovery = { ui->discoveryCheck->isChecked(), ui->discoveryUrlEdit->text().trimmed(),
-                           ui->discoveryIntervalSpin->value() };
+                           ui->discoveryIntervalSpin->value(), ui->discoveryVerifyCheck->isChecked() };
     return settings;
 }
 
@@ -75,6 +79,7 @@ void ServerSettingsDialog::validate()
     const bool discovery = ui->discoveryCheck->isChecked();
     ui->discoveryUrlEdit->setEnabled(discovery);
     ui->discoveryIntervalSpin->setEnabled(discovery);
+    ui->discoveryVerifyCheck->setEnabled(discovery);
     const QString problem = ServerSettingsRules::problem(settings());
     ui->problemLabel->setText(problem);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(problem.isEmpty());

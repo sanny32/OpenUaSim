@@ -40,6 +40,7 @@ private slots:
     void limitsSessionCount();
     void editsHistoryLimits();
     void editsDiscoveryRegistration();
+    void showsDiscoveryCertificateCheck();
     void validatesDiscoveryRegistration_data();
     void validatesDiscoveryRegistration();
 };
@@ -116,9 +117,12 @@ void TestServerSettingsDialog::editsDiscoveryRegistration()
     auto *check = child<QCheckBox>(dialog, "discoveryCheck");
     auto *url = child<QLineEdit>(dialog, "discoveryUrlEdit");
     auto *interval = child<QSpinBox>(dialog, "discoveryIntervalSpin");
+    auto *verify = child<QCheckBox>(dialog, "discoveryVerifyCheck");
     QVERIFY(!check->isChecked());
     QVERIFY(!url->isEnabled());
     QVERIFY(!interval->isEnabled());
+    QVERIFY(!verify->isEnabled());
+    QVERIFY(!verify->isChecked());
     QCOMPARE(url->text(), DiscoveryRegistration().url);
     QCOMPARE(interval->minimum(), kMinDiscoveryIntervalSeconds);
     QCOMPARE(interval->maximum(), kMaxDiscoveryIntervalSeconds);
@@ -126,12 +130,25 @@ void TestServerSettingsDialog::editsDiscoveryRegistration()
     check->setChecked(true);
     QVERIFY(url->isEnabled());
     QVERIFY(interval->isEnabled());
+    QVERIFY(verify->isEnabled());
     url->setText(QStringLiteral(" opc.tcp://lds.plant:4840 "));
     interval->setValue(90);
+    verify->setChecked(true);
     const DiscoveryRegistration discovery = dialog.settings().discovery;
     QVERIFY(discovery.enabled);
     QCOMPARE(discovery.url, QStringLiteral("opc.tcp://lds.plant:4840"));
     QCOMPARE(discovery.intervalSeconds, 90);
+    QVERIFY(discovery.verifyCertificate);
+}
+
+void TestServerSettingsDialog::showsDiscoveryCertificateCheck()
+{
+    ServerSettings settings;
+    settings.discovery.enabled = true;
+    settings.discovery.verifyCertificate = true;
+    ServerSettingsDialog dialog(settings);
+    QVERIFY(child<QCheckBox>(dialog, "discoveryVerifyCheck")->isChecked());
+    QVERIFY(dialog.settings().discovery.verifyCertificate);
 }
 
 void TestServerSettingsDialog::validatesDiscoveryRegistration_data()

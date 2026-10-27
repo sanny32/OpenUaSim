@@ -955,6 +955,13 @@
     </message>
 </context>
 <context>
+    <name>LogMapper</name>
+    <message>
+        <source>[Discovery registration] %1</source>
+        <translation>[Регистрация на сервере обнаружения] %1</translation>
+    </message>
+</context>
+<context>
     <name>LogModel</name>
     <message>
         <source>Time</source>
@@ -1725,6 +1732,18 @@
         <translation>Сертификат клиента «%1» отклонён (%2) и перемещён в папку отклонённых</translation>
     </message>
     <message>
+        <source>Discovery server certificate &apos;%1&apos; rejected (%2) although it is trusted</source>
+        <translation>Сертификат сервера обнаружения «%1» отклонён (%2), хотя он доверенный</translation>
+    </message>
+    <message>
+        <source>A rejected discovery server certificate could not be kept: %1</source>
+        <translation>Не удалось сохранить отклонённый сертификат сервера обнаружения: %1</translation>
+    </message>
+    <message>
+        <source>Discovery server certificate &apos;%1&apos; rejected (%2); it was moved to the rejected folder</source>
+        <translation>Сертификат сервера обнаружения «%1» отклонён (%2) и перемещён в папку отклонённых</translation>
+    </message>
+    <message>
         <source>The certificate of a connected client could not be kept: %1</source>
         <translation>Не удалось сохранить сертификат подключившегося клиента: %1</translation>
     </message>
@@ -2024,6 +2043,14 @@
         <translation>Как часто сервер продлевает регистрацию; интервал должен быть меньше срока, в течение которого сервер обнаружения хранит регистрацию</translation>
     </message>
     <message>
+        <source>Register only at a discovery server whose certificate is trusted on the Certificates page; an unknown one is moved to the rejected folder</source>
+        <translation>Регистрироваться только на сервере обнаружения, сертификат которого доверен на странице «Сертификаты»; незнакомый сертификат перемещается в папку отклонённых</translation>
+    </message>
+    <message>
+        <source>&amp;Verify the discovery server certificate</source>
+        <translation>&amp;Проверять сертификат сервера обнаружения</translation>
+    </message>
+    <message>
         <source> s</source>
         <translation> с</translation>
     </message>
@@ -2297,6 +2324,10 @@
     <message>
         <source>The discovery server %1 rejected the server certificate (%2); trust it on the discovery server</source>
         <translation>Сервер обнаружения %1 отклонил сертификат сервера (%2); добавьте его в доверенные на сервере обнаружения</translation>
+    </message>
+    <message>
+        <source>The server does not trust the certificate of the discovery server %1 (%2); trust it on the Certificates page</source>
+        <translation>Сервер не доверяет сертификату сервера обнаружения %1 (%2); добавьте его в доверенные на странице «Сертификаты»</translation>
     </message>
     <message>
         <source>Could not register at the discovery server %1: %2</source>
