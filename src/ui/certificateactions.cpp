@@ -57,6 +57,7 @@ CertificateActions::CertificateActions(ServerController &controller, Certificate
 {
     connect(page, &CertificatesPage::generateRequested, this, &CertificateActions::confirmGenerateServerCertificate);
     connect(page, &CertificatesPage::importRequested, this, &CertificateActions::importCertificate);
+    connect(page, &CertificatesPage::filesDropped, this, &CertificateActions::importCertificateFiles);
     connect(page, &CertificatesPage::exportRequested, this, &CertificateActions::exportCertificate);
     connect(page, &CertificatesPage::moveRequested, this, &CertificateActions::moveCertificate);
     connect(page, &CertificatesPage::deleteRequested, this, &CertificateActions::confirmDeleteCertificate);
@@ -76,6 +77,30 @@ bool CertificateActions::importCertificateFrom(const QString &fileName, Certific
         return true;
     MessageDialog::warning(tr("Certificate not imported"), error, _window);
     return false;
+}
+
+///
+/// \brief Adds several client or issuer certificates to the PKI store, reporting every refused file at once.
+/// \param fileNames PEM or DER certificates.
+/// \param category Trusted, Rejected or Issuer folder.
+/// \return Number of certificates stored.
+///
+int CertificateActions::importCertificateFiles(const QStringList &fileNames, CertificateInfo::Category category)
+{
+    int stored = 0;
+    QStringList errors;
+    for (const QString &fileName : fileNames) {
+        QString error;
+        if (_controller.pki().importCertificate(fileName, category, &error))
+            ++stored;
+        else
+            errors << error;
+    }
+    if (!errors.isEmpty()) {
+        MessageDialog::warning(errors.size() == 1 ? tr("Certificate not imported") : tr("Certificates not imported"),
+                               errors.join(QLatin1Char('\n')), _window);
+    }
+    return stored;
 }
 
 ///

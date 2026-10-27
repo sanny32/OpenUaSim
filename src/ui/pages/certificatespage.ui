@@ -141,9 +141,6 @@
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
-            <property name="uniformRowHeights">
-             <bool>true</bool>
-            </property>
             <property name="headerHidden">
              <bool>true</bool>
             </property>
@@ -184,7 +181,10 @@
         <number>1</number>
        </property>
        <item>
-        <layout class="QHBoxLayout" name="certificatesPanelHeaderLayout">
+        <layout class="QVBoxLayout" name="certificatesPanelHeaderLayout">
+         <property name="spacing">
+          <number>2</number>
+         </property>
          <property name="leftMargin">
           <number>12</number>
          </property>
@@ -195,7 +195,7 @@
           <number>12</number>
          </property>
          <property name="bottomMargin">
-          <number>5</number>
+          <number>7</number>
          </property>
          <item>
           <widget class="ElidedLabel" name="certificatesTitle">
@@ -215,6 +215,9 @@
             </size>
            </property>
           </widget>
+         </item>
+         <item>
+          <widget class="ElidedLabel" name="certificatesDescription"/>
          </item>
         </layout>
        </item>
@@ -258,6 +261,81 @@
           <property name="bottomMargin">
            <number>10</number>
           </property>
+          <item>
+           <layout class="QHBoxLayout" name="listActionsLayout">
+            <property name="spacing">
+             <number>6</number>
+            </property>
+            <item>
+             <widget class="QPushButton" name="generateButton">
+              <property name="text">
+               <string>Generate...</string>
+              </property>
+              <property name="toolTip">
+               <string>Create a self-signed server certificate</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="importButton">
+              <property name="text">
+               <string>Import...</string>
+              </property>
+              <property name="toolTip">
+               <string>Add a certificate file to the store; certificate files can also be dropped on the list</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="exportButton">
+              <property name="text">
+               <string>Export...</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="trustButton">
+              <property name="text">
+               <string>Trust</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="rejectButton">
+              <property name="text">
+               <string>Reject</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="deleteButton">
+              <property name="text">
+               <string>Delete</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="listActionsSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QToolButton" name="openFolderButton">
+              <property name="toolTip">
+               <string>Open containing folder</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
           <item>
            <widget class="QTableView" name="certificatesView">
             <property name="editTriggers">
@@ -419,6 +497,36 @@
               <property name="rightMargin"><number>0</number></property>
               <property name="bottomMargin"><number>0</number></property>
               <item>
+               <layout class="QHBoxLayout" name="cardLayout" stretch="0,1,0">
+                <property name="spacing"><number>12</number></property>
+                <property name="bottomMargin"><number>4</number></property>
+                <item>
+                 <widget class="QLabel" name="cardIconLabel">
+                  <property name="minimumSize"><size><width>40</width><height>40</height></size></property>
+                  <property name="maximumSize"><size><width>40</width><height>40</height></size></property>
+                 </widget>
+                </item>
+                <item>
+                 <layout class="QVBoxLayout" name="cardTextLayout">
+                  <property name="spacing"><number>2</number></property>
+                  <item>
+                   <widget class="ElidedLabel" name="cardNameLabel">
+                    <property name="font"><font><bold>true</bold></font></property>
+                   </widget>
+                  </item>
+                  <item alignment="Qt::AlignLeft">
+                   <widget class="StatusIndicator" name="cardStatusIndicator" native="true"/>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="viewPemButton">
+                  <property name="text"><string>View in PEM</string></property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
                <widget class="QTableWidget" name="detailsView">
                 <property name="minimumSize"><size><width>0</width><height>120</height></size></property>
                 <property name="editTriggers"><set>QAbstractItemView::NoEditTriggers</set></property>
@@ -429,70 +537,6 @@
                 <attribute name="verticalHeaderVisible"><bool>false</bool></attribute>
                 <column><property name="text"><string>Field</string></property></column>
                 <column><property name="text"><string>Value</string></property></column>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QWidget" name="actionsHost">
-             <layout class="QHBoxLayout" name="actionsLayout">
-              <property name="spacing">
-               <number>6</number>
-              </property>
-              <item>
-               <widget class="QToolButton" name="openFolderButton">
-                <property name="toolTip">
-                 <string>Open containing folder</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="generateButton">
-                <property name="text">
-                 <string>Generate</string>
-                </property>
-                <property name="toolTip">
-                 <string>Create a self-signed server certificate</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="importButton">
-                <property name="text">
-                 <string>Import</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="exportButton">
-                <property name="text">
-                 <string>Export</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="trustButton">
-                <property name="text">
-                 <string>Trust</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="rejectButton">
-                <property name="text">
-                 <string>Reject</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QToolButton" name="deleteButton">
-                <property name="text">
-                 <string>Delete</string>
-                </property>
-                <property name="toolTip">
-                 <string>Delete</string>
-                </property>
                </widget>
               </item>
              </layout>
@@ -513,6 +557,11 @@
    <class>ElidedLabel</class>
    <extends>QLabel</extends>
    <header>elidedlabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>StatusIndicator</class>
+   <extends>QWidget</extends>
+   <header>statusindicator.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

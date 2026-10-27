@@ -4,16 +4,19 @@
 #include <cmath>
 
 #include <QAction>
+#include <QApplication>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QDropEvent>
 #include <QDialogButtonBox>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
 #include <QMenu>
+#include <QMimeData>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScrollArea>
@@ -30,6 +33,7 @@
 #include <QTableWidget>
 #include <QTextBlock>
 #include <QTextLayout>
+#include <QTimer>
 #include <QToolButton>
 #include <QToolTip>
 #include <QNetworkInterface>
@@ -37,6 +41,7 @@
 #include <QSysInfo>
 #include <QTest>
 #include <QTreeView>
+#include <QUrl>
 
 #include "certificatesmodel.h"
 #include "certificatespage.h"
@@ -99,6 +104,18 @@ T *child(const QWidget &parent, const char *name)
 QString messageText(const MessageDialog *dialog)
 {
     return child<QLabel>(*dialog, "textLabel")->text();
+}
+
+bool dragAndDrop(QWidget *target, const QMimeData &data)
+{
+    const QPoint position = target->rect().center();
+    QDragEnterEvent enter(position, Qt::CopyAction, &data, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(target, &enter);
+    if (!enter.isAccepted())
+        return false;
+    QDropEvent drop(QPointF(position), Qt::CopyAction, &data, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(target, &drop);
+    return drop.isAccepted();
 }
 
 QString text(const QWidget &parent, const char *name)
@@ -244,6 +261,8 @@ private slots:
     void certificatesPage();
     void certificatesPageRequestsActions();
     void certificatesPageOwnFolderActions();
+    void certificatesPageImportsDroppedFiles();
+    void certificatesPageShowsPem();
     void certificatesPageClearsDetailsOfEmptyFolder();
     void certificateDetailsShowEveryLine();
     void certificateDetailsKeepTheirWidth();
@@ -1026,17 +1045,24 @@ void TestPages::certificatesPageRequestsActions()
     auto *categories = child<QTreeView>(page, "categoriesList");
 
     QVERIFY(ViewSetup::selectById(categories, TreeBuilders::allCertificatesId()));
-    child<QPushButton>(page, "importButton")->click();
-    QCOMPARE(imported.count(), 0);
+    auto *import = child<QPushButton>(page, "importButton");
+    QVERIFY(import->menu());
+    const QList<QAction *> folders = import->menu()->actions();
+    QCOMPARE(folders.size(), 3);
+    QCOMPARE(folders.at(1)->text(), QStringLiteral("Issuers"));
+    folders.at(1)->trigger();
+    QCOMPARE(imported.size(), 1);
+    QCOMPARE(imported.takeFirst().first().value<CertificateInfo::Category>(), CertificateInfo::Category::Issuer);
 
     QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Trusted))));
+    QVERIFY(!import->menu());
     const QString selected = page.certificatesModel()->item(0).filePath;
-    child<QPushButton>(page, "importButton")->click();
+    import->click();
     QCOMPARE(imported.first().first().value<CertificateInfo::Category>(), CertificateInfo::Category::Trusted);
     child<QPushButton>(page, "rejectButton")->click();
     QCOMPARE(moved.first().at(0).toString(), selected);
     QCOMPARE(moved.first().at(1).value<CertificateInfo::Category>(), CertificateInfo::Category::Rejected);
-    child<QToolButton>(page, "deleteButton")->click();
+    child<QPushButton>(page, "deleteButton")->click();
     QCOMPARE(deleted.first().first().toString(), selected);
     child<QPushButton>(page, "exportButton")->click();
     QCOMPARE(exported.first().first().toString(), selected);
@@ -1206,16 +1232,31 @@ void TestPages::certificatesPage()
     QCOMPARE(ViewSetup::currentId(categories), TreeBuilders::allCertificatesId());
     QCOMPARE(page.certificatesModel()->rowCount(), _snapshot.certificates.size());
     QCOMPARE(child<QLabel>(page, "certificatesTitle")->text(), QStringLiteral("All Certificates"));
-    QVERIFY(!child<QPushButton>(page, "importButton")->isEnabled());
+    QCOMPARE(child<QLabel>(page, "certificatesDescription")->text(), QStringLiteral("Every certificate in the store."));
+    const QAbstractItemModel *folders = categories->model();
+    const QModelIndex all = folders->index(folders->rowCount() - 1, 0);
+    QCOMPARE(all.data(ItemRoles::Id).toString(), TreeBuilders::allCertificatesId());
+    QVERIFY(all.data(ItemRoles::SeparatorAbove).toBool());
+    QVERIFY(categories->visualRect(all).height() > categories->visualRect(folders->index(0, 0)).height());
+    auto *import = child<QPushButton>(page, "importButton");
+    QVERIFY(import->isEnabled());
+    for (const char *button : { "generateButton", "importButton", "exportButton", "trustButton", "rejectButton",
+                                "deleteButton" }) {
+        QVERIFY2(child<QWidget>(page, "certificatesPanel")->isAncestorOf(child<QPushButton>(page, button)), button);
+    }
+    QVERIFY(!child<QWidget>(page, "detailsPanel")->isAncestorOf(child<QPushButton>(page, "exportButton")));
     QVERIFY(!page.findChild<QLineEdit *>(QStringLiteral("searchEdit")));
 
     QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Trusted))));
     QCOMPARE(page.certificatesModel()->rowCount(), 3);
-    QVERIFY(child<QPushButton>(page, "importButton")->isEnabled());
+    QVERIFY(import->isEnabled());
     const QHeaderView *columns = child<QTableView>(page, "certificatesView")->horizontalHeader();
     QCOMPARE(columns->sectionResizeMode(CertificatesModel::ColCommonName), QHeaderView::Interactive);
     QVERIFY(columns->sectionSize(CertificatesModel::ColCommonName) != columns->defaultSectionSize());
     QCOMPARE(child<QLabel>(page, "certificatesTitle")->text(), QStringLiteral("Trusted Clients"));
+    QVERIFY(!child<QLabel>(page, "certificatesDescription")->text().isEmpty());
+    QCOMPARE(child<QLabel>(page, "cardNameLabel")->text(), QStringLiteral("OPC UA Client A"));
+    QVERIFY(!child<QPushButton>(page, "viewPemButton")->isEnabled());
     QVERIFY(certificateField(page, "Subject").startsWith(QStringLiteral("CN=OPC UA Client A")));
     QCOMPARE(certificateField(page, "Valid from"), QStringLiteral("2024-04-10 10:00:00"));
     QVERIFY(!child<QPushButton>(page, "trustButton")->isEnabled());
@@ -1253,6 +1294,67 @@ void TestPages::certificatesPageClearsDetailsOfEmptyFolder()
     QVERIFY(child<QTableWidget>(page, "detailsView")->rowCount() > 0);
     QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Trusted))));
     QCOMPARE(child<QTableWidget>(page, "detailsView")->rowCount(), 0);
+}
+
+void TestPages::certificatesPageShowsPem()
+{
+    CertificateInfo certificate = _snapshot.certificates.first();
+    certificate.pem = QStringLiteral("-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n");
+    CertificatesPage page;
+    page.setCertificates({ certificate });
+
+    auto *view = child<QPushButton>(page, "viewPemButton");
+    QVERIFY(view->isEnabled());
+    view->click();
+    auto *dialog = page.findChild<ValueDialog *>();
+    QVERIFY(dialog);
+    QCOMPARE(dialog->windowTitle(), QStringLiteral("%1 (PEM)").arg(certificate.commonName));
+    QCOMPARE(child<QPlainTextEdit>(*dialog, "valueEdit")->toPlainText(), certificate.pem);
+    dialog->close();
+
+    page.resize(1500, 560);
+    page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+    QCOMPARE(view->width(), view->sizeHint().width());
+    QVERIFY(child<QLabel>(page, "cardNameLabel")->width() > view->width());
+}
+
+void TestPages::certificatesPageImportsDroppedFiles()
+{
+    CertificatesPage page;
+    page.setCertificates(_snapshot.certificates);
+    page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+    QSignalSpy dropped(&page, &CertificatesPage::filesDropped);
+    auto *categories = child<QTreeView>(page, "categoriesList");
+    QWidget *list = child<QTableView>(page, "certificatesView")->viewport();
+    const QString file = QStringLiteral(OUASIM_TEST_DATA_DIR "/pki/client.der");
+    QMimeData files;
+    files.setUrls({ QUrl::fromLocalFile(file) });
+    QMimeData text;
+    text.setText(file);
+
+    QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Trusted))));
+    QVERIFY(dragAndDrop(list, files));
+    QCOMPARE(dropped.size(), 1);
+    QCOMPARE(dropped.first().at(0).toStringList(), QStringList { file });
+    QCOMPARE(dropped.first().at(1).value<CertificateInfo::Category>(), CertificateInfo::Category::Trusted);
+    QVERIFY(!dragAndDrop(list, text));
+
+    QVERIFY(ViewSetup::selectById(categories, QString::number(int(CertificateInfo::Category::Application))));
+    QVERIFY(!dragAndDrop(list, files));
+    QCOMPARE(dropped.size(), 1);
+
+    QVERIFY(ViewSetup::selectById(categories, TreeBuilders::allCertificatesId()));
+    QTimer::singleShot(0, &page, [] {
+        QWidget *menu = QApplication::activePopupWidget();
+        QTest::keyClick(menu, Qt::Key_Down);
+        QTest::keyClick(menu, Qt::Key_Down);
+        QTest::keyClick(menu, Qt::Key_Return);
+    });
+    QVERIFY(dragAndDrop(list, files));
+    QCOMPARE(dropped.size(), 2);
+    QCOMPARE(dropped.last().at(1).value<CertificateInfo::Category>(), CertificateInfo::Category::Issuer);
 }
 
 void TestPages::certificatesPageOwnFolderActions()
@@ -1436,7 +1538,8 @@ void TestPages::certificateDetailsUseWholePanel()
     QVERIFY(!page.findChild<QPlainTextEdit *>(QStringLiteral("selectedValueEdit")));
     QVERIFY(!page.findChild<QSplitter *>(QStringLiteral("detailsSplitter")));
     auto *view = child<QTableWidget>(page, "detailsView");
-    QCOMPARE(view->height(), child<QWidget>(page, "detailsHost")->height());
+    QCOMPARE(view->geometry().bottom(), child<QWidget>(page, "detailsHost")->rect().bottom());
+    QVERIFY(view->geometry().top() > child<QPushButton>(page, "viewPemButton")->geometry().top());
     const int initialHeight = view->height();
     page.resize(1100, height + 150);
     QCoreApplication::processEvents();

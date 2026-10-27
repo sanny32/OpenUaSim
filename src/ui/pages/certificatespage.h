@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QList>
+#include <QStringList>
 #include <QWidget>
 
 #include "data/certificateinfo.h"
@@ -18,6 +19,10 @@ class CertificatesPage;
 }
 
 class CertificatesModel;
+class QAction;
+class QDropEvent;
+class QMenu;
+class QMimeData;
 class TreeModel;
 
 ///
@@ -59,6 +64,13 @@ signals:
     void importRequested(CertificateInfo::Category category);
 
     ///
+    /// \brief Asks to import certificate files dropped on the certificate list.
+    /// \param fileNames Dropped local files.
+    /// \param category Trusted, Rejected or Issuer folder they go to.
+    ///
+    void filesDropped(const QStringList &fileNames, CertificateInfo::Category category);
+
+    ///
     /// \brief Asks to create a self-signed server certificate.
     ///
     void generateRequested();
@@ -84,8 +96,15 @@ signals:
 
 protected:
     void changeEvent(QEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
+    void buildImportMenu();
+    void applyPalette();
+    void showPem();
+    void importInto(const QAction *action);
+    bool acceptsDrop(const QMimeData *mimeData) const;
+    void dropFiles(QDropEvent *event);
     void fitDetailsWidth();
     void showCategory(const QModelIndex &current);
     void showCertificate(const QModelIndex &current);
@@ -103,5 +122,6 @@ private:
     Ui::CertificatesPage *ui;
     TreeModel *_categoriesModel;
     CertificatesModel *_certificatesModel;
+    QMenu *_importMenu;
     QList<CertificateInfo> _certificates;
 };

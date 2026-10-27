@@ -102,6 +102,14 @@ void TestTreeModel::exposesCustomRoles()
     QCOMPARE(speed.data(ItemRoles::NodeKind).toInt(), static_cast<int>(TreeNode::Kind::Variable));
     QCOMPARE(speed.data(ItemRoles::Current).toBool(), true);
     QVERIFY(!speed.data(Qt::ToolTipRole).isValid());
+    QVERIFY(!objects.data(ItemRoles::SeparatorAbove).toBool());
+
+    TreeNode apart = node(QStringLiteral("All"), QStringLiteral("all"));
+    apart.trailing = QStringLiteral("2");
+    apart.separatorAbove = true;
+    model.setNodes({ apart });
+    QVERIFY(model.index(0, 0).data(ItemRoles::SeparatorAbove).toBool());
+    QVERIFY(model.index(0, 1).data(ItemRoles::SeparatorAbove).toBool());
 }
 
 void TestTreeModel::iconRoleIsInvalidWithoutIcon()

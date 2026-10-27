@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QObject>
+#include <QStringList>
 
 #include "data/certificateinfo.h"
 
@@ -40,6 +41,14 @@ public:
     /// \return True when the certificate was stored.
     ///
     bool importCertificateFrom(const QString &fileName, CertificateInfo::Category category);
+
+    ///
+    /// \brief Adds several client or issuer certificates to the PKI store, reporting every refused file at once.
+    /// \param fileNames PEM or DER certificates.
+    /// \param category Trusted, Rejected or Issuer folder.
+    /// \return Number of certificates stored.
+    ///
+    int importCertificateFiles(const QStringList &fileNames, CertificateInfo::Category category);
 
     ///
     /// \brief Installs the server certificate and key, reporting refused files.

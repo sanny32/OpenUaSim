@@ -363,6 +363,10 @@
         <translation>Сертификат не импортирован</translation>
     </message>
     <message>
+        <source>Certificates not imported</source>
+        <translation>Сертификаты не импортированы</translation>
+    </message>
+    <message>
         <source>Server certificate not installed</source>
         <translation>Сертификат сервера не установлен</translation>
     </message>
@@ -535,6 +539,34 @@
 <context>
     <name>CertificatesPage</name>
     <message>
+        <source>View in PEM</source>
+        <translation>Показать в PEM</translation>
+    </message>
+    <message>
+        <source>%1 (PEM)</source>
+        <translation>%1 (PEM)</translation>
+    </message>
+    <message>
+        <source>Every certificate in the store.</source>
+        <translation>Все сертификаты хранилища.</translation>
+    </message>
+    <message>
+        <source>The certificate used by this server to identify itself to clients.</source>
+        <translation>Сертификат, которым сервер представляется клиентам.</translation>
+    </message>
+    <message>
+        <source>Client certificates the server accepts when it admits only trusted clients.</source>
+        <translation>Сертификаты клиентов, которых сервер принимает, когда допускает только доверенных.</translation>
+    </message>
+    <message>
+        <source>Client certificates the server refused or has not trusted yet.</source>
+        <translation>Сертификаты клиентов, которых сервер отклонил или ещё не сделал доверенными.</translation>
+    </message>
+    <message>
+        <source>CA certificates that complete the chain of client certificates without trusting them.</source>
+        <translation>Сертификаты УЦ, достраивающие цепочку сертификатов клиентов, но не делающие их доверенными.</translation>
+    </message>
+    <message>
         <source>Certificate Store</source>
         <translation>Хранилище сертификатов</translation>
     </message>
@@ -579,20 +611,24 @@
         <translation>Открыть папку с файлом</translation>
     </message>
     <message>
-        <source>Generate</source>
-        <translation>Создать</translation>
+        <source>Generate...</source>
+        <translation>Создать...</translation>
     </message>
     <message>
         <source>Create a self-signed server certificate</source>
         <translation>Создать самоподписанный сертификат сервера</translation>
     </message>
     <message>
-        <source>Import</source>
-        <translation>Импорт</translation>
+        <source>Import...</source>
+        <translation>Импорт...</translation>
     </message>
     <message>
-        <source>Export</source>
-        <translation>Экспорт</translation>
+        <source>Add a certificate file to the store; certificate files can also be dropped on the list</source>
+        <translation>Добавить файл сертификата в хранилище; файлы сертификатов можно также перетащить в список</translation>
+    </message>
+    <message>
+        <source>Export...</source>
+        <translation>Экспорт...</translation>
     </message>
     <message>
         <source>Trust</source>

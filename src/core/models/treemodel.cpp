@@ -184,6 +184,8 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
         return {};
     const TreeNode &node = nodeFor(index)->data;
 
+    if (role == ItemRoles::SeparatorAbove)
+        return node.separatorAbove;
     if (index.column() == 1) {
         if (role == Qt::DisplayRole)
             return node.trailing;

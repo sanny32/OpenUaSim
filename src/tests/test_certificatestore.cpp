@@ -638,6 +638,7 @@ void TestCertificateStore::ensuresCertificateBeforeServerStart()
     QVERIFY(info.extendedKeyUsage.contains(QStringLiteral("TLS Web Client Authentication")));
     QVERIFY(!info.subjectKeyIdentifier.isEmpty());
     QVERIFY(info.authorityKeyIdentifier.isEmpty());
+    QVERIFY(info.pem.startsWith(QStringLiteral("-----BEGIN CERTIFICATE-----")));
     QCOMPARE(QFileInfo(info.filePath).fileName(),
              QStringLiteral("OpenUaSim@%1.der").arg(QHostInfo::localHostName()));
     QCOMPARE(controller.log().last().category, LogEntry::Category::Security);

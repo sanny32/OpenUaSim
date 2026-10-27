@@ -29,7 +29,9 @@ enum Role {
     /// \brief Whether a tree node starts expanded (bool).
     Expanded,
     /// \brief Whether a tree node starts selected (bool).
-    Current
+    Current,
+    /// \brief Whether a line sets the row apart from the rows above it (bool).
+    SeparatorAbove
 };
 
 ///

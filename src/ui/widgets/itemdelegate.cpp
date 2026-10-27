@@ -10,6 +10,7 @@
 #include <QApplication>
 #include <QFontMetricsF>
 #include <QHelpEvent>
+#include <QPainter>
 
 #include "appicons.h"
 #include "itemdelegate.h"
@@ -19,7 +20,18 @@
 namespace {
 
 constexpr int kMinimumRowHeight = 27;
+constexpr int kSeparatorSpace = 17;
 constexpr double kStatusDotScale = 0.75;
+
+///
+/// \brief Tells whether a row is set apart from the rows above it by a line.
+/// \param index Cell of the row.
+/// \return Value of the SeparatorAbove role.
+///
+bool hasSeparatorAbove(const QModelIndex &index)
+{
+    return index.data(ItemRoles::SeparatorAbove).toBool();
+}
 
 }
 
@@ -33,7 +45,7 @@ ItemDelegate::ItemDelegate(QObject *parent)
 }
 
 ///
-/// \brief Returns the cell size with the row height raised to the minimum.
+/// \brief Returns the cell size with the row height raised to the minimum, plus room for a separator line.
 /// \param option Style option of the cell.
 /// \param index Cell index.
 /// \return Cell size.
@@ -42,7 +54,31 @@ QSize ItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelInd
 {
     QSize size = QStyledItemDelegate::sizeHint(option, index);
     size.setHeight(qMax(size.height(), kMinimumRowHeight));
+    if (hasSeparatorAbove(index))
+        size.rheight() += kSeparatorSpace;
     return size;
+}
+
+///
+/// \brief Draws the cell, below a separator line when its row asks for one.
+/// \param painter Painter to draw with.
+/// \param option Style option of the cell.
+/// \param index Cell index.
+///
+void ItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    if (!hasSeparatorAbove(index)) {
+        QStyledItemDelegate::paint(painter, option, index);
+        return;
+    }
+    const int y = option.rect.top() + kSeparatorSpace / 2;
+    painter->save();
+    painter->setPen(option.palette.color(QPalette::Mid));
+    painter->drawLine(option.rect.left(), y, option.rect.right(), y);
+    painter->restore();
+    QStyleOptionViewItem item(option);
+    item.rect.setTop(option.rect.top() + kSeparatorSpace);
+    QStyledItemDelegate::paint(painter, item, index);
 }
 
 ///

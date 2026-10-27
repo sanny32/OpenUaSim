@@ -248,6 +248,7 @@ CertificateInfo describe(const QSslCertificate &certificate, CertificateInfo::Ca
     info.keyUsage = keyUsage(certificate);
 #endif
     info.filePath = QDir::toNativeSeparators(filePath);
+    info.pem = QString::fromLatin1(certificate.toPem());
     return info;
 }
 

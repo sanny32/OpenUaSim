@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include <QLabel>
 #include <QPushButton>
 #include <QTemporaryDir>
 #include <QTest>
@@ -49,6 +50,8 @@ private slots:
     void certificateImportFailureShowsWarning();
     void serverCertificateInstallFailureShowsWarning();
     void importedCertificateReachesPage();
+    void droppedFilesReportFailuresAtOnce();
+    void droppedFilesImportSilently();
     void deletesOnlyConfirmedCertificate();
     void unknownCertificateAsksNothing();
     void generateAsksBeforeReplacing();
@@ -113,6 +116,37 @@ void TestActions::importedCertificateReachesPage()
     QVERIFY(actions.importCertificateFrom(testData(QStringLiteral("pki/client.der")), Category::Trusted));
     QVERIFY(!openDialog(*_window));
     QCOMPARE(page.certificatesModel()->rowCount(), 1);
+}
+
+void TestActions::droppedFilesReportFailuresAtOnce()
+{
+    CertificatesPage page;
+    CertificateActions actions(*_controller, &page, _window.get());
+
+    emit page.filesDropped({ testData(QStringLiteral("pki/client.der")), testData(QStringLiteral("pki/missing.der")),
+                             testData(QStringLiteral("pki/other-missing.der")) },
+                           Category::Issuer);
+    QCOMPARE(_controller->pki().certificates().size(), 1);
+    QCOMPARE(_controller->pki().certificates().first().category, Category::Issuer);
+    const QList<MessageDialog *> dialogs = _window->findChildren<MessageDialog *>();
+    QCOMPARE(dialogs.size(), 1);
+    QCOMPARE(dialogs.first()->windowTitle(), QStringLiteral("Certificates not imported"));
+    const QString text = dialogs.first()->findChild<QLabel *>(QStringLiteral("textLabel"))->text();
+    QVERIFY(text.contains(QStringLiteral("missing.der")));
+    QVERIFY(text.contains(QStringLiteral("other-missing.der")));
+}
+
+void TestActions::droppedFilesImportSilently()
+{
+    CertificatesPage page;
+    CertificateActions actions(*_controller, &page, _window.get());
+
+    QCOMPARE(actions.importCertificateFiles({ testData(QStringLiteral("pki/client.der")),
+                                              testData(QStringLiteral("pki/stranger.der")) },
+                                            Category::Trusted),
+             2);
+    QVERIFY(!openDialog(*_window));
+    QCOMPARE(page.certificatesModel()->rowCount(), 2);
 }
 
 void TestActions::deletesOnlyConfirmedCertificate()

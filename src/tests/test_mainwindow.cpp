@@ -931,7 +931,7 @@ void TestMainWindow::deletesCertificateAfterConfirmation()
     MainWindow window;
     window.setController(&controller);
 
-    child<QToolButton>(window, "deleteButton")->click();
+    child<QPushButton>(window, "deleteButton")->click();
     auto *question = window.findChild<MessageDialog *>();
     QVERIFY(question);
     QCOMPARE(question->windowTitle(), QStringLiteral("Delete Certificate"));
@@ -943,7 +943,7 @@ void TestMainWindow::deletesCertificateAfterConfirmation()
     QCOMPARE(controller.pki().certificates().size(), 1);
 
     QTRY_VERIFY(!window.findChild<MessageDialog *>());
-    child<QToolButton>(window, "deleteButton")->click();
+    child<QPushButton>(window, "deleteButton")->click();
     child<QPushButton>(*window.findChild<MessageDialog *>(), "actionButton")->click();
     QVERIFY(controller.pki().certificates().isEmpty());
 }

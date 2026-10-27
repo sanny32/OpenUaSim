@@ -35,6 +35,8 @@ struct TreeNode
     bool expanded = false;
     /// \brief Whether the view should start with this node selected.
     bool current = false;
+    /// \brief Whether the view draws a line above the node, setting it apart from the nodes before it.
+    bool separatorAbove = false;
     /// \brief Child nodes.
     QList<TreeNode> children;
 };

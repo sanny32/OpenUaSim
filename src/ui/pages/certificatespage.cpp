@@ -6,20 +6,27 @@
 /// \brief Implements the certificate store page.
 ///
 
+#include <QCoreApplication>
 #include <QDesktopServices>
+#include <QDropEvent>
 #include <QFileInfo>
 #include <QHeaderView>
+#include <QMenu>
+#include <QMimeData>
 #include <QScrollBar>
 #include <QShortcut>
+#include <QSignalBlocker>
 #include <QTableWidget>
 #include <QUrl>
 
+#include "appcolors.h"
 #include "appicons.h"
 #include "certificatesmodel.h"
 #include "certificatespage.h"
 #include "formatting.h"
 #include "itemroles.h"
 #include "pki/certificategenerator.h"
+#include "statusindicator.h"
 #include "treebuilders.h"
 #include "treemodel.h"
 #include "ui_certificatespage.h"
@@ -28,6 +35,39 @@
 #include "viewsetup.h"
 
 namespace {
+
+constexpr int kCardIconSize = 40;
+
+///
+/// \brief Explains what a store folder holds, for the line under the certificate list title.
+/// \param id Id of the folder node: a category number or TreeBuilders::allCertificatesId().
+/// \return One sentence, or empty for an unknown id.
+///
+QString folderDescription(const QString &id)
+{
+    if (id == TreeBuilders::allCertificatesId())
+        return QCoreApplication::translate("CertificatesPage", "Every certificate in the store.");
+    bool ok = false;
+    const int category = id.toInt(&ok);
+    if (!ok)
+        return {};
+    switch (CertificateInfo::Category(category)) {
+    case CertificateInfo::Category::Application:
+        return QCoreApplication::translate("CertificatesPage",
+                                           "The certificate used by this server to identify itself to clients.");
+    case CertificateInfo::Category::Trusted:
+        return QCoreApplication::translate("CertificatesPage",
+                                           "Client certificates the server accepts when it admits only trusted clients.");
+    case CertificateInfo::Category::Rejected:
+        return QCoreApplication::translate("CertificatesPage",
+                                           "Client certificates the server refused or has not trusted yet.");
+    case CertificateInfo::Category::Issuer:
+        return QCoreApplication::translate("CertificatesPage",
+                                           "CA certificates that complete the chain of client certificates "
+                                           "without trusting them.");
+    }
+    return {};
+}
 
 ///
 /// \brief Appends a field with a compact preview and preserves its complete value for selection.
@@ -58,6 +98,21 @@ void addExtension(QTableWidget *view, const QString &name, const QString &value)
         addDetail(view, name, value, QStringLiteral("shield-check"));
 }
 
+///
+/// \brief Returns the local files carried by a drag.
+/// \param mimeData Dragged data.
+/// \return File paths; remote URLs and other data are left out.
+///
+QStringList localFiles(const QMimeData *mimeData)
+{
+    QStringList files;
+    for (const QUrl &url : mimeData->urls()) {
+        if (url.isLocalFile())
+            files << url.toLocalFile();
+    }
+    return files;
+}
+
 }
 
 ///
@@ -69,8 +124,10 @@ CertificatesPage::CertificatesPage(QWidget *parent)
     , ui(new Ui::CertificatesPage)
     , _categoriesModel(new TreeModel(this))
     , _certificatesModel(new CertificatesModel(this))
+    , _importMenu(new QMenu(this))
 {
     ui->setupUi(this);
+    buildImportMenu();
     ViewSetup::splitByStretch(ui->splitter);
     ui->openFolderButton->setIcon(AppIcons::icon(QStringLiteral("import")));
     ui->generateButton->setIcon(AppIcons::icon(QStringLiteral("certificate")));
@@ -84,6 +141,7 @@ CertificatesPage::CertificatesPage(QWidget *parent)
         ui->generateButton->setEnabled(false);
         ui->generateButton->setToolTip(tr("This build has no encryption support"));
     }
+    applyPalette();
     ViewSetup::configureTable(ui->detailsView);
     ui->detailsView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->detailsView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
@@ -96,6 +154,8 @@ CertificatesPage::CertificatesPage(QWidget *parent)
     ViewSetup::configureTable(ui->certificatesView);
     ui->certificatesView->setModel(_certificatesModel);
     ViewSetup::fitColumnsWhenFilled(ui->certificatesView);
+    ui->certificatesView->viewport()->setAcceptDrops(true);
+    ui->certificatesView->viewport()->installEventFilter(this);
 
     connect(ui->categoriesList->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &CertificatesPage::showCategory);
@@ -113,11 +173,13 @@ CertificatesPage::CertificatesPage(QWidget *parent)
     }
     connect(ui->generateButton, &QPushButton::clicked, this, &CertificatesPage::generateRequested);
     connect(ui->importButton, &QPushButton::clicked, this, &CertificatesPage::requestImport);
+    connect(_importMenu, &QMenu::triggered, this, &CertificatesPage::importInto);
     connect(ui->exportButton, &QPushButton::clicked, this, &CertificatesPage::requestExport);
     connect(ui->trustButton, &QPushButton::clicked, this, &CertificatesPage::requestTrust);
     connect(ui->rejectButton, &QPushButton::clicked, this, &CertificatesPage::requestReject);
-    connect(ui->deleteButton, &QToolButton::clicked, this, &CertificatesPage::requestDelete);
+    connect(ui->deleteButton, &QPushButton::clicked, this, &CertificatesPage::requestDelete);
     connect(ui->openFolderButton, &QToolButton::clicked, this, &CertificatesPage::openContainingFolder);
+    connect(ui->viewPemButton, &QPushButton::clicked, this, &CertificatesPage::showPem);
 }
 
 ///
@@ -164,6 +226,7 @@ void CertificatesPage::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
+        buildImportMenu();
         if (!CertificateGenerator::isAvailable())
             ui->generateButton->setToolTip(tr("This build has no encryption support"));
         const int certificateRow = ui->certificatesView->currentIndex().row();
@@ -173,7 +236,124 @@ void CertificatesPage::changeEvent(QEvent *event)
         _certificatesModel->retranslate();
         fitDetailsWidth();
     }
+    if (event->type() == QEvent::PaletteChange)
+        applyPalette();
     QWidget::changeEvent(event);
+}
+
+///
+/// \brief Redraws the certificate card icon and greys the folder description in the current palette.
+///
+void CertificatesPage::applyPalette()
+{
+    ui->cardIconLabel->setPixmap(AppIcons::icon(QStringLiteral("certificate"))
+                                     .pixmap(QSize(kCardIconSize, kCardIconSize), devicePixelRatioF()));
+    QPalette description = ui->certificatesDescription->palette();
+    description.setColor(QPalette::WindowText, AppColors::secondaryText(palette()));
+    ui->certificatesDescription->setPalette(description);
+}
+
+///
+/// \brief Opens the selected certificate in PEM encoding, where it can be read and copied.
+///
+void CertificatesPage::showPem()
+{
+    const QModelIndex current = ui->certificatesView->currentIndex();
+    if (!current.isValid())
+        return;
+    const CertificateInfo &certificate = _certificatesModel->item(current.row());
+    auto *dialog = new ValueDialog(tr("%1 (PEM)").arg(certificate.commonName), certificate.pem, this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->open();
+}
+
+///
+/// \brief Imports certificate files dropped on the certificate list.
+/// \param watched Object the event is for.
+/// \param event Event to inspect.
+/// \return True when the event was a drag or drop of certificate files the list takes.
+///
+bool CertificatesPage::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched != ui->certificatesView->viewport())
+        return QWidget::eventFilter(watched, event);
+    switch (event->type()) {
+    case QEvent::DragEnter:
+    case QEvent::DragMove: {
+        auto *drag = static_cast<QDragMoveEvent *>(event);
+        if (!acceptsDrop(drag->mimeData()))
+            return false;
+        drag->acceptProposedAction();
+        return true;
+    }
+    case QEvent::Drop:
+        dropFiles(static_cast<QDropEvent *>(event));
+        return true;
+    default:
+        return QWidget::eventFilter(watched, event);
+    }
+}
+
+///
+/// \brief Lists the folders a client or issuer certificate can be imported into, in the current language.
+///
+void CertificatesPage::buildImportMenu()
+{
+    _importMenu->clear();
+    for (const CertificateInfo::Category category : { CertificateInfo::Category::Trusted,
+                                                      CertificateInfo::Category::Issuer,
+                                                      CertificateInfo::Category::Rejected }) {
+        QAction *action = _importMenu->addAction(AppIcons::icon(TreeBuilders::certificateCategoryIcon(category)),
+                                                 TreeBuilders::certificateCategoryName(category));
+        action->setData(static_cast<int>(category));
+    }
+}
+
+///
+/// \brief Asks to import a certificate into the folder picked from the import menu.
+/// \param action Picked menu entry.
+///
+void CertificatesPage::importInto(const QAction *action)
+{
+    emit importRequested(CertificateInfo::Category(action->data().toInt()));
+}
+
+///
+/// \brief Tells whether a drag carries files the selected folder can take; the server certificate needs its
+///        private key, so it is not taken from a drop.
+/// \param mimeData Dragged data.
+/// \return True for local files over every folder or over the trusted, rejected or issuer folder.
+///
+bool CertificatesPage::acceptsDrop(const QMimeData *mimeData) const
+{
+    if (localFiles(mimeData).isEmpty())
+        return false;
+    const int category = currentCategory();
+    return ViewSetup::currentId(ui->categoriesList) == TreeBuilders::allCertificatesId()
+           || (category >= 0 && category != static_cast<int>(CertificateInfo::Category::Application));
+}
+
+///
+/// \brief Asks to import dropped files into the selected folder, or into a folder picked from the import menu
+///        while every folder is listed.
+/// \param event Drop event.
+///
+void CertificatesPage::dropFiles(QDropEvent *event)
+{
+    if (!acceptsDrop(event->mimeData()))
+        return;
+    int category = currentCategory();
+    if (category < 0) {
+        // Picking the folder for a drop must not also open the file dialog of the Import button.
+        const QSignalBlocker blocker(_importMenu);
+        const QAction *picked =
+            _importMenu->exec(ui->certificatesView->viewport()->mapToGlobal(event->position().toPoint()));
+        if (!picked)
+            return;
+        category = picked->data().toInt();
+    }
+    event->acceptProposedAction();
+    emit filesDropped(localFiles(event->mimeData()), CertificateInfo::Category(category));
 }
 
 ///
@@ -200,7 +380,10 @@ void CertificatesPage::showCategory(const QModelIndex &current)
     ui->generateButton->setVisible(ownFolder);
     ui->trustButton->setVisible(!ownFolder);
     ui->rejectButton->setVisible(!ownFolder);
-    ui->importButton->setEnabled(ok);
+    ui->importButton->setEnabled(ok || all);
+    // With every folder listed, the menu asks which one the certificate goes to.
+    ui->importButton->setMenu(all ? _importMenu : nullptr);
+    ui->certificatesDescription->setText(folderDescription(id));
 
     QList<CertificateInfo> shown;
     for (const CertificateInfo &certificate : std::as_const(_certificates)) {
@@ -229,11 +412,18 @@ void CertificatesPage::showCertificate(const QModelIndex &current)
     if (!valid) {
         ui->trustButton->setEnabled(false);
         ui->rejectButton->setEnabled(false);
+        ui->viewPemButton->setEnabled(false);
+        ui->cardNameLabel->clear();
+        ui->cardStatusIndicator->setStatus(StatusKind::None, QString());
         clearDetails();
         return;
     }
 
     const CertificateInfo &certificate = _certificatesModel->item(current.row());
+    ui->cardNameLabel->setText(certificate.commonName);
+    ui->cardStatusIndicator->setStatus(CertificatesModel::status(certificate.category),
+                                       CertificatesModel::statusText(certificate.category));
+    ui->viewPemButton->setEnabled(!certificate.pem.isEmpty());
     const int selectedField = qMax(0, ui->detailsView->currentRow());
     clearDetails();
     addDetail(ui->detailsView, tr("Version"), certificate.version, QStringLiteral("certificate"));

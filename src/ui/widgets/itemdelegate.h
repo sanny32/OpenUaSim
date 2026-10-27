@@ -26,12 +26,20 @@ public:
     explicit ItemDelegate(QObject *parent = nullptr);
 
     ///
-    /// \brief Returns the cell size with the row height raised to the minimum.
+    /// \brief Returns the cell size with the row height raised to the minimum, plus room for a separator line.
     /// \param option Style option of the cell.
     /// \param index Cell index.
     /// \return Cell size.
     ///
     QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+
+    ///
+    /// \brief Draws the cell, below a separator line when its row asks for one.
+    /// \param painter Painter to draw with.
+    /// \param option Style option of the cell.
+    /// \param index Cell index.
+    ///
+    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 
     ///
     /// \brief Shows the complete text as a tooltip while the cell elides it and the model gives no tooltip.

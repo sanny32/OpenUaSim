@@ -65,4 +65,6 @@ struct CertificateInfo
     QString keyUsage;
     /// \brief Location of the certificate file.
     QString filePath;
+    /// \brief Certificate in PEM encoding.
+    QString pem;
 };

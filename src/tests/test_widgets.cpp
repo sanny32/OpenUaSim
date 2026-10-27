@@ -13,6 +13,7 @@
 #include <QLineEdit>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPainter>
 #include <QPushButton>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
@@ -101,6 +102,7 @@ private slots:
     void delegateLeavesPlainCellsAlone();
     void delegateDropsFocusFrame();
     void delegateRaisesRowHeight();
+    void delegateDrawsSeparatorAboveRow();
     void mainStatusBar();
     void eventLogShowsAndClears();
     void eventLogFollowsNewRowsAtBottom();
@@ -278,6 +280,28 @@ void TestWidgets::delegateRaisesRowHeight()
     QStyledItemDelegate plain;
     QVERIFY(delegate.sizeHint(option, model.index(0, 0)).height()
             > plain.sizeHint(option, model.index(0, 0)).height());
+}
+
+void TestWidgets::delegateDrawsSeparatorAboveRow()
+{
+    QStandardItemModel model(2, 1);
+    model.setData(model.index(0, 0), QStringLiteral("Folder"));
+    model.setData(model.index(1, 0), QStringLiteral("All"));
+    model.setData(model.index(1, 0), true, ItemRoles::SeparatorAbove);
+    ItemDelegate delegate;
+    QStyleOptionViewItem option;
+    option.palette = AppPalette::build(false);
+    const int plainHeight = delegate.sizeHint(option, model.index(0, 0)).height();
+    const int separatedHeight = delegate.sizeHint(option, model.index(1, 0)).height();
+    QVERIFY(separatedHeight > plainHeight);
+
+    QImage image(200, separatedHeight, QImage::Format_ARGB32);
+    image.fill(Qt::white);
+    QPainter painter(&image);
+    option.rect = image.rect();
+    delegate.paint(&painter, option, model.index(1, 0));
+    painter.end();
+    QCOMPARE(image.pixelColor(100, (separatedHeight - plainHeight) / 2), option.palette.color(QPalette::Mid));
 }
 
 void TestWidgets::mainStatusBar()
