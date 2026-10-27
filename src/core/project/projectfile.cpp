@@ -16,6 +16,7 @@
 #include <QJsonObject>
 #include <QSaveFile>
 #include <QSet>
+#include <QSysInfo>
 
 #include <tuple>
 
@@ -304,7 +305,7 @@ QJsonObject modelVariableToJson(const ModelVariable &variable)
 }
 
 ///
-/// \brief Serializes an endpoint.
+/// \brief Serializes an endpoint; a host that is the local machine name is marked as such.
 /// \param endpoint Endpoint to write.
 /// \return JSON object.
 ///
@@ -313,6 +314,7 @@ QJsonObject endpointToJson(const EndpointInfo &endpoint)
     return {
         { QStringLiteral("protocol"), endpoint.protocol },
         { QStringLiteral("hostname"), endpoint.hostname },
+        { QStringLiteral("machineHostname"), endpoint.hostname == QSysInfo::machineHostName() },
         { QStringLiteral("port"), endpoint.port },
         { QStringLiteral("path"), endpoint.path },
         { QStringLiteral("securityPolicy"), endpoint.securityPolicy },
@@ -329,13 +331,14 @@ QJsonObject endpointToJson(const EndpointInfo &endpoint)
 ///
 /// \brief Parses an endpoint; missing fields keep their defaults.
 /// \param json Stored endpoint.
-/// \return Endpoint.
+/// \return Endpoint; a host saved as the machine name becomes the name of the computer that loads it.
 ///
 EndpointInfo endpointFromJson(const QJsonObject &json)
 {
     EndpointInfo endpoint;
     endpoint.protocol = json.value(QStringLiteral("protocol")).toString(QStringLiteral("opc.tcp"));
-    endpoint.hostname = json.value(QStringLiteral("hostname")).toString(endpoint.hostname);
+    if (!json.value(QStringLiteral("machineHostname")).toBool())
+        endpoint.hostname = json.value(QStringLiteral("hostname")).toString(endpoint.hostname);
     endpoint.port = json.value(QStringLiteral("port")).toInt(endpoint.port);
     endpoint.path = json.value(QStringLiteral("path")).toString();
     endpoint.securityPolicy = json.value(QStringLiteral("securityPolicy")).toString(QStringLiteral("None"));

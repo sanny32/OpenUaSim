@@ -86,6 +86,8 @@ private slots:
     void missingFieldsUseDefaults();
     void preservesExplicitHostname_data();
     void preservesExplicitHostname();
+    void marksMachineHostname();
+    void machineHostnameFollowsLoadingComputer();
     void keepsTrustedClientsOnlyKey();
     void keepsUserCertificateFlag();
     void rejectsMalformedJson();
@@ -445,6 +447,35 @@ void TestProjectFile::preservesExplicitHostname()
     const auto result = ProjectFile::fromJson(ProjectFile::toJson(project));
     QVERIFY2(result.ok(), qPrintable(result.error));
     QCOMPARE(result.project.endpoints.first().hostname, hostname);
+}
+
+void TestProjectFile::marksMachineHostname()
+{
+    const QByteArray json = ProjectFile::toJson(DefaultProject::create());
+    const QJsonObject endpoint =
+        QJsonDocument::fromJson(json).object().value(QStringLiteral("endpoints")).toArray().first().toObject();
+    QVERIFY(endpoint.value(QStringLiteral("machineHostname")).toBool());
+    QCOMPARE(endpoint.value(QStringLiteral("hostname")).toString(), QSysInfo::machineHostName());
+
+    ProjectConfig project = DefaultProject::create();
+    project.endpoints.first().hostname = QStringLiteral("plant-server");
+    const QJsonObject explicitHost = QJsonDocument::fromJson(ProjectFile::toJson(project))
+                                         .object().value(QStringLiteral("endpoints")).toArray().first().toObject();
+    QVERIFY(!explicitHost.value(QStringLiteral("machineHostname")).toBool());
+}
+
+void TestProjectFile::machineHostnameFollowsLoadingComputer()
+{
+    QJsonObject root = QJsonDocument::fromJson(ProjectFile::toJson(DefaultProject::create())).object();
+    QJsonArray endpoints = root.value(QStringLiteral("endpoints")).toArray();
+    QJsonObject endpoint = endpoints.first().toObject();
+    endpoint.insert(QStringLiteral("hostname"), QStringLiteral("other-computer"));
+    endpoints.replace(0, endpoint);
+    root.insert(QStringLiteral("endpoints"), endpoints);
+
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(QJsonDocument(root).toJson());
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.project.endpoints.first().hostname, QSysInfo::machineHostName());
 }
 
 void TestProjectFile::keepsTrustedClientsOnlyKey()
