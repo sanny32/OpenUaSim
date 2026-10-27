@@ -176,16 +176,6 @@
     </layout>
    </item>
    <item>
-    <widget class="QLabel" name="noteLabel">
-     <property name="text">
-      <string>A running server applies the changes on restart.</string>
-     </property>
-     <property name="wordWrap">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QLabel" name="problemLabel">
      <property name="wordWrap">
       <bool>true</bool>

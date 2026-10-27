@@ -13,7 +13,6 @@
 #include <QCloseEvent>
 #include <QFileDialog>
 #include <QInputDialog>
-#include <QLabel>
 #include <QPushButton>
 #include <QTimer>
 
@@ -30,7 +29,6 @@
 #include "mainstatusbarwidget.h"
 #include "mainwindow.h"
 #include "modelactions.h"
-#include "elidedlabel.h"
 #include "project/projectdocument.h"
 #include "project/projectfile.h"
 #include "project/projectnodes.h"
@@ -61,13 +59,10 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
     , _logModel(new LogModel(this))
     , _theme(theme)
     , _statusTimer(new QTimer(this))
-    , _restartNote(new ElidedLabel(tr("Restart the server to apply the changes"), this))
 {
     ui->setupUi(this);
     setWindowTitle(QStringLiteral(APP_NAME));
     ui->statusBar->addWidget(_statusWidget, 1);
-    ui->statusBar->addPermanentWidget(_restartNote);
-    _restartNote->hide();
 
     setupIcons();
     setupActions();
@@ -152,7 +147,7 @@ void MainWindow::setController(ServerController *controller)
     connect(ui->endpointsPage, &EndpointsPage::endpointsChangeRequested, this, &MainWindow::applyEndpoints);
     connect(ui->endpointsPage, &EndpointsPage::usersEditRequested, this, &MainWindow::showUsersDialog);
     connect(controller, &ServerController::endpointsChanged, this, &MainWindow::reloadEndpoints);
-    connect(controller, &ServerController::restartRequiredChanged, this, &MainWindow::updateRestartNote);
+    connect(&controller->pki(), &PkiService::restartRequired, this, &MainWindow::offerRestart);
 
     _statusTimer->setInterval(kStatusRefreshMs);
     connect(_statusTimer, &QTimer::timeout, this, &MainWindow::refreshStatus);
@@ -484,7 +479,6 @@ void MainWindow::retranslate()
     const QList<QAction *> pageActions = _pageActions->actions();
     for (QAction *action : pageActions)
         action->setText(ui->tabWidget->tabText(action->data().toInt()));
-    _restartNote->setText(tr("Restart the server to apply the changes"));
     if (_document)
         updateWindowTitle();
     else
@@ -801,6 +795,7 @@ void MainWindow::applyServerSettingsFromDialog()
         return;
     }
     refreshStatus();
+    offerRestartIfRequired();
 }
 
 ///
@@ -853,8 +848,11 @@ void MainWindow::applyUsersFromDialog()
     if (!dialog || !_controller)
         return;
     QString error;
-    if (!_controller->setUsers(dialog->users(), &error))
+    if (!_controller->setUsers(dialog->users(), &error)) {
         showError(tr("User accounts not applied"), error);
+        return;
+    }
+    offerRestartIfRequired();
 }
 
 ///
@@ -883,9 +881,14 @@ void MainWindow::applyVariableChange(const VariableInfo &variable)
 ///
 void MainWindow::applyEndpoints(const QList<EndpointInfo> &endpoints)
 {
+    if (!_controller)
+        return;
     QString error;
-    if (_controller && !_controller->setEndpoints(endpoints, &error))
+    if (!_controller->setEndpoints(endpoints, &error)) {
         showError(tr("Endpoints not changed"), error);
+        return;
+    }
+    offerRestartIfRequired();
 }
 
 ///
@@ -900,12 +903,26 @@ void MainWindow::reloadEndpoints()
 }
 
 ///
-/// \brief Shows or hides the note that endpoint changes wait for a restart.
-/// \param required Whether a restart is pending.
+/// \brief Offers, without blocking the event loop, to restart the running server that applies a change only after a restart.
 ///
-void MainWindow::updateRestartNote(bool required)
+void MainWindow::offerRestart()
 {
-    _restartNote->setVisible(required);
+    auto *dialog = new MessageDialog(QStyle::SP_MessageBoxQuestion, tr("Restart Required"),
+                                     tr("Restart the server now to apply the changes?"),
+                                     tr("Connected clients will be disconnected."), this);
+    dialog->setChoice(tr("Restart Now"), tr("Later"));
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &QDialog::accepted, _controller, &ServerController::restart);
+    dialog->open();
+}
+
+///
+/// \brief Offers a restart when an applied change waits for a restart of the running server.
+///
+void MainWindow::offerRestartIfRequired()
+{
+    if (_controller && _controller->isRestartRequired())
+        offerRestart();
 }
 
 ///

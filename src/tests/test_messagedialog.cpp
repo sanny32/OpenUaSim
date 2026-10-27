@@ -44,6 +44,7 @@ private slots:
     void actionAccepts();
     void alternativeFinishesWithItsOwnResult();
     void actionCanBeTheDefault();
+    void choiceNamesBothButtons();
     void textStandsOutFromDetails();
     void detailsFollowTheTheme();
     void contentSitsOnBaseAndActionIsFilled();
@@ -158,6 +159,21 @@ void TestMessageDialog::actionCanBeTheDefault()
     QVERIFY(!child<QPushButton>(*dialog, "cancelButton")->isDefault());
     QTest::keyClick(dialog.data(), Qt::Key_Return);
     QCOMPARE(dialog->result(), int(QDialog::Accepted));
+}
+
+void TestMessageDialog::choiceNamesBothButtons()
+{
+    MessageDialog dialog(QStyle::SP_MessageBoxQuestion, QStringLiteral("Restart Required"),
+                         QStringLiteral("Restart the server now?"));
+    dialog.setChoice(QStringLiteral("Restart Now"), QStringLiteral("Later"));
+    dialog.show();
+    auto *cancel = child<QPushButton>(dialog, "cancelButton");
+    QCOMPARE(child<QPushButton>(dialog, "actionButton")->text(), QStringLiteral("Restart Now"));
+    QCOMPARE(cancel->text(), QStringLiteral("Later"));
+    QVERIFY(cancel->isVisible());
+    QVERIFY(child<QPushButton>(dialog, "actionButton")->isDefault());
+    cancel->click();
+    QCOMPARE(dialog.result(), int(QDialog::Rejected));
 }
 
 void TestMessageDialog::textStandsOutFromDetails()

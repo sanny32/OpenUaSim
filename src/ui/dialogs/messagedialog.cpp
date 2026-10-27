@@ -121,6 +121,18 @@ void MessageDialog::setAlternative(const QString &text)
 }
 
 ///
+/// \brief Turns the notice into a choice: renames the action button and shows the button that rejects.
+/// \param action Text of the button that accepts, e.g. "Restart Now".
+/// \param cancel Text of the button that rejects, e.g. "Later".
+///
+void MessageDialog::setChoice(const QString &action, const QString &cancel)
+{
+    ui->actionButton->setText(action);
+    ui->cancelButton->setText(cancel);
+    ui->cancelButton->show();
+}
+
+///
 /// \brief Makes the action button the default, for actions that are safe to run on Enter.
 ///
 void MessageDialog::setActionDefault()

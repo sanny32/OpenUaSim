@@ -15,7 +15,7 @@
    <item>
     <widget class="QLabel" name="noteLabel">
      <property name="text">
-      <string>Endpoints with Username/Password enabled accept these logins. A running server applies the changes on restart.</string>
+      <string>Endpoints with Username/Password enabled accept these logins.</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>

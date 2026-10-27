@@ -27,7 +27,6 @@ class ModelActions;
 class QAction;
 class QActionGroup;
 class ProjectDocument;
-class QLabel;
 struct EndpointInfo;
 struct NodeDefinition;
 class QTimer;
@@ -171,7 +170,8 @@ private:
     void updateNodeActions();
     void applyEndpoints(const QList<EndpointInfo> &endpoints);
     void reloadEndpoints();
-    void updateRestartNote(bool required);
+    void offerRestart();
+    void offerRestartIfRequired();
     void newProject();
     void openProject();
     bool saveProject();
@@ -187,7 +187,6 @@ private:
     ServerController *_controller = nullptr;
     ProjectDocument *_document = nullptr;
     QTimer *_statusTimer;
-    QLabel *_restartNote;
     QStringList _pendingDeleteIds;
     VariableInfo _pendingAlarmVariable;
     QString _copiedNodeId;

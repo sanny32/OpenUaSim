@@ -22,7 +22,6 @@
 #include <QInputDialog>
 #include <QSpinBox>
 #include <QSplitter>
-#include <QStatusBar>
 #include <QTabWidget>
 #include <QTableWidget>
 #include <QTemporaryDir>
@@ -75,6 +74,12 @@ QString messageText(const MessageDialog *dialog)
     return child<QLabel>(*dialog, "textLabel")->text();
 }
 
+MessageDialog *restartOffer(const MainWindow &window)
+{
+    auto *box = window.findChild<MessageDialog *>();
+    return box && messageText(box) == QStringLiteral("Restart the server now to apply the changes?") ? box : nullptr;
+}
+
 }
 
 class TestMainWindow : public QObject
@@ -114,8 +119,10 @@ private slots:
     void appliesUsersFromDialog();
     void endpointsPageOpensUsersDialog();
     void appliesServerSettingsFromDialog();
+    void serverSettingsOfferRestartWhileRunning();
+    void usersOfferRestartWhileRunning();
     void refusedVariableChangeShowsMessage();
-    void endpointChangesShowRestartNote();
+    void endpointChangesOfferRestart();
     void refusedEndpointChangeShowsMessage();
     void titleShowsDocumentAndChanges();
     void savesAndOpensProjectFiles();
@@ -124,6 +131,7 @@ private slots:
     void importsAndExportsModels();
     void removesModelAfterConfirmation();
     void deletesCertificateAfterConfirmation();
+    void serverCertificateOffersRestartWhileRunning();
     void exportsNamespaceAndLog();
     void panelsFitTheDefaultWindow_data();
     void panelsFitTheDefaultWindow();
@@ -693,6 +701,7 @@ void TestMainWindow::appliesUsersFromDialog()
 
     QCOMPARE(controller.project().users.size(), 1);
     QCOMPARE(controller.project().users.first().username, QStringLiteral("operator"));
+    QVERIFY(!window.findChild<MessageDialog *>());
 }
 
 void TestMainWindow::endpointsPageOpensUsersDialog()
@@ -727,6 +736,54 @@ void TestMainWindow::appliesServerSettingsFromDialog()
 
     QCOMPARE(controller.project().server.applicationUri, QStringLiteral("urn:test:line"));
     QCOMPARE(controller.project().server.maxSessions, 7);
+    QVERIFY(!window.findChild<MessageDialog *>());
+}
+
+void TestMainWindow::serverSettingsOfferRestartWhileRunning()
+{
+    ProjectConfig project = TestProject::create();
+    project.endpoints.first().port = TestPort::freePort();
+    ServerController controller;
+    controller.setProject(project);
+    MainWindow window;
+    window.setController(&controller);
+    QVERIFY(controller.start());
+
+    child<QAction>(window, "actionServerSettings")->trigger();
+    auto *dialog = window.findChild<ServerSettingsDialog *>();
+    QVERIFY(dialog);
+    child<QSpinBox>(*dialog, "maxSessionsSpin")->setValue(7);
+    dialog->accept();
+
+    QCOMPARE(controller.project().server.maxSessions, 7);
+    auto *offer = restartOffer(window);
+    QVERIFY(offer);
+    child<QPushButton>(*offer, "cancelButton")->click();
+    QVERIFY(controller.isRunning());
+    QVERIFY(controller.isRestartRequired());
+}
+
+void TestMainWindow::usersOfferRestartWhileRunning()
+{
+    ProjectConfig project = TestProject::create();
+    project.endpoints.first().port = TestPort::freePort();
+    ServerController controller;
+    controller.setProject(project);
+    MainWindow window;
+    window.setController(&controller);
+    QVERIFY(controller.start());
+
+    child<QAction>(window, "actionUserAccounts")->trigger();
+    auto *dialog = window.findChild<UsersDialog *>();
+    QVERIFY(dialog);
+    child<QPushButton>(*dialog, "addUserButton")->click();
+    auto *table = child<QTableWidget>(*dialog, "usersTable");
+    table->item(0, 0)->setText(QStringLiteral("operator"));
+    table->item(0, 1)->setText(QStringLiteral("secret"));
+    dialog->accept();
+
+    QCOMPARE(controller.project().users.size(), 1);
+    QVERIFY(restartOffer(window));
 }
 
 void TestMainWindow::refusedVariableChangeShowsMessage()
@@ -746,7 +803,7 @@ void TestMainWindow::refusedVariableChangeShowsMessage()
     box->close();
 }
 
-void TestMainWindow::endpointChangesShowRestartNote()
+void TestMainWindow::endpointChangesOfferRestart()
 {
     ProjectConfig project = TestProject::create();
     project.endpoints.first().port = TestPort::freePort();
@@ -763,15 +820,11 @@ void TestMainWindow::endpointChangesShowRestartNote()
     child<QPushButton>(*endpoints, "applyButton")->click();
 
     QCOMPARE(controller.project().endpoints.first().port, int(port));
-    const auto notes = window.statusBar()->findChildren<QLabel *>();
-    const auto note = std::find_if(notes.cbegin(), notes.cend(), [](const QLabel *label) {
-        return label->text().startsWith(QStringLiteral("Restart the server"));
-    });
-    QVERIFY(note != notes.cend());
-    QVERIFY((*note)->isVisible());
-
-    child<QAction>(window, "actionRestartServer")->trigger();
-    QVERIFY(!(*note)->isVisible());
+    auto *offer = restartOffer(window);
+    QVERIFY(offer);
+    child<QPushButton>(*offer, "actionButton")->click();
+    QVERIFY(controller.isRunning());
+    QVERIFY(!controller.isRestartRequired());
     QCOMPARE(child<QLineEdit>(window, "endpointEdit")->text(), QStringLiteral("opc.tcp://%1:%2").arg(project.endpoints.first().hostname).arg(port));
 }
 
@@ -946,6 +999,27 @@ void TestMainWindow::deletesCertificateAfterConfirmation()
     child<QPushButton>(window, "deleteButton")->click();
     child<QPushButton>(*window.findChild<MessageDialog *>(), "actionButton")->click();
     QVERIFY(controller.pki().certificates().isEmpty());
+}
+
+void TestMainWindow::serverCertificateOffersRestartWhileRunning()
+{
+    QTemporaryDir directory;
+    ProjectConfig project = TestProject::create();
+    project.endpoints.first().port = TestPort::freePort();
+    ServerController controller;
+    controller.pki().store().setRoot(directory.path());
+    controller.setProject(project);
+    MainWindow window;
+    window.setController(&controller);
+    QVERIFY(controller.start());
+
+    QVERIFY(controller.pki().importCertificate(QStringLiteral(OUASIM_TEST_DATA_DIR "/pki/client.der"),
+                                               CertificateInfo::Category::Trusted));
+    QVERIFY(!window.findChild<MessageDialog *>());
+
+    QVERIFY(controller.pki().installServerCertificate(QStringLiteral(OUASIM_TEST_DATA_DIR "/pki/server.cert.pem"),
+                                                      QStringLiteral(OUASIM_TEST_DATA_DIR "/pki/server.key.pem")));
+    QVERIFY(restartOffer(window));
 }
 
 void TestMainWindow::exportsNamespaceAndLog()

@@ -1321,8 +1321,24 @@
         <translation>О &amp;Qt</translation>
     </message>
     <message>
-        <source>Restart the server to apply the changes</source>
-        <translation>Перезапустите сервер, чтобы применить изменения</translation>
+        <source>Restart Required</source>
+        <translation>Требуется перезапуск</translation>
+    </message>
+    <message>
+        <source>Restart the server now to apply the changes?</source>
+        <translation>Перезапустить сервер сейчас, чтобы применить изменения?</translation>
+    </message>
+    <message>
+        <source>Connected clients will be disconnected.</source>
+        <translation>Подключённые клиенты будут отключены.</translation>
+    </message>
+    <message>
+        <source>Restart Now</source>
+        <translation>Перезапустить</translation>
+    </message>
+    <message>
+        <source>Later</source>
+        <translation>Позже</translation>
     </message>
     <message>
         <source>Project not opened</source>
@@ -1991,10 +2007,6 @@
         <translation>&amp;Максимум сеансов</translation>
     </message>
     <message>
-        <source>A running server applies the changes on restart.</source>
-        <translation>Работающий сервер применит изменения после перезапуска.</translation>
-    </message>
-    <message>
         <source>&amp;History Size</source>
         <translation>Размер &amp;истории</translation>
     </message>
@@ -2648,8 +2660,8 @@
         <translation>Учётные записи</translation>
     </message>
     <message>
-        <source>Endpoints with Username/Password enabled accept these logins. A running server applies the changes on restart.</source>
-        <translation>Эти учётные записи принимают конечные точки со включённым входом по имени и паролю. Работающий сервер применит изменения после перезапуска.</translation>
+        <source>Endpoints with Username/Password enabled accept these logins.</source>
+        <translation>Эти учётные записи принимают конечные точки со включённым входом по имени и паролю.</translation>
     </message>
     <message>
         <source>User Name</source>
