@@ -34,54 +34,43 @@ function(ouasim_configure_shared_test_objects)
         "${CMAKE_CURRENT_SOURCE_DIR}/mock/mockdata.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/mock/mockdata.h"
     )
-    target_link_libraries(ouasim_test_mock_data PRIVATE
-        Qt${QT_VERSION_MAJOR}::Test
-        Qt${QT_VERSION_MAJOR}::Widgets
-        ouasim_core
-    )
+    ouasim_configure_test_compilation(ouasim_test_mock_data)
     # Header parsing dominates test compile time; every test links these objects, so they own the one shared PCH.
     target_precompile_headers(ouasim_test_mock_data PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/testpch.h")
-    ouasim_add_test_data_definition(ouasim_test_mock_data)
 
     add_library(ouasim_test_ua_client OBJECT
         "${CMAKE_CURRENT_SOURCE_DIR}/uatestclient.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/uatestclient.h"
     )
-    target_link_libraries(ouasim_test_ua_client PRIVATE
+    ouasim_configure_test_compilation(ouasim_test_ua_client)
+    target_precompile_headers(ouasim_test_ua_client REUSE_FROM ouasim_test_mock_data)
+endfunction()
+
+# GCC ignores a reused PCH unless the macros match exactly, so every test source shares these settings.
+function(ouasim_configure_test_compilation target_name)
+    target_include_directories(${target_name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(${target_name} PRIVATE
         Qt${QT_VERSION_MAJOR}::Test
+        Qt${QT_VERSION_MAJOR}::Network
         Qt${QT_VERSION_MAJOR}::Widgets
         ouasim_core
     )
-    target_precompile_headers(ouasim_test_ua_client REUSE_FROM ouasim_test_mock_data)
-    ouasim_add_test_data_definition(ouasim_test_ua_client)
+    target_compile_definitions(${target_name} PRIVATE
+        OUASIM_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+        OUASIM_EXAMPLE_NODESETS_DIR="${PROJECT_SOURCE_DIR}/../examples/nodesets")
 endfunction()
 
-function(ouasim_add_test_data_definition target_name)
-    target_compile_definitions(${target_name} PRIVATE OUASIM_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
-endfunction()
-
-function(ouasim_register_test test_name source_file)
+function(ouasim_add_test test_name source_file)
     add_executable(${test_name} "${CMAKE_CURRENT_SOURCE_DIR}/${source_file}")
     target_sources(${test_name} PRIVATE
         $<TARGET_OBJECTS:ouasim_test_settings_isolation>
         $<TARGET_OBJECTS:ouasim_test_mock_data>
     )
-    target_include_directories(${test_name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(${test_name} PRIVATE
-        Qt${QT_VERSION_MAJOR}::Test
-        Qt${QT_VERSION_MAJOR}::Network
-        Qt${QT_VERSION_MAJOR}::Widgets
-    )
-    ouasim_add_test_data_definition(${test_name})
+    ouasim_configure_test_compilation(${test_name})
     target_precompile_headers(${test_name} REUSE_FROM ouasim_test_mock_data)
     ouasim_deploy_quaserver_runtime(${test_name})
     add_test(NAME ${test_name} COMMAND ${test_name})
     ouasim_configure_test_environment(${test_name})
-endfunction()
-
-function(ouasim_add_test test_name source_file)
-    ouasim_register_test(${test_name} ${source_file})
-    target_link_libraries(${test_name} PRIVATE ouasim_core)
 endfunction()
 
 function(ouasim_add_server_test test_name source_file)
@@ -94,7 +83,7 @@ function(ouasim_link_test_ua_client test_name)
 endfunction()
 
 function(ouasim_add_ui_test test_name source_file)
-    ouasim_register_test(${test_name} ${source_file})
+    ouasim_add_test(${test_name} ${source_file})
     target_sources(${test_name} PRIVATE "${PROJECT_SOURCE_DIR}/app/resources.qrc")
     target_link_libraries(${test_name} PRIVATE ouasim_ui)
 endfunction()

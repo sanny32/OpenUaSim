@@ -37,8 +37,6 @@ ouasim_add_server_test(ouasim_tests_model_variables test_modelvariables.cpp)
 ouasim_add_server_test(ouasim_tests_type_instances test_typeinstances.cpp)
 ouasim_add_test(ouasim_tests_variable_type_rules test_variabletyperules.cpp)
 ouasim_add_server_test(ouasim_tests_variable_properties test_variableproperties.cpp)
-target_compile_definitions(ouasim_tests_nodesets PRIVATE
-    OUASIM_EXAMPLE_NODESETS_DIR="${PROJECT_SOURCE_DIR}/../examples/nodesets")
 ouasim_add_server_test(ouasim_tests_certificate_store test_certificatestore.cpp)
 
 ouasim_add_ui_test(ouasim_tests_app_theme       test_apptheme.cpp)
