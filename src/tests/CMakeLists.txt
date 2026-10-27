@@ -54,4 +54,4 @@ ouasim_add_ui_test(ouasim_tests_server_settings_dialog test_serversettingsdialog
 ouasim_add_ui_test(ouasim_tests_users_dialog    test_usersdialog.cpp)
 
 ouasim_add_ui_test(ouasim_tests_client_quality test_clientquality.cpp)
-target_sources(ouasim_tests_client_quality PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/uatestclient.cpp")
+ouasim_link_test_ua_client(ouasim_tests_client_quality)

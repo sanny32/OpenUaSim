@@ -120,6 +120,7 @@ target_link_libraries(ouasim_core PUBLIC
     Qt${QT_VERSION_MAJOR}::Core
 )
 target_link_libraries(ouasim_core PRIVATE Qt${QT_VERSION_MAJOR}::Network)
+target_precompile_headers(ouasim_core PRIVATE corepch.h)
 
 ouasim_link_quaserver(ouasim_core)
 if(OUASIM_WITH_ENCRYPTION)

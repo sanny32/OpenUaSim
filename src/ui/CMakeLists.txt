@@ -124,6 +124,7 @@ target_link_libraries(ouasim_ui PUBLIC
     Qt${QT_VERSION_MAJOR}::Widgets
 )
 target_link_libraries(ouasim_ui PRIVATE Qt${QT_VERSION_MAJOR}::Svg Qt${QT_VERSION_MAJOR}::Network)
+target_precompile_headers(ouasim_ui PRIVATE uipch.h)
 
 set(OUASIM_TS_FILES "${PROJECT_SOURCE_DIR}/translations/openuasim_ru.ts")
 set(OUASIM_LUPDATE_OPTIONS -no-obsolete -locations none)

@@ -39,6 +39,11 @@ if(MSVC)
     add_compile_options(/utf-8)
 endif()
 
+# QUaServer pulls <windows.h> into precompiled headers; keep its macros (min, max, small, ...) out of our code.
+if(WIN32)
+    add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
+
 add_subdirectory(core)
 add_subdirectory(ui)
 add_subdirectory(app)
