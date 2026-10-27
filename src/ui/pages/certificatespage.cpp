@@ -133,7 +133,7 @@ CertificatesPage::CertificatesPage(QWidget *parent)
     ui->generateButton->setIcon(AppIcons::icon(QStringLiteral("certificate")));
     ui->importButton->setIcon(AppIcons::icon(QStringLiteral("download")));
     ui->exportButton->setIcon(AppIcons::icon(QStringLiteral("upload")));
-    ui->trustButton->setIcon(AppIcons::icon(QStringLiteral("shield-check")));
+    ui->trustButton->setIcon(AppIcons::statusIcon(QStringLiteral("shield-check"), StatusKind::Good));
     ui->rejectButton->setIcon(AppIcons::icon(QStringLiteral("shield-x")));
     ui->deleteButton->setIcon(AppIcons::icon(QStringLiteral("trash")));
     ui->generateButton->setVisible(false);

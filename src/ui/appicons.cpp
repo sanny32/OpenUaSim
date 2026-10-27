@@ -25,9 +25,9 @@ namespace {
 const QByteArray kCurrentColor = QByteArrayLiteral("currentColor");
 
 ///
-/// \brief Where an icon takes the colour that replaces \c currentColor.
+/// \brief Where an icon takes the colour that replaces \c currentColor; Accent is the status colour while enabled.
 ///
-enum class Tint { Palette, Status };
+enum class Tint { Palette, Status, Accent };
 
 ///
 /// \brief Icon engine rendering an SVG whose \c currentColor is resolved at paint time.
@@ -124,7 +124,7 @@ bool TintedSvgEngine::isNull()
 
 ///
 /// \brief Resolves the colour replacing \c currentColor.
-/// \param mode Icon mode; disabled palette icons use the disabled text colour.
+/// \param mode Icon mode; disabled palette and accent icons use the disabled text colour.
 /// \return Colour to render with.
 ///
 QColor TintedSvgEngine::colorFor(QIcon::Mode mode) const
@@ -134,6 +134,8 @@ QColor TintedSvgEngine::colorFor(QIcon::Mode mode) const
     const QPalette palette = QGuiApplication::palette();
     if (mode == QIcon::Disabled)
         return palette.color(QPalette::Disabled, QPalette::WindowText);
+    if (_tint == Tint::Accent)
+        return AppColors::status(_status);
     if (mode == QIcon::Selected)
         return palette.color(QPalette::HighlightedText);
     return palette.color(QPalette::WindowText);
@@ -194,6 +196,17 @@ namespace AppIcons {
 QIcon icon(const QString &name)
 {
     return tinted(readSvg(name), Tint::Palette);
+}
+
+///
+/// \brief Builds an icon whose outline takes the colour of a status, and the disabled text colour when disabled.
+/// \param name Resource name under ":/icons/", without the ".svg" extension.
+/// \param kind Status giving the colour.
+/// \return Icon; null when the resource does not exist.
+///
+QIcon statusIcon(const QString &name, StatusKind kind)
+{
+    return tinted(readSvg(name), Tint::Accent, kind);
 }
 
 ///

@@ -40,6 +40,14 @@ struct NamedIcon
 QIcon icon(const QString &name);
 
 ///
+/// \brief Builds an icon whose outline takes the colour of a status, and the disabled text colour when disabled.
+/// \param name Resource name under ":/icons/", without the ".svg" extension.
+/// \param kind Status giving the colour.
+/// \return Icon; null when the resource does not exist.
+///
+QIcon statusIcon(const QString &name, StatusKind kind);
+
+///
 /// \brief Builds the round indicator icon of a status.
 /// \param kind Status to show.
 /// \return Filled dot in the status colour; null for StatusKind::None.

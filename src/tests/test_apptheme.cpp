@@ -16,9 +16,9 @@
 
 namespace {
 
-QColor strokeColor(const QIcon &icon)
+QColor strokeColor(const QIcon &icon, QIcon::Mode mode = QIcon::Normal)
 {
-    const QImage image = icon.pixmap(24).toImage();
+    const QImage image = icon.pixmap(QSize(24, 24), mode).toImage();
     for (int y = 0; y < image.height(); ++y) {
         for (int x = 0; x < image.width(); ++x) {
             const QColor color = image.pixelColor(x, y);
@@ -47,6 +47,7 @@ private slots:
     void paletteIconsFollowTheTheme_data();
     void paletteIconsFollowTheTheme();
     void statusDots();
+    void statusIconsGreyOutWhenDisabled();
     void messageIcons_data();
     void messageIcons();
 };
@@ -172,6 +173,15 @@ void TestAppTheme::statusDots()
     const QIcon error = AppIcons::statusDot(StatusKind::Error);
     QVERIFY(!error.isNull());
     QCOMPARE(error.pixmap(24).toImage().pixelColor(12, 12), AppColors::status(StatusKind::Error));
+}
+
+void TestAppTheme::statusIconsGreyOutWhenDisabled()
+{
+    QVERIFY(AppIcons::statusIcon(QStringLiteral("does-not-exist"), StatusKind::Good).isNull());
+    const QIcon icon = AppIcons::statusIcon(QStringLiteral("shield-check"), StatusKind::Good);
+    QCOMPARE(strokeColor(icon), AppColors::status(StatusKind::Good));
+    QCOMPARE(strokeColor(icon, QIcon::Disabled),
+             QGuiApplication::palette().color(QPalette::Disabled, QPalette::WindowText));
 }
 
 void TestAppTheme::messageIcons_data()
