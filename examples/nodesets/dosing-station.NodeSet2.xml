@@ -1,0 +1,628 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UANodeSet xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>urn:openuasim:examples:dosing-station</Uri>
+  </NamespaceUris>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="UInt32">i=7</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="Argument">i=296</Alias>
+    <Alias Alias="Range">i=884</Alias>
+    <Alias Alias="EUInformation">i=887</Alias>
+    <Alias Alias="EnumValueType">i=7594</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasEncoding">i=38</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="GeneratesEvent">i=41</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+    <Alias Alias="HasNotifier">i=48</Alias>
+  </Aliases>
+  <UADataType NodeId="ns=1;i=3000" BrowseName="1:DosingMode">
+    <DisplayName>DosingMode</DisplayName>
+    <Description>Operating mode of a dosing station</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=3001</Reference>
+    </References>
+    <Definition Name="1:DosingMode">
+      <Field Name="Manual" Value="0" />
+      <Field Name="Automatic" Value="1" />
+      <Field Name="Cleaning" Value="2" />
+    </Definition>
+  </UADataType>
+  <UAVariable NodeId="ns=1;i=3001" BrowseName="EnumValues" DataType="EnumValueType" ValueRank="1" ArrayDimensions="3" ParentNodeId="ns=1;i=3000">
+    <DisplayName>EnumValues</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=3000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:ListOfExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId>
+            <uax:Identifier>i=7616</uax:Identifier>
+          </uax:TypeId>
+          <uax:Body>
+            <uax:EnumValueType>
+              <uax:Value>0</uax:Value>
+              <uax:DisplayName>
+                <uax:Text>Manual</uax:Text>
+              </uax:DisplayName>
+              <uax:Description>
+                <uax:Text>Operator starts every dose</uax:Text>
+              </uax:Description>
+            </uax:EnumValueType>
+          </uax:Body>
+        </uax:ExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId>
+            <uax:Identifier>i=7616</uax:Identifier>
+          </uax:TypeId>
+          <uax:Body>
+            <uax:EnumValueType>
+              <uax:Value>1</uax:Value>
+              <uax:DisplayName>
+                <uax:Text>Automatic</uax:Text>
+              </uax:DisplayName>
+              <uax:Description>
+                <uax:Text>Doses follow the active recipe</uax:Text>
+              </uax:Description>
+            </uax:EnumValueType>
+          </uax:Body>
+        </uax:ExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId>
+            <uax:Identifier>i=7616</uax:Identifier>
+          </uax:TypeId>
+          <uax:Body>
+            <uax:EnumValueType>
+              <uax:Value>2</uax:Value>
+              <uax:DisplayName>
+                <uax:Text>Cleaning</uax:Text>
+              </uax:DisplayName>
+              <uax:Description>
+                <uax:Text>Lines are flushed with water</uax:Text>
+              </uax:Description>
+            </uax:EnumValueType>
+          </uax:Body>
+        </uax:ExtensionObject>
+      </uax:ListOfExtensionObject>
+    </Value>
+  </UAVariable>
+  <UADataType NodeId="ns=1;i=3010" BrowseName="1:Calibration">
+    <DisplayName>Calibration</DisplayName>
+    <Description>Linear correction of the pump output</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
+      <Reference ReferenceType="HasEncoding">ns=1;i=3011</Reference>
+      <Reference ReferenceType="HasEncoding">ns=1;i=3012</Reference>
+    </References>
+    <Definition Name="1:Calibration">
+      <Field Name="Offset" DataType="Double" />
+      <Field Name="Gain" DataType="Double" />
+    </Definition>
+  </UADataType>
+  <UAObject NodeId="ns=1;i=3011" BrowseName="Default Binary" SymbolicName="DefaultBinary">
+    <DisplayName>Default Binary</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=3010</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=3012" BrowseName="Default XML" SymbolicName="DefaultXml">
+    <DisplayName>Default XML</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=3010</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UADataType NodeId="ns=1;i=3020" BrowseName="1:DosingRecipe">
+    <DisplayName>DosingRecipe</DisplayName>
+    <Description>Chemical, target volume and pump calibration of one dosing job</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
+      <Reference ReferenceType="HasEncoding">ns=1;i=3021</Reference>
+      <Reference ReferenceType="HasEncoding">ns=1;i=3022</Reference>
+    </References>
+    <Definition Name="1:DosingRecipe">
+      <Field Name="Chemical" DataType="String" />
+      <Field Name="TargetVolume" DataType="Double" />
+      <Field Name="Mode" DataType="ns=1;i=3000" />
+      <Field Name="Calibration" DataType="ns=1;i=3010" />
+    </Definition>
+  </UADataType>
+  <UAObject NodeId="ns=1;i=3021" BrowseName="Default Binary" SymbolicName="DefaultBinary">
+    <DisplayName>Default Binary</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=3020</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=3022" BrowseName="Default XML" SymbolicName="DefaultXml">
+    <DisplayName>Default XML</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=3020</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAVariableType NodeId="ns=1;i=2000" BrowseName="1:TankLevelType" DataType="Double">
+    <DisplayName>TankLevelType</DisplayName>
+    <Description>Fill level of a storage tank, % of capacity</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=2368</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=2001</Reference>
+    </References>
+  </UAVariableType>
+  <UAVariable NodeId="ns=1;i=2001" BrowseName="1:Capacity" DataType="Double" ParentNodeId="ns=1;i=2000">
+    <DisplayName>Capacity</DisplayName>
+    <Description>Tank volume, l</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=2000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=1100" BrowseName="1:DoseCompletedEventType">
+    <DisplayName>DoseCompletedEventType</DisplayName>
+    <Description>Raised when a dose has been dispensed</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=2041</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1101</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=1101" BrowseName="1:DispensedVolume" DataType="Double" ParentNodeId="ns=1;i=1100">
+    <DisplayName>DispensedVolume</DisplayName>
+    <Description>Volume actually dispensed, l</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1100</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:DosingStationType">
+    <DisplayName>DosingStationType</DisplayName>
+    <Description>Chemical dosing pump with a storage tank</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="GeneratesEvent">ns=1;i=1100</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=1001" BrowseName="1:TankLevel" DataType="Double" ParentNodeId="ns=1;i=1000">
+    <DisplayName>TankLevel</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=2000</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1002" BrowseName="1:Mode" DataType="ns=1;i=3000" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Mode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAMethod NodeId="ns=1;i=1003" BrowseName="1:Dose" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Dose</DisplayName>
+    <Description>Dispenses the requested volume and reports how long it took</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1004</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1005</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAVariable NodeId="ns=1;i=1004" BrowseName="InputArguments" DataType="Argument" ValueRank="1" ArrayDimensions="1" ParentNodeId="ns=1;i=1003">
+    <DisplayName>InputArguments</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1003</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value>
+      <uax:ListOfExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId>
+            <uax:Identifier>i=297</uax:Identifier>
+          </uax:TypeId>
+          <uax:Body>
+            <uax:Argument>
+              <uax:Name>Volume</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>i=11</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:Description>
+                <uax:Text>Volume to dispense, l</uax:Text>
+              </uax:Description>
+            </uax:Argument>
+          </uax:Body>
+        </uax:ExtensionObject>
+      </uax:ListOfExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1005" BrowseName="OutputArguments" DataType="Argument" ValueRank="1" ArrayDimensions="1" ParentNodeId="ns=1;i=1003">
+    <DisplayName>OutputArguments</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1003</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value>
+      <uax:ListOfExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId>
+            <uax:Identifier>i=297</uax:Identifier>
+          </uax:TypeId>
+          <uax:Body>
+            <uax:Argument>
+              <uax:Name>Duration</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>i=11</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:Description>
+                <uax:Text>Time spent dispensing, s</uax:Text>
+              </uax:Description>
+            </uax:Argument>
+          </uax:Body>
+        </uax:ExtensionObject>
+      </uax:ListOfExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5000" BrowseName="1:DosingStation" EventNotifier="1">
+    <DisplayName>DosingStation</DisplayName>
+    <Description>Disinfectant dosing at the water treatment inlet</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasNotifier" IsForward="false">i=2253</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5001" BrowseName="1:TankLevel" DataType="Double" ParentNodeId="ns=1;i=5000">
+    <DisplayName>TankLevel</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=2000</Reference>
+    </References>
+    <Value>
+      <uax:Double>52</uax:Double>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5002" BrowseName="EURange" DataType="Range" ParentNodeId="ns=1;i=5001">
+    <DisplayName>EURange</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:ExtensionObject>
+        <uax:TypeId>
+          <uax:Identifier>i=885</uax:Identifier>
+        </uax:TypeId>
+        <uax:Body>
+          <uax:Range>
+            <uax:Low>0</uax:Low>
+            <uax:High>100</uax:High>
+          </uax:Range>
+        </uax:Body>
+      </uax:ExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5003" BrowseName="EngineeringUnits" DataType="EUInformation" ParentNodeId="ns=1;i=5001">
+    <DisplayName>EngineeringUnits</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:ExtensionObject>
+        <uax:TypeId>
+          <uax:Identifier>i=888</uax:Identifier>
+        </uax:TypeId>
+        <uax:Body>
+          <uax:EUInformation>
+            <uax:NamespaceUri>http://www.opcfoundation.org/UA/units/un/cefact</uax:NamespaceUri>
+            <uax:UnitId>20529</uax:UnitId>
+            <uax:DisplayName>
+              <uax:Locale>en</uax:Locale>
+              <uax:Text>%</uax:Text>
+            </uax:DisplayName>
+            <uax:Description>
+              <uax:Locale>en</uax:Locale>
+              <uax:Text>percent</uax:Text>
+            </uax:Description>
+          </uax:EUInformation>
+        </uax:Body>
+      </uax:ExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5004" BrowseName="1:Capacity" DataType="Double" ParentNodeId="ns=1;i=5001">
+    <DisplayName>Capacity</DisplayName>
+    <Description>Tank volume, l</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:Double>500</uax:Double>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5005" BrowseName="1:Mode" DataType="ns=1;i=3000" AccessLevel="3" UserAccessLevel="3" ParentNodeId="ns=1;i=5000">
+    <DisplayName>Mode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Int32>1</uax:Int32>
+    </Value>
+  </UAVariable>
+  <UAMethod NodeId="ns=1;i=5006" BrowseName="1:Dose" ParentNodeId="ns=1;i=5000" MethodDeclarationId="ns=1;i=1003">
+    <DisplayName>Dose</DisplayName>
+    <Description>Dispenses the requested volume and reports how long it took</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5007</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5008</Reference>
+    </References>
+  </UAMethod>
+  <UAVariable NodeId="ns=1;i=5007" BrowseName="InputArguments" DataType="Argument" ValueRank="1" ArrayDimensions="1" ParentNodeId="ns=1;i=5006">
+    <DisplayName>InputArguments</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5006</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:ListOfExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId>
+            <uax:Identifier>i=297</uax:Identifier>
+          </uax:TypeId>
+          <uax:Body>
+            <uax:Argument>
+              <uax:Name>Volume</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>i=11</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:Description>
+                <uax:Text>Volume to dispense, l</uax:Text>
+              </uax:Description>
+            </uax:Argument>
+          </uax:Body>
+        </uax:ExtensionObject>
+      </uax:ListOfExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5008" BrowseName="OutputArguments" DataType="Argument" ValueRank="1" ArrayDimensions="1" ParentNodeId="ns=1;i=5006">
+    <DisplayName>OutputArguments</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5006</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:ListOfExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId>
+            <uax:Identifier>i=297</uax:Identifier>
+          </uax:TypeId>
+          <uax:Body>
+            <uax:Argument>
+              <uax:Name>Duration</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>i=11</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:Description>
+                <uax:Text>Time spent dispensing, s</uax:Text>
+              </uax:Description>
+            </uax:Argument>
+          </uax:Body>
+        </uax:ExtensionObject>
+      </uax:ListOfExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5010" BrowseName="1:FlowRate" DataType="Double" ParentNodeId="ns=1;i=5000">
+    <DisplayName>FlowRate</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2368</Reference>
+    </References>
+    <Value>
+      <uax:Double>1.4</uax:Double>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5011" BrowseName="EURange" DataType="Range" ParentNodeId="ns=1;i=5010">
+    <DisplayName>EURange</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5010</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:ExtensionObject>
+        <uax:TypeId>
+          <uax:Identifier>i=885</uax:Identifier>
+        </uax:TypeId>
+        <uax:Body>
+          <uax:Range>
+            <uax:Low>0</uax:Low>
+            <uax:High>10</uax:High>
+          </uax:Range>
+        </uax:Body>
+      </uax:ExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5012" BrowseName="EngineeringUnits" DataType="EUInformation" ParentNodeId="ns=1;i=5010">
+    <DisplayName>EngineeringUnits</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5010</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:ExtensionObject>
+        <uax:TypeId>
+          <uax:Identifier>i=888</uax:Identifier>
+        </uax:TypeId>
+        <uax:Body>
+          <uax:EUInformation>
+            <uax:NamespaceUri>http://www.opcfoundation.org/UA/units/un/cefact</uax:NamespaceUri>
+            <uax:UnitId>4535090</uax:UnitId>
+            <uax:DisplayName>
+              <uax:Locale>en</uax:Locale>
+              <uax:Text>l/h</uax:Text>
+            </uax:DisplayName>
+            <uax:Description>
+              <uax:Locale>en</uax:Locale>
+              <uax:Text>litre per hour</uax:Text>
+            </uax:Description>
+          </uax:EUInformation>
+        </uax:Body>
+      </uax:ExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5020" BrowseName="1:PumpRunning" DataType="Boolean" ParentNodeId="ns=1;i=5000">
+    <DisplayName>PumpRunning</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+    </References>
+    <Value>
+      <uax:Boolean>true</uax:Boolean>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5021" BrowseName="TrueState" DataType="LocalizedText" ParentNodeId="ns=1;i=5020">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5020</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:LocalizedText>
+        <uax:Text>Running</uax:Text>
+      </uax:LocalizedText>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5022" BrowseName="FalseState" DataType="LocalizedText" ParentNodeId="ns=1;i=5020">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5020</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:LocalizedText>
+        <uax:Text>Stopped</uax:Text>
+      </uax:LocalizedText>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5030" BrowseName="1:PumpStroke" DataType="UInt32" AccessLevel="3" UserAccessLevel="3" ParentNodeId="ns=1;i=5000">
+    <DisplayName>PumpStroke</DisplayName>
+    <Description>Selected stroke length of the diaphragm pump</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2376</Reference>
+    </References>
+    <Value>
+      <uax:UInt32>1</uax:UInt32>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5031" BrowseName="EnumStrings" DataType="LocalizedText" ValueRank="1" ArrayDimensions="3" ParentNodeId="ns=1;i=5030">
+    <DisplayName>EnumStrings</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5030</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value>
+      <uax:ListOfLocalizedText>
+        <uax:LocalizedText>
+          <uax:Text>Short</uax:Text>
+        </uax:LocalizedText>
+        <uax:LocalizedText>
+          <uax:Text>Medium</uax:Text>
+        </uax:LocalizedText>
+        <uax:LocalizedText>
+          <uax:Text>Long</uax:Text>
+        </uax:LocalizedText>
+      </uax:ListOfLocalizedText>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5040" BrowseName="1:Label" DataType="LocalizedText" AccessLevel="3" UserAccessLevel="3" ParentNodeId="ns=1;i=5000">
+    <DisplayName>Label</DisplayName>
+    <Description>Operator-facing name of the station</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:LocalizedText>
+        <uax:Locale>en</uax:Locale>
+        <uax:Text>Inlet chlorination</uax:Text>
+      </uax:LocalizedText>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5041" BrowseName="1:Recipe" DataType="ns=1;i=3020" AccessLevel="3" UserAccessLevel="3" ParentNodeId="ns=1;i=5000">
+    <DisplayName>Recipe</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:ExtensionObject>
+        <uax:TypeId>
+          <uax:Identifier>ns=1;i=3022</uax:Identifier>
+        </uax:TypeId>
+        <uax:Body>
+          <DosingRecipe xmlns="urn:openuasim:examples:dosing-station">
+            <Chemical>Sodium hypochlorite 12%</Chemical>
+            <TargetVolume>2.5</TargetVolume>
+            <Mode>1</Mode>
+            <Calibration>
+              <Offset>0.02</Offset>
+              <Gain>0.98</Gain>
+            </Calibration>
+          </DosingRecipe>
+        </uax:Body>
+      </uax:ExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5042" BrowseName="1:RecentDoses" DataType="Double" ValueRank="1" ParentNodeId="ns=1;i=5000">
+    <DisplayName>RecentDoses</DisplayName>
+    <Description>Volumes of the last dispensed doses, l</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:ListOfDouble>
+        <uax:Double>2.48</uax:Double>
+        <uax:Double>2.51</uax:Double>
+        <uax:Double>2.5</uax:Double>
+        <uax:Double>2.47</uax:Double>
+        <uax:Double>2.52</uax:Double>
+      </uax:ListOfDouble>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5043" BrowseName="1:Enabled" DataType="Boolean" AccessLevel="3" UserAccessLevel="3" ParentNodeId="ns=1;i=5000">
+    <DisplayName>Enabled</DisplayName>
+    <Description>Interlock released by the operator</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Boolean>true</uax:Boolean>
+    </Value>
+  </UAVariable>
+</UANodeSet>
