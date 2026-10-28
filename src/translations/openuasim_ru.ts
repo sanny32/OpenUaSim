@@ -529,7 +529,7 @@
     </message>
     <message>
         <source>Own</source>
-        <translation>Собственные</translation>
+        <translation>Собственный</translation>
     </message>
     <message>
         <source>Trusted</source>
