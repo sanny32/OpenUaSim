@@ -94,6 +94,7 @@ private slots:
     void showsSnapshot();
     void statusRefreshKeepsEndpointSelection();
     void eventLogFollowsTab();
+    void eventLogGetsItsShareOnFirstShow_data();
     void eventLogGetsItsShareOnFirstShow();
     void pagesDoNotBlockTheEventLog();
     void pagesKeepSidePaneWidths_data();
@@ -213,21 +214,43 @@ void TestMainWindow::eventLogFollowsTab()
     QVERIFY(!eventLog->isVisible());
 }
 
+///
+/// \brief Covers compact and tall windows when allocating space to the event log.
+///
+void TestMainWindow::eventLogGetsItsShareOnFirstShow_data()
+{
+    QTest::addColumn<int>("height");
+    QTest::newRow("compact") << 614;
+    QTest::newRow("laptop") << 768;
+    QTest::newRow("tall") << 930;
+}
+
+///
+/// \brief Leaves most of the workspace for pages and respects the log's minimum height.
+///
 void TestMainWindow::eventLogGetsItsShareOnFirstShow()
 {
+    QFETCH(int, height);
     MainWindow window;
     window.setSnapshot(MockData::snapshot());
-    window.resize(1068, 614);
+    window.resize(1068, height);
     window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
 
     const QList<int> sizes = child<QSplitter>(window, "contentSplitter")->sizes();
     QCOMPARE(sizes.size(), 2);
-    QVERIFY2(sizes.at(1) >= (sizes.at(0) + sizes.at(1)) / 4,
+    const int total = sizes.at(0) + sizes.at(1);
+    const auto *eventLog = child<EventLogWidget>(window, "eventLog");
+    const int targetHeight = qMax(total / 5, eventLog->minimumSizeHint().height());
+    QVERIFY2(sizes.at(1) <= targetHeight,
              qPrintable(QStringLiteral("pages %1, log %2").arg(sizes.at(0)).arg(sizes.at(1))));
 
-    const auto *logView = child<EventLogWidget>(window, "eventLog")->findChild<QTableView *>();
-    QCOMPARE(logView->viewport()->height() % logView->verticalHeader()->defaultSectionSize(), 0);
+    const auto *logView = eventLog->findChild<QTableView *>();
+    const int rowHeight = logView->verticalHeader()->defaultSectionSize();
+    QVERIFY(sizes.at(1) > targetHeight - rowHeight);
+    QVERIFY(logView->viewport()->height() >= rowHeight);
+    if (sizes.at(1) > eventLog->minimumSizeHint().height())
+        QCOMPARE(logView->viewport()->height() % rowHeight, 0);
 }
 
 void TestMainWindow::pagesDoNotBlockTheEventLog()

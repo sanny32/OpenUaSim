@@ -45,7 +45,7 @@
 
 namespace {
 
-constexpr double kEventLogShare = 0.28;
+constexpr double kEventLogShare = 0.20;
 constexpr int kPageShortcutCount = 9;
 constexpr int kStatusRefreshMs = 1000;
 
