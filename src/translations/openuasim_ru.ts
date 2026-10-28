@@ -911,6 +911,10 @@
         <source>&amp;Copy</source>
         <translation>&amp;Копировать</translation>
     </message>
+    <message>
+        <source>Ctrl+C</source>
+        <translation>Ctrl+C</translation>
+    </message>
 </context>
 <context>
     <name>ListenerSettingsBuilder</name>
@@ -1493,6 +1497,88 @@
     </message>
 </context>
 <context>
+    <name>MethodPropertiesWidget</name>
+    <message>
+        <source>NodeId</source>
+        <translation>Идентификатор узла</translation>
+    </message>
+    <message>
+        <source>Copy NodeId</source>
+        <translation>Копировать идентификатор узла</translation>
+    </message>
+    <message>
+        <source>Display Name</source>
+        <translation>Отображаемое имя</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation>Описание</translation>
+    </message>
+    <message>
+        <source>Action</source>
+        <translation>Действие</translation>
+    </message>
+    <message>
+        <source>Response Status</source>
+        <translation>Статус ответа</translation>
+    </message>
+    <message>
+        <source>Input Arguments</source>
+        <translation>Входные аргументы</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Имя</translation>
+    </message>
+    <message>
+        <source>Data Type</source>
+        <translation>Тип данных</translation>
+    </message>
+    <message>
+        <source>Output Arguments</source>
+        <translation>Выходные аргументы</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Значение</translation>
+    </message>
+    <message>
+        <source>Revert</source>
+        <translation>Отменить</translation>
+    </message>
+    <message>
+        <source>Apply</source>
+        <translation>Применить</translation>
+    </message>
+    <message>
+        <source>The value of this data type cannot be typed; the default value is returned.</source>
+        <translation>Значение этого типа данных нельзя ввести; возвращается значение по умолчанию.</translation>
+    </message>
+    <message>
+        <source>Separate elements with semicolons; empty returns an empty array.</source>
+        <translation>Разделяйте элементы точкой с запятой; пустое значение возвращает пустой массив.</translation>
+    </message>
+    <message>
+        <source>Empty returns the default value.</source>
+        <translation>Пустое значение возвращает значение по умолчанию.</translation>
+    </message>
+    <message>
+        <source>Reset the variables next to it</source>
+        <translation>Сбросить соседние переменные</translation>
+    </message>
+    <message>
+        <source>Set a variable next to it from text</source>
+        <translation>Задать соседнюю переменную из текста</translation>
+    </message>
+</context>
+<context>
+    <name>MethodResponder</name>
+    <message>
+        <source>inputs %1 on %2, answered %3</source>
+        <translation>входы %1 на %2, ответ %3</translation>
+    </message>
+</context>
+<context>
     <name>ModelActions</name>
     <message>
         <source>NodeSet2 XML (*.xml)</source>
@@ -1545,6 +1631,21 @@
     <message>
         <source>Namespaces removed with the model:</source>
         <translation>Пространства имён, удаляемые вместе с моделью:</translation>
+    </message>
+</context>
+<context>
+    <name>ModelMethods</name>
+    <message>
+        <source>&apos;%1&apos; is not a %2 value for &apos;%3&apos;</source>
+        <translation>«%1» — не значение типа %2 для «%3»</translation>
+    </message>
+    <message>
+        <source>no imported model has the namespace</source>
+        <translation>ни одна импортированная модель не содержит это пространство имён</translation>
+    </message>
+    <message>
+        <source>the model has no such method</source>
+        <translation>в модели нет такого метода</translation>
     </message>
 </context>
 <context>
@@ -1693,6 +1794,14 @@
     <message>
         <source>the variable has settings more than once</source>
         <translation>настройки переменной заданы несколько раз</translation>
+    </message>
+    <message>
+        <source>unknown status &apos;%1&apos;</source>
+        <translation>неизвестный статус «%1»</translation>
+    </message>
+    <message>
+        <source>the method has settings more than once</source>
+        <translation>настройки метода заданы более одного раза</translation>
     </message>
 </context>
 <context>
@@ -2014,6 +2123,14 @@
     <message>
         <source>&apos;%1&apos; is not a property of a variable</source>
         <translation>«%1» — не свойство переменной</translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is not a method of an imported model</source>
+        <translation>«%1» — не метод импортированной модели</translation>
+    </message>
+    <message>
+        <source>Model method response skipped: %1</source>
+        <translation>Ответ метода модели пропущен: %1</translation>
     </message>
 </context>
 <context>

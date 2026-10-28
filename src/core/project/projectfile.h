@@ -53,7 +53,8 @@ QByteArray toJson(const ProjectConfig &project);
 /// \param json Document produced by toJson().
 /// \return Project, or the first problem found: malformed JSON, a newer format version,
 ///         an unknown node kind, data type, access level or simulation function, a duplicated
-///         node id, or model variable settings without a namespace URI or given twice.
+///         node id, model variable settings without a namespace URI or given twice, or a model method answer
+///         with an unknown status or given twice.
 ///
 LoadResult fromJson(const QByteArray &json);
 

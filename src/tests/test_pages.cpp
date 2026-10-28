@@ -53,6 +53,7 @@
 #include "logmodel.h"
 #include "logpage.h"
 #include "messagedialog.h"
+#include "methodpropertieswidget.h"
 #include "mock/mockdata.h"
 #include "namespacesmodel.h"
 #include "namespacespage.h"
@@ -301,6 +302,7 @@ private slots:
     void objectsPageShowsTypeOfVariables();
     void objectsPageChoosesVisibleColumns();
     void objectsPageEditsValueOfProperty();
+    void objectsPageEditsMethodResponse();
     void objectsPageElidesNodeId();
 
 private:
@@ -2281,6 +2283,47 @@ void TestPages::objectsPageChoosesVisibleColumns()
     QVERIFY(!restoredView->isColumnHidden(VariablesModel::ColDataType));
     restoredView->header()->actions().at(VariablesModel::ColNodeType)->trigger();
     QVERIFY(!restoredView->isColumnHidden(VariablesModel::ColNodeType));
+}
+
+void TestPages::objectsPageEditsMethodResponse()
+{
+    const QString motorId = QStringLiteral("ns=2;s=Motor_01");
+    MethodInfo method;
+    method.nodeId = QStringLiteral("ns=2;s=Motor_01.Calibrate");
+    method.displayName = QStringLiteral("Calibrate");
+    method.kind = MethodInfo::Kind::Model;
+    method.outputs = { { QStringLiteral("Offset"), QStringLiteral("Double"), QStringLiteral("Double"), false, {} } };
+    QList<TreeNode> tree = _snapshot.addressSpace;
+    TreeNode *motor = findTreeNode(tree, motorId);
+    QVERIFY(motor);
+    TreeNode methodNode;
+    methodNode.text = method.displayName;
+    methodNode.id = method.nodeId;
+    methodNode.kind = TreeNode::Kind::Method;
+    motor->children.append(methodNode);
+
+    ObjectsPage page;
+    page.setAddressSpace(tree, _snapshot.variables, { { method.nodeId, method } });
+    QVERIFY(page.selectNode(method.nodeId));
+
+    QCOMPARE(page.currentNodeId(), method.nodeId);
+    QCOMPARE(page.currentContainerId(), motorId);
+    auto *stack = child<QStackedWidget>(page, "propertiesStack");
+    QCOMPARE(stack->currentWidget(), child<MethodPropertiesWidget>(page, "methodProperties"));
+    QCOMPARE(child<QLineEdit>(page, "methodNodeIdEdit")->text(), method.nodeId);
+    auto *outputs = child<QTableWidget>(page, "methodOutputsTable");
+    QSignalSpy requested(&page, &ObjectsPage::methodChangeRequested);
+    outputs->item(0, 2)->setText(QStringLiteral("0.25"));
+    child<QPushButton>(page, "methodApplyButton")->click();
+    QCOMPARE(requested.count(), 1);
+    QCOMPARE(requested.first().first().value<MethodInfo>().response.outputs, QStringList{ QStringLiteral("0.25") });
+
+    method.response.outputs = { QStringLiteral("0.5") };
+    page.updateMethod(method);
+    QCOMPARE(outputs->item(0, 2)->text(), QStringLiteral("0.5"));
+
+    QVERIFY(page.selectNode(motorId));
+    QCOMPARE(stack->currentWidget(), child<VariablePropertiesWidget>(page, "variableProperties"));
 }
 
 void TestPages::objectsPageEditsValueOfProperty()

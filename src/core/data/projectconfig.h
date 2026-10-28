@@ -87,6 +87,41 @@ struct ModelVariable
 };
 
 ///
+/// \brief Answer a method of an imported model gives the clients calling it.
+///
+struct MethodResponse
+{
+    /// \brief Status code of the call, e.g. BadInvalidState to test client handling.
+    quint32 statusCode = 0;
+    /// \brief Output arguments as text in the order of the OutputArguments of the method; an empty or missing text
+    ///        gives the default value of the data type, and array elements are separated by semicolons.
+    QStringList outputs;
+
+    bool operator==(const MethodResponse &other) const
+    {
+        return statusCode == other.statusCode && outputs == other.outputs;
+    }
+
+    bool operator!=(const MethodResponse &other) const
+    {
+        return !(*this == other);
+    }
+};
+
+///
+/// \brief Settings a project keeps for a method of an imported model, whose arguments the model defines.
+///
+struct ModelMethod
+{
+    /// \brief URI of the model namespace holding the method.
+    QString namespaceUri;
+    /// \brief Node id within the namespace, e.g. "i=5006".
+    QString identifier;
+    /// \brief Answer to the calls of clients.
+    MethodResponse response;
+};
+
+///
 /// \brief Login that endpoints accepting username/password tokens check clients against.
 ///
 struct UserAccount
@@ -182,4 +217,6 @@ struct ProjectConfig
     QStringList nodeSetFiles;
     /// \brief Settings of imported model variables that differ from their model.
     QList<ModelVariable> modelVariables;
+    /// \brief Answers of imported model methods that differ from the default one.
+    QList<ModelMethod> modelMethods;
 };

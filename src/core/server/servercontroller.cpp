@@ -18,6 +18,7 @@
 #include "importednodes.h"
 #include "listenersettings.h"
 #include "logmapper.h"
+#include "modelmethods.h"
 #include "modelvariables.h"
 #include "project/alarmrules.h"
 #include "project/projectnodes.h"
@@ -38,6 +39,7 @@ ServerController::ServerController(QObject *parent)
     , _addressSpace(_server.uaServer())
     , _engine(&_addressSpace)
     , _nodeSets(_server)
+    , _methods(_server.uaServer())
     , _pki(_server)
 {
     connect(&_server, &SimServer::runningChanged, this, &ServerController::runningChanged);
@@ -52,6 +54,8 @@ ServerController::ServerController(QObject *parent)
     connect(&_addressSpace, &AddressSpace::methodCalled, this, &ServerController::logMethodCall);
     connect(&_addressSpace, &AddressSpace::alarmChanged, this, &ServerController::handleAlarmChanged);
     connect(&_nodeSets, &NodeSetLoader::logAppended, this, &ServerController::appendLog);
+    connect(&_nodeSets, &NodeSetLoader::nodesAdded, &_methods, &MethodResponder::bind);
+    connect(&_methods, &MethodResponder::methodCalled, this, &ServerController::logMethodCall);
     connect(&_pki, &PkiService::certificatesChanged, this, &ServerController::certificatesChanged);
     connect(&_pki, &PkiService::restartRequired, this, [this] { setRestartRequired(true); });
     connect(&_pki, &PkiService::logAppended, this, &ServerController::appendLog);
@@ -103,6 +107,9 @@ bool ServerController::removeNodeSet(const QString &fileName, QString *error)
     const QHash<QString, QString> modelFiles = _nodeSets.modelNamespaces();
     _project.modelVariables.removeIf([&modelFiles, &fileName](const ModelVariable &variable) {
         return modelFiles.value(variable.namespaceUri) == fileName;
+    });
+    _project.modelMethods.removeIf([&modelFiles, &fileName](const ModelMethod &method) {
+        return modelFiles.value(method.namespaceUri) == fileName;
     });
     reloadServer();
     emit projectEdited();
@@ -360,6 +367,53 @@ bool ServerController::updateModelVariable(const VariableInfo &variable, QString
         _modelSettings.append(settings);
     _addressSpace.attach({ settings });
     applyLiveSettings(settings, variable.initialValue.isValid());
+    return true;
+}
+
+///
+/// \brief Applies the edited response of a method of an imported model and keeps it in the project.
+/// \param method Server node id with the new response; a response of Good without output texts drops the stored
+///        one.
+/// \param error Receives the reason on failure; may be null.
+/// \return False for a node that is no model method, or for an output text that is no value of its argument.
+///         The response applies to the next calls without rebuilding the address space.
+///
+bool ServerController::updateModelMethod(const MethodInfo &method, QString *error)
+{
+    QUaServer &server = *_server.uaServer();
+    if (!_methods.isBound(method.nodeId)) {
+        if (error)
+            *error = tr("'%1' is not a method of an imported model").arg(method.nodeId);
+        return false;
+    }
+    MethodInfo described = ModelMethods::describe(server, method.nodeId);
+    QString problem;
+    ModelMethods::outputValues(described.outputs, method.response, &problem);
+    if (!problem.isEmpty()) {
+        if (error)
+            *error = problem;
+        return false;
+    }
+    MethodResponse response = method.response;
+    while (!response.outputs.isEmpty() && response.outputs.constLast().trimmed().isEmpty())
+        response.outputs.removeLast();
+    const QUaNodeId nodeId(method.nodeId);
+    const QString namespaceUri = server.namespaces().value(nodeId.namespaceIndex());
+    const QString identifier = ModelVariables::identifierOf(nodeId);
+    const qsizetype index = ModelMethods::indexOf(_project.modelMethods, namespaceUri, identifier);
+    const MethodResponse stored = index >= 0 ? _project.modelMethods.at(index).response : MethodResponse();
+    if (response == stored)
+        return true;
+    if (response == MethodResponse())
+        _project.modelMethods.removeAt(index);
+    else if (index >= 0)
+        _project.modelMethods[index].response = response;
+    else
+        _project.modelMethods.append({ namespaceUri, identifier, response });
+    _methods.setResponse(method.nodeId, response);
+    described.response = response;
+    emit projectEdited();
+    emit methodChanged(described);
     return true;
 }
 
@@ -788,6 +842,11 @@ void ServerController::rebuildNodes()
     for (const QString &problem : std::as_const(modelProblems))
         appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
                                    tr("Model variable settings skipped: %1").arg(problem)));
+    QStringList methodProblems;
+    _methods.setResponses(ModelMethods::resolve(_project.modelMethods, *_server.uaServer(), &methodProblems));
+    for (const QString &problem : std::as_const(methodProblems))
+        appendLog(LogMapper::entry(LogEntry::Level::Warning, LogEntry::Category::Server,
+                                   tr("Model method response skipped: %1").arg(problem)));
     _engine.setVariables(SimulationEngine::variablesOf(_project.nodes)
                          + SimulationEngine::variablesOf(_modelSettings));
     emit projectChanged();
@@ -803,6 +862,7 @@ void ServerController::reloadServer()
     _addressSpace.clear();
     _server.reset();
     _addressSpace.setServer(_server.uaServer());
+    _methods.setServer(_server.uaServer());
     _nodeSets.clear();
     _nodeSets.loadAll(_project.nodeSetFiles);
     rebuildNodes();

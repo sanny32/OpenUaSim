@@ -16,8 +16,6 @@
 
 namespace {
 
-constexpr quint16 kFirstModelNamespace = 2;
-
 ///
 /// \brief Translates a text of this file.
 /// \param text Source text.
@@ -27,6 +25,10 @@ QString tr(const char *text)
 {
     return QCoreApplication::translate("ModelVariables", text);
 }
+
+}
+
+namespace ModelVariables {
 
 ///
 /// \brief Returns a node id without its namespace index.
@@ -41,10 +43,6 @@ QString identifierOf(QUaNodeId nodeId)
         identifier.remove(0, 5);
     return identifier;
 }
-
-}
-
-namespace ModelVariables {
 
 ///
 /// \brief Returns the access level text of a variable.

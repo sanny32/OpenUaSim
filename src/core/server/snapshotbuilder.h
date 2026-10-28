@@ -16,6 +16,7 @@
 #include "data/serversnapshot.h"
 
 class AddressSpace;
+class QUaServer;
 class SimServer;
 
 namespace SnapshotBuilder {
@@ -62,6 +63,15 @@ ServerStatus status(const ProjectConfig &project, const SimServer &server, const
 /// \return One entry per namespace index.
 ///
 QList<NamespaceInfo> namespaces(const SimServer &server);
+
+///
+/// \brief Describes the methods of an address space tree.
+/// \param tree Address space tree.
+/// \param project Project being served, providing the actions of its methods and the answers of model methods.
+/// \param server Server holding the methods.
+/// \return Methods keyed by node id.
+///
+QHash<QString, MethodInfo> methods(const QList<TreeNode> &tree, const ProjectConfig &project, const QUaServer &server);
 
 ///
 /// \brief Builds everything the main window shows.

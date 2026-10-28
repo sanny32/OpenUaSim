@@ -15,9 +15,20 @@
 
 class QUaBaseDataVariable;
 class QUaBaseVariable;
+class QUaNodeId;
 class QUaServer;
 
 namespace ModelVariables {
+
+/// \brief Namespace index of the first imported model; 0 is the standard and 1 the application namespace.
+constexpr quint16 kFirstModelNamespace = 2;
+
+///
+/// \brief Returns a node id without its namespace index.
+/// \param nodeId Node id of any namespace.
+/// \return Identifier such as "i=1003".
+///
+QString identifierOf(QUaNodeId nodeId);
 
 ///
 /// \brief Returns the access level text of a variable.

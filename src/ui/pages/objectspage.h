@@ -12,6 +12,7 @@
 #include <QList>
 #include <QWidget>
 
+#include "data/methodinfo.h"
 #include "data/treenode.h"
 #include "data/variableinfo.h"
 
@@ -44,12 +45,14 @@ public:
     ~ObjectsPage() override;
 
     ///
-    /// \brief Shows an address space.
+    /// \brief Shows an address space, keeping the selected node when it still exists.
     /// \param addressSpace Address space tree.
     /// \param variables Variables of each object, keyed by the object node id.
+    /// \param methods Methods of the tree, keyed by node id.
     ///
     void setAddressSpace(const QList<TreeNode> &addressSpace,
-                         const QHash<QString, QList<VariableInfo>> &variables);
+                         const QHash<QString, QList<VariableInfo>> &variables,
+                         const QHash<QString, MethodInfo> &methods = {});
 
     ///
     /// \brief Shows new variable values without rebuilding the tree.
@@ -75,6 +78,12 @@ public:
     /// \param quality Quality reported by the server.
     ///
     void updateQuality(const QString &nodeId, VariableInfo::Quality quality);
+
+    ///
+    /// \brief Shows the changed response of one method without rebuilding the tree.
+    /// \param method Updated description.
+    ///
+    void updateMethod(const MethodInfo &method);
 
     ///
     /// \brief Selects a node of the address space tree.
@@ -122,6 +131,12 @@ signals:
     void alarmEditRequested(const VariableInfo &variable);
 
     ///
+    /// \brief Asks to apply the edited response of the shown method.
+    /// \param method Method with the chosen status and the typed output values.
+    ///
+    void methodChangeRequested(const MethodInfo &method);
+
+    ///
     /// \brief Announces that the current node changed.
     /// \param nodeId Node id now returned by currentNodeId().
     ///
@@ -137,6 +152,7 @@ private:
     void showContainer(const QString &containerId);
     void setNestedVariablesShown(bool shown);
     void showVariable(const QModelIndex &current);
+    void showMethod(const QString &methodId);
     void clearProperties();
     void selectVariableRow(int row);
     void configureVariableColumns();
@@ -147,6 +163,7 @@ private:
     VariablesModel *_variablesModel;
     QList<TreeNode> _addressSpace;
     QHash<QString, QList<VariableInfo>> _variables;
+    QHash<QString, MethodInfo> _methods;
     QString _containerId;
     QString _containerName;
     QString _currentNodeId;

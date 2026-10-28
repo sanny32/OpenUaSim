@@ -235,21 +235,41 @@ UA_StatusCode UaTestClient::readDataType(const QString &nodeId, QUaNodeId &dataT
 UA_StatusCode UaTestClient::callMethod(const QString &objectId, const QString &methodId, const QVariantList &inputs,
                                        QVariant &output)
 {
+    QVariantList outputs;
+    const UA_StatusCode status = callMethod(objectId, methodId, inputs, outputs);
+    if (!outputs.isEmpty())
+        output = outputs.first();
+    return status;
+}
+
+///
+/// \brief Calls a method of an object and receives all its outputs.
+/// \param objectId Node id of the object.
+/// \param methodId Node id of the method.
+/// \param inputs Input arguments; their Qt types select the OPC UA types.
+/// \param outputs Receives the output arguments of a successful call.
+/// \return Service result, or the status of the call.
+///
+UA_StatusCode UaTestClient::callMethod(const QString &objectId, const QString &methodId, const QVariantList &inputs,
+                                       QVariantList &outputs)
+{
     UA_NodeId object = QUaNodeId(objectId).toUaNodeId();
     UA_NodeId method = QUaNodeId(methodId).toUaNodeId();
     QList<UA_Variant> arguments;
     for (const QVariant &input : inputs)
         arguments.append(QUaTypesConverter::uaVariantFromQVariant(input));
     size_t outputSize = 0;
-    UA_Variant *outputs = nullptr;
+    UA_Variant *results = nullptr;
     UA_StatusCode status = UA_STATUSCODE_GOOD;
     runInWorker([&] {
         status = UA_Client_call(_client, object, method, size_t(arguments.size()), arguments.data(), &outputSize,
-                                &outputs);
+                                &results);
     });
-    if (status == UA_STATUSCODE_GOOD && outputSize > 0)
-        output = QUaTypesConverter::uaVariantToQVariant(outputs[0]);
-    UA_Array_delete(outputs, outputSize, &UA_TYPES[UA_TYPES_VARIANT]);
+    if (status == UA_STATUSCODE_GOOD) {
+        for (size_t index = 0; index < outputSize; ++index)
+            outputs.append(QUaTypesConverter::uaVariantToQVariant(results[index]));
+    }
+    UA_Array_delete(results, outputSize, &UA_TYPES[UA_TYPES_VARIANT]);
     for (UA_Variant &argument : arguments)
         UA_Variant_clear(&argument);
     UA_NodeId_clear(&object);

@@ -20,6 +20,7 @@ set(UI_FILES
 
     widgets/eventlogwidget.ui
     widgets/mainstatusbarwidget.ui
+    widgets/methodpropertieswidget.ui
     widgets/propertynodewidget.ui
     widgets/variablepropertieswidget.ui
 )
@@ -97,6 +98,8 @@ add_library(ouasim_ui STATIC
     widgets/itemdelegate.h
     widgets/mainstatusbarwidget.cpp
     widgets/mainstatusbarwidget.h
+    widgets/methodpropertieswidget.cpp
+    widgets/methodpropertieswidget.h
     widgets/propertynodewidget.cpp
     widgets/propertynodewidget.h
     widgets/statusindicator.cpp

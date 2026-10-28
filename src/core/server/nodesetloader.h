@@ -13,6 +13,8 @@
 #include <QSet>
 #include <QStringList>
 
+#include <QUaCustomDataTypes>
+
 #include "data/logentry.h"
 
 class SimServer;
@@ -93,6 +95,12 @@ signals:
     /// \param entry Log entry.
     ///
     void logAppended(const LogEntry &entry);
+
+    ///
+    /// \brief Announces the nodes a loaded model added to the server.
+    /// \param nodeIds Added nodes in the order they were added.
+    ///
+    void nodesAdded(const QList<QUaNodeId> &nodeIds);
 
 private:
     QStringList addedNamespaces(const QStringList &namespacesBefore) const;

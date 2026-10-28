@@ -414,6 +414,7 @@
         <widget class="QStackedWidget" name="propertiesStack">
          <widget class="VariablePropertiesWidget" name="variableProperties"/>
          <widget class="PropertyNodeWidget" name="propertyNodeProperties"/>
+         <widget class="MethodPropertiesWidget" name="methodProperties"/>
         </widget>
        </item>
       </layout>
@@ -423,6 +424,12 @@
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>MethodPropertiesWidget</class>
+   <extends>QWidget</extends>
+   <header>methodpropertieswidget.h</header>
+   <container>0</container>
+  </customwidget>
   <customwidget>
    <class>PropertyNodeWidget</class>
    <extends>QWidget</extends>

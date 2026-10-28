@@ -119,6 +119,7 @@ bool NodeSetLoader::load(const QString &fileName, QString *error)
         _unclaimedNamespaces.remove(uri);
         _modelNamespaces.insert(uri, fileName);
     }
+    emit nodesAdded(result.addedNodes);
     return true;
 }
 

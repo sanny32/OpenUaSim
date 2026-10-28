@@ -17,7 +17,9 @@
 #include "declarednodes.h"
 #include "importednodes.h"
 #include "listenersettings.h"
+#include "modelmethods.h"
 #include "modelvariables.h"
+#include "project/projectnodes.h"
 #include "simserver.h"
 #include "snapshotbuilder.h"
 #include "typecatalog.h"
@@ -188,6 +190,20 @@ QString namespaceDescription(int index)
     }
 }
 
+///
+/// \brief Appends the node ids of the methods of a tree, each once.
+/// \param nodes Tree to search.
+/// \param methodIds Receives the method node ids.
+///
+void collectMethodIds(const QList<TreeNode> &nodes, QStringList &methodIds)
+{
+    for (const TreeNode &node : nodes) {
+        if (node.kind == TreeNode::Kind::Method && !methodIds.contains(node.id))
+            methodIds.append(node.id);
+        collectMethodIds(node.children, methodIds);
+    }
+}
+
 }
 
 namespace SnapshotBuilder {
@@ -311,6 +327,36 @@ QList<NamespaceInfo> namespaces(const SimServer &server)
 }
 
 ///
+/// \brief Describes the methods of an address space tree.
+/// \param tree Address space tree.
+/// \param project Project being served, providing the actions of its methods and the answers of model methods.
+/// \param server Server holding the methods.
+/// \return Methods keyed by node id.
+///
+QHash<QString, MethodInfo> methods(const QList<TreeNode> &tree, const ProjectConfig &project, const QUaServer &server)
+{
+    QStringList methodIds;
+    collectMethodIds(tree, methodIds);
+    const QStringList uris = server.namespaces();
+    QHash<QString, MethodInfo> result;
+    for (const QString &methodId : std::as_const(methodIds)) {
+        MethodInfo info = ModelMethods::describe(server, methodId);
+        if (const NodeDefinition *node = ProjectNodes::find(project.nodes, methodId)) {
+            info.kind = MethodInfo::Kind::Project;
+            info.action = node->method;
+        } else if (info.kind == MethodInfo::Kind::Model) {
+            const QUaNodeId nodeId(methodId);
+            const qsizetype index = ModelMethods::indexOf(project.modelMethods, uris.value(nodeId.namespaceIndex()),
+                                                          ModelVariables::identifierOf(nodeId));
+            if (index >= 0)
+                info.response = project.modelMethods.at(index).response;
+        }
+        result.insert(methodId, info);
+    }
+    return result;
+}
+
+///
 /// \brief Builds everything the main window shows.
 /// \param project Project being served.
 /// \param server Server reporting state and sessions.
@@ -330,6 +376,7 @@ ServerSnapshot build(const ProjectConfig &project, const SimServer &server, cons
     ImportedNodes::collect(*server.uaServer(), ModelVariables::resolve(project.modelVariables, *server.uaServer()),
                            addressSpace, snapshot.addressSpace.first().children, snapshot.variables);
     addVariableChildren(*server.uaServer(), snapshot.addressSpace.first().children, snapshot.variables);
+    snapshot.methods = methods(snapshot.addressSpace, project, *server.uaServer());
     snapshot.types = TypeCatalog::types(*server.uaServer());
     snapshot.namespaces = namespaces(server);
     snapshot.endpoints = project.endpoints;

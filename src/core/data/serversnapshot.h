@@ -14,6 +14,7 @@
 #include "certificateinfo.h"
 #include "endpointinfo.h"
 #include "logentry.h"
+#include "methodinfo.h"
 #include "namespaceinfo.h"
 #include "serverstatus.h"
 #include "sessioninfo.h"
@@ -32,6 +33,8 @@ struct ServerSnapshot
     QList<TreeNode> addressSpace;
     /// \brief Variables of each object, keyed by the object node id.
     QHash<QString, QList<VariableInfo>> variables;
+    /// \brief Methods of the address space tree, keyed by node id.
+    QHash<QString, MethodInfo> methods;
     /// \brief Types keyed by node id.
     QHash<QString, TypeInfo> types;
     /// \brief Namespace array.

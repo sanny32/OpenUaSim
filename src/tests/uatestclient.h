@@ -120,6 +120,17 @@ public:
                              QVariant &output);
 
     ///
+    /// \brief Calls a method of an object and receives all its outputs.
+    /// \param objectId Node id of the object.
+    /// \param methodId Node id of the method.
+    /// \param inputs Input arguments; their Qt types select the OPC UA types.
+    /// \param outputs Receives the output arguments of a successful call.
+    /// \return Service result, or the status of the call.
+    ///
+    UA_StatusCode callMethod(const QString &objectId, const QString &methodId, const QVariantList &inputs,
+                             QVariantList &outputs);
+
+    ///
     /// \brief Creates a subscription with a data change monitored item on the Value of a node.
     /// \param nodeId Node id in XML notation.
     /// \return Status of the monitored item creation.

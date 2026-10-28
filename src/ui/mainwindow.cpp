@@ -145,7 +145,7 @@ MainWindow::~MainWindow()
 void MainWindow::setSnapshot(const ServerSnapshot &snapshot)
 {
     applyStatus(snapshot.status);
-    ui->objectsPage->setAddressSpace(snapshot.addressSpace, snapshot.variables);
+    ui->objectsPage->setAddressSpace(snapshot.addressSpace, snapshot.variables, snapshot.methods);
     ui->typesPage->setTypes(snapshot.types);
     ui->namespacesPage->setNamespaces(snapshot.namespaces);
     _types = snapshot.types;
@@ -180,6 +180,8 @@ void MainWindow::setController(ServerController *controller)
     connect(controller, &ServerController::variableQualityChanged, ui->objectsPage, &ObjectsPage::updateQuality);
     connect(ui->objectsPage, &ObjectsPage::variableChangeRequested, this, &MainWindow::applyVariableChange);
     connect(ui->objectsPage, &ObjectsPage::alarmEditRequested, this, &MainWindow::showAlarmDialog);
+    connect(controller, &ServerController::methodChanged, ui->objectsPage, &ObjectsPage::updateMethod);
+    connect(ui->objectsPage, &ObjectsPage::methodChangeRequested, this, &MainWindow::applyMethodChange);
     connect(ui->objectsPage, &ObjectsPage::currentNodeChanged, this, &MainWindow::updateNodeActions);
     connect(ui->actionAddNode, &QAction::triggered, this, &MainWindow::showAddNodeDialog);
     connect(ui->actionRenameNode, &QAction::triggered, this, &MainWindow::showRenameDialog);
@@ -945,6 +947,17 @@ void MainWindow::applyVariableChange(const VariableInfo &variable)
 {
     QString error;
     if (_controller && !_controller->updateVariable(variable, &error))
+        showError(tr("Changes not applied"), error);
+}
+
+///
+/// \brief Applies the edited response of a model method and reports a refused change.
+/// \param method Method with the chosen status and the typed output values.
+///
+void MainWindow::applyMethodChange(const MethodInfo &method)
+{
+    QString error;
+    if (_controller && !_controller->updateModelMethod(method, &error))
         showError(tr("Changes not applied"), error);
 }
 

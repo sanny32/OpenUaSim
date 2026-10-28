@@ -21,6 +21,7 @@
 #include <tuple>
 
 #include "alarmrules.h"
+#include "methodstatuses.h"
 #include "projectfile.h"
 #include "simulation/signalgenerator.h"
 #include "simulation/valuecast.h"
@@ -305,6 +306,21 @@ QJsonObject modelVariableToJson(const ModelVariable &variable)
 }
 
 ///
+/// \brief Serializes the answer of a model method.
+/// \param method Settings to write.
+/// \return Object with the namespace URI, the node id within it, the status name and the output texts.
+///
+QJsonObject modelMethodToJson(const ModelMethod &method)
+{
+    return {
+        { QStringLiteral("namespaceUri"), method.namespaceUri },
+        { QStringLiteral("nodeId"), method.identifier },
+        { QStringLiteral("status"), MethodStatuses::name(method.response.statusCode) },
+        { QStringLiteral("outputs"), QJsonArray::fromStringList(method.response.outputs) },
+    };
+}
+
+///
 /// \brief Serializes an endpoint; a host that is the local machine name is marked as such.
 /// \param endpoint Endpoint to write.
 /// \return JSON object.
@@ -388,6 +404,7 @@ class NodeReader
 public:
     bool read(const QJsonArray &array, const QString &path, QList<NodeDefinition> &nodes);
     bool readModelVariables(const QJsonArray &array, const QString &path, QList<ModelVariable> &variables);
+    bool readModelMethods(const QJsonArray &array, const QString &path, QList<ModelMethod> &methods);
     QString error() const { return _error; }
 
 private:
@@ -449,6 +466,42 @@ bool NodeReader::readModelVariables(const QJsonArray &array, const QString &path
             return fail(itemPath, tr("the variable has settings more than once"));
         keys.insert(key);
         variables.append(variable);
+    }
+    return true;
+}
+
+///
+/// \brief Parses the answers of model methods.
+/// \param array Stored settings.
+/// \param path Location of the array for error messages.
+/// \param methods Receives the parsed settings.
+/// \return False when settings lack the namespace URI or node id, name an unknown status or repeat a method;
+///         error() tells why.
+///
+bool NodeReader::readModelMethods(const QJsonArray &array, const QString &path, QList<ModelMethod> &methods)
+{
+    QSet<QString> keys;
+    for (qsizetype index = 0; index < array.size(); ++index) {
+        const QString itemPath = QStringLiteral("%1[%2]").arg(path).arg(index);
+        const QJsonObject json = array.at(index).toObject();
+        ModelMethod method;
+        method.namespaceUri = json.value(QStringLiteral("namespaceUri")).toString();
+        if (method.namespaceUri.isEmpty())
+            return fail(itemPath, tr("namespace URI is empty"));
+        method.identifier = json.value(QStringLiteral("nodeId")).toString();
+        if (method.identifier.isEmpty())
+            return fail(itemPath, tr("node id is empty"));
+        const QString status = json.value(QStringLiteral("status")).toString(QStringLiteral("Good"));
+        if (!MethodStatuses::fromName(status, method.response.statusCode))
+            return fail(itemPath, tr("unknown status '%1'").arg(status));
+        const QJsonArray outputs = json.value(QStringLiteral("outputs")).toArray();
+        for (const QJsonValue &output : outputs)
+            method.response.outputs.append(output.toString());
+        const QString key = method.namespaceUri + QLatin1Char('\n') + method.identifier;
+        if (keys.contains(key))
+            return fail(itemPath, tr("the method has settings more than once"));
+        keys.insert(key);
+        methods.append(method);
     }
     return true;
 }
@@ -611,6 +664,10 @@ QByteArray toJson(const ProjectConfig &project)
     for (const ModelVariable &variable : project.modelVariables)
         modelVariables.append(modelVariableToJson(variable));
 
+    QJsonArray modelMethods;
+    for (const ModelMethod &method : project.modelMethods)
+        modelMethods.append(modelMethodToJson(method));
+
     const QJsonObject server {
         { QStringLiteral("applicationName"), project.server.applicationName },
         { QStringLiteral("applicationUri"), project.server.applicationUri },
@@ -631,6 +688,7 @@ QByteArray toJson(const ProjectConfig &project)
         { QStringLiteral("nodes"), nodes },
         { QStringLiteral("nodeSetFiles"), QJsonArray::fromStringList(project.nodeSetFiles) },
         { QStringLiteral("modelVariables"), modelVariables },
+        { QStringLiteral("modelMethods"), modelMethods },
     };
     return QJsonDocument(root).toJson(QJsonDocument::Indented);
 }
@@ -640,7 +698,8 @@ QByteArray toJson(const ProjectConfig &project)
 /// \param json Document produced by toJson().
 /// \return Project, or the first problem found: malformed JSON, a newer format version,
 ///         an unknown node kind, data type, access level or simulation function, a duplicated
-///         node id, or model variable settings without a namespace URI or given twice.
+///         node id, model variable settings without a namespace URI or given twice, or a model method answer
+///         with an unknown status or given twice.
 ///
 LoadResult fromJson(const QByteArray &json)
 {
@@ -700,6 +759,9 @@ LoadResult fromJson(const QByteArray &json)
     NodeReader modelReader;
     if (!modelReader.readModelVariables(root.value(QStringLiteral("modelVariables")).toArray(),
                                         QStringLiteral("modelVariables"), project.modelVariables))
+        return failure(tr("Invalid project file: %1").arg(modelReader.error()));
+    if (!modelReader.readModelMethods(root.value(QStringLiteral("modelMethods")).toArray(),
+                                      QStringLiteral("modelMethods"), project.modelMethods))
         return failure(tr("Invalid project file: %1").arg(modelReader.error()));
     return result;
 }

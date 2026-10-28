@@ -49,6 +49,24 @@ QByteArray projectWithModelVariables(const QJsonArray &variables)
     return QJsonDocument(root).toJson();
 }
 
+QByteArray projectWithModelMethods(const QJsonArray &methods)
+{
+    const QJsonObject root {
+        { QStringLiteral("formatVersion"), ProjectFile::kFormatVersion },
+        { QStringLiteral("modelMethods"), methods },
+    };
+    return QJsonDocument(root).toJson();
+}
+
+QJsonObject modelMethod(const QString &namespaceUri, const QString &nodeId, const QString &status)
+{
+    return {
+        { QStringLiteral("namespaceUri"), namespaceUri },
+        { QStringLiteral("nodeId"), nodeId },
+        { QStringLiteral("status"), status },
+    };
+}
+
 QJsonObject modelVariable(const QString &namespaceUri, const QString &nodeId)
 {
     return {
@@ -101,6 +119,10 @@ private slots:
     void preservesModelVariables();
     void rejectsInvalidModelVariable_data();
     void rejectsInvalidModelVariable();
+    void preservesModelMethods();
+    void modelMethodWithoutStatusAnswersGood();
+    void rejectsInvalidModelMethod_data();
+    void rejectsInvalidModelMethod();
     void storesModelPathsRelativeToFile();
     void loadReportsMissingFile();
     void saveReportsUnwritablePath();
@@ -666,6 +688,67 @@ void TestProjectFile::rejectsInvalidModelVariable_data()
 }
 
 void TestProjectFile::rejectsInvalidModelVariable()
+{
+    QFETCH(QByteArray, json);
+    QFETCH(QString, expectedError);
+
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(json);
+    QCOMPARE(result.error, QStringLiteral("Invalid project file: ") + expectedError);
+}
+
+void TestProjectFile::preservesModelMethods()
+{
+    ModelMethod failing { QStringLiteral("urn:test:doser"), QStringLiteral("i=5001"), {} };
+    failing.response.statusCode = 0x80AF0000;
+    ModelMethod answering { QStringLiteral("urn:test:doser"), QStringLiteral("i=5010"), {} };
+    answering.response.outputs = { QStringLiteral("1.5"), QString(), QStringLiteral("1; 2") };
+    ProjectConfig project;
+    project.modelMethods = { failing, answering };
+
+    const QByteArray json = ProjectFile::toJson(project);
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(json);
+
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QVERIFY(json.contains("\"BadInvalidState\""));
+    QCOMPARE(result.project.modelMethods.size(), 2);
+    QCOMPARE(result.project.modelMethods.at(0).namespaceUri, failing.namespaceUri);
+    QCOMPARE(result.project.modelMethods.at(0).identifier, failing.identifier);
+    QVERIFY(result.project.modelMethods.at(0).response == failing.response);
+    QCOMPARE(result.project.modelMethods.at(1).identifier, answering.identifier);
+    QCOMPARE(result.project.modelMethods.at(1).response.outputs, answering.response.outputs);
+}
+
+void TestProjectFile::modelMethodWithoutStatusAnswersGood()
+{
+    QJsonObject method = modelMethod(QStringLiteral("urn:test:doser"), QStringLiteral("i=5001"), QString());
+    method.remove(QStringLiteral("status"));
+
+    const ProjectFile::LoadResult result = ProjectFile::fromJson(projectWithModelMethods({ method }));
+
+    QVERIFY2(result.ok(), qPrintable(result.error));
+    QCOMPARE(result.project.modelMethods.first().response.statusCode, 0u);
+}
+
+void TestProjectFile::rejectsInvalidModelMethod_data()
+{
+    QTest::addColumn<QByteArray>("json");
+    QTest::addColumn<QString>("expectedError");
+
+    const QString uri = QStringLiteral("urn:test:doser");
+    const QString good = QStringLiteral("Good");
+    QTest::newRow("namespace") << projectWithModelMethods({ modelMethod(QString(), QStringLiteral("i=1"), good) })
+                               << "modelMethods[0]: namespace URI is empty";
+    QTest::newRow("node id") << projectWithModelMethods({ modelMethod(uri, QString(), good) })
+                             << "modelMethods[0]: node id is empty";
+    QTest::newRow("status") << projectWithModelMethods({ modelMethod(uri, QStringLiteral("i=1"),
+                                                                     QStringLiteral("BadSomething")) })
+                            << "modelMethods[0]: unknown status 'BadSomething'";
+    QTest::newRow("twice") << projectWithModelMethods({ modelMethod(uri, QStringLiteral("i=1"), good),
+                                                        modelMethod(uri, QStringLiteral("i=1"), good) })
+                           << "modelMethods[1]: the method has settings more than once";
+}
+
+void TestProjectFile::rejectsInvalidModelMethod()
 {
     QFETCH(QByteArray, json);
     QFETCH(QString, expectedError);

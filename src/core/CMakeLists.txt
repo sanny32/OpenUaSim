@@ -11,6 +11,7 @@ add_library(ouasim_core STATIC
     data/certificateinfo.h
     data/endpointinfo.h
     data/logentry.h
+    data/methodinfo.h
     data/namespaceinfo.h
     data/projectconfig.h
     data/serversnapshot.h
@@ -63,6 +64,8 @@ add_library(ouasim_core STATIC
     project/alarmrules.h
     project/defaultproject.cpp
     project/defaultproject.h
+    project/methodstatuses.cpp
+    project/methodstatuses.h
     project/portablenodeid.cpp
     project/portablenodeid.h
     project/projectdocument.cpp
@@ -90,6 +93,10 @@ add_library(ouasim_core STATIC
     server/listenersettings.h
     server/logmapper.cpp
     server/logmapper.h
+    server/methodresponder.cpp
+    server/methodresponder.h
+    server/modelmethods.cpp
+    server/modelmethods.h
     server/modelvariables.cpp
     server/modelvariables.h
     server/nodesetloader.cpp

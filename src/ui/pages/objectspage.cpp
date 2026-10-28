@@ -12,6 +12,7 @@
 
 #include "appicons.h"
 #include "itemroles.h"
+#include "methodpropertieswidget.h"
 #include "objectspage.h"
 #include "propertynodewidget.h"
 #include "settingsstore.h"
@@ -64,6 +65,8 @@ ObjectsPage::ObjectsPage(QWidget *parent)
             this, &ObjectsPage::alarmEditRequested);
     connect(ui->propertyNodeProperties, &PropertyNodeWidget::applyRequested,
             this, &ObjectsPage::variableChangeRequested);
+    connect(ui->methodProperties, &MethodPropertiesWidget::applyRequested,
+            this, &ObjectsPage::methodChangeRequested);
 }
 
 ///
@@ -78,15 +81,18 @@ ObjectsPage::~ObjectsPage()
 /// \brief Shows an address space, keeping the selected node when it still exists.
 /// \param addressSpace Address space tree.
 /// \param variables Variables of each object, keyed by the object node id.
+/// \param methods Methods of the tree, keyed by node id.
 ///
 void ObjectsPage::setAddressSpace(const QList<TreeNode> &addressSpace,
-                                  const QHash<QString, QList<VariableInfo>> &variables)
+                                  const QHash<QString, QList<VariableInfo>> &variables,
+                                  const QHash<QString, MethodInfo> &methods)
 {
     const QString previousTreeId = ViewSetup::currentId(ui->addressTree);
     const QString previousVariableId = ViewSetup::currentId(ui->variablesView);
 
     _addressSpace = addressSpace;
     _variables = variables;
+    _methods = methods;
     _treeModel->setNodes(addressSpace);
     ViewSetup::applyInitialState(ui->addressTree);
     if (!previousTreeId.isEmpty() && ViewSetup::selectById(ui->addressTree, previousTreeId)
@@ -164,6 +170,17 @@ void ObjectsPage::updateQuality(const QString &nodeId, VariableInfo::Quality qua
 }
 
 ///
+/// \brief Shows the changed response of one method without rebuilding the tree.
+/// \param method Updated description.
+///
+void ObjectsPage::updateMethod(const MethodInfo &method)
+{
+    _methods.insert(method.nodeId, method);
+    if (!_currentFromTable && _currentNodeId == method.nodeId)
+        showMethod(method.nodeId);
+}
+
+///
 /// \brief Selects a node of the address space tree.
 /// \param nodeId Node id.
 /// \return False when the tree has no such node.
@@ -228,6 +245,7 @@ void ObjectsPage::showTreeNode(const QModelIndex &current)
     const auto kind = static_cast<TreeNode::Kind>(current.data(ItemRoles::NodeKind).toInt());
     if (kind == TreeNode::Kind::Method) {
         showContainer(current.parent().data(ItemRoles::Id).toString());
+        showMethod(current.data(ItemRoles::Id).toString());
     } else if (kind == TreeNode::Kind::Variable || kind == TreeNode::Kind::Property) {
         showContainer(current.parent().data(ItemRoles::Id).toString());
         selectVariableRow(_variablesModel->rowOf(current.data(ItemRoles::Id).toString()));
@@ -351,12 +369,25 @@ void ObjectsPage::showVariable(const QModelIndex &current)
 }
 
 ///
+/// \brief Shows a method of the tree in the method editor.
+/// \param methodId Method node id; an unknown method shows its node id only.
+///
+void ObjectsPage::showMethod(const QString &methodId)
+{
+    MethodInfo method = _methods.value(methodId);
+    method.nodeId = methodId;
+    ui->methodProperties->setMethod(method);
+    ui->propertiesStack->setCurrentWidget(ui->methodProperties);
+}
+
+///
 /// \brief Empties and disables the properties panel.
 ///
 void ObjectsPage::clearProperties()
 {
     ui->variableProperties->clear();
     ui->propertyNodeProperties->clear();
+    ui->methodProperties->clear();
     ui->propertiesStack->setCurrentWidget(ui->variableProperties);
 }
 

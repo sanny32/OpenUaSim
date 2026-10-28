@@ -32,6 +32,7 @@ struct NodeDefinition;
 class QTimer;
 class ServerController;
 struct LogEntry;
+struct MethodInfo;
 struct ServerSnapshot;
 struct ServerStatus;
 struct SessionInfo;
@@ -171,6 +172,7 @@ private:
     void showUsersDialog();
     void applyUsersFromDialog();
     void applyVariableChange(const VariableInfo &variable);
+    void applyMethodChange(const MethodInfo &method);
     void updateNodeActions();
     void applyEndpoints(const QList<EndpointInfo> &endpoints);
     void reloadEndpoints();

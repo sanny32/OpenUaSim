@@ -18,6 +18,7 @@
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 #include <QTableView>
+#include <QTableWidget>
 #include <QTest>
 #include <QToolButton>
 #include <QToolTip>
@@ -45,6 +46,7 @@
 #include "itemroles.h"
 #include "logmodel.h"
 #include "mainstatusbarwidget.h"
+#include "methodpropertieswidget.h"
 #include "propertynodewidget.h"
 #include "statusindicator.h"
 #include "treemodel.h"
@@ -189,6 +191,8 @@ private slots:
     void variablePropertiesEnablesApplyOnEdit();
     void propertyNodeEnablesApplyOnEdit();
     void propertyNodeLocksReadOnlyProperty();
+    void methodPropertiesEditsModelResponse();
+    void methodPropertiesShowsProjectAction();
 };
 
 void TestWidgets::statusIndicator()
@@ -1871,6 +1875,83 @@ void TestWidgets::propertyNodeLocksReadOnlyProperty()
     QVERIFY(!named<QWidget>(editor, "propertyNodeActions")->isEnabled());
     editor.clear();
     QVERIFY(named<QLineEdit>(editor, "propertyNodeIdEdit")->text().isEmpty());
+}
+
+///
+/// \brief Output values that cannot be typed, such as structures, stay read-only.
+///
+void TestWidgets::methodPropertiesEditsModelResponse()
+{
+    MethodPropertiesWidget editor;
+    QVERIFY(!named<QWidget>(editor, "methodActions")->isEnabled());
+    MethodInfo method;
+    method.nodeId = QStringLiteral("ns=2;i=5001");
+    method.displayName = QStringLiteral("Dose");
+    method.kind = MethodInfo::Kind::Model;
+    method.inputs = { { QStringLiteral("Volume"), QStringLiteral("Double"), QStringLiteral("Double"), false,
+                        QStringLiteral("Volume to dispense") } };
+    method.outputs = { { QStringLiteral("Elapsed"), QStringLiteral("Duration"), QStringLiteral("Double"), false, {} },
+                       { QStringLiteral("Reading"), QStringLiteral("Reading"), QString(), false, {} } };
+    method.response.outputs = { QStringLiteral("1.5") };
+    editor.setMethod(method);
+
+    QCOMPARE(named<QLineEdit>(editor, "methodNodeIdEdit")->text(), method.nodeId);
+    QVERIFY(named<QLineEdit>(editor, "methodActionEdit")->isHidden());
+    auto *status = named<QComboBox>(editor, "methodStatusCombo");
+    QVERIFY(!status->isHidden());
+    QCOMPARE(status->currentText(), QStringLiteral("Good"));
+    auto *inputs = named<QTableWidget>(editor, "methodInputsTable");
+    QCOMPARE(inputs->rowCount(), 1);
+    QCOMPARE(inputs->item(0, 2)->text(), QStringLiteral("Volume to dispense"));
+    auto *outputs = named<QTableWidget>(editor, "methodOutputsTable");
+    QCOMPARE(outputs->rowCount(), 2);
+    QVERIFY(!outputs->isColumnHidden(2));
+    QCOMPARE(outputs->item(0, 2)->text(), QStringLiteral("1.5"));
+    QVERIFY(outputs->item(0, 2)->flags() & Qt::ItemIsEditable);
+    QVERIFY(!(outputs->item(1, 2)->flags() & Qt::ItemIsEditable));
+    QVERIFY(!(outputs->item(0, 0)->flags() & Qt::ItemIsEditable));
+    auto *apply = named<QPushButton>(editor, "methodApplyButton");
+    QVERIFY(!apply->isEnabled());
+
+    outputs->item(0, 2)->setText(QStringLiteral("2.5"));
+    QVERIFY(apply->isEnabled());
+    status->setCurrentIndex(status->findText(QStringLiteral("BadInvalidState")));
+    QSignalSpy applied(&editor, &MethodPropertiesWidget::applyRequested);
+    apply->click();
+
+    QCOMPARE(applied.count(), 1);
+    const MethodInfo edited = applied.first().first().value<MethodInfo>();
+    QCOMPARE(edited.nodeId, method.nodeId);
+    QCOMPARE(edited.response.statusCode, 0x80AF0000u);
+    QCOMPARE(edited.response.outputs, (QStringList{ QStringLiteral("2.5"), QString() }));
+
+    named<QPushButton>(editor, "methodRevertButton")->click();
+    QCOMPARE(outputs->item(0, 2)->text(), QStringLiteral("1.5"));
+    QCOMPARE(status->currentText(), QStringLiteral("Good"));
+    QVERIFY(!apply->isEnabled());
+}
+
+void TestWidgets::methodPropertiesShowsProjectAction()
+{
+    MethodPropertiesWidget editor;
+    MethodInfo method;
+    method.nodeId = QStringLiteral("ns=1;s=Tank_01.Reset");
+    method.kind = MethodInfo::Kind::Project;
+    method.action = NodeDefinition::MethodAction::Reset;
+    method.outputs = { { QStringLiteral("Result"), QStringLiteral("String"), QStringLiteral("String"), false, {} } };
+    editor.setMethod(method);
+
+    QVERIFY(!named<QLineEdit>(editor, "methodActionEdit")->isHidden());
+    QVERIFY(!named<QLineEdit>(editor, "methodActionEdit")->text().isEmpty());
+    QVERIFY(named<QComboBox>(editor, "methodStatusCombo")->isHidden());
+    auto *outputs = named<QTableWidget>(editor, "methodOutputsTable");
+    QVERIFY(outputs->isColumnHidden(2));
+    QVERIFY(!(outputs->item(0, 2)->flags() & Qt::ItemIsEditable));
+    QVERIFY(!named<QWidget>(editor, "methodActions")->isEnabled());
+
+    editor.clear();
+    QVERIFY(named<QLineEdit>(editor, "methodNodeIdEdit")->text().isEmpty());
+    QCOMPARE(outputs->rowCount(), 0);
 }
 
 QTEST_MAIN(TestWidgets)

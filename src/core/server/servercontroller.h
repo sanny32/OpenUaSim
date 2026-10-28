@@ -14,8 +14,10 @@
 #include <QVariant>
 
 #include "addressspace.h"
+#include "data/methodinfo.h"
 #include "data/projectconfig.h"
 #include "data/serversnapshot.h"
+#include "methodresponder.h"
 #include "nodesetloader.h"
 #include "pki/pkiservice.h"
 #include "simserver.h"
@@ -95,6 +97,16 @@ public:
     ///         variable, and a new initial value becomes its current value.
     ///
     bool updateVariable(const VariableInfo &variable, QString *error = nullptr);
+
+    ///
+    /// \brief Applies the edited response of a method of an imported model and keeps it in the project.
+    /// \param method Server node id with the new response; a response of Good without output texts drops the stored
+    ///        one.
+    /// \param error Receives the reason on failure; may be null.
+    /// \return False for a node that is no model method, or for an output text that is no value of its argument.
+    ///         The response applies to the next calls without rebuilding the address space.
+    ///
+    bool updateModelMethod(const MethodInfo &method, QString *error = nullptr);
 
     ///
     /// \brief Gives a folder, object or variable a new browse name and rebuilds the address space.
@@ -299,6 +311,12 @@ signals:
     void variableChanged(const VariableInfo &variable);
 
     ///
+    /// \brief Announces the new response of a model method.
+    /// \param method Updated description.
+    ///
+    void methodChanged(const MethodInfo &method);
+
+    ///
     /// \brief Announces a change in the live quality of a served variable.
     /// \param nodeId Variable whose current quality changed.
     /// \param quality Quality reported by the server.
@@ -377,5 +395,6 @@ private:
     bool _restartRequired = false;
     QList<NodeDefinition> _modelSettings;
     NodeSetLoader _nodeSets;
+    MethodResponder _methods;
     PkiService _pki;
 };
