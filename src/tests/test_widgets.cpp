@@ -57,6 +57,22 @@
 
 namespace {
 
+///
+/// \brief Finds painted pixels against the white background used by indicator alignment tests.
+///
+QRect paintedBounds(const QImage &image, const QRect &region)
+{
+    QRect bounds;
+    for (int y = region.top(); y <= region.bottom(); ++y) {
+        for (int x = region.left(); x <= region.right(); ++x) {
+            const QColor color = image.pixelColor(x, y);
+            if (color.red() < 220 || color.green() < 220 || color.blue() < 220)
+                bounds |= QRect(x, y, 1, 1);
+        }
+    }
+    return bounds;
+}
+
 class InsetComboBoxStyle : public AppStyle
 {
 public:
@@ -114,6 +130,8 @@ class TestWidgets : public QObject
 private slots:
     void statusIndicator();
     void statusIndicatorDrawsIconInsteadOfDot();
+    void statusIndicatorAlignsIconWithText_data();
+    void statusIndicatorAlignsIconWithText();
     void statusIndicatorFitsTextAtSizeHint_data();
     void statusIndicatorFitsTextAtSizeHint();
     void statusIndicatorShowsOverflowTooltip();
@@ -223,6 +241,71 @@ void TestWidgets::statusIndicatorDrawsIconInsteadOfDot()
 
     indicator.setIcon(QIcon());
     QCOMPARE(indicator.grab().toImage(), dot);
+}
+
+///
+/// \brief Covers dot and SVG indicators at different font sizes and row heights.
+///
+void TestWidgets::statusIndicatorAlignsIconWithText_data()
+{
+    QTest::addColumn<QString>("text");
+    QTest::addColumn<bool>("useIcon");
+    QTest::addColumn<int>("pointSize");
+    QTest::addColumn<int>("rowHeight");
+    QTest::newRow("running") << QStringLiteral("Running") << false << 9 << 19;
+    QTest::newRow("disabled") << QStringLiteral("Disabled") << true << 9 << 19;
+    QTest::newRow("running-large") << QStringLiteral("Running") << false << 16 << 40;
+    QTest::newRow("disabled-large") << QStringLiteral("Disabled") << true << 16 << 40;
+    QTest::newRow("empty") << QString() << false << 9 << 19;
+    QTest::newRow("running-preferred-size") << QStringLiteral("Running") << false << 9 << 0;
+    QTest::newRow("disabled-preferred-size") << QStringLiteral("Disabled") << true << 9 << 0;
+    QTest::newRow("whitespace") << QStringLiteral("   ") << false << 9 << 19;
+}
+
+///
+/// \brief Keeps symbols aligned with capital letters regardless of label descenders.
+///
+void TestWidgets::statusIndicatorAlignsIconWithText()
+{
+    QFETCH(QString, text);
+    QFETCH(bool, useIcon);
+    QFETCH(int, pointSize);
+    QFETCH(int, rowHeight);
+    StatusIndicator indicator;
+    QFont font(QStringLiteral("Segoe UI"), pointSize);
+    indicator.setFont(font);
+    QPalette palette = indicator.palette();
+    palette.setColor(QPalette::Window, Qt::white);
+    palette.setColor(QPalette::WindowText, Qt::black);
+    indicator.setPalette(palette);
+    indicator.setAutoFillBackground(true);
+    indicator.setStatus(StatusKind::Good, text);
+    if (useIcon)
+        indicator.setIcon(AppIcons::statusIcon(QStringLiteral("x"), StatusKind::Inactive));
+    indicator.resize(indicator.sizeHint().width(), rowHeight > 0 ? rowHeight : indicator.sizeHint().height());
+    const QImage image = indicator.grab().toImage();
+    const int diameter = qRound(indicator.fontMetrics().height() * 0.85);
+    const QRect symbol = paintedBounds(image, QRect(0, 0, diameter, image.height()));
+    QVERIFY(!symbol.isEmpty());
+    if (!useIcon)
+        QVERIFY(symbol.height() >= diameter - 2);
+    const qreal symbolCenter = symbol.y() + (symbol.height() - 1) / 2.0;
+    if (text.trimmed().isEmpty()) {
+        QVERIFY(qAbs(symbolCenter - (image.height() - 1) / 2.0) <= 1.0);
+        return;
+    }
+    StatusIndicator reference;
+    reference.setFont(font);
+    reference.setPalette(palette);
+    reference.setAutoFillBackground(true);
+    reference.setStatus(StatusKind::Good, QStringLiteral("H"));
+    reference.resize(indicator.size());
+    const QImage capital = reference.grab().toImage();
+    const QRect label = paintedBounds(capital, QRect(diameter + 8, 0, capital.width() - diameter - 8, capital.height()));
+    QVERIFY(!label.isEmpty());
+    const qreal labelCenter = label.y() + (label.height() - 1) / 2.0;
+    QVERIFY2(qAbs(symbolCenter - labelCenter) <= 1.0,
+             qPrintable(QStringLiteral("Symbol centre %1, text centre %2").arg(symbolCenter).arg(labelCenter)));
 }
 
 void TestWidgets::statusIndicatorFitsTextAtSizeHint_data()

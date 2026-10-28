@@ -99,7 +99,8 @@ QIcon StatusIndicator::icon() const
 QSize StatusIndicator::sizeHint() const
 {
     const int textWidth = _text.isEmpty() ? 0 : kSpacing + qCeil(textAdvance());
-    return { dotDiameter() + textWidth, qMax(fontMetrics().height(), dotDiameter()) };
+    const int symbolHeight = qCeil(dotDiameter() + 2 * qAbs(textCenterOffset(_text)));
+    return { dotDiameter() + textWidth, qMax(fontMetrics().height(), symbolHeight) };
 }
 
 ///
@@ -129,7 +130,7 @@ bool StatusIndicator::event(QEvent *event)
 }
 
 ///
-/// \brief Draws the dot or the icon vertically centred, then the label.
+/// \brief Aligns the dot or icon with the capital-height centre of the label.
 /// \param event Unused.
 ///
 void StatusIndicator::paintEvent(QPaintEvent *event)
@@ -138,11 +139,16 @@ void StatusIndicator::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
+    const QRect text = textRect();
+    const QString label = fontMetrics().elidedText(_text, Qt::ElideRight, qMax(0, text.width()));
+    const QFontMetricsF metrics(font());
+    const QPointF baseline(text.left(), (height() - metrics.height()) / 2.0 + metrics.ascent());
+    const qreal centerY = height() / 2.0 + textCenterOffset(label);
     const int diameter = dotDiameter();
     if (!_icon.isNull()) {
-        _icon.paint(&painter, QRect(0, (height() - diameter) / 2, diameter, diameter));
+        _icon.paint(&painter, QRect(0, qRound(centerY - diameter / 2.0), diameter, diameter));
     } else {
-        const QRectF dot(0.5, (height() - diameter) / 2.0, diameter - 1, diameter - 1);
+        const QRectF dot(0.5, centerY - (diameter - 1) / 2.0, diameter - 1, diameter - 1);
         painter.setPen(Qt::NoPen);
         painter.setBrush(AppColors::status(_status));
         painter.drawEllipse(dot);
@@ -152,9 +158,7 @@ void StatusIndicator::paintEvent(QPaintEvent *event)
         return;
     painter.setPen(_coloredText ? AppColors::statusText(_status)
                                 : palette().color(QPalette::WindowText));
-    const QRect text = textRect();
-    painter.drawText(text, Qt::AlignLeft | Qt::AlignVCenter,
-                     fontMetrics().elidedText(_text, Qt::ElideRight, qMax(0, text.width())));
+    painter.drawText(baseline, label);
 }
 
 ///
@@ -173,6 +177,17 @@ int StatusIndicator::dotDiameter() const
 qreal StatusIndicator::textAdvance() const
 {
     return QFontMetricsF(font()).horizontalAdvance(_text);
+}
+
+///
+/// \brief Uses capital height so descenders do not shift status symbols down.
+///
+qreal StatusIndicator::textCenterOffset(const QString &text) const
+{
+    if (text.trimmed().isEmpty())
+        return 0;
+    const QFontMetricsF metrics(font());
+    return metrics.ascent() - metrics.height() / 2.0 - metrics.capHeight() / 2.0;
 }
 
 ///
