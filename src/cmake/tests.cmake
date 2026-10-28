@@ -15,6 +15,10 @@ function(ouasim_add_app_metadata_test)
         target_link_libraries(ouasim_tests_app_metadata PRIVATE version)
         target_compile_definitions(ouasim_tests_app_metadata PRIVATE
             OUASIM_EXECUTABLE_PATH="$<TARGET_FILE:${PROJECT_NAME}>")
+    elseif(APPLE)
+        add_dependencies(ouasim_tests_app_metadata ${PROJECT_NAME})
+        target_compile_definitions(ouasim_tests_app_metadata PRIVATE
+            OUASIM_BUNDLE_PLIST_PATH="$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/Info.plist")
     endif()
     add_test(NAME ouasim_tests_app_metadata COMMAND ouasim_tests_app_metadata)
     ouasim_configure_test_environment(ouasim_tests_app_metadata)

@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include <QtTest>
+#include <QFile>
+#include <QXmlStreamReader>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -14,6 +16,7 @@ class TestAppMetadata : public QObject
 private slots:
     void executableMetadata_data();
     void executableMetadata();
+    void bundleLanguages();
 };
 
 ///
@@ -62,6 +65,36 @@ void TestAppMetadata::executableMetadata()
     QCOMPARE(QString::fromWCharArray(value, length - 1), expected);
 #else
     QSKIP("Windows executable resources are only available on Windows");
+#endif
+}
+
+///
+/// \brief Checks that macOS can select every shipped interface language.
+///
+void TestAppMetadata::bundleLanguages()
+{
+#ifdef Q_OS_MACOS
+    QFile plist(QStringLiteral(OUASIM_BUNDLE_PLIST_PATH));
+    QVERIFY2(plist.open(QIODevice::ReadOnly), qPrintable(plist.errorString()));
+    QXmlStreamReader xml(&plist);
+    QStringList languages;
+    while (!xml.atEnd()) {
+        xml.readNext();
+        if (!xml.isStartElement() || xml.name() != QLatin1String("key"))
+            continue;
+        if (xml.readElementText() != QLatin1String("CFBundleLocalizations"))
+            continue;
+        QVERIFY(xml.readNextStartElement());
+        QCOMPARE(xml.name(), QLatin1String("array"));
+        while (xml.readNextStartElement()) {
+            QCOMPARE(xml.name(), QLatin1String("string"));
+            languages.append(xml.readElementText());
+        }
+    }
+    QVERIFY2(!xml.hasError(), qPrintable(xml.errorString()));
+    QCOMPARE(languages, QStringList({QStringLiteral("en"), QStringLiteral("ru")}));
+#else
+    QSKIP("macOS bundle metadata is only available on macOS");
 #endif
 }
 
