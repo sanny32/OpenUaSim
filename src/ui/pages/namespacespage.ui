@@ -359,24 +359,38 @@
                </layout>
               </item>
               <item row="2" column="0">
+               <widget class="ElidedLabel" name="modelLabel">
+                <property name="text">
+                 <string>Model</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="ElidedLineEdit" name="modelEdit">
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0">
                <widget class="ElidedLabel" name="versionLabel">
                 <property name="text">
                  <string>Version</string>
                 </property>
                </widget>
               </item>
-              <item row="2" column="1">
+              <item row="3" column="1">
                <widget class="ElidedLineEdit" name="versionEdit">
 </widget>
               </item>
-              <item row="3" column="0">
+              <item row="4" column="0">
                <widget class="ElidedLabel" name="publicationDateLabel">
                 <property name="text">
                  <string>Publication Date</string>
                 </property>
                </widget>
               </item>
-              <item row="3" column="1">
+              <item row="4" column="1">
                <widget class="QDateEdit" name="publicationDateEdit">
                 <property name="calendarPopup">
                  <bool>true</bool>
@@ -386,14 +400,14 @@
                 </property>
                </widget>
               </item>
-              <item row="4" column="0">
+              <item row="5" column="0">
                <widget class="ElidedLabel" name="descriptionLabel">
                 <property name="text">
                  <string>Description</string>
                 </property>
                </widget>
               </item>
-              <item row="4" column="1">
+              <item row="5" column="1">
                <widget class="QPlainTextEdit" name="descriptionEdit">
                 <property name="maximumSize">
                  <size>

@@ -541,13 +541,20 @@ void TestTableModels::referencesModel()
 void TestTableModels::namespacesModel()
 {
     NamespacesModel model;
-    model.setItems({ { 2, QStringLiteral("urn:factory"), QStringLiteral("1.0.0"), QDate(2024, 5, 20), {} } });
+    model.setItems({ { 2, QStringLiteral("urn:factory"), QStringLiteral("1.0.0"), QDate(2024, 5, 20), {},
+                       QStringLiteral("/models/factory.xml") },
+                     { 1, QStringLiteral("urn:openuasim:server") } });
     QCOMPARE(model.columnCount(), int(NamespacesModel::ColCount));
-    QCOMPARE(header(model, NamespacesModel::ColPublicationDate), QStringLiteral("Publication Date"));
+    QCOMPARE(header(model, NamespacesModel::ColModel), QStringLiteral("Model"));
+    QCOMPARE(header(model, NamespacesModel::ColVersion), QStringLiteral("Version"));
+    QCOMPARE(model.index(0, NamespacesModel::ColModel).data().toString(), QStringLiteral("factory.xml"));
+    QCOMPARE(model.index(0, NamespacesModel::ColModel).data(Qt::ToolTipRole).toString(),
+             QStringLiteral("/models/factory.xml"));
+    QVERIFY(model.index(1, NamespacesModel::ColModel).data().toString().isEmpty());
+    QVERIFY(!model.index(0, NamespacesModel::ColUri).data(Qt::ToolTipRole).isValid());
     QCOMPARE(model.index(0, NamespacesModel::ColIndex).data().toInt(), 2);
     QCOMPARE(model.index(0, NamespacesModel::ColUri).data().toString(), QStringLiteral("urn:factory"));
     QCOMPARE(model.index(0, NamespacesModel::ColVersion).data().toString(), QStringLiteral("1.0.0"));
-    QCOMPARE(model.index(0, NamespacesModel::ColPublicationDate).data().toString(), QStringLiteral("2024-05-20"));
     QCOMPARE(model.index(0, NamespacesModel::ColIndex).data(ItemRoles::Id).toString(), QStringLiteral("urn:factory"));
 }
 

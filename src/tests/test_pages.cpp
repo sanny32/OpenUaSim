@@ -2126,8 +2126,11 @@ void TestPages::namespacesPageRemovesImportedModels()
     QVERIFY(!remove->isEnabled());
     ViewSetup::selectRow(view, 1);
     QVERIFY(!remove->isEnabled());
+    QVERIFY(child<QLineEdit>(page, "modelEdit")->text().isEmpty());
     ViewSetup::selectRow(view, int(namespaces.size()) - 1);
     QVERIFY(remove->isEnabled());
+    QCOMPARE(child<QLineEdit>(page, "modelEdit")->text(), QStringLiteral("robot.xml"));
+    QCOMPARE(child<QLineEdit>(page, "modelEdit")->toolTip(), QStringLiteral("/models/robot.xml"));
     remove->click();
     QCOMPARE(requested.count(), 1);
     QCOMPARE(requested.first().first().toString(), QStringLiteral("/models/robot.xml"));

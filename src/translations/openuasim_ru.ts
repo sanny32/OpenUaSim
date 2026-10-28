@@ -1542,6 +1542,10 @@
         <source>Model not removed</source>
         <translation>Модель не удалена</translation>
     </message>
+    <message>
+        <source>Namespaces removed with the model:</source>
+        <translation>Пространства имён, удаляемые вместе с моделью:</translation>
+    </message>
 </context>
 <context>
     <name>ModelVariables</name>
@@ -1573,8 +1577,8 @@
         <translation>Версия</translation>
     </message>
     <message>
-        <source>Publication Date</source>
-        <translation>Дата публикации</translation>
+        <source>Model</source>
+        <translation>Модель</translation>
     </message>
 </context>
 <context>
@@ -1630,6 +1634,10 @@
     <message>
         <source>Remove Model...</source>
         <translation>Удалить модель...</translation>
+    </message>
+    <message>
+        <source>Model</source>
+        <translation>Модель</translation>
     </message>
 </context>
 <context>

@@ -8,10 +8,12 @@
 
 #include <QAbstractButton>
 #include <QAction>
+#include <QBitArray>
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QClipboard>
 #include <QComboBox>
+#include <QDataStream>
 #include <QDoubleSpinBox>
 #include <QGuiApplication>
 #include <QHeaderView>
@@ -39,6 +41,7 @@ constexpr int kTableRowHeight = 34;
 constexpr int kMaxFittedColumnWidth = 320;
 constexpr int kSplitScale = 100;
 constexpr char kRestoredColumns[] = "ouasimRestoredColumns";
+constexpr char kReservedWidths[] = "ouasimReservedWidths";
 
 ///
 /// \brief Keeps the side panes of a splitter at their widths once the splitter has been laid out,
@@ -160,6 +163,21 @@ void resizeColumn(QAbstractItemView *view, int column)
 }
 
 ///
+/// \brief Widens columns narrower than the widths reserved with reserveColumnWidth().
+/// \param header Column header to adjust.
+///
+void applyReservedWidths(QHeaderView *header)
+{
+    const QVariantMap reserved = header->property(kReservedWidths).toMap();
+    for (auto it = reserved.cbegin(); it != reserved.cend(); ++it) {
+        const int column = it.key().toInt();
+        const int width = it.value().toInt();
+        if (column < header->count() && header->sectionSize(column) < width)
+            header->resizeSection(column, width);
+    }
+}
+
+///
 /// \brief Sizes the columns to their contents, capped but for the last one so one long value cannot
 ///        push the others out of view.
 /// \param view Table view to size.
@@ -175,8 +193,37 @@ void fitColumnsToContents(QAbstractItemView *view)
         if (header->sectionSize(column) > kMaxFittedColumnWidth)
             header->resizeSection(column, kMaxFittedColumnWidth);
     }
+    applyReservedWidths(header);
     // The stretched last section never shrinks below this width, so contents that do not fit scroll.
     resizeColumn(view, last);
+}
+
+///
+/// \brief Reads how many sections a saved header state describes; QHeaderView::restoreState() keeps
+///        surplus saved sections, which breaks the stretched last column of a header with fewer columns.
+/// \param state State written by QHeaderView::saveState().
+/// \return Section count, or -1 when the state cannot be read.
+///
+int savedSectionCount(const QByteArray &state)
+{
+    // Field order of QHeaderViewPrivate::write() up to the section count.
+    QDataStream in(state);
+    in.setVersion(QDataStream::Qt_5_0);
+    int marker = 0;
+    int version = 0;
+    int orientation = 0;
+    int sortOrder = 0;
+    int sortSection = 0;
+    bool sortShown = false;
+    QList<int> visualIndices;
+    QList<int> logicalIndices;
+    QBitArray hidden;
+    QHash<int, int> hiddenSizes;
+    int length = 0;
+    int count = -1;
+    in >> marker >> version >> orientation >> sortOrder >> sortSection >> sortShown >> visualIndices
+        >> logicalIndices >> hidden >> hiddenSizes >> length >> count;
+    return in.status() == QDataStream::Ok ? count : -1;
 }
 
 ///
@@ -308,11 +355,12 @@ void installDelegate(QAbstractItemView *view)
 /// \brief Restores user column sizes and prevents automatic fitting from replacing them.
 /// \param header Column header to restore.
 /// \param state Previously saved header state.
-/// \return True when the state was restored.
+/// \return True when the state was restored; false for a state saved with a different column count.
 ///
 bool restoreHeaderState(QHeaderView *header, const QByteArray &state)
 {
-    if (state.isEmpty() || !header->restoreState(state))
+    if (state.isEmpty() || savedSectionCount(state) != header->count()
+        || !header->restoreState(state))
         return false;
     header->setProperty(kRestoredColumns, true);
     return true;
@@ -342,6 +390,23 @@ void fitColumnsWhenFilled(QTableView *view)
 {
     auto *fitter = new ColumnFitter(view);
     fitter->fitOnceFilled();
+}
+
+///
+/// \brief Keeps a column at least as wide as a sample value when fitColumnsWhenFilled() sizes it, so a
+///        column that is often empty still has room for its typical value.
+/// \param view Table view whose model is already set.
+/// \param column Column to reserve the width for.
+/// \param sample Typical value of the column.
+///
+void reserveColumnWidth(QTableView *view, int column, const QString &sample)
+{
+    QHeaderView *header = view->horizontalHeader();
+    const QString title = view->model()->headerData(column, Qt::Horizontal).toString();
+    const int margin = qMax(0, header->sectionSizeHint(column) - header->fontMetrics().horizontalAdvance(title));
+    QVariantMap reserved = header->property(kReservedWidths).toMap();
+    reserved.insert(QString::number(column), view->fontMetrics().horizontalAdvance(sample) + margin);
+    header->setProperty(kReservedWidths, reserved);
 }
 
 ///

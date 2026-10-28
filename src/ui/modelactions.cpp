@@ -129,10 +129,13 @@ void ModelActions::exportNamespace(const QString &namespaceUri)
 void ModelActions::confirmRemoveModel(const QString &fileName)
 {
     _pendingModelFile = fileName;
+    const QString details = tr("Namespaces removed with the model:") + QLatin1Char('\n')
+        + _controller.modelNamespaceUris(fileName).join(QLatin1Char('\n')) + QStringLiteral("\n\n")
+        + tr("A running server restarts and disconnects its clients.");
     auto *dialog = MessageDialog::confirmation(
         tr("Remove Model"),
-        tr("Remove the model '%1' with its nodes and namespaces?").arg(QFileInfo(fileName).fileName()),
-        tr("A running server restarts and disconnects its clients."), tr("Remove"), _window);
+        tr("Remove the model '%1' with its nodes and namespaces?").arg(QFileInfo(fileName).fileName()), details,
+        tr("Remove"), _window);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     connect(dialog, &QDialog::accepted, this, &ModelActions::removePendingModel);
     dialog->open();

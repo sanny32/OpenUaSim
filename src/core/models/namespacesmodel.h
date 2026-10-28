@@ -12,7 +12,7 @@
 #include "itemtablemodel.h"
 
 ///
-/// \brief Table of registered namespaces: index, URI, version and publication date.
+/// \brief Table of registered namespaces: index, URI, source model file and version.
 ///
 class NamespacesModel : public ItemTableModel<NamespaceInfo>
 {
@@ -22,7 +22,7 @@ public:
     ///
     /// \brief Columns exposed by the model.
     ///
-    enum Column { ColIndex, ColUri, ColVersion, ColPublicationDate, ColCount };
+    enum Column { ColIndex, ColUri, ColModel, ColVersion, ColCount };
 
     ///
     /// \brief Constructs an empty model.

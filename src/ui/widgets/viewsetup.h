@@ -30,7 +30,7 @@ namespace ViewSetup {
 /// \brief Restores user column sizes and prevents automatic fitting from replacing them.
 /// \param header Column header to restore.
 /// \param state Previously saved header state.
-/// \return True when the state was restored.
+/// \return True when the state was restored; false for a state saved with a different column count.
 ///
 bool restoreHeaderState(QHeaderView *header, const QByteArray &state);
 
@@ -53,6 +53,15 @@ void configureTable(QTableView *view);
 /// \param view Table view whose model is already set.
 ///
 void fitColumnsWhenFilled(QTableView *view);
+
+///
+/// \brief Keeps a column at least as wide as a sample value when fitColumnsWhenFilled() sizes it, so a
+///        column that is often empty still has room for its typical value.
+/// \param view Table view whose model is already set.
+/// \param column Column to reserve the width for.
+/// \param sample Typical value of the column.
+///
+void reserveColumnWidth(QTableView *view, int column, const QString &sample);
 
 ///
 /// \brief Widens a column whenever its contents stop fitting and never narrows it, so changing

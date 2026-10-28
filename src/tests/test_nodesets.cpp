@@ -149,6 +149,8 @@ private slots:
     void snapshotKeepsImportedStandardPaths();
     void snapshotIncludesImportedPropertiesMethodsAndRootVariables();
     void snapshotMergesImportedProjectChildren();
+    void modelOwnsReferencedNamespaces();
+    void modelOwnsOnlyNewNamespaces();
     void modelVariableOfUnsupportedTypeIsReadOnly();
     void modelEnumerationIsEditedAsInt32();
     void modelTypesAreListed();
@@ -640,6 +642,41 @@ void TestNodeSets::snapshotMergesImportedProjectChildren()
     QVERIFY(extra);
     QCOMPARE(extra->text, QStringLiteral("Extra"));
     QCOMPARE(treeOccurrences(snapshot.addressSpace, extra->id), 1);
+}
+
+///
+/// \brief Attributes namespaces a model only references to that model when no other model registered them first.
+///
+void TestNodeSets::modelOwnsReferencedNamespaces()
+{
+    ServerController controller;
+    controller.setProject(TestProject::create());
+    const QString example = testData(QStringLiteral("public-nodesets/instanceexample.xml"));
+    QVERIFY(controller.importNodeSet(example));
+    const QStringList expected { QStringLiteral("http://yourorganisation.org/InstanceExample/"),
+                                 QStringLiteral("http://opcfoundation.org/UA/Pumps/"),
+                                 QStringLiteral("http://opcfoundation.org/UA/Machinery/"),
+                                 QStringLiteral("http://opcfoundation.org/UA/DI/") };
+    QCOMPARE(controller.modelNamespaceUris(example), expected);
+    for (const NamespaceInfo &ns : controller.snapshot().namespaces)
+        QCOMPARE(ns.modelFile, expected.contains(ns.uri) ? example : QString());
+    QVERIFY(controller.modelNamespaceUris(testData(QStringLiteral("mixer.NodeSet2.xml"))).isEmpty());
+}
+
+///
+/// \brief Leaves namespaces registered by earlier models with those models.
+///
+void TestNodeSets::modelOwnsOnlyNewNamespaces()
+{
+    ServerController controller;
+    controller.setProject(TestProject::create());
+    const QString di = testData(QStringLiteral("public-nodesets/Opc.Ua.Di.NodeSet2.xml"));
+    const QString example = testData(QStringLiteral("public-nodesets/instanceexample.xml"));
+    QVERIFY(controller.importNodeSet(di));
+    QVERIFY(controller.importNodeSet(example));
+    QCOMPARE(controller.modelNamespaceUris(di), QStringList { QStringLiteral("http://opcfoundation.org/UA/DI/") });
+    QVERIFY(!controller.modelNamespaceUris(example).contains(QStringLiteral("http://opcfoundation.org/UA/DI/")));
+    QVERIFY(controller.modelNamespaceUris(example).contains(QStringLiteral("http://yourorganisation.org/InstanceExample/")));
 }
 
 void TestNodeSets::modelVariableOfUnsupportedTypeIsReadOnly()

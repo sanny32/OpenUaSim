@@ -246,6 +246,8 @@ void TestActions::removesModelOnlyAfterConfirmation()
     MessageDialog *question = openDialog(*_window);
     QVERIFY(question);
     QCOMPARE(question->windowTitle(), QStringLiteral("Remove Model"));
+    const QString details = question->findChild<QLabel *>(QStringLiteral("detailsLabel"))->text();
+    QVERIFY(details.contains(QStringLiteral("urn:openuasim:test:mixer")));
     click(question, "cancelButton");
     QCOMPARE(_controller->project().nodeSetFiles.size(), 1);
 

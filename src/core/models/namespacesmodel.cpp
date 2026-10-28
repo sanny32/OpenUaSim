@@ -6,6 +6,8 @@
 /// \brief Implements the table model of the namespace array.
 ///
 
+#include <QFileInfo>
+
 #include "itemroles.h"
 #include "namespacesmodel.h"
 
@@ -42,14 +44,16 @@ QVariant NamespacesModel::data(const QModelIndex &index, int role) const
 
     if (role == ItemRoles::Id)
         return ns.uri;
+    if (role == Qt::ToolTipRole && index.column() == ColModel)
+        return ns.modelFile;
     if (role != Qt::DisplayRole)
         return {};
 
     switch (index.column()) {
     case ColIndex:           return ns.index;
     case ColUri:             return ns.uri;
+    case ColModel:           return QFileInfo(ns.modelFile).fileName();
     case ColVersion:         return ns.version;
-    case ColPublicationDate: return ns.publicationDate.toString(Qt::ISODate);
     default:                 return {};
     }
 }
@@ -68,8 +72,8 @@ QVariant NamespacesModel::headerData(int section, Qt::Orientation orientation, i
     switch (section) {
     case ColIndex:           return tr("Index");
     case ColUri:             return tr("URI");
+    case ColModel:           return tr("Model");
     case ColVersion:         return tr("Version");
-    case ColPublicationDate: return tr("Publication Date");
     default:                 return {};
     }
 }

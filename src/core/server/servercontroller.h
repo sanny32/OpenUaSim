@@ -160,6 +160,13 @@ public:
     QHash<QString, QString> modelNamespaces() const;
 
     ///
+    /// \brief Returns the namespaces an imported model registered, including those it only references.
+    /// \param fileName Model file as listed in the project.
+    /// \return Namespace URIs in namespace array order; empty for a file that is not loaded.
+    ///
+    QStringList modelNamespaceUris(const QString &fileName) const;
+
+    ///
     /// \brief Writes the nodes of the application namespace, i.e. the project nodes, as a NodeSet2 file.
     /// \param fileName Target path.
     /// \param error Receives the reason on failure; may be null.

@@ -131,6 +131,22 @@ QHash<QString, QString> ServerController::modelNamespaces() const
 }
 
 ///
+/// \brief Returns the namespaces an imported model registered, including those it only references.
+/// \param fileName Model file as listed in the project.
+/// \return Namespace URIs in namespace array order; empty for a file that is not loaded.
+///
+QStringList ServerController::modelNamespaceUris(const QString &fileName) const
+{
+    const QHash<QString, QString> modelFiles = _nodeSets.modelNamespaces();
+    QStringList result;
+    for (const QString &uri : _server.uaServer()->namespaces()) {
+        if (modelFiles.value(uri) == fileName)
+            result.append(uri);
+    }
+    return result;
+}
+
+///
 /// \brief Loads a NodeSet2 model into the server and adds the file to the project.
 /// \param fileName NodeSet2 file.
 /// \param error Receives the reason on failure; may be null.

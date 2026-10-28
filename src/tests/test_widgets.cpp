@@ -130,6 +130,8 @@ private slots:
     void addCopyActionCopies();
     void configureTable();
     void fitColumnsWhenFilledFitsOnce();
+    void restoreHeaderStateRequiresSameColumns();
+    void reserveColumnWidthWidensEmptyColumnOnce();
     void fitColumnsWhenFilledCapsLongValues();
     void fitColumnsWhenFilledScrollsToLastColumn();
     void elidedCellShowsFullTextTooltip();
@@ -888,6 +890,56 @@ void TestWidgets::fitColumnsWhenFilledFitsOnce()
                       new QStandardItem(QStringLiteral("urn:other")),
                       new QStandardItem(QStringLiteral("1.0.0")) });
     QCOMPARE(header->sectionSize(0), 150);
+}
+
+void TestWidgets::restoreHeaderStateRequiresSameColumns()
+{
+    QStandardItemModel savedModel(0, 5);
+    QTableView saved;
+    saved.setModel(&savedModel);
+    ViewSetup::configureTable(&saved);
+    saved.horizontalHeader()->resizeSection(0, 150);
+    const QByteArray state = saved.horizontalHeader()->saveState();
+
+    QStandardItemModel narrowerModel(0, 4);
+    QTableView narrower;
+    narrower.setModel(&narrowerModel);
+    ViewSetup::configureTable(&narrower);
+    ViewSetup::fitColumnsWhenFilled(&narrower);
+    QVERIFY(!ViewSetup::restoreHeaderState(narrower.horizontalHeader(), state));
+    QVERIFY(narrower.horizontalHeader()->sectionSize(0) != 150);
+    narrowerModel.appendRow({ new QStandardItem(QStringLiteral("0")),
+                              new QStandardItem(QStringLiteral("http://opcfoundation.org/UA/DI/")),
+                              new QStandardItem(), new QStandardItem() });
+    QVERIFY(narrower.horizontalHeader()->sectionSize(0) < narrower.horizontalHeader()->sectionSize(1));
+
+    QStandardItemModel sameModel(0, 5);
+    QTableView same;
+    same.setModel(&sameModel);
+    ViewSetup::configureTable(&same);
+    QVERIFY(ViewSetup::restoreHeaderState(same.horizontalHeader(), state));
+    QCOMPARE(same.horizontalHeader()->sectionSize(0), 150);
+    QVERIFY(!ViewSetup::restoreHeaderState(same.horizontalHeader(), QByteArray("garbage")));
+}
+
+void TestWidgets::reserveColumnWidthWidensEmptyColumnOnce()
+{
+    const QString sample = QStringLiteral("Opc.Ua.Di.NodeSet2.xml");
+    QStandardItemModel model(0, 3);
+    QTableView view;
+    view.setModel(&model);
+    ViewSetup::configureTable(&view);
+    ViewSetup::fitColumnsWhenFilled(&view);
+    ViewSetup::reserveColumnWidth(&view, 1, sample);
+    QHeaderView *header = view.horizontalHeader();
+
+    model.appendRow({ new QStandardItem(QStringLiteral("0")), new QStandardItem(), new QStandardItem() });
+    QVERIFY(header->sectionSize(1) >= view.fontMetrics().horizontalAdvance(sample));
+    QVERIFY(header->sectionSize(0) < view.fontMetrics().horizontalAdvance(sample));
+
+    header->resizeSection(1, 40);
+    model.appendRow({ new QStandardItem(QStringLiteral("1")), new QStandardItem(), new QStandardItem() });
+    QCOMPARE(header->sectionSize(1), 40);
 }
 
 void TestWidgets::fitColumnsWhenFilledCapsLongValues()

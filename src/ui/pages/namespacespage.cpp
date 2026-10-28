@@ -6,6 +6,7 @@
 /// \brief Implements the namespaces page.
 ///
 
+#include <QFileInfo>
 #include <QSortFilterProxyModel>
 
 #include "appicons.h"
@@ -13,6 +14,12 @@
 #include "namespacespage.h"
 #include "ui_namespacespage.h"
 #include "viewsetup.h"
+
+namespace {
+
+const QString kModelColumnSample = QStringLiteral("Opc.Ua.Di.NodeSet2.xml");
+
+}
 
 ///
 /// \brief Builds the page.
@@ -36,6 +43,7 @@ NamespacesPage::NamespacesPage(QWidget *parent)
     ViewSetup::configureTable(ui->namespacesView);
     _searchModel = ViewSetup::attachTableSearch(ui->namespacesView, _namespacesModel, ui->searchEdit);
     ViewSetup::fitColumnsWhenFilled(ui->namespacesView);
+    ViewSetup::reserveColumnWidth(ui->namespacesView, NamespacesModel::ColModel, kModelColumnSample);
 
     connect(ui->namespacesView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &NamespacesPage::showNamespace);
@@ -97,6 +105,8 @@ void NamespacesPage::showNamespace()
         return;
     ui->indexEdit->setText(QString::number(ns->index));
     ui->uriEdit->setText(ns->uri);
+    ui->modelEdit->setText(QFileInfo(ns->modelFile).fileName());
+    ui->modelEdit->setToolTip(ns->modelFile);
     ui->versionEdit->setText(ns->version);
     ui->publicationDateEdit->setDate(ns->publicationDate);
     ui->descriptionEdit->setPlainText(ns->description);
