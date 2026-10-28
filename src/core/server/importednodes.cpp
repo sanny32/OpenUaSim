@@ -227,7 +227,8 @@ TreeNode ModelNodeCollector::importedBranch(const QUaNodeId &nodeId, const QStri
 }
 
 ///
-/// \brief Restricts traversal to instance hierarchy references, excluding type inheritance.
+/// \brief Restricts traversal to instance hierarchy references, excluding type inheritance and the event
+/// notifier hierarchy, which links nodes already placed elsewhere.
 ///
 bool ModelNodeCollector::isChildReference(const QUaNodeReference &reference)
 {
@@ -237,7 +238,8 @@ bool ModelNodeCollector::isChildReference(const QUaNodeReference &reference)
     if (found == _childReferenceTypes.cend()) {
         const bool hierarchical = _server.isSubtypeOf(reference.referenceTypeId,
                                                       QUaNodeId(0, quint32(UA_NS0ID_HIERARCHICALREFERENCES)))
-            && !_server.isSubtypeOf(reference.referenceTypeId, QUaNodeId(0, quint32(UA_NS0ID_HASSUBTYPE)));
+            && !_server.isSubtypeOf(reference.referenceTypeId, QUaNodeId(0, quint32(UA_NS0ID_HASSUBTYPE)))
+            && !_server.isSubtypeOf(reference.referenceTypeId, QUaNodeId(0, quint32(UA_NS0ID_HASEVENTSOURCE)));
         found = _childReferenceTypes.insert(reference.referenceTypeId, hierarchical);
     }
     return *found;

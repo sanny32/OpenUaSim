@@ -148,6 +148,7 @@ private slots:
     void publicModelsImport();
     void snapshotKeepsImportedStandardPaths();
     void snapshotIncludesImportedPropertiesMethodsAndRootVariables();
+    void snapshotSkipsEventNotifierLinks();
     void snapshotMergesImportedProjectChildren();
     void modelOwnsReferencedNamespaces();
     void modelOwnsOnlyNewNamespaces();
@@ -618,6 +619,24 @@ void TestNodeSets::snapshotIncludesImportedPropertiesMethodsAndRootVariables()
     const QList<VariableInfo> rootVariables = snapshot.variables.value(QStringLiteral("i=85"));
     QCOMPARE(rootVariables.size(), 1);
     QCOMPARE(rootVariables.first().value.toDouble(), 42.0);
+}
+
+///
+/// \brief Shows a node linked to Server by HasNotifier only at its Objects location.
+///
+void TestNodeSets::snapshotSkipsEventNotifierLinks()
+{
+    ServerController controller;
+    controller.setProject(branchProject());
+    QVERIFY(controller.start());
+    const QUaNodeSetResult imported = loadBranches(controller);
+    QVERIFY2(imported.isOk(), qPrintable(imported.errorString));
+    const QString stationId = QStringLiteral("ns=2;i=1400");
+    const ServerSnapshot snapshot = controller.snapshot();
+    QCOMPARE(treeOccurrences(snapshot.addressSpace, stationId), 1);
+    const QList<TreeNode> &objects = snapshot.addressSpace.first().children;
+    QVERIFY(std::any_of(objects.cbegin(), objects.cend(),
+                        [&stationId](const TreeNode &node) { return node.id == stationId; }));
 }
 
 ///
