@@ -32,6 +32,7 @@
 #include "project/projectdocument.h"
 #include "project/projectfile.h"
 #include "project/projectnodes.h"
+#include "recentdirectories.h"
 #include "server/servercontroller.h"
 #include "server/serverlaunch.h"
 #include "serversettingsdialog.h"
@@ -47,6 +48,16 @@ namespace {
 constexpr double kEventLogShare = 0.28;
 constexpr int kPageShortcutCount = 9;
 constexpr int kStatusRefreshMs = 1000;
+
+///
+/// \brief Returns where a project file dialog starts.
+/// \param fileName File of the served project; empty for a project never saved.
+/// \return The project file, else the directory a project was picked from last.
+///
+QString projectDialogPath(const QString &fileName)
+{
+    return fileName.isEmpty() ? RecentDirectories::directory(RecentDirectories::Purpose::Project) : fileName;
+}
 
 }
 
@@ -1003,10 +1014,13 @@ void MainWindow::openProject()
 {
     if (!_document || !confirmDiscardChanges())
         return;
-    const QString fileName = QFileDialog::getOpenFileName(this, tr("Open Project"), _document->fileName(),
+    const QString fileName = QFileDialog::getOpenFileName(this, tr("Open Project"),
+                                                          projectDialogPath(_document->fileName()),
                                                           ProjectFile::fileFilter());
-    if (!fileName.isEmpty())
-        openProjectFile(fileName);
+    if (fileName.isEmpty())
+        return;
+    RecentDirectories::remember(RecentDirectories::Purpose::Project, fileName);
+    openProjectFile(fileName);
 }
 
 ///
@@ -1030,9 +1044,13 @@ bool MainWindow::saveProjectAs()
 {
     if (!_document)
         return false;
-    const QString fileName = QFileDialog::getSaveFileName(this, tr("Save Project As"), _document->fileName(),
+    const QString fileName = QFileDialog::getSaveFileName(this, tr("Save Project As"),
+                                                          projectDialogPath(_document->fileName()),
                                                           ProjectFile::fileFilter());
-    return !fileName.isEmpty() && saveProjectTo(fileName);
+    if (fileName.isEmpty())
+        return false;
+    RecentDirectories::remember(RecentDirectories::Purpose::Project, fileName);
+    return saveProjectTo(fileName);
 }
 
 ///

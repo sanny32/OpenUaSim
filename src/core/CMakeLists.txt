@@ -3,6 +3,8 @@ add_library(ouasim_core STATIC
     formatting.h
     logexport.cpp
     logexport.h
+    recentdirectories.cpp
+    recentdirectories.h
     settingsstore.cpp
     settingsstore.h
 

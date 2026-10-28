@@ -12,6 +12,7 @@
 #include "messagedialog.h"
 #include "modelactions.h"
 #include "namespacespage.h"
+#include "recentdirectories.h"
 #include "server/servercontroller.h"
 
 namespace {
@@ -48,9 +49,12 @@ ModelActions::ModelActions(ServerController &controller, NamespacesPage *page, Q
 ///
 void ModelActions::importModel()
 {
-    const QString fileName = QFileDialog::getOpenFileName(_window, tr("Import Model"), QString(), nodeSetFilter());
-    if (!fileName.isEmpty())
-        importModelFrom(fileName);
+    const QString fileName = QFileDialog::getOpenFileName(
+        _window, tr("Import Model"), RecentDirectories::directory(RecentDirectories::Purpose::Model), nodeSetFilter());
+    if (fileName.isEmpty())
+        return;
+    RecentDirectories::remember(RecentDirectories::Purpose::Model, fileName);
+    importModelFrom(fileName);
 }
 
 ///
