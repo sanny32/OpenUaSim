@@ -531,6 +531,11 @@ void TestPages::statusPageShowsBranding()
     const auto *description = child<QLabel>(page, "brandDescription");
     const auto *form = child<QWidget>(page, "statusFormHost");
     const auto *scroll = child<QScrollArea>(page, "serverStatusPanelScroll");
+    const auto *panel = child<QFrame>(page, "serverStatusPanel");
+    QVERIFY(!page.findChild<QLabel *>(QStringLiteral("serverStatusTitle")));
+    QVERIFY(!page.findChild<QFrame *>(QStringLiteral("serverStatusPanelSeparator")));
+    QCOMPARE(panel->frameShape(), QFrame::StyledPanel);
+    QVERIFY(scroll->geometry().top() <= panel->contentsRect().top() + 1);
     QVERIFY(!logo->pixmap().isNull());
     QCOMPARE(logo->size(), QSize(64, 64));
     QVERIFY(logo->isVisible());
