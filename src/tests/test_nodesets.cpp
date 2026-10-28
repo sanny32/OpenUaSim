@@ -649,14 +649,33 @@ void TestNodeSets::snapshotMergesImportedProjectChildren()
 ///
 void TestNodeSets::modelOwnsReferencedNamespaces()
 {
+    const QStringList expected { QStringLiteral("urn:openuasim:test:owner"),
+                                 QStringLiteral("urn:openuasim:test:referenced") };
+    const QString example = _directory.filePath(QStringLiteral("referencing.xml"));
+    QFile file(example);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write(QStringLiteral(
+                   "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+                   "<UANodeSet xmlns=\"http://opcfoundation.org/UA/2011/03/UANodeSet.xsd\">\n"
+                   "  <NamespaceUris><Uri>%1</Uri><Uri>%2</Uri></NamespaceUris>\n"
+                   "  <Models>\n"
+                   "    <Model ModelUri=\"%1\"><RequiredModel ModelUri=\"http://opcfoundation.org/UA/\" /></Model>\n"
+                   "  </Models>\n"
+                   "  <UAObject NodeId=\"ns=1;i=1000\" BrowseName=\"1:Owner\">\n"
+                   "    <DisplayName>Owner</DisplayName>\n"
+                   "    <References>\n"
+                   "      <Reference ReferenceType=\"i=35\" IsForward=\"false\">i=85</Reference>\n"
+                   "      <Reference ReferenceType=\"i=40\">i=58</Reference>\n"
+                   "    </References>\n"
+                   "  </UAObject>\n"
+                   "</UANodeSet>\n")
+                   .arg(expected.at(0), expected.at(1))
+                   .toUtf8());
+    file.close();
+
     ServerController controller;
     controller.setProject(TestProject::create());
-    const QString example = testData(QStringLiteral("public-nodesets/instanceexample.xml"));
     QVERIFY(controller.importNodeSet(example));
-    const QStringList expected { QStringLiteral("http://yourorganisation.org/InstanceExample/"),
-                                 QStringLiteral("http://opcfoundation.org/UA/Pumps/"),
-                                 QStringLiteral("http://opcfoundation.org/UA/Machinery/"),
-                                 QStringLiteral("http://opcfoundation.org/UA/DI/") };
     QCOMPARE(controller.modelNamespaceUris(example), expected);
     for (const NamespaceInfo &ns : controller.snapshot().namespaces)
         QCOMPARE(ns.modelFile, expected.contains(ns.uri) ? example : QString());
@@ -671,12 +690,11 @@ void TestNodeSets::modelOwnsOnlyNewNamespaces()
     ServerController controller;
     controller.setProject(TestProject::create());
     const QString di = testData(QStringLiteral("public-nodesets/Opc.Ua.Di.NodeSet2.xml"));
-    const QString example = testData(QStringLiteral("public-nodesets/instanceexample.xml"));
+    const QString ia = testData(QStringLiteral("public-nodesets/Opc.Ua.IA.NodeSet2.xml"));
     QVERIFY(controller.importNodeSet(di));
-    QVERIFY(controller.importNodeSet(example));
+    QVERIFY(controller.importNodeSet(ia));
     QCOMPARE(controller.modelNamespaceUris(di), QStringList { QStringLiteral("http://opcfoundation.org/UA/DI/") });
-    QVERIFY(!controller.modelNamespaceUris(example).contains(QStringLiteral("http://opcfoundation.org/UA/DI/")));
-    QVERIFY(controller.modelNamespaceUris(example).contains(QStringLiteral("http://yourorganisation.org/InstanceExample/")));
+    QCOMPARE(controller.modelNamespaceUris(ia), QStringList { QStringLiteral("http://opcfoundation.org/UA/IA/") });
 }
 
 void TestNodeSets::modelVariableOfUnsupportedTypeIsReadOnly()

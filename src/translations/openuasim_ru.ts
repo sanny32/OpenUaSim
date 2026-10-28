@@ -1710,6 +1710,14 @@
         <translation>Модель «%1» загружена, узлов: %2</translation>
     </message>
     <message>
+        <source>Required models are not loaded: %1</source>
+        <translation>Не загружены модели, от которых она зависит: %1</translation>
+    </message>
+    <message>
+        <source>None of its nodes were added</source>
+        <translation>Ни один её узел не добавлен</translation>
+    </message>
+    <message>
         <source>The standard OPC UA namespace cannot be exported</source>
         <translation>Стандартное пространство имён OPC UA нельзя экспортировать</translation>
     </message>

@@ -10,6 +10,7 @@
 
 #include <QHash>
 #include <QObject>
+#include <QSet>
 #include <QStringList>
 
 #include "data/logentry.h"
@@ -94,9 +95,12 @@ signals:
     void logAppended(const LogEntry &entry);
 
 private:
+    QStringList addedNamespaces(const QStringList &namespacesBefore) const;
+    bool fail(const QString &fileName, const QString &reason, QString *error);
     void log(LogEntry::Level level, const QString &message);
 
     SimServer &_server;
     QStringList _loaded;
     QHash<QString, QString> _modelNamespaces;
+    QSet<QString> _unclaimedNamespaces;
 };

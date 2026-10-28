@@ -6,11 +6,69 @@
 /// \brief Implements the loading and export of NodeSet2 models on the served server.
 ///
 
+#include <QFile>
 #include <QUaServer>
+#include <QXmlStreamReader>
 
 #include "logmapper.h"
 #include "nodesetloader.h"
 #include "simserver.h"
+
+namespace {
+
+///
+/// \brief Tells whether an element of a NodeSet2 file ends its header, i.e. the namespaces and models.
+/// \param name Element name.
+///
+bool endsHeader(QStringView name)
+{
+    return name == QLatin1String("Aliases") || name == QLatin1String("Extensions")
+        || (name.startsWith(QLatin1String("UA")) && name != QLatin1String("UANodeSet"));
+}
+
+///
+/// \brief Reads the namespaces a NodeSet2 file needs from other models.
+/// \param fileName NodeSet2 file.
+/// \return RequiredModel URIs other than the file's own models; without a Models section, every namespace URI after
+///         the first, which UaModeler instance files use for their own namespace. Empty when the file is unreadable.
+///
+QStringList requiredNamespaces(const QString &fileName)
+{
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly))
+        return {};
+    QXmlStreamReader xml(&file);
+    QStringList namespaceUris;
+    QStringList modelUris;
+    QStringList requiredUris;
+    bool hasModels = false;
+    while (!xml.atEnd()) {
+        xml.readNext();
+        if (!xml.isStartElement())
+            continue;
+        const QStringView name = xml.name();
+        if (endsHeader(name))
+            break;
+        if (name == QLatin1String("Uri"))
+            namespaceUris.append(xml.readElementText().trimmed());
+        else if (name == QLatin1String("Models"))
+            hasModels = true;
+        else if (name == QLatin1String("Model"))
+            modelUris.append(xml.attributes().value(QLatin1String("ModelUri")).toString());
+        else if (name == QLatin1String("RequiredModel"))
+            requiredUris.append(xml.attributes().value(QLatin1String("ModelUri")).toString());
+    }
+    if (!hasModels)
+        return namespaceUris.mid(1);
+    QStringList required;
+    for (const QString &uri : std::as_const(requiredUris)) {
+        if (!uri.isEmpty() && !modelUris.contains(uri) && !required.contains(uri))
+            required.append(uri);
+    }
+    return required;
+}
+
+}
 
 ///
 /// \brief Creates a loader that has loaded nothing.
@@ -35,22 +93,62 @@ bool NodeSetLoader::load(const QString &fileName, QString *error)
         return true;
     QUaServer *server = _server.uaServer();
     const QStringList namespacesBefore = server->namespaces();
-    const QUaNodeSetResult result = server->loadNodeSet(fileName);
-    if (!result.isOk()) {
-        log(LogEntry::Level::Error, tr("Model '%1' not loaded: %2").arg(fileName, result.errorString));
-        if (error)
-            *error = result.errorString;
-        return false;
+    QStringList missing;
+    for (const QString &uri : requiredNamespaces(fileName)) {
+        if (!namespacesBefore.contains(uri) || _unclaimedNamespaces.contains(uri))
+            missing.append(uri);
     }
+    if (!missing.isEmpty())
+        return fail(fileName, tr("Required models are not loaded: %1").arg(missing.join(QStringLiteral(", "))), error);
+
+    const QUaNodeSetResult result = server->loadNodeSet(fileName);
+    if (!result.isOk())
+        return fail(fileName, result.errorString, error);
     for (const QString &warning : result.warnings)
         log(LogEntry::Level::Warning, tr("Model '%1': %2").arg(fileName, warning));
+    const QStringList newNamespaces = addedNamespaces(namespacesBefore);
+    if (result.addedNodes.isEmpty() && !result.warnings.isEmpty()) {
+        // open62541 cannot unregister a namespace, so it must not satisfy dependency checks until a model fills it.
+        for (const QString &uri : newNamespaces)
+            _unclaimedNamespaces.insert(uri);
+        return fail(fileName, tr("None of its nodes were added"), error);
+    }
     log(LogEntry::Level::Info, tr("Model '%1' loaded with %2 nodes").arg(fileName).arg(result.addedNodes.size()));
     _loaded.append(fileName);
-    for (const QString &uri : server->namespaces()) {
-        if (!namespacesBefore.contains(uri))
-            _modelNamespaces.insert(uri, fileName);
+    for (const QString &uri : newNamespaces) {
+        _unclaimedNamespaces.remove(uri);
+        _modelNamespaces.insert(uri, fileName);
     }
     return true;
+}
+
+///
+/// \brief Lists the namespaces a model brought: new on the server or left empty by a failed load.
+/// \param namespacesBefore Server namespaces before the model was loaded.
+///
+QStringList NodeSetLoader::addedNamespaces(const QStringList &namespacesBefore) const
+{
+    QStringList added;
+    for (const QString &uri : _server.uaServer()->namespaces()) {
+        if (!namespacesBefore.contains(uri) || _unclaimedNamespaces.contains(uri))
+            added.append(uri);
+    }
+    return added;
+}
+
+///
+/// \brief Logs why a model was not loaded.
+/// \param fileName Model file.
+/// \param reason Why the model was not loaded.
+/// \param error Receives the reason; may be null.
+/// \return Always false, for the caller to return.
+///
+bool NodeSetLoader::fail(const QString &fileName, const QString &reason, QString *error)
+{
+    log(LogEntry::Level::Error, tr("Model '%1' not loaded: %2").arg(fileName, reason));
+    if (error)
+        *error = reason;
+    return false;
 }
 
 ///
@@ -100,6 +198,7 @@ void NodeSetLoader::clear()
 {
     _loaded.clear();
     _modelNamespaces.clear();
+    _unclaimedNamespaces.clear();
 }
 
 ///
