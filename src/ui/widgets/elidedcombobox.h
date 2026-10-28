@@ -37,6 +37,12 @@ public:
     ///
     bool isElided() const;
 
+    ///
+    /// \brief Widens the content-based size by the text padding the eliding paint reserves.
+    /// \return Size that shows the longest item without an ellipsis.
+    ///
+    QSize sizeHint() const override;
+
 protected:
     bool event(QEvent *event) override;
     void paintEvent(QPaintEvent *event) override;

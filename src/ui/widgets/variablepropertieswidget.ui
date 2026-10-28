@@ -420,63 +420,63 @@
          </property>
         </spacer>
        </item>
+       <item>
+        <widget class="QWidget" name="propertiesActions">
+         <layout class="QHBoxLayout" name="propertiesButtonsLayout">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>10</number>
+          </property>
+          <property name="spacing">
+           <number>8</number>
+          </property>
+          <item>
+           <widget class="QPushButton" name="alarmButton">
+            <property name="text">
+             <string>Alarm...</string>
+            </property>
+            <property name="toolTip">
+             <string>Raise an OPC UA alarm when the value crosses limits or leaves its normal value</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="propertiesButtonsSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="revertButton">
+            <property name="text">
+             <string>Revert</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="applyButton">
+            <property name="text">
+             <string>Apply</string>
+            </property>
+            <property name="default">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
       </layout>
      </widget>
-    </widget>
-   </item>
-   <item>
-    <widget class="QWidget" name="propertiesActions">
-     <layout class="QHBoxLayout" name="propertiesButtonsLayout">
-      <property name="leftMargin">
-       <number>10</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>10</number>
-      </property>
-      <property name="bottomMargin">
-       <number>10</number>
-      </property>
-      <property name="spacing">
-       <number>8</number>
-      </property>
-      <item>
-       <widget class="QPushButton" name="alarmButton">
-        <property name="text">
-         <string>Alarm...</string>
-        </property>
-        <property name="toolTip">
-         <string>Raise an OPC UA alarm when the value crosses limits or leaves its normal value</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="propertiesButtonsSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="revertButton">
-        <property name="text">
-         <string>Revert</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="applyButton">
-        <property name="text">
-         <string>Apply</string>
-        </property>
-        <property name="default">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
     </widget>
    </item>
   </layout>

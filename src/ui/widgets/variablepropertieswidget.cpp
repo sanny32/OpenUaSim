@@ -37,6 +37,8 @@ VariablePropertiesWidget::VariablePropertiesWidget(QWidget *parent)
     fillCombos();
     ViewSetup::bindCopyButton(ui->copyNodeIdButton, ui->nodeIdEdit);
     ui->arrayLengthSpin->setMaximum(kMaxArrayLength);
+    // The indicator is text-high; matching the editors keeps the form rows evenly spaced.
+    ui->qualityIndicator->setMinimumHeight(ui->qualityCombo->sizeHint().height());
 
     connect(ui->simulationCombo, &QComboBox::currentIndexChanged,
             this, &VariablePropertiesWidget::updateSimulationFields);

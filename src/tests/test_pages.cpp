@@ -220,6 +220,8 @@ private slots:
     void initTestCase();
     void propertiesActionsStayAtBottom_data();
     void propertiesActionsStayAtBottom();
+    void variableActionsScrollWithProperties_data();
+    void variableActionsScrollWithProperties();
     void statusPage();
     void statusPageShowsDiscoveryRegistration_data();
     void statusPageShowsDiscoveryRegistration();
@@ -312,33 +314,28 @@ void TestPages::initTestCase()
 }
 
 ///
-/// \brief Covers both property panels with and without vertical overflow.
+/// \brief Covers a properties panel with and without vertical overflow.
 ///
 void TestPages::propertiesActionsStayAtBottom_data()
 {
-    QTest::addColumn<bool>("objects");
     QTest::addColumn<int>("height");
-    QTest::newRow("objects-short") << true << 360;
-    QTest::newRow("objects-tall") << true << 800;
-    QTest::newRow("endpoints-short") << false << 360;
-    QTest::newRow("endpoints-tall") << false << 800;
+    QTest::newRow("short") << 360;
+    QTest::newRow("tall") << 800;
+}
+
+void TestPages::variableActionsScrollWithProperties_data()
+{
+    propertiesActionsStayAtBottom_data();
 }
 
 ///
-/// \brief Keeps property actions visible at the panel bottom during scrolling and resizing.
+/// \brief Keeps endpoint actions visible at the panel bottom during scrolling and resizing.
 ///
 void TestPages::propertiesActionsStayAtBottom()
 {
-    QFETCH(bool, objects);
     QFETCH(int, height);
-    ObjectsPage objectsPage;
-    EndpointsPage endpointsPage;
-    QWidget &page = objects ? static_cast<QWidget &>(objectsPage)
-                            : static_cast<QWidget &>(endpointsPage);
-    if (objects)
-        objectsPage.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
-    else
-        endpointsPage.setEndpoints(_snapshot.endpoints);
+    EndpointsPage page;
+    page.setEndpoints(_snapshot.endpoints);
     page.resize(1200, height);
     page.show();
     QCoreApplication::processEvents();
@@ -363,7 +360,40 @@ void TestPages::propertiesActionsStayAtBottom()
     QCoreApplication::processEvents();
     QCOMPARE(panel->height() - apply->mapTo(panel, QPoint()).y() - apply->height(), bottomGap);
 
-    page.findChild<QAbstractItemView *>(objects ? "variablesView" : "endpointsView")->setCurrentIndex({});
+    page.findChild<QAbstractItemView *>("endpointsView")->setCurrentIndex({});
+    QVERIFY(!apply->isEnabled());
+    QVERIFY(!revert->isEnabled());
+}
+
+///
+/// \brief Scrolls variable actions with the properties; with room to spare they still sit at the panel bottom.
+///
+void TestPages::variableActionsScrollWithProperties()
+{
+    QFETCH(int, height);
+    ObjectsPage page;
+    page.setAddressSpace(_snapshot.addressSpace, _snapshot.variables);
+    page.resize(1200, height);
+    page.show();
+    QCoreApplication::processEvents();
+
+    auto *scroll = child<QScrollArea>(page, "propertiesPanelScroll");
+    auto *apply = child<QPushButton>(page, "applyButton");
+    auto *revert = child<QPushButton>(page, "revertButton");
+    QVERIFY(revert->isEnabled());
+    QVERIFY(scroll->widget()->isAncestorOf(apply));
+    QVERIFY(scroll->widget()->isAncestorOf(child<QPushButton>(page, "alarmButton")));
+    QCOMPARE(revert->mapTo(scroll->viewport(), QPoint()).y(), apply->mapTo(scroll->viewport(), QPoint()).y());
+
+    QScrollBar *bar = scroll->verticalScrollBar();
+    QCOMPARE(bar->maximum() > 0, height < 600);
+    bar->setValue(bar->maximum());
+    QCoreApplication::processEvents();
+    const int bottomGap = scroll->viewport()->height() - apply->mapTo(scroll->viewport(), QPoint()).y()
+                          - apply->height();
+    QVERIFY2(bottomGap >= 0 && bottomGap <= 12, qPrintable(QString::number(bottomGap)));
+
+    page.findChild<QAbstractItemView *>("variablesView")->setCurrentIndex({});
     QVERIFY(!apply->isEnabled());
     QVERIFY(!revert->isEnabled());
 }

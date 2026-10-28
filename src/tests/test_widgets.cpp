@@ -142,6 +142,7 @@ private slots:
     void elidedLineEditReservesActionSpace_data();
     void elidedLineEditReservesActionSpace();
     void elidedComboBoxShowsOverflowTooltip();
+    void elidedComboBoxFitsItsItems();
     void elidedComboBoxKeepsManualInput();
     void elidedControlsKeepExplicitTooltips();
     void elidedLabelKeepsFullValue();
@@ -1172,6 +1173,20 @@ void TestWidgets::elidedComboBoxShowsOverflowTooltip()
     QTRY_VERIFY(!QToolTip::isVisible());
 }
 
+void TestWidgets::elidedComboBoxFitsItsItems()
+{
+    AppStyle style;
+    const QString text = QStringLiteral("Все сеансы клиентов сервера");
+    for (int length = 1; length <= text.size(); ++length) {
+        ElidedComboBox combo;
+        combo.setStyle(&style);
+        combo.addItems({ QStringLiteral("I"), text.left(length) });
+        combo.setCurrentIndex(1);
+        combo.resize(combo.sizeHint());
+        QVERIFY2(!combo.isElided(), qPrintable(combo.currentText()));
+    }
+}
+
 void TestWidgets::elidedComboBoxKeepsManualInput()
 {
     ElidedComboBox combo;
@@ -1619,6 +1634,9 @@ void TestWidgets::variablePropertiesShowsCurrentQuality()
     auto *combo = named<QComboBox>(editor, "qualityCombo");
     QCOMPARE(combo->currentData().toUInt(), quint32(configuredQuality));
     QCOMPARE(named<QLabel>(editor, "configuredQualityLabel")->text(), QStringLiteral("Configured Quality"));
+    editor.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&editor));
+    QCOMPARE(indicator->height(), combo->height());
 
     combo->setCurrentIndex(combo->findData(quint32(VariableInfo::Quality::BadSensorFailure)));
     QEvent languageChange(QEvent::LanguageChange);

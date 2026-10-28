@@ -33,11 +33,11 @@
     </message>
     <message>
         <source>&amp;Browse Name</source>
-        <translation>&amp;Имя (BrowseName)</translation>
+        <translation>&amp;Отображаемое имя</translation>
     </message>
     <message>
         <source>&amp;NodeId</source>
-        <translation>&amp;NodeId</translation>
+        <translation>Идентификатор &amp;узла</translation>
     </message>
     <message>
         <source>Generated from the browse path</source>
@@ -1888,11 +1888,11 @@
     <name>PropertyNodeWidget</name>
     <message>
         <source>NodeId</source>
-        <translation>NodeId</translation>
+        <translation>Идентификатор узла</translation>
     </message>
     <message>
         <source>Copy NodeId</source>
-        <translation>Копировать NodeId</translation>
+        <translation>Копировать идентификатор узла</translation>
     </message>
     <message>
         <source>Type</source>
@@ -2518,7 +2518,7 @@
     </message>
     <message>
         <source>NodeId</source>
-        <translation>NodeId</translation>
+        <translation>Идентификатор узла</translation>
     </message>
     <message>
         <source>Category</source>
@@ -2647,19 +2647,19 @@
     </message>
     <message>
         <source>BrowseName</source>
-        <translation>BrowseName</translation>
+        <translation>Имя просмотра</translation>
     </message>
     <message>
         <source>Copy BrowseName</source>
-        <translation>Копировать BrowseName</translation>
+        <translation>Копировать имя просмотра</translation>
     </message>
     <message>
         <source>NodeId</source>
-        <translation>NodeId</translation>
+        <translation>Идентификатор узла</translation>
     </message>
     <message>
         <source>Copy NodeId</source>
-        <translation>Копировать NodeId</translation>
+        <translation>Копировать идентификатор узла</translation>
     </message>
     <message>
         <source>Base Type</source>
@@ -2667,7 +2667,7 @@
     </message>
     <message>
         <source>IsAbstract</source>
-        <translation>IsAbstract</translation>
+        <translation>Абстрактный</translation>
     </message>
     <message>
         <source>Description</source>
@@ -2746,11 +2746,11 @@
     <name>VariablePropertiesWidget</name>
     <message>
         <source>NodeId</source>
-        <translation>NodeId</translation>
+        <translation>Идентификатор узла</translation>
     </message>
     <message>
         <source>Copy NodeId</source>
-        <translation>Копировать NodeId</translation>
+        <translation>Копировать идентификатор узла</translation>
     </message>
     <message>
         <source>Type</source>

@@ -17,6 +17,12 @@
 #include "itemdelegate.h"
 #include "texttooltip.h"
 
+namespace {
+
+constexpr int kTextPadding = 4;
+
+}
+
 ///
 /// \brief Constructs an empty combo box.
 /// \param parent Parent widget.
@@ -85,6 +91,15 @@ void ElidedComboBox::paintEvent(QPaintEvent *event)
 }
 
 ///
+/// \brief Widens the content-based size by the text padding the eliding paint reserves.
+/// \return Size that shows the longest item without an ellipsis.
+///
+QSize ElidedComboBox::sizeHint() const
+{
+    return QComboBox::sizeHint() + QSize(kTextPadding, 0);
+}
+
+///
 /// \brief Reserves the arrow, style padding and current icon before measuring the text.
 /// \return Available width in pixels.
 ///
@@ -93,7 +108,7 @@ int ElidedComboBox::textWidth() const
     QStyleOptionComboBox option;
     initStyleOption(&option);
     int width = style()->subControlRect(QStyle::CC_ComboBox, &option,
-                                       QStyle::SC_ComboBoxEditField, this).width() - 4;
+                                       QStyle::SC_ComboBoxEditField, this).width() - kTextPadding;
     if (!option.currentIcon.isNull())
         width -= option.iconSize.width() + 4;
     return qMax(0, width);

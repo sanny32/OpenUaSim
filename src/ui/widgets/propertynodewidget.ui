@@ -182,53 +182,53 @@
          </property>
         </spacer>
        </item>
+       <item>
+        <widget class="QWidget" name="propertyNodeActions">
+         <layout class="QHBoxLayout" name="propertyNodeButtonsLayout">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>10</number>
+          </property>
+          <property name="spacing">
+           <number>8</number>
+          </property>
+          <item>
+           <spacer name="propertyNodeButtonsSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="propertyRevertButton">
+            <property name="text">
+             <string>Revert</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="propertyApplyButton">
+            <property name="text">
+             <string>Apply</string>
+            </property>
+            <property name="default">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
       </layout>
      </widget>
-    </widget>
-   </item>
-   <item>
-    <widget class="QWidget" name="propertyNodeActions">
-     <layout class="QHBoxLayout" name="propertyNodeButtonsLayout">
-      <property name="leftMargin">
-       <number>10</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>10</number>
-      </property>
-      <property name="bottomMargin">
-       <number>10</number>
-      </property>
-      <property name="spacing">
-       <number>8</number>
-      </property>
-      <item>
-       <spacer name="propertyNodeButtonsSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="propertyRevertButton">
-        <property name="text">
-         <string>Revert</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="propertyApplyButton">
-        <property name="text">
-         <string>Apply</string>
-        </property>
-        <property name="default">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
     </widget>
    </item>
   </layout>
