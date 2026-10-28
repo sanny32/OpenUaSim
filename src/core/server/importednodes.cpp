@@ -7,6 +7,11 @@
 ///
 
 #include <QUaServer>
+#include <QUaProperty>
+
+#include <QSet>
+
+#include <algorithm>
 
 #include "addressspace.h"
 #include "importednodes.h"
@@ -39,21 +44,56 @@ const QHash<QString, QString> &builtInDataTypes()
 }
 
 ///
+/// \brief Remembers nodes already represented by project and declared instance branches.
+///
+void collectTreeIds(const QList<TreeNode> &nodes, QSet<QString> &ids)
+{
+    for (const TreeNode &node : nodes) {
+        ids.insert(node.id);
+        collectTreeIds(node.children, ids);
+    }
+}
+
+///
+/// \brief Adds imported descendants without replacing project metadata or duplicating existing branches.
+///
+void mergeBranches(QList<TreeNode> &tree, const QList<TreeNode> &imported)
+{
+    for (const TreeNode &node : imported) {
+        auto existing = std::find_if(tree.begin(), tree.end(),
+                                     [&node](const TreeNode &entry) { return entry.id == node.id; });
+        if (existing == tree.end())
+            tree.append(node);
+        else
+            mergeBranches(existing->children, node.children);
+    }
+}
+
+///
 /// \brief Describes the nodes of imported models, with the settings the project keeps for their variables.
 ///
 class ModelNodeCollector
 {
 public:
-    ModelNodeCollector(const QUaServer &server, const QList<NodeDefinition> &settings,
+    ModelNodeCollector(QUaServer &server, const QList<NodeDefinition> &settings,
                        const AddressSpace &addressSpace);
     TreeNode containerNode(const QUaBaseObject &node, QHash<QString, QList<VariableInfo>> &variables) const;
     void addChildren(const QUaBaseObject &node, bool declaredOnly, TreeNode &result,
                      QHash<QString, QList<VariableInfo>> &variables) const;
+    void collectImported(QList<TreeNode> &tree, QHash<QString, QList<VariableInfo>> &variables);
 
 private:
-    const QUaServer &_server;
+    TreeNode importedBranch(const QUaNodeId &nodeId, const QString &parentId, bool includeStandard,
+                            QHash<QString, QList<VariableInfo>> &variables);
+    bool isChildReference(const QUaNodeReference &reference);
+    VariableInfo describeVariable(const QUaBaseVariable &variable, const QString &parentId) const;
+
+    QUaServer &_server;
     QHash<QString, const NodeDefinition *> _settings;
     const AddressSpace &_addressSpace;
+    QSet<QUaNodeId> _ancestors;
+    QSet<QString> _existingNodes;
+    QHash<QUaNodeId, bool> _childReferenceTypes;
 };
 
 ///
@@ -62,7 +102,7 @@ private:
 /// \param settings Model variable settings with server node ids, as ModelVariables::resolve() returns them.
 /// \param addressSpace Built nodes providing the live state of variables with settings.
 ///
-ModelNodeCollector::ModelNodeCollector(const QUaServer &server, const QList<NodeDefinition> &settings,
+ModelNodeCollector::ModelNodeCollector(QUaServer &server, const QList<NodeDefinition> &settings,
                                        const AddressSpace &addressSpace)
     : _server(server)
     , _addressSpace(addressSpace)
@@ -121,29 +161,117 @@ void ModelNodeCollector::addChildren(const QUaBaseObject &node, bool declaredOnl
         variables[result.id] += owned;
 }
 
+///
+/// \brief Retains standard ancestor paths only when they lead to imported instance nodes.
+///
+void ModelNodeCollector::collectImported(QList<TreeNode> &tree, QHash<QString, QList<VariableInfo>> &variables)
+{
+    collectTreeIds(tree, _existingNodes);
+    const TreeNode objects = importedBranch(QUaNodeId(0, quint32(UA_NS0ID_OBJECTSFOLDER)), QString(), false, variables);
+    mergeBranches(tree, objects.children);
+}
+
+///
+/// \brief Traverses actual OPC UA references, including ancestors without Qt instances, and breaks reference cycles.
+///
+TreeNode ModelNodeCollector::importedBranch(const QUaNodeId &nodeId, const QString &parentId, bool includeStandard,
+                                           QHash<QString, QList<VariableInfo>> &variables)
+{
+    if (_ancestors.contains(nodeId))
+        return {};
+    const QUaNode *node = _server.nodeById(nodeId);
+    if (node && VariableProperties::isIcon(*node))
+        return {};
+    const QUaQualifiedName name = _server.browseName(nodeId);
+    const bool included = includeStandard || nodeId.namespaceIndex() >= kFirstImportedNamespace
+        || name.namespaceIndex() >= kFirstImportedNamespace;
+    TreeNode result;
+    result.id = nodeId == QUaNodeId(0, quint32(UA_NS0ID_OBJECTSFOLDER)) ? QStringLiteral("i=85") : nodeId.toXmlString();
+    result.text = name.name();
+    result.icon = QStringLiteral("folder");
+    result.kind = TreeNode::Kind::Object;
+    _ancestors.insert(nodeId);
+    QSet<QUaNodeId> children;
+    QUaNodeId typeId;
+    const QList<QUaNodeReference> references = _server.references(nodeId);
+    for (const QUaNodeReference &reference : references) {
+        if (reference.isForward && reference.referenceTypeId == QUaNodeId(0, quint32(UA_NS0ID_HASTYPEDEFINITION)))
+            typeId = reference.targetNodeId;
+        if (!isChildReference(reference) || children.contains(reference.targetNodeId))
+            continue;
+        children.insert(reference.targetNodeId);
+        TreeNode child = importedBranch(reference.targetNodeId, result.id, included, variables);
+        if (!child.id.isEmpty())
+            result.children.append(child);
+    }
+    _ancestors.remove(nodeId);
+    if (!included && result.children.isEmpty())
+        return {};
+    if (const auto *variable = qobject_cast<const QUaBaseVariable *>(node)) {
+        const VariableInfo info = describeVariable(*variable, parentId);
+        result.icon = info.icon;
+        result.kind = info.property ? TreeNode::Kind::Property : TreeNode::Kind::Variable;
+        if (!_existingNodes.contains(result.id)) {
+            QList<VariableInfo> &owned = variables[parentId];
+            if (std::none_of(owned.cbegin(), owned.cend(),
+                             [&info](const VariableInfo &entry) { return entry.nodeId == info.nodeId; }))
+                owned.append(info);
+        }
+    } else if (_server.isSubtypeOf(typeId, QUaNodeId(0, quint32(UA_NS0ID_FOLDERTYPE)))) {
+        result.kind = TreeNode::Kind::Folder;
+    } else if (!node && typeId.isNull()) {
+        result.kind = TreeNode::Kind::Method;
+        result.icon = QStringLiteral("play");
+    }
+    return result;
+}
+
+///
+/// \brief Restricts traversal to instance hierarchy references, excluding type inheritance.
+///
+bool ModelNodeCollector::isChildReference(const QUaNodeReference &reference)
+{
+    if (!reference.isForward)
+        return false;
+    auto found = _childReferenceTypes.constFind(reference.referenceTypeId);
+    if (found == _childReferenceTypes.cend()) {
+        const bool hierarchical = _server.isSubtypeOf(reference.referenceTypeId,
+                                                      QUaNodeId(0, quint32(UA_NS0ID_HIERARCHICALREFERENCES)))
+            && !_server.isSubtypeOf(reference.referenceTypeId, QUaNodeId(0, quint32(UA_NS0ID_HASSUBTYPE)));
+        found = _childReferenceTypes.insert(reference.referenceTypeId, hierarchical);
+    }
+    return *found;
+}
+
+///
+/// \brief Keeps model variable settings and exposes object properties as read-only values.
+///
+VariableInfo ModelNodeCollector::describeVariable(const QUaBaseVariable &variable, const QString &parentId) const
+{
+    if (const auto *data = qobject_cast<const QUaBaseDataVariable *>(&variable))
+        return ImportedNodes::variableInfo(_server, *data, _settings.value(data->nodeId()), _addressSpace);
+    VariableInfo info = VariableProperties::describeChild(_server, variable);
+    if (!_server.nodeById<QUaBaseDataVariable>(QUaNodeId(parentId)))
+        info.readOnly = true;
+    return info;
+}
+
 }
 
 namespace ImportedNodes {
 
 ///
-/// \brief Describes the folders, objects and variables of imported models under the Objects folder.
-/// \param server Server holding the models; nodes of namespaces 0 and 1 are skipped.
+/// \brief Describes imported instance branches, retaining the standard ancestors needed to reach them.
+/// \param server Server holding the models.
 /// \param settings Model variable settings with server node ids, as ModelVariables::resolve() returns them.
 /// \param addressSpace Built nodes providing the live state of variables with settings.
-/// \param tree Receives the top-level imported nodes with their children.
+/// \param tree Receives imported nodes merged with existing project branches.
 /// \param variables Receives the variables keyed by the node id of their folder or object.
 ///
-void collect(const QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
+void collect(QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
              QList<TreeNode> &tree, QHash<QString, QList<VariableInfo>> &variables)
 {
-    const ModelNodeCollector collector(server, settings, addressSpace);
-    const QList<QUaNode *> roots = server.objectsFolder()->browseChildren();
-    for (const QUaNode *root : roots) {
-        if (root->nodeId().namespaceIndex() < kFirstImportedNamespace)
-            continue;
-        if (const auto *object = qobject_cast<const QUaBaseObject *>(root))
-            tree.append(collector.containerNode(*object, variables));
-    }
+    ModelNodeCollector(server, settings, addressSpace).collectImported(tree, variables);
 }
 
 ///
@@ -155,7 +283,7 @@ void collect(const QUaServer &server, const QList<NodeDefinition> &settings, con
 /// \param node Tree node of the instance; receives the declared children after its own.
 /// \param variables Receives the declared variables keyed by the node id of their owner, after the listed ones.
 ///
-void collectDeclared(const QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
+void collectDeclared(QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
                      const QUaBaseObject &instance, TreeNode &node, QHash<QString, QList<VariableInfo>> &variables)
 {
     ModelNodeCollector(server, settings, addressSpace).addChildren(instance, true, node, variables);

@@ -23,14 +23,14 @@ class QUaServer;
 namespace ImportedNodes {
 
 ///
-/// \brief Describes the folders, objects and variables of imported models under the Objects folder.
-/// \param server Server holding the models; nodes of namespaces 0 and 1 are skipped.
+/// \brief Describes imported instance branches, retaining the standard ancestors needed to reach them.
+/// \param server Server holding the models.
 /// \param settings Model variable settings with server node ids, as ModelVariables::resolve() returns them.
 /// \param addressSpace Built nodes providing the live state of variables with settings.
-/// \param tree Receives the top-level imported nodes with their children.
+/// \param tree Receives imported nodes merged with existing project branches.
 /// \param variables Receives the variables keyed by the node id of their folder or object.
 ///
-void collect(const QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
+void collect(QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
              QList<TreeNode> &tree, QHash<QString, QList<VariableInfo>> &variables);
 
 ///
@@ -42,7 +42,7 @@ void collect(const QUaServer &server, const QList<NodeDefinition> &settings, con
 /// \param node Tree node of the instance; receives the declared children after its own.
 /// \param variables Receives the declared variables keyed by the node id of their owner, after the listed ones.
 ///
-void collectDeclared(const QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
+void collectDeclared(QUaServer &server, const QList<NodeDefinition> &settings, const AddressSpace &addressSpace,
                      const QUaBaseObject &instance, TreeNode &node, QHash<QString, QList<VariableInfo>> &variables);
 
 ///

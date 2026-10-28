@@ -8,6 +8,8 @@
 
 #include <QCoreApplication>
 
+#include <algorithm>
+
 #include <QUaProperty>
 #include <QUaServer>
 
@@ -152,6 +154,10 @@ void addVariableChildren(QUaServer &server, QList<TreeNode> &nodes, QHash<QStrin
             for (const QUaNode *child : children) {
                 const auto *served = qobject_cast<const QUaBaseVariable *>(child);
                 if (!served || VariableProperties::isIcon(*child))
+                    continue;
+                const QString childId = served->nodeId();
+                if (std::any_of(node.children.cbegin(), node.children.cend(),
+                                [&childId](const TreeNode &entry) { return entry.id == childId; }))
                     continue;
                 const VariableInfo info = VariableProperties::describeChild(server, *served);
                 TreeNode leaf;

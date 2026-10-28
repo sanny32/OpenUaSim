@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-FileCopyrightText: 2026 OpenUaSim contributors -->
+<!-- SPDX-License-Identifier: MIT -->
+<UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd" xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd">
+  <NamespaceUris>
+    <Uri>urn:openuasim:test:branches</Uri>
+    <Uri>urn:openuasim:server</Uri>
+  </NamespaceUris>
+  <UAReferenceType NodeId="ns=1;i=4000" BrowseName="1:Contains">
+    <References><Reference ReferenceType="i=45" IsForward="false">i=47</Reference></References>
+    <InverseName>ContainedBy</InverseName>
+  </UAReferenceType>
+  <UAObject NodeId="ns=1;i=1000" BrowseName="1:Branch">
+    <References>
+      <Reference ReferenceType="i=47" IsForward="false">i=2268</Reference>
+      <Reference ReferenceType="i=40">i=58</Reference>
+      <Reference ReferenceType="ns=1;i=4000">ns=1;i=1001</Reference>
+      <Reference ReferenceType="i=35">ns=1;i=1001</Reference>
+      <Reference ReferenceType="i=46">ns=1;i=1100</Reference>
+      <Reference ReferenceType="i=47">ns=1;i=7000</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=1001" BrowseName="1:Child">
+    <References>
+      <Reference ReferenceType="ns=1;i=4000" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="i=40">i=58</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1100" BrowseName="1:Label" DataType="i=12">
+    <References>
+      <Reference ReferenceType="i=46" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="i=40">i=68</Reference>
+    </References>
+    <Value><uax:String>fixture</uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1200" BrowseName="1:RootValue" DataType="i=11">
+    <References>
+      <Reference ReferenceType="i=35" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="i=40">i=63</Reference>
+    </References>
+    <Value><uax:Double>42</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1300" BrowseName="1:Extra">
+    <References>
+      <Reference ReferenceType="i=47" IsForward="false">ns=2;s=Host</Reference>
+      <Reference ReferenceType="i=40">i=58</Reference>
+    </References>
+  </UAObject>
+  <UAMethod NodeId="ns=1;i=7000" BrowseName="1:Reset">
+    <References><Reference ReferenceType="i=47" IsForward="false">ns=1;i=1000</Reference></References>
+  </UAMethod>
+</UANodeSet>

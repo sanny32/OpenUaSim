@@ -48,6 +48,30 @@ ProjectConfig tankProject()
     return project;
 }
 
+///
+/// \brief Provides the project container referenced by the imported hierarchy fixture.
+///
+ProjectConfig branchProject()
+{
+    NodeDefinition host;
+    host.kind = NodeDefinition::Kind::Object;
+    host.browseName = QStringLiteral("Host");
+    host.nodeId = QStringLiteral("ns=1;s=Host");
+    ProjectConfig project = TestProject::create();
+    project.endpoints.first().port = TestPort::freePort();
+    project.nodes = {host};
+    return project;
+}
+
+///
+/// \brief Loads the display fixture into a running server, whose namespace 1 then has the project URI it references.
+///
+QUaNodeSetResult loadBranches(ServerController &controller)
+{
+    QUaServer *server = controller.server().uaServer();
+    return server->loadNodeSet(testData(QStringLiteral("imported-branches.NodeSet2.xml")));
+}
+
 VariableInfo modelVariable(const ServerController &controller, const QString &name)
 {
     const ServerSnapshot snapshot = controller.snapshot();
@@ -69,6 +93,20 @@ const TreeNode *findTreeNode(const QList<TreeNode> &nodes, const QString &id)
             return found;
     }
     return nullptr;
+}
+
+///
+/// \brief Counts occurrences across the displayed hierarchy to catch duplicate branches and reference cycles.
+///
+int treeOccurrences(const QList<TreeNode> &nodes, const QString &id)
+{
+    int result = 0;
+    for (const TreeNode &node : nodes) {
+        if (node.id == id)
+            ++result;
+        result += treeOccurrences(node.children, id);
+    }
+    return result;
 }
 
 bool logContains(const QList<LogEntry> &log, const QString &text)
@@ -108,6 +146,9 @@ private slots:
     void examplesLoadCleanly();
     void publicModelsImport_data();
     void publicModelsImport();
+    void snapshotKeepsImportedStandardPaths();
+    void snapshotIncludesImportedPropertiesMethodsAndRootVariables();
+    void snapshotMergesImportedProjectChildren();
     void modelVariableOfUnsupportedTypeIsReadOnly();
     void modelEnumerationIsEditedAsInt32();
     void modelTypesAreListed();
@@ -447,7 +488,7 @@ void TestNodeSets::publicModelsImport_data()
     QTest::newRow("Machinery") << QStringList { di, ia, machinery }
                                << QStringLiteral("http://opcfoundation.org/UA/Machinery/") << quint32(0) << false << 0;
     QTest::newRow("DemoModel") << QStringList { "DemoModel.NodeSet2.xml" }
-                               << QStringLiteral("urn:opcfoundation.org:2024-01:DemoModel") << quint32(351) << true << 3;
+                               << QStringLiteral("urn:opcfoundation.org:2024-01:DemoModel") << quint32(351) << true << 2;
     QTest::newRow("IA examples") << QStringList { di, ia, "Opc.Ua.IA.NodeSet2.examples.xml" }
                                  << QStringLiteral("http://opcfoundation.org/UA/IA/Examples/") << quint32(5002) << true << 0;
     QTest::newRow("Pumps example") << QStringList { di, ia, machinery, pumps, "instanceexample.xml" }
@@ -503,6 +544,102 @@ void TestNodeSets::publicModelsImport()
     qInfo() << "Imported" << files.size() << "models; snapshot types:" << snapshot.types.size()
             << "warnings:" << warnings;
     QCOMPARE(warnings, expectedWarnings);
+}
+
+///
+/// \brief Preserves the real Server path to imported roles while pruning unrelated standard branches.
+///
+void TestNodeSets::snapshotKeepsImportedStandardPaths()
+{
+    ServerController controller;
+    controller.setProject(TestProject::create());
+    QVERIFY(controller.importNodeSet(testData(QStringLiteral("public-nodesets/DemoModel.NodeSet2.xml"))));
+    const quint16 ns = static_cast<quint16>(controller.server().uaServer()->namespaces().indexOf(
+        QStringLiteral("urn:opcfoundation.org:2024-01:DemoModel")));
+    const QString seekerId = QUaNodeId(ns, quint32(95)).toXmlString();
+    const QString identitiesId = QUaNodeId(ns, quint32(10)).toXmlString();
+    const ServerSnapshot snapshot = controller.snapshot();
+    const TreeNode *server = findTreeNode(snapshot.addressSpace.first().children, QStringLiteral("ns=0;i=2253"));
+    QVERIFY(server);
+    const TreeNode *capabilities = findTreeNode(server->children, QStringLiteral("ns=0;i=2268"));
+    QVERIFY(capabilities);
+    const TreeNode *roles = findTreeNode(capabilities->children, QStringLiteral("ns=0;i=15606"));
+    QVERIFY(roles);
+    const TreeNode *seeker = findTreeNode(roles->children, seekerId);
+    QVERIFY(seeker);
+    const TreeNode *identities = findTreeNode(seeker->children, identitiesId);
+    QVERIFY(identities);
+    QCOMPARE(identities->kind, TreeNode::Kind::Property);
+    const QList<VariableInfo> properties = snapshot.variables.value(seekerId);
+    const auto info = std::find_if(properties.cbegin(), properties.cend(),
+                                   [&identitiesId](const VariableInfo &entry) { return entry.nodeId == identitiesId; });
+    QVERIFY(info != properties.cend());
+    QVERIFY(info->fromModel);
+    QVERIFY(info->property);
+    QVERIFY(info->readOnly);
+    QVERIFY(!findTreeNode(server->children, QStringLiteral("ns=0;i=2255")));
+    QCOMPARE(treeOccurrences(snapshot.addressSpace, seekerId), 1);
+    QVERIFY(controller.removeNodeSet(controller.project().nodeSetFiles.first()));
+    QVERIFY(!findTreeNode(controller.snapshot().addressSpace, QStringLiteral("ns=0;i=2253")));
+}
+
+///
+/// \brief Covers native hierarchy links, custom references, methods, object properties and root variables.
+///
+void TestNodeSets::snapshotIncludesImportedPropertiesMethodsAndRootVariables()
+{
+    ServerController controller;
+    controller.setProject(branchProject());
+    QVERIFY(controller.start());
+    const QUaNodeSetResult imported = loadBranches(controller);
+    QVERIFY2(imported.isOk(), qPrintable(imported.errorString));
+    QVERIFY2(imported.warnings.isEmpty(), qPrintable(imported.warnings.join(QLatin1Char('\n'))));
+    const ServerSnapshot snapshot = controller.snapshot();
+    const TreeNode *branch = findTreeNode(snapshot.addressSpace, QStringLiteral("ns=2;i=1000"));
+    QVERIFY(branch);
+    QCOMPARE(treeOccurrences(branch->children, QStringLiteral("ns=2;i=1001")), 1);
+    QCOMPARE(treeOccurrences(branch->children, branch->id), 0);
+    const TreeNode *property = findTreeNode(branch->children, QStringLiteral("ns=2;i=1100"));
+    QVERIFY(property);
+    QCOMPARE(property->kind, TreeNode::Kind::Property);
+    const QList<VariableInfo> owned = snapshot.variables.value(branch->id);
+    QCOMPARE(owned.size(), 1);
+    QCOMPARE(owned.first().displayName, QStringLiteral("Label"));
+    QCOMPARE(owned.first().value.toString(), QStringLiteral("fixture"));
+    QVERIFY(owned.first().readOnly);
+    const TreeNode *method = findTreeNode(branch->children, QStringLiteral("ns=2;i=7000"));
+    QVERIFY(method);
+    QCOMPARE(method->kind, TreeNode::Kind::Method);
+    const TreeNode *root = findTreeNode(snapshot.addressSpace.first().children, QStringLiteral("ns=2;i=1200"));
+    QVERIFY(root);
+    QCOMPARE(root->kind, TreeNode::Kind::Variable);
+    const QList<VariableInfo> rootVariables = snapshot.variables.value(QStringLiteral("i=85"));
+    QCOMPARE(rootVariables.size(), 1);
+    QCOMPARE(rootVariables.first().value.toDouble(), 42.0);
+}
+
+///
+/// \brief Attaches imported descendants to existing project containers without duplicating them.
+///
+void TestNodeSets::snapshotMergesImportedProjectChildren()
+{
+    const ProjectConfig project = branchProject();
+    const NodeDefinition host = project.nodes.first();
+    ServerController controller;
+    controller.setProject(project);
+    QVERIFY(controller.start());
+    const QUaNodeSetResult imported = loadBranches(controller);
+    QVERIFY2(imported.isOk(), qPrintable(imported.errorString));
+    QVERIFY2(imported.warnings.isEmpty(), qPrintable(imported.warnings.join(QLatin1Char('\n'))));
+    const ServerSnapshot snapshot = controller.snapshot();
+    QCOMPARE(treeOccurrences(snapshot.addressSpace, host.nodeId), 1);
+    const TreeNode *container = findTreeNode(snapshot.addressSpace, host.nodeId);
+    QVERIFY(container);
+    QCOMPARE(container->text, host.browseName);
+    const TreeNode *extra = findTreeNode(container->children, QStringLiteral("ns=2;i=1300"));
+    QVERIFY(extra);
+    QCOMPARE(extra->text, QStringLiteral("Extra"));
+    QCOMPARE(treeOccurrences(snapshot.addressSpace, extra->id), 1);
 }
 
 void TestNodeSets::modelVariableOfUnsupportedTypeIsReadOnly()
