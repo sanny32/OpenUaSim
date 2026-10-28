@@ -37,7 +37,7 @@
      <number>4</number>
     </property>
     <item>
-     <layout class="QHBoxLayout" name="toolbarLayout">
+     <layout class="QHBoxLayout" name="toolbarLayout" stretch="0,0,0,0,0,0,1,0,3,0,0">
       <property name="spacing">
        <number>8</number>
       </property>
@@ -179,10 +179,22 @@
           <property name="toolbar" stdset="0">
            <bool>true</bool>
           </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="minimumSize">
            <size>
             <width>200</width>
             <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>360</width>
+            <height>16777215</height>
            </size>
           </property>
           <property name="readOnly">

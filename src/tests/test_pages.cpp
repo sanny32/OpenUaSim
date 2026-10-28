@@ -2097,6 +2097,9 @@ void TestPages::logPageDetailsAndClear()
     QCOMPARE(text(page, "timeEdit"), QStringLiteral("2024-05-23 14:31:20.004"));
     QCOMPARE(text(page, "sourceEdit"), QStringLiteral("OpenUaSim"));
     QCOMPARE(child<StatusIndicator>(page, "levelIndicator")->text(), QStringLiteral("INFO"));
+    page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+    QCOMPARE(child<StatusIndicator>(page, "levelIndicator")->height(), child<QWidget>(page, "categoryEdit")->height());
 
     child<QToolButton>(page, "clearLogButton")->click();
     QCOMPARE(model.rowCount(), 0);

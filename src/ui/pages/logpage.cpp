@@ -27,6 +27,8 @@ LogPage::LogPage(QWidget *parent)
 {
     ui->setupUi(this);
     ViewSetup::splitByStretch(ui->splitter);
+    // The indicator is text-high; matching the fields keeps the detail rows evenly spaced.
+    ui->levelIndicator->setMinimumHeight(ui->timeEdit->sizeHint().height());
     ui->clearLogButton->setIcon(AppIcons::icon(QStringLiteral("trash")));
     ui->exportLogButton->setIcon(AppIcons::icon(QStringLiteral("download")));
     ui->searchEdit->addAction(AppIcons::icon(QStringLiteral("search")), QLineEdit::LeadingPosition);

@@ -1159,6 +1159,10 @@ void TestMainWindow::panelsFitTheDefaultWindow()
                                            .arg(shown.width()).arg(shown.height()));
             }
         }
+        auto *endpoint = child<ElidedLineEdit>(window, "endpointEdit");
+        endpoint->setText(QStringLiteral("opc.tcp://DESKTOP-ABC1234:48400"));
+        if (endpoint->isElided() || endpoint->width() < 280)
+            overflowing.append(QStringLiteral("endpointEdit: %1 px").arg(endpoint->width()));
     }
 
     QApplication::setFont(previousFont);
