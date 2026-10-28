@@ -111,3 +111,5 @@ bash tools/build_openssl.sh "$TEST_TOOLS/missing source" "$TEST_TOOLS/ssl"
 if bash tools/build_openssl.sh "$TEST_TOOLS/missing source" "$TEST_TOOLS/missing prefix"; then
     fail 'Missing OpenSSL sources accepted'
 fi
+
+bash src/tests/buildscripts/test_ci_cache.sh

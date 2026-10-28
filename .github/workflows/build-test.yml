@@ -7,11 +7,16 @@ on:
       - 'src/**'
       - 'examples/nodesets/**'
       - '.github/workflows/build-test.yml'
+      - '.github/actions/drop-stale-caches/**'
       - '!**/*.md'
 
 concurrency:
   group: build-test-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: write
 
 jobs:
   build-test:
@@ -23,6 +28,7 @@ jobs:
         include:
           - os: ubuntu-latest
             qt: '6.9.3'
+            cmake_extra: '-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache'
 
           - os: windows-latest
             qt: '6.9.3'
@@ -31,10 +37,24 @@ jobs:
 
           - os: macos-latest
             qt: '6.9.3'
+            # Clang embeds header mtimes in PCH files, invalidating the cache after a fresh checkout.
+            cmake_extra: '-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache "-DCMAKE_CXX_FLAGS=-Xclang -fno-pch-timestamp"'
+
+    env:
+      CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      # MSVC is left out: ccache does not cache its precompiled-header compiles.
+      - name: Set up ccache
+        if: runner.os != 'Windows'
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: build-test-${{ matrix.os }}-${{ matrix.qt }}
+          max-size: 1G
+          save: ${{ github.event_name == 'push' }}
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
@@ -68,9 +88,17 @@ jobs:
           cmake -S src -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           -DOUASIM_BUILD_TESTS=ON
+          ${{ matrix.cmake_extra }}
 
       - name: Build
         run: cmake --build build --parallel
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure --parallel -L ouasim
+
+      # ccache-action saves the replacement entry in its post-job step.
+      - name: Drop superseded ccache entries
+        if: runner.os != 'Windows' && github.event_name == 'push'
+        uses: ./.github/actions/drop-stale-caches
+        with:
+          prefix: ccache-build-test-${{ matrix.os }}-${{ matrix.qt }}-
