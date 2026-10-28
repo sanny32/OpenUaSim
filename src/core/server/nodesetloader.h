@@ -56,6 +56,11 @@ public:
     QStringList loaded() const;
 
     ///
+    /// \brief Returns the number of nodes added by loaded models.
+    ///
+    int nodeCount() const;
+
+    ///
     /// \brief Returns the loaded model each namespace came from.
     /// \return Model file keyed by namespace URI; namespaces 0 and 1 are not listed.
     ///
@@ -111,4 +116,5 @@ private:
     QStringList _loaded;
     QHash<QString, QString> _modelNamespaces;
     QSet<QString> _unclaimedNamespaces;
+    int _nodeCount = 0;
 };

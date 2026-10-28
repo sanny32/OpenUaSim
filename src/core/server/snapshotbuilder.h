@@ -52,10 +52,11 @@ QHash<QString, QList<VariableInfo>> variables(const QList<NodeDefinition> &nodes
 /// \param server Server reporting state, start time and clients.
 /// \param addressSpace Built nodes.
 /// \param now Current time, for the uptime.
+/// \param modelNodeCount Nodes added by loaded models.
 /// \return Summary for the status page and the status bar.
 ///
 ServerStatus status(const ProjectConfig &project, const SimServer &server, const AddressSpace &addressSpace,
-                    const QDateTime &now);
+                    const QDateTime &now, int modelNodeCount = 0);
 
 ///
 /// \brief Lists the server namespace array.
@@ -79,9 +80,10 @@ QHash<QString, MethodInfo> methods(const QList<TreeNode> &tree, const ProjectCon
 /// \param server Server reporting state and sessions.
 /// \param addressSpace Built nodes.
 /// \param now Current time, for the uptime.
+/// \param modelNodeCount Nodes added by loaded models.
 /// \return Snapshot without log entries and certificates.
 ///
 ServerSnapshot build(const ProjectConfig &project, const SimServer &server, const AddressSpace &addressSpace,
-                     const QDateTime &now);
+                     const QDateTime &now, int modelNodeCount = 0);
 
 }

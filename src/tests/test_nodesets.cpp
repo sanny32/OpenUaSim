@@ -129,6 +129,7 @@ private slots:
     void writesVariableAttributes();
     void exportLoadsIntoAnotherServer();
     void importAddsModelToProject();
+    void totalNodesTracksImportedModels();
     void importRejectsDuplicate();
     void importReportsBrokenFile();
     void setProjectLoadsItsModels();
@@ -939,6 +940,50 @@ void TestNodeSets::removeNodeSetDropsModelSettings()
     QVERIFY(controller.removeNodeSet(project.nodeSetFiles.first()));
     QCOMPARE(controller.project().modelVariables.size(), 1);
     QCOMPARE(controller.project().modelVariables.first().namespaceUri, QStringLiteral("urn:openuasim:test:mixer"));
+}
+
+///
+/// \brief Keeps summary and snapshot node totals consistent across model lifecycle operations.
+///
+void TestNodeSets::totalNodesTracksImportedModels()
+{
+    ServerController controller;
+    controller.setProject(TestProject::create());
+    const int initialCount = controller.status().totalNodes;
+    QCOMPARE(initialCount, 17);
+    const QString tank = testData(QStringLiteral("tank.NodeSet2.xml"));
+    QString error;
+    QVERIFY2(controller.importNodeSet(tank, &error), qPrintable(error));
+    QCOMPARE(controller.status().totalNodes, initialCount + 5);
+    QCOMPARE(controller.snapshot().status.totalNodes, initialCount + 5);
+
+    QVERIFY(!controller.importNodeSet(tank, &error));
+    QVERIFY(!controller.importNodeSet(testData(QStringLiteral("missing.xml")), &error));
+    QCOMPARE(controller.status().totalNodes, initialCount + 5);
+    QCOMPARE(controller.snapshot().status.totalNodes, initialCount + 5);
+
+    const ProjectConfig imported = controller.project();
+    controller.setProject(imported);
+    QCOMPARE(controller.status().totalNodes, initialCount + 5);
+    const QString pump = testData(QStringLiteral("pump.NodeSet2.xml"));
+    QVERIFY2(controller.importNodeSet(pump, &error), qPrintable(error));
+    QCOMPARE(controller.status().totalNodes, initialCount + 5 + 11);
+    QCOMPARE(controller.snapshot().status.totalNodes, initialCount + 5 + 11);
+    QVERIFY2(controller.removeNodeSet(pump, &error), qPrintable(error));
+    QCOMPARE(controller.status().totalNodes, initialCount + 5);
+    QCOMPARE(controller.snapshot().status.totalNodes, initialCount + 5);
+    QVERIFY2(controller.removeNodeSet(tank, &error), qPrintable(error));
+    QCOMPARE(controller.status().totalNodes, initialCount);
+    QCOMPARE(controller.snapshot().status.totalNodes, initialCount);
+    QVERIFY(!controller.removeNodeSet(tank, &error));
+    QCOMPARE(controller.status().totalNodes, initialCount);
+
+    controller.setProject(imported);
+    QCOMPARE(controller.status().totalNodes, initialCount + 5);
+    QCOMPARE(controller.snapshot().status.totalNodes, initialCount + 5);
+    controller.setProject(ProjectConfig());
+    QCOMPARE(controller.status().totalNodes, 0);
+    QCOMPARE(controller.snapshot().status.totalNodes, 0);
 }
 
 QTEST_GUILESS_MAIN(TestNodeSets)

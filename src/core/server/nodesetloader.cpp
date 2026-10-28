@@ -115,6 +115,7 @@ bool NodeSetLoader::load(const QString &fileName, QString *error)
     }
     log(LogEntry::Level::Info, tr("Model '%1' loaded with %2 nodes").arg(fileName).arg(result.addedNodes.size()));
     _loaded.append(fileName);
+    _nodeCount += int(result.addedNodes.size());
     for (const QString &uri : newNamespaces) {
         _unclaimedNamespaces.remove(uri);
         _modelNamespaces.insert(uri, fileName);
@@ -197,9 +198,18 @@ void NodeSetLoader::renameFiles(const QHash<QString, QString> &movedFiles)
 ///
 void NodeSetLoader::clear()
 {
+    _nodeCount = 0;
     _loaded.clear();
     _modelNamespaces.clear();
     _unclaimedNamespaces.clear();
+}
+
+///
+/// \brief Returns the number of nodes added by loaded models.
+///
+int NodeSetLoader::nodeCount() const
+{
+    return _nodeCount;
 }
 
 ///

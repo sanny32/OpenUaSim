@@ -279,10 +279,11 @@ QHash<QString, QList<VariableInfo>> variables(const QList<NodeDefinition> &nodes
 /// \param server Server reporting state, start time and clients.
 /// \param addressSpace Built nodes.
 /// \param now Current time, for the uptime.
+/// \param modelNodeCount Nodes added by loaded models.
 /// \return Summary for the status page and the status bar.
 ///
 ServerStatus status(const ProjectConfig &project, const SimServer &server, const AddressSpace &addressSpace,
-                    const QDateTime &now)
+                    const QDateTime &now, int modelNodeCount)
 {
     const ListenerSettings listener = ListenerSettingsBuilder::build(project.endpoints);
 
@@ -292,7 +293,7 @@ ServerStatus status(const ProjectConfig &project, const SimServer &server, const
                                            : QString();
     status.applicationUri = project.server.applicationUri;
     status.securityModes = listener.securityModes;
-    status.totalNodes = addressSpace.nodeCount();
+    status.totalNodes = addressSpace.nodeCount() + modelNodeCount;
     status.namespaces = int(server.uaServer()->namespaces().size());
     status.clientsConnected = server.clientCount();
     const DiscoveryRegistration &discovery = project.server.discovery;
@@ -362,13 +363,14 @@ QHash<QString, MethodInfo> methods(const QList<TreeNode> &tree, const ProjectCon
 /// \param server Server reporting state and sessions.
 /// \param addressSpace Built nodes.
 /// \param now Current time, for the uptime.
+/// \param modelNodeCount Nodes added by loaded models.
 /// \return Snapshot without log entries and certificates.
 ///
 ServerSnapshot build(const ProjectConfig &project, const SimServer &server, const AddressSpace &addressSpace,
-                     const QDateTime &now)
+                     const QDateTime &now, int modelNodeCount)
 {
     ServerSnapshot snapshot;
-    snapshot.status = status(project, server, addressSpace, now);
+    snapshot.status = status(project, server, addressSpace, now, modelNodeCount);
     snapshot.addressSpace = addressSpaceTree(project.nodes);
     snapshot.variables = variables(project.nodes, addressSpace);
     DeclaredNodes::collect(*server.uaServer(), project.nodes, addressSpace, snapshot.addressSpace.first().children,

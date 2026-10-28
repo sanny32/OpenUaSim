@@ -736,7 +736,7 @@ bool ServerController::isRunning() const
 ///
 ServerSnapshot ServerController::snapshot(const QDateTime &now) const
 {
-    ServerSnapshot result = SnapshotBuilder::build(_project, _server, _addressSpace, now);
+    ServerSnapshot result = SnapshotBuilder::build(_project, _server, _addressSpace, now, _nodeSets.nodeCount());
     const QHash<QString, QString> modelFiles = _nodeSets.modelNamespaces();
     for (NamespaceInfo &ns : result.namespaces)
         ns.modelFile = modelFiles.value(ns.uri);
@@ -752,7 +752,7 @@ ServerSnapshot ServerController::snapshot(const QDateTime &now) const
 ///
 ServerStatus ServerController::status(const QDateTime &now) const
 {
-    return SnapshotBuilder::status(_project, _server, _addressSpace, now);
+    return SnapshotBuilder::status(_project, _server, _addressSpace, now, _nodeSets.nodeCount());
 }
 
 ///
