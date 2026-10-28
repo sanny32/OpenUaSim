@@ -18,6 +18,7 @@
 #include <QGuiApplication>
 #include <QHeaderView>
 #include <QLineEdit>
+#include <QLabel>
 #include <QPlainTextEdit>
 #include <QResizeEvent>
 #include <QSortFilterProxyModel>
@@ -563,6 +564,19 @@ void selectRow(QTableView *view, int row)
 /// \param source Line edit whose text is copied.
 ///
 void bindCopyButton(QAbstractButton *button, QLineEdit *source)
+{
+    button->setIcon(AppIcons::icon(QStringLiteral("copy")));
+    button->setCursor(Qt::PointingHandCursor);
+    QObject::connect(button, &QAbstractButton::clicked, source,
+                     [button, source] { copyToClipboard(source->text(), button); });
+}
+
+///
+/// \brief Copies a label's complete text and confirms it with a "Copied" tooltip.
+/// \param button Copy button.
+/// \param source Label whose text is copied.
+///
+void bindCopyButton(QAbstractButton *button, QLabel *source)
 {
     button->setIcon(AppIcons::icon(QStringLiteral("copy")));
     button->setCursor(Qt::PointingHandCursor);

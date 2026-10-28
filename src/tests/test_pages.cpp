@@ -43,6 +43,7 @@
 #include <QUrl>
 
 #include "certificatesmodel.h"
+#include "applanguage.h"
 #include "certificatespage.h"
 #include "elidedlineedit.h"
 #include "endpointsmodel.h"
@@ -224,6 +225,11 @@ private slots:
     void variableActionsScrollWithProperties_data();
     void variableActionsScrollWithProperties();
     void statusPage();
+    void statusPageCopiesEndpoint();
+    void statusPageCopyButtonFollowsAddress_data();
+    void statusPageCopyButtonFollowsAddress();
+    void statusPageShowsBranding_data();
+    void statusPageShowsBranding();
     void statusPageShowsDiscoveryRegistration_data();
     void statusPageShowsDiscoveryRegistration();
     void objectsPageStartsOnCurrentVariable();
@@ -421,6 +427,129 @@ void TestPages::statusPage()
             QVERIFY2(label->textInteractionFlags() & Qt::TextSelectableByMouse,
                      qPrintable(label->objectName()));
     }
+}
+
+///
+/// \brief Copies the current endpoint in full and disables copying when it is absent.
+///
+void TestPages::statusPageCopiesEndpoint()
+{
+    StatusPage page;
+    auto *button = child<QToolButton>(page, "copyEndpointButton");
+    QVERIFY(!button->isEnabled());
+    QVERIFY(!button->icon().isNull());
+    ServerStatus status = _snapshot.status;
+    status.primaryEndpoint = QStringLiteral("opc.tcp://server:4840/") + QString(300, QLatin1Char('a'));
+    page.setStatus(status);
+    page.resize(480, 360);
+    page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+    QVERIFY(button->isEnabled());
+    button->click();
+    QCOMPARE(QApplication::clipboard()->text(), status.primaryEndpoint);
+
+    status.primaryEndpoint = QStringLiteral("opc.tcp://updated:4841");
+    page.setStatus(status);
+    button->click();
+    QCOMPARE(QApplication::clipboard()->text(), status.primaryEndpoint);
+
+    status.primaryEndpoint.clear();
+    page.setStatus(status);
+    QVERIFY(!button->isEnabled());
+    button->click();
+    QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("opc.tcp://updated:4841"));
+}
+
+///
+/// \brief Covers short and overflowing addresses at different window widths.
+///
+void TestPages::statusPageCopyButtonFollowsAddress_data()
+{
+    QTest::addColumn<int>("width");
+    QTest::addColumn<QString>("endpoint");
+    QTest::addColumn<bool>("elided");
+    const QString shortAddress = QStringLiteral("opc.tcp://server:4840");
+    const QString longAddress = shortAddress + QLatin1Char('/') + QString(300, QLatin1Char('a'));
+    QTest::newRow("short-wide") << 1500 << shortAddress << false;
+    QTest::newRow("short-narrow") << 600 << shortAddress << false;
+    QTest::newRow("long-wide") << 1500 << longAddress << true;
+    QTest::newRow("long-narrow") << 600 << longAddress << true;
+}
+
+///
+/// \brief Keeps the copy button next to the address and visible when the address overflows.
+///
+void TestPages::statusPageCopyButtonFollowsAddress()
+{
+    QFETCH(int, width);
+    QFETCH(QString, endpoint);
+    QFETCH(bool, elided);
+    StatusPage page;
+    ServerStatus status = _snapshot.status;
+    status.primaryEndpoint = endpoint;
+    page.setStatus(status);
+    page.resize(width, 360);
+    page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+    const auto *label = child<QLabel>(page, "primaryEndpointValue");
+    auto *button = child<QToolButton>(page, "copyEndpointButton");
+    const auto *scroll = child<QScrollArea>(page, "serverStatusPanelScroll");
+    QVERIFY(label->width() <= label->sizeHint().width());
+    QCOMPARE(button->geometry().left() - label->geometry().right() - 1, 6);
+    QCOMPARE(label->fontMetrics().horizontalAdvance(endpoint) > label->width(), elided);
+    QVERIFY(scroll->viewport()->rect().contains(button->mapTo(scroll->viewport(), button->rect().bottomRight())));
+    button->click();
+    QCOMPARE(QApplication::clipboard()->text(), endpoint);
+}
+
+///
+/// \brief Covers branding in compact and spacious status pages.
+///
+void TestPages::statusPageShowsBranding_data()
+{
+    QTest::addColumn<QSize>("pageSize");
+    QTest::newRow("compact") << QSize(480, 360);
+    QTest::newRow("spacious") << QSize(1000, 700);
+}
+
+///
+/// \brief Keeps the identity above server details through resizing and language changes.
+///
+void TestPages::statusPageShowsBranding()
+{
+    QFETCH(QSize, pageSize);
+    AppLanguage::apply(*qApp, AppLanguage::Language::English);
+    const auto restoreLanguage = qScopeGuard([] { AppLanguage::apply(*qApp, AppLanguage::Language::English); });
+    StatusPage page;
+    page.setStatus(_snapshot.status);
+    page.resize(pageSize);
+    page.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&page));
+
+    const auto *logo = child<QLabel>(page, "brandLogo");
+    const auto *name = child<QLabel>(page, "brandName");
+    const auto *description = child<QLabel>(page, "brandDescription");
+    const auto *form = child<QWidget>(page, "statusFormHost");
+    const auto *scroll = child<QScrollArea>(page, "serverStatusPanelScroll");
+    QVERIFY(!logo->pixmap().isNull());
+    QCOMPARE(logo->size(), QSize(64, 64));
+    QVERIFY(logo->isVisible());
+    QCOMPARE(name->text(), QStringLiteral("OpenUaSim"));
+    QCOMPARE(description->text(), QStringLiteral("OPC UA Simulation Server"));
+    QVERIFY(name->mapTo(&page, QPoint()).x() >= logo->mapTo(&page, QPoint(64, 0)).x());
+    QVERIFY(form->mapTo(&page, QPoint()).y() > logo->mapTo(&page, QPoint(0, 64)).y());
+    QVERIFY(scroll->viewport()->rect().contains(logo->mapTo(scroll->viewport(), QPoint(63, 63))));
+
+    QVERIFY(AppLanguage::apply(*qApp, AppLanguage::Language::Russian));
+    QCoreApplication::processEvents();
+    QCOMPARE(name->text(), QStringLiteral("OpenUaSim"));
+    QCOMPARE(description->text(), QStringLiteral("Сервер симуляции OPC UA"));
+    AppLanguage::apply(*qApp, AppLanguage::Language::English);
+    QCoreApplication::processEvents();
+    QCOMPARE(name->text(), QStringLiteral("OpenUaSim"));
+    QCOMPARE(description->text(), QStringLiteral("OPC UA Simulation Server"));
+    QVERIFY(!logo->pixmap().isNull());
+    QCOMPARE(child<QLabel>(page, "primaryEndpointValue")->text(), _snapshot.status.primaryEndpoint);
 }
 
 void TestPages::statusPageShowsDiscoveryRegistration_data()

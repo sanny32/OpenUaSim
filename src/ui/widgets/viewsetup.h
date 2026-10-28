@@ -17,6 +17,7 @@ class QComboBox;
 class QHeaderView;
 class QByteArray;
 class QLineEdit;
+class QLabel;
 class QPlainTextEdit;
 class QSortFilterProxyModel;
 class QSplitter;
@@ -154,6 +155,13 @@ void selectRow(QTableView *view, int row);
 /// \param source Line edit whose text is copied.
 ///
 void bindCopyButton(QAbstractButton *button, QLineEdit *source);
+
+///
+/// \brief Copies a label's complete text and confirms it with a "Copied" tooltip.
+/// \param button Copy button.
+/// \param source Label whose text is copied.
+///
+void bindCopyButton(QAbstractButton *button, QLabel *source);
 
 ///
 /// \brief Enables a button whenever an editor inside a container changes; the caller disables it again

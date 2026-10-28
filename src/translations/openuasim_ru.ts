@@ -2509,6 +2509,14 @@
 <context>
     <name>StatusPage</name>
     <message>
+        <source>Copy endpoint address</source>
+        <translation>Копировать адрес конечной точки</translation>
+    </message>
+    <message>
+        <source>OPC UA Simulation Server</source>
+        <translation>Сервер симуляции OPC UA</translation>
+    </message>
+    <message>
         <source>Server Status</source>
         <translation>Состояние сервера</translation>
     </message>

@@ -11,6 +11,7 @@
 #include "formatting.h"
 #include "statuspage.h"
 #include "ui_statuspage.h"
+#include "viewsetup.h"
 
 ///
 /// \brief Builds the page.
@@ -22,6 +23,7 @@ StatusPage::StatusPage(QWidget *parent)
 {
     ui->setupUi(this);
     ui->serverStatusIndicator->setColoredText(true);
+    ViewSetup::bindCopyButton(ui->copyEndpointButton, ui->primaryEndpointValue);
 }
 
 ///
@@ -42,6 +44,7 @@ void StatusPage::setStatus(const ServerStatus &status)
     ui->serverStatusIndicator->setStatus(status.running ? StatusKind::Good : StatusKind::Inactive,
                                          status.running ? tr("Running") : tr("Stopped"));
     ui->primaryEndpointValue->setText(status.primaryEndpoint);
+    ui->copyEndpointButton->setEnabled(!status.primaryEndpoint.isEmpty());
     ui->applicationUriValue->setText(status.applicationUri);
     ui->startTimeValue->setText(Formatting::dateTime(status.startTime));
     ui->uptimeValue->setText(Formatting::duration(status.uptimeSeconds));
