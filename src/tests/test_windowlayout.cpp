@@ -34,6 +34,40 @@ T *control(const QWidget &root, const char *name)
     return widget;
 }
 
+const QString kNamespacesSplitterKey = QStringLiteral(
+    "ui/mainWindow/splitters/centralWidget/contentSplitter/tabWidget/qt_tabwidget_stackedwidget/namespacesPage/splitter");
+
+///
+/// \brief Returns the namespaces page split of a first start without saved settings, at 1000x700.
+///
+QList<int> defaultNamespacesSplit()
+{
+    MainWindow window;
+    window.resize(1000, 700);
+    window.show();
+    if (!QTest::qWaitForWindowExposed(&window))
+        return {};
+    control<QTabWidget>(window, "tabWidget")->setCurrentWidget(control<QWidget>(window, "namespacesPage"));
+    QCoreApplication::processEvents();
+    return control<QWidget>(window, "namespacesPage")->findChild<QSplitter *>()->sizes();
+}
+
+///
+/// \brief Tells whether two splits differ by at most 2.5% of the width in every pane; the default split
+///        itself shifts a little with the window sizes the page went through before it was shown.
+///
+bool similarSplit(const QList<int> &actual, const QList<int> &expected)
+{
+    if (actual.size() != expected.size())
+        return false;
+    const int tolerance = std::accumulate(expected.cbegin(), expected.cend(), 0) / 40;
+    for (qsizetype i = 0; i < actual.size(); ++i) {
+        if (qAbs(actual.at(i) - expected.at(i)) > tolerance)
+            return false;
+    }
+    return true;
+}
+
 }
 
 class TestWindowLayout : public QObject
@@ -45,6 +79,8 @@ private slots:
     void geometry_data();
     void geometry();
     void splitters();
+    void unvisitedPagesKeepDefaultSplit();
+    void unscaledSplitOfCurrentPageKeepsRatio();
     void columnsSurviveLateData();
     void navigation_data();
     void navigation();
@@ -151,6 +187,56 @@ void TestWindowLayout::splitters()
         if (splitter)
             QCOMPARE(splitter->sizes(), expected.value(tabs->widget(i)->objectName()));
     }
+}
+
+///
+/// \brief Opens pages that were never shown before the last exit with the same split as a first start.
+///
+void TestWindowLayout::unvisitedPagesKeepDefaultSplit()
+{
+    const QList<int> defaults = defaultNamespacesSplit();
+    {
+        MainWindow window;
+        window.resize(1000, 700);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        control<QTabWidget>(window, "tabWidget")->setCurrentIndex(0);
+        QCoreApplication::processEvents();
+        QVERIFY(window.close());
+    }
+    QVERIFY(!SettingsStore().contains(kNamespacesSplitterKey));
+
+    SettingsStore().setValue(QStringLiteral("ui/mainWindow/currentPage"), QStringLiteral("namespacesPage"));
+    MainWindow restored;
+    restored.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&restored));
+    const QList<int> sizes = control<QWidget>(restored, "namespacesPage")->findChild<QSplitter *>()->sizes();
+    QVERIFY2(similarSplit(sizes, defaults), qPrintable(QDebug::toString(sizes)));
+}
+
+///
+/// \brief Scales the unscaled initial sizes earlier versions saved for never shown pages instead of
+///        squeezing them into the first pane of the page shown at start.
+///
+void TestWindowLayout::unscaledSplitOfCurrentPageKeepsRatio()
+{
+    const QList<int> defaults = defaultNamespacesSplit();
+    QSplitter unscaled;
+    unscaled.addWidget(new QWidget);
+    unscaled.addWidget(new QWidget);
+    unscaled.setSizes({ 12000, 5800 });
+    {
+        SettingsStore settings;
+        settings.setValue(kNamespacesSplitterKey, unscaled.saveState());
+        settings.setValue(QStringLiteral("ui/mainWindow/currentPage"), QStringLiteral("namespacesPage"));
+    }
+
+    MainWindow restored;
+    restored.resize(1000, 700);
+    restored.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&restored));
+    const QList<int> sizes = control<QWidget>(restored, "namespacesPage")->findChild<QSplitter *>()->sizes();
+    QVERIFY2(similarSplit(sizes, defaults), qPrintable(QDebug::toString(sizes)));
 }
 
 ///
