@@ -91,12 +91,24 @@ void ElidedComboBox::paintEvent(QPaintEvent *event)
 }
 
 ///
-/// \brief Widens the content-based size by the text padding the eliding paint reserves.
+/// \brief Fits complete item text and icons into the style's edit field.
 /// \return Size that shows the longest item without an ellipsis.
 ///
 QSize ElidedComboBox::sizeHint() const
 {
-    return QComboBox::sizeHint() + QSize(kTextPadding, 0);
+    QSize hint = QComboBox::sizeHint() + QSize(kTextPadding, 0);
+    if (sizeAdjustPolicy() == AdjustToMinimumContentsLengthWithIcon)
+        return hint;
+
+    int contentWidth = 0;
+    for (int row = 0; row < count(); ++row) {
+        int width = fontMetrics().horizontalAdvance(itemText(row));
+        if (!itemIcon(row).isNull())
+            width += iconSize().width() + 4;
+        contentWidth = qMax(contentWidth, width);
+    }
+    hint.rwidth() += qMax(0, contentWidth - textFieldWidth(hint));
+    return hint;
 }
 
 ///
@@ -107,9 +119,22 @@ int ElidedComboBox::textWidth() const
 {
     QStyleOptionComboBox option;
     initStyleOption(&option);
-    int width = style()->subControlRect(QStyle::CC_ComboBox, &option,
-                                       QStyle::SC_ComboBoxEditField, this).width() - kTextPadding;
+    int width = textFieldWidth(size());
     if (!option.currentIcon.isNull())
         width -= option.iconSize.width() + 4;
     return qMax(0, width);
+}
+
+///
+/// \brief Measures the padded edit field at the proposed control size.
+/// \param size Control size to measure.
+/// \return Available width before reserving an item icon.
+///
+int ElidedComboBox::textFieldWidth(const QSize &size) const
+{
+    QStyleOptionComboBox option;
+    initStyleOption(&option);
+    option.rect.setSize(size);
+    return style()->subControlRect(QStyle::CC_ComboBox, &option,
+                                   QStyle::SC_ComboBoxEditField, this).width() - kTextPadding;
 }

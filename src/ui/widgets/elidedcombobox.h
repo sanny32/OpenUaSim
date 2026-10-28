@@ -38,7 +38,7 @@ public:
     bool isElided() const;
 
     ///
-    /// \brief Widens the content-based size by the text padding the eliding paint reserves.
+    /// \brief Fits complete item text and icons into the style's edit field.
     /// \return Size that shows the longest item without an ellipsis.
     ///
     QSize sizeHint() const override;
@@ -49,4 +49,5 @@ protected:
 
 private:
     int textWidth() const;
+    int textFieldWidth(const QSize &size) const;
 };

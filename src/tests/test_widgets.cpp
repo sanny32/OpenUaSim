@@ -55,6 +55,22 @@
 
 namespace {
 
+class InsetComboBoxStyle : public AppStyle
+{
+public:
+    ///
+    /// \brief Simulates a style whose edit field needs more space than its size hint reserves.
+    ///
+    QRect subControlRect(ComplexControl control, const QStyleOptionComplex *option,
+                         SubControl subControl, const QWidget *widget = nullptr) const override
+    {
+        QRect rect = AppStyle::subControlRect(control, option, subControl, widget);
+        if (control == CC_ComboBox && subControl == SC_ComboBoxEditField)
+            rect.adjust(0, 0, -12, 0);
+        return rect;
+    }
+};
+
 class InspectableDelegate : public ItemDelegate
 {
 public:
@@ -142,7 +158,10 @@ private slots:
     void elidedLineEditReservesActionSpace_data();
     void elidedLineEditReservesActionSpace();
     void elidedComboBoxShowsOverflowTooltip();
+    void elidedComboBoxFitsItsItems_data();
     void elidedComboBoxFitsItsItems();
+    void elidedComboBoxFitsStyleEditField();
+    void elidedComboBoxKeepsMinimumContentsPolicy();
     void elidedComboBoxKeepsManualInput();
     void elidedControlsKeepExplicitTooltips();
     void elidedLabelKeepsFullValue();
@@ -1173,18 +1192,63 @@ void TestWidgets::elidedComboBoxShowsOverflowTooltip()
     QTRY_VERIFY(!QToolTip::isVisible());
 }
 
+void TestWidgets::elidedComboBoxFitsItsItems_data()
+{
+    QTest::addColumn<QString>("suffix");
+    QTest::addColumn<bool>("withIcon");
+    QTest::newRow("plain") << QString() << false;
+    QTest::newRow("trailing-spaces") << QString(16, QLatin1Char(' ')) << false;
+    QTest::newRow("icon") << QString() << true;
+    QTest::newRow("icon-trailing-spaces") << QString(16, QLatin1Char(' ')) << true;
+}
+
 void TestWidgets::elidedComboBoxFitsItsItems()
 {
+    QFETCH(QString, suffix);
+    QFETCH(bool, withIcon);
     AppStyle style;
     const QString text = QStringLiteral("Все сеансы клиентов сервера");
     for (int length = 1; length <= text.size(); ++length) {
         ElidedComboBox combo;
         combo.setStyle(&style);
-        combo.addItems({ QStringLiteral("I"), text.left(length) });
-        combo.setCurrentIndex(1);
+        combo.addItems({ QStringLiteral("I"), text.left(length) + suffix });
+        if (withIcon) {
+            combo.setItemIcon(1, AppIcons::icon(QStringLiteral("search")));
+            QVERIFY(!combo.itemIcon(1).isNull());
+        }
         combo.resize(combo.sizeHint());
+        combo.setCurrentIndex(1);
         QVERIFY2(!combo.isElided(), qPrintable(combo.currentText()));
+        combo.resize(combo.width() + 20, combo.height());
+        QVERIFY(!combo.isElided());
+        combo.resize(20, combo.height());
+        QVERIFY(combo.isElided());
     }
+}
+
+void TestWidgets::elidedComboBoxFitsStyleEditField()
+{
+    InsetComboBoxStyle style;
+    ElidedComboBox combo;
+    combo.setStyle(&style);
+    combo.addItems({ QStringLiteral("I"), QString(50, QLatin1Char('W')) });
+    combo.resize(combo.sizeHint());
+    combo.setCurrentIndex(1);
+    QVERIFY(!combo.isElided());
+}
+
+void TestWidgets::elidedComboBoxKeepsMinimumContentsPolicy()
+{
+    ElidedComboBox combo;
+    combo.setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    combo.setMinimumContentsLength(5);
+    combo.addItem(QStringLiteral("short"));
+    const QSize hint = combo.sizeHint();
+    combo.addItem(QString(100, QLatin1Char('W')));
+    combo.setCurrentIndex(1);
+    QCOMPARE(combo.sizeHint(), hint);
+    combo.resize(hint);
+    QVERIFY(combo.isElided());
 }
 
 void TestWidgets::elidedComboBoxKeepsManualInput()
