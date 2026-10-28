@@ -106,6 +106,8 @@ private slots:
     void exportReportsUnwritablePath();
     void examplesLoadCleanly_data();
     void examplesLoadCleanly();
+    void publicModelsImport_data();
+    void publicModelsImport();
     void modelVariableOfUnsupportedTypeIsReadOnly();
     void modelEnumerationIsEditedAsInt32();
     void modelTypesAreListed();
@@ -420,6 +422,57 @@ void TestNodeSets::examplesLoadCleanly()
     const QList<LogEntry> &log = controller.log();
     for (qsizetype i = logBefore; i < log.size(); ++i)
         QVERIFY2(log.at(i).level == LogEntry::Level::Info, qPrintable(log.at(i).message));
+}
+
+///
+/// \brief Defines public companion models and their dependency load order.
+///
+void TestNodeSets::publicModelsImport_data()
+{
+    QTest::addColumn<QStringList>("models");
+    QTest::addColumn<QString>("namespaceUri");
+    QTest::newRow("DI") << QStringList { "Di" } << QStringLiteral("http://opcfoundation.org/UA/DI/");
+    QTest::newRow("ADI") << QStringList { "Di", "Adi" } << QStringLiteral("http://opcfoundation.org/UA/ADI/");
+    QTest::newRow("AutoID") << QStringList { "Di", "AutoID" } << QStringLiteral("http://opcfoundation.org/UA/AutoID/");
+    QTest::newRow("Machinery") << QStringList { "Di", "IA", "Machinery" }
+                              << QStringLiteral("http://opcfoundation.org/UA/Machinery/");
+}
+
+///
+/// \brief Checks public models through the application import and snapshot path.
+///
+void TestNodeSets::publicModelsImport()
+{
+    QFETCH(QStringList, models);
+    QFETCH(QString, namespaceUri);
+    const QDir directory(testData(QStringLiteral("public-nodesets")));
+    QStringList files;
+    for (const QString &model : models) {
+        const QString file = directory.filePath(QStringLiteral("Opc.Ua.%1.NodeSet2.xml").arg(model));
+        QVERIFY2(QFile::exists(file), qPrintable(QStringLiteral("Missing bundled model: %1").arg(file)));
+        files.append(file);
+    }
+
+    ServerController controller;
+    controller.setProject(TestProject::create());
+    for (const QString &file : files) {
+        QString error;
+        QVERIFY2(controller.importNodeSet(file, &error), qPrintable(file + QStringLiteral(": ") + error));
+    }
+    QCOMPARE(controller.project().nodeSetFiles, files);
+    QVERIFY(controller.server().uaServer()->namespaces().contains(namespaceUri));
+    const ServerSnapshot snapshot = controller.snapshot();
+    QVERIFY(!snapshot.types.isEmpty());
+    int warnings = 0;
+    for (const LogEntry &entry : controller.log()) {
+        QVERIFY2(entry.level != LogEntry::Level::Error, qPrintable(entry.message));
+        if (entry.level == LogEntry::Level::Warning) {
+            ++warnings;
+            qInfo().noquote() << entry.message;
+        }
+    }
+    qInfo() << "Imported" << files.size() << "models; snapshot types:" << snapshot.types.size()
+            << "warnings:" << warnings;
 }
 
 void TestNodeSets::modelVariableOfUnsupportedTypeIsReadOnly()
