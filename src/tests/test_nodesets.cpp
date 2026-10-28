@@ -431,11 +431,29 @@ void TestNodeSets::publicModelsImport_data()
 {
     QTest::addColumn<QStringList>("models");
     QTest::addColumn<QString>("namespaceUri");
-    QTest::newRow("DI") << QStringList { "Di" } << QStringLiteral("http://opcfoundation.org/UA/DI/");
-    QTest::newRow("ADI") << QStringList { "Di", "Adi" } << QStringLiteral("http://opcfoundation.org/UA/ADI/");
-    QTest::newRow("AutoID") << QStringList { "Di", "AutoID" } << QStringLiteral("http://opcfoundation.org/UA/AutoID/");
-    QTest::newRow("Machinery") << QStringList { "Di", "IA", "Machinery" }
-                              << QStringLiteral("http://opcfoundation.org/UA/Machinery/");
+    QTest::addColumn<quint32>("rootIdentifier");
+    QTest::addColumn<bool>("hasInstanceData");
+    QTest::addColumn<int>("expectedWarnings");
+    const QString di = QStringLiteral("Opc.Ua.Di.NodeSet2.xml");
+    const QString ia = QStringLiteral("Opc.Ua.IA.NodeSet2.xml");
+    const QString machinery = QStringLiteral("Opc.Ua.Machinery.NodeSet2.xml");
+    const QString pumps = QStringLiteral("Opc.Ua.Pumps.NodeSet2.xml");
+    QTest::newRow("DI") << QStringList { di }
+                        << QStringLiteral("http://opcfoundation.org/UA/DI/") << quint32(0) << false << 0;
+    QTest::newRow("ADI") << QStringList { di, "Opc.Ua.Adi.NodeSet2.xml" }
+                         << QStringLiteral("http://opcfoundation.org/UA/ADI/") << quint32(0) << false << 0;
+    QTest::newRow("AutoID") << QStringList { di, "Opc.Ua.AutoID.NodeSet2.xml" }
+                            << QStringLiteral("http://opcfoundation.org/UA/AutoID/") << quint32(0) << false << 0;
+    QTest::newRow("Machinery") << QStringList { di, ia, machinery }
+                               << QStringLiteral("http://opcfoundation.org/UA/Machinery/") << quint32(0) << false << 0;
+    QTest::newRow("DemoModel") << QStringList { "DemoModel.NodeSet2.xml" }
+                               << QStringLiteral("urn:opcfoundation.org:2024-01:DemoModel") << quint32(351) << true << 3;
+    QTest::newRow("IA examples") << QStringList { di, ia, "Opc.Ua.IA.NodeSet2.examples.xml" }
+                                 << QStringLiteral("http://opcfoundation.org/UA/IA/Examples/") << quint32(5002) << true << 0;
+    QTest::newRow("Pumps example") << QStringList { di, ia, machinery, pumps, "instanceexample.xml" }
+                                   << QStringLiteral("http://yourorganisation.org/InstanceExample/") << quint32(5002) << true << 0;
+    QTest::newRow("PackML") << QStringList { "Opc.Ua.PackML.NodeSet2.xml" }
+                            << QStringLiteral("http://opcfoundation.org/UA/PackML/") << quint32(72) << false << 0;
 }
 
 ///
@@ -445,10 +463,13 @@ void TestNodeSets::publicModelsImport()
 {
     QFETCH(QStringList, models);
     QFETCH(QString, namespaceUri);
+    QFETCH(quint32, rootIdentifier);
+    QFETCH(bool, hasInstanceData);
+    QFETCH(int, expectedWarnings);
     const QDir directory(testData(QStringLiteral("public-nodesets")));
     QStringList files;
     for (const QString &model : models) {
-        const QString file = directory.filePath(QStringLiteral("Opc.Ua.%1.NodeSet2.xml").arg(model));
+        const QString file = directory.filePath(model);
         QVERIFY2(QFile::exists(file), qPrintable(QStringLiteral("Missing bundled model: %1").arg(file)));
         files.append(file);
     }
@@ -463,6 +484,14 @@ void TestNodeSets::publicModelsImport()
     QVERIFY(controller.server().uaServer()->namespaces().contains(namespaceUri));
     const ServerSnapshot snapshot = controller.snapshot();
     QVERIFY(!snapshot.types.isEmpty());
+    if (rootIdentifier != 0) {
+        const quint16 ns = static_cast<quint16>(controller.server().uaServer()->namespaces().indexOf(namespaceUri));
+        const QUaNodeId rootId(ns, rootIdentifier);
+        const TreeNode *root = findTreeNode(snapshot.addressSpace, rootId.toXmlString());
+        QVERIFY2(root, qPrintable(QStringLiteral("Imported root is absent from Objects: %1").arg(rootId.toXmlString())));
+        if (hasInstanceData)
+            QVERIFY2(!root->children.isEmpty(), qPrintable(root->text));
+    }
     int warnings = 0;
     for (const LogEntry &entry : controller.log()) {
         QVERIFY2(entry.level != LogEntry::Level::Error, qPrintable(entry.message));
@@ -473,6 +502,7 @@ void TestNodeSets::publicModelsImport()
     }
     qInfo() << "Imported" << files.size() << "models; snapshot types:" << snapshot.types.size()
             << "warnings:" << warnings;
+    QCOMPARE(warnings, expectedWarnings);
 }
 
 void TestNodeSets::modelVariableOfUnsupportedTypeIsReadOnly()
