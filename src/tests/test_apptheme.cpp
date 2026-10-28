@@ -50,6 +50,8 @@ private slots:
     void variableIconsRenderAsGreyPng();
     void statusDots();
     void statusIconsGreyOutWhenDisabled();
+    void serverControlIconsGreyOutWhenDisabled_data();
+    void serverControlIconsGreyOutWhenDisabled();
     void messageIcons_data();
     void messageIcons();
 };
@@ -228,6 +230,25 @@ void TestAppTheme::statusIconsGreyOutWhenDisabled()
     QCOMPARE(strokeColor(icon), AppColors::status(StatusKind::Good));
     QCOMPARE(strokeColor(icon, QIcon::Disabled),
              QGuiApplication::palette().color(QPalette::Disabled, QPalette::WindowText));
+}
+
+void TestAppTheme::serverControlIconsGreyOutWhenDisabled_data()
+{
+    QTest::addColumn<QString>("name");
+    QTest::addColumn<QColor>("accent");
+    QTest::newRow("play") << QStringLiteral("play") << QColor(0x22c55e);
+    QTest::newRow("stop") << QStringLiteral("stop") << QColor(0xef4444);
+}
+
+void TestAppTheme::serverControlIconsGreyOutWhenDisabled()
+{
+    QFETCH(QString, name);
+    QFETCH(QColor, accent);
+    QApplication::setPalette(AppPalette::build(false));
+    const QIcon icon = AppIcons::icon(name);
+    QCOMPARE(strokeColor(icon), accent);
+    QCOMPARE(strokeColor(icon, QIcon::Disabled),
+             QApplication::palette().color(QPalette::Disabled, QPalette::WindowText));
 }
 
 void TestAppTheme::messageIcons_data()
