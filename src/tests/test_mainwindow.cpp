@@ -929,14 +929,14 @@ void TestMainWindow::titleShowsDocumentAndChanges()
     window.setController(&controller);
     window.setDocument(&document);
 
-    QCOMPARE(window.windowTitle(), QStringLiteral("Untitled[*] - OpenUaSim"));
+    QCOMPARE(window.windowTitle(), QStringLiteral("OpenUaSim — Untitled[*]"));
     QVERIFY(!window.isWindowModified());
     QVERIFY(controller.removeNode(QStringLiteral("ns=1;s=Pump_01")));
     QVERIFY(window.isWindowModified());
 
     QTemporaryDir directory;
     QVERIFY(window.saveProjectTo(directory.filePath(QStringLiteral("line.ouasim"))));
-    QCOMPARE(window.windowTitle(), QStringLiteral("line.ouasim[*] - OpenUaSim"));
+    QCOMPARE(window.windowTitle(), QStringLiteral("OpenUaSim — line.ouasim[*]"));
     QVERIFY(!window.isWindowModified());
 }
 

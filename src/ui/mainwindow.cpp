@@ -1063,7 +1063,7 @@ void MainWindow::exportLog(const QList<LogEntry> &entries)
 ///
 void MainWindow::updateWindowTitle()
 {
-    setWindowTitle(QStringLiteral("%1[*] - %2").arg(_document->displayName(), QStringLiteral(APP_NAME)));
+    setWindowTitle(QStringLiteral("%1 — %2[*]").arg(QStringLiteral(APP_NAME), _document->displayName()));
     setWindowModified(_document->isModified());
 }
 
