@@ -12,7 +12,6 @@
 #include <QApplication>
 #include <QCloseEvent>
 #include <QFileDialog>
-#include <QInputDialog>
 #include <QPushButton>
 #include <QTimer>
 
@@ -32,6 +31,7 @@
 #include "project/projectdocument.h"
 #include "project/projectfile.h"
 #include "project/projectnodes.h"
+#include "renamenodedialog.h"
 #include "recentdirectories.h"
 #include "server/servercontroller.h"
 #include "server/serverlaunch.h"
@@ -818,12 +818,9 @@ void MainWindow::showRenameDialog()
     if (!node)
         return;
     _pendingRenameId = node->nodeId;
-    auto *dialog = new QInputDialog(this);
+    auto *dialog = new RenameNodeDialog(node->browseName, this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
-    dialog->setWindowTitle(tr("Rename Node"));
-    dialog->setLabelText(tr("New name of '%1':").arg(node->browseName));
-    dialog->setTextValue(node->browseName);
-    connect(dialog, &QInputDialog::textValueSelected, this, &MainWindow::renamePendingNode);
+    connect(dialog, &QDialog::accepted, this, [this, dialog] { renamePendingNode(dialog->browseName()); });
     dialog->open();
 }
 

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <QDialog>
+#include "appbasedialog.h"
 
 #include "data/projectconfig.h"
 
@@ -19,7 +19,7 @@ class ServerSettingsDialog;
 ///
 /// \brief Edits the application name and URI, session limit, history limits and discovery registration of the server.
 ///
-class ServerSettingsDialog : public QDialog
+class ServerSettingsDialog : public AppBaseDialog
 {
     Q_OBJECT
 

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <QDialog>
+#include "appbasedialog.h"
 
 #include "data/sessioninfo.h"
 
@@ -21,7 +21,7 @@ class SubscriptionsModel;
 ///
 /// \brief Lists the subscriptions a session held when the dialog opened.
 ///
-class SubscriptionsDialog : public QDialog
+class SubscriptionsDialog : public AppBaseDialog
 {
     Q_OBJECT
 

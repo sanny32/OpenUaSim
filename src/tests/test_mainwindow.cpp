@@ -19,7 +19,6 @@
 #include <QScrollArea>
 #include <QSignalSpy>
 #include <QHeaderView>
-#include <QInputDialog>
 #include <QSpinBox>
 #include <QSplitter>
 #include <QTabWidget>
@@ -52,6 +51,7 @@
 #include "project/projectnodes.h"
 #include "server/servercontroller.h"
 #include "server/serverlaunch.h"
+#include "renamenodedialog.h"
 #include "serversettingsdialog.h"
 #include "settingsstore.h"
 #include "statusindicator.h"
@@ -702,18 +702,18 @@ void TestMainWindow::renamesNodeFromDialog()
     QVERIFY(page->selectNode(motor));
 
     child<QAction>(window, "actionRenameNode")->trigger();
-    auto *dialog = window.findChild<QInputDialog *>();
+    auto *dialog = window.findChild<RenameNodeDialog *>();
     QVERIFY(dialog);
-    QCOMPARE(dialog->textValue(), QStringLiteral("Motor_01"));
-    dialog->setTextValue(QStringLiteral(" Drive "));
+    QCOMPARE(dialog->browseName(), QStringLiteral("Motor_01"));
+    child<QLineEdit>(*dialog, "nameEdit")->setText(QStringLiteral(" Drive "));
     dialog->accept();
     QCOMPARE(ProjectNodes::find(controller.project().nodes, motor)->browseName, QStringLiteral("Drive"));
     QCOMPARE(page->currentNodeId(), motor);
 
-    QTRY_VERIFY(!window.findChild<QInputDialog *>());
+    QTRY_VERIFY(!window.findChild<RenameNodeDialog *>());
     child<QAction>(window, "actionRenameNode")->trigger();
-    dialog = window.findChild<QInputDialog *>();
-    dialog->setTextValue(QStringLiteral("Pump_01"));
+    dialog = window.findChild<RenameNodeDialog *>();
+    child<QLineEdit>(*dialog, "nameEdit")->setText(QStringLiteral("Pump_01"));
     dialog->accept();
     auto *box = window.findChild<MessageDialog *>();
     QVERIFY(box);

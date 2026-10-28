@@ -17,7 +17,7 @@
 /// \param parent Parent widget.
 ///
 SubscriptionsDialog::SubscriptionsDialog(const SessionInfo &session, QWidget *parent)
-    : QDialog(parent)
+    : AppBaseDialog(parent)
     , ui(new Ui::SubscriptionsDialog)
     , _model(new SubscriptionsModel(this))
 {

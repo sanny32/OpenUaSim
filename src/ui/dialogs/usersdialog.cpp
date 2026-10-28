@@ -35,7 +35,7 @@ QString cellText(const QTableWidgetItem *item)
 /// \param parent Parent widget.
 ///
 UsersDialog::UsersDialog(const QList<UserAccount> &users, QWidget *parent)
-    : QDialog(parent)
+    : AppBaseDialog(parent)
     , ui(new Ui::UsersDialog)
 {
     ui->setupUi(this);

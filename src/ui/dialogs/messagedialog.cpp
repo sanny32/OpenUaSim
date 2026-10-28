@@ -45,7 +45,7 @@ int singleLineWidth(const QLabel *label)
 ///
 MessageDialog::MessageDialog(QStyle::StandardPixmap icon, const QString &title, const QString &text,
                              const QString &details, QWidget *parent)
-    : QDialog(parent), ui(new Ui::MessageDialog), _icon(AppIcons::messageIcon(icon))
+    : AppBaseDialog(parent), ui(new Ui::MessageDialog), _icon(AppIcons::messageIcon(icon))
 {
     ui->setupUi(this);
     setWindowTitle(title);
@@ -160,7 +160,7 @@ void MessageDialog::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::PaletteChange)
         applyColors();
-    QDialog::changeEvent(event);
+    AppBaseDialog::changeEvent(event);
 }
 
 ///
@@ -170,7 +170,7 @@ void MessageDialog::changeEvent(QEvent *event)
 void MessageDialog::showEvent(QShowEvent *event)
 {
     fitToContents();
-    QDialog::showEvent(event);
+    AppBaseDialog::showEvent(event);
 }
 
 ///

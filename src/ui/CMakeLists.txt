@@ -41,6 +41,11 @@ add_library(ouasim_ui STATIC
     modelactions.cpp
     modelactions.h
 
+    dialogs/appbasedialog.cpp
+    dialogs/appbasedialog.h
+    dialogs/renamenodedialog.cpp
+    dialogs/renamenodedialog.h
+    dialogs/renamenodedialog.ui
     dialogs/alarmdialog.cpp
     dialogs/alarmdialog.h
     dialogs/messagedialog.cpp
@@ -111,6 +116,12 @@ add_library(ouasim_ui STATIC
     widgets/variablepropertieswidget.cpp
     widgets/variablepropertieswidget.h
 )
+
+if(APPLE)
+    target_sources(ouasim_ui PRIVATE dialogs/macwindowbuttons.h dialogs/macwindowbuttons.mm)
+    set_source_files_properties(dialogs/macwindowbuttons.mm PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+    target_link_libraries(ouasim_ui PRIVATE "-framework AppKit")
+endif()
 
 set_target_properties(ouasim_ui PROPERTIES
     AUTOUIC_SEARCH_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/dialogs;${CMAKE_CURRENT_SOURCE_DIR}/pages;${CMAKE_CURRENT_SOURCE_DIR}/widgets"

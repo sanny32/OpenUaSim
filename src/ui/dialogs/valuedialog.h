@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <QDialog>
+#include "appbasedialog.h"
 
 namespace Ui {
 class ValueDialog;
@@ -17,7 +17,7 @@ class ValueDialog;
 ///
 /// \brief Displays and copies a field value without truncation.
 ///
-class ValueDialog : public QDialog
+class ValueDialog : public AppBaseDialog
 {
     Q_OBJECT
 

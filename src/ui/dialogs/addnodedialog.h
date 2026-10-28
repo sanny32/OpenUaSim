@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <QDialog>
+#include "appbasedialog.h"
 #include <QHash>
 #include <QList>
 #include <QSet>
@@ -25,7 +25,7 @@ class AddNodeDialog;
 /// \brief Asks for the parent, kind, type, browse name, node id and, for variables, data type, array length, access and icon
 ///        of a new node; for methods, their action.
 ///
-class AddNodeDialog : public QDialog
+class AddNodeDialog : public AppBaseDialog
 {
     Q_OBJECT
 

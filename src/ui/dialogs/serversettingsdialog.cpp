@@ -18,7 +18,7 @@
 /// \param parent Parent widget.
 ///
 ServerSettingsDialog::ServerSettingsDialog(const ServerSettings &settings, QWidget *parent)
-    : QDialog(parent)
+    : AppBaseDialog(parent)
     , ui(new Ui::ServerSettingsDialog)
 {
     ui->setupUi(this);

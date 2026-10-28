@@ -21,7 +21,7 @@
 /// \param parent Owning widget.
 ///
 ValueDialog::ValueDialog(const QString &title, const QString &value, QWidget *parent)
-    : QDialog(parent), ui(new Ui::ValueDialog), _value(value)
+    : AppBaseDialog(parent), ui(new Ui::ValueDialog), _value(value)
 {
     ui->setupUi(this);
     setWindowTitle(title);

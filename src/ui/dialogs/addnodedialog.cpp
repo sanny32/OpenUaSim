@@ -41,7 +41,7 @@ bool isNodeIdNotation(const QString &nodeId)
 /// \param parent Parent widget.
 ///
 AddNodeDialog::AddNodeDialog(const QList<NodeDefinition> &nodes, const QString &parentId, QWidget *parent)
-    : QDialog(parent)
+    : AppBaseDialog(parent)
     , ui(new Ui::AddNodeDialog)
     , _nodes(nodes)
     , _usedIds(ProjectNodes::nodeIds(nodes))

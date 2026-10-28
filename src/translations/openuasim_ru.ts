@@ -1421,14 +1421,6 @@
         <translation>Удаление узла</translation>
     </message>
     <message>
-        <source>Rename Node</source>
-        <translation>Переименование узла</translation>
-    </message>
-    <message>
-        <source>New name of &apos;%1&apos;:</source>
-        <translation>Новое имя для «%1»:</translation>
-    </message>
-    <message>
         <source>Node not renamed</source>
         <translation>Узел не переименован</translation>
     </message>
@@ -3130,6 +3122,17 @@
     <message>
         <source>Copy</source>
         <translation>Копировать</translation>
+    </message>
+</context>
+<context>
+    <name>RenameNodeDialog</name>
+    <message>
+        <source>Rename Node</source>
+        <translation>Переименование узла</translation>
+    </message>
+    <message>
+        <source>New name of &apos;%1&apos;:</source>
+        <translation>Новое имя для «%1»:</translation>
     </message>
 </context>
 </TS>

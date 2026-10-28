@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <QDialog>
+#include "appbasedialog.h"
 
 #include "data/variableinfo.h"
 
@@ -19,7 +19,7 @@ class AlarmDialog;
 ///
 /// \brief Edits the limits or normal value and the severity of a variable's alarm.
 ///
-class AlarmDialog : public QDialog
+class AlarmDialog : public AppBaseDialog
 {
     Q_OBJECT
 

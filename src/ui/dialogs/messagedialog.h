@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <QDialog>
+#include "appbasedialog.h"
 #include <QIcon>
 #include <QStyle>
 
@@ -22,7 +22,7 @@ class MessageDialog;
 /// The filled action button accepts, Cancel rejects and the optional alternative button on the
 /// left finishes with MessageDialog::Alternative.
 ///
-class MessageDialog : public QDialog
+class MessageDialog : public AppBaseDialog
 {
     Q_OBJECT
 

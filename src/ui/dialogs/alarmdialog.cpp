@@ -75,7 +75,7 @@ int limitDecimals(const QString &dataType)
 /// \param parent Parent widget.
 ///
 AlarmDialog::AlarmDialog(const VariableInfo &variable, QWidget *parent)
-    : QDialog(parent)
+    : AppBaseDialog(parent)
     , ui(new Ui::AlarmDialog)
     , _dataType(variable.dataType)
     , _arrayLength(variable.arrayLength)

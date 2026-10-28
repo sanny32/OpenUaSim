@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <QDialog>
+#include "appbasedialog.h"
 #include <QList>
 
 #include "data/projectconfig.h"
@@ -20,7 +20,7 @@ class UsersDialog;
 ///
 /// \brief Lists the user accounts in an editable table and adds or removes accounts.
 ///
-class UsersDialog : public QDialog
+class UsersDialog : public AppBaseDialog
 {
     Q_OBJECT
 
