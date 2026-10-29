@@ -93,6 +93,7 @@ void ObjectsPage::setAddressSpace(const QList<TreeNode> &addressSpace,
     _addressSpace = addressSpace;
     _variables = variables;
     _methods = methods;
+    ui->methodProperties->setVariables(variables);
     _treeModel->setNodes(addressSpace);
     ViewSetup::applyInitialState(ui->addressTree);
     if (!previousTreeId.isEmpty() && ViewSetup::selectById(ui->addressTree, previousTreeId)

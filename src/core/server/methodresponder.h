@@ -17,6 +17,7 @@
 
 class QUaNodeId;
 class QUaServer;
+class AddressSpace;
 
 ///
 /// \brief Answers the calls of methods of imported models, which have no implementation, with the configured
@@ -30,9 +31,10 @@ public:
     ///
     /// \brief Creates a responder that answers no method yet.
     /// \param server Server holding the methods; must outlive the responder or the next setServer().
+    /// \param addressSpace Managed variables used for assignments; must outlive the responder.
     /// \param parent Owning QObject.
     ///
-    explicit MethodResponder(QUaServer *server, QObject *parent = nullptr);
+    explicit MethodResponder(QUaServer *server, AddressSpace *addressSpace, QObject *parent = nullptr);
 
     ///
     /// \brief Forgets the answered methods and answers the methods bound later on another server.
@@ -75,11 +77,15 @@ signals:
     ///
     void methodCalled(const QString &methodId, const QString &result);
 
+    /// \brief Announces values assigned by a method scenario.
+    void valuesSetByMethod(const QHash<QString, QVariant> &values);
+
 private:
     quint32 answer(const QString &methodId, const QUaNodeId &objectId, const QVariantList &inputs,
                    QVariantList &outputs);
 
     QUaServer *_server;
+    AddressSpace *_addressSpace;
     QSet<QString> _bound;
     QHash<QString, MethodResponse> _responses;
 };

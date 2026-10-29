@@ -16,8 +16,18 @@
 #include "data/methodinfo.h"
 
 class QUaServer;
+class QUaNodeId;
 
 namespace ModelMethods {
+
+///
+/// \brief Returns the built-in data type the values of a data type are typed as.
+/// \param server Server holding the data type.
+/// \param typeId Data type node id.
+/// \return Name such as "Double", "Int32" for an enumeration, or empty for a data type that cannot be typed as text.
+///
+QString valueType(const QUaServer &server, const QUaNodeId &typeId);
+
 
 ///
 /// \brief Describes a method with the arguments it declares.
@@ -53,7 +63,7 @@ qsizetype indexOf(const QList<ModelMethod> &methods, const QString &namespaceUri
 /// \param server Server holding the models.
 /// \param problems Receives why answers were skipped: an unloaded namespace, an unknown method or an output
 ///        text that is no value of its argument; may be null.
-/// \return Answers keyed by the server node id of the method.
+/// \return Answers keyed by the server node id; scenario dependencies are validated when called.
 ///
 QHash<QString, MethodResponse> resolve(const QList<ModelMethod> &methods, QUaServer &server,
                                        QStringList *problems = nullptr);

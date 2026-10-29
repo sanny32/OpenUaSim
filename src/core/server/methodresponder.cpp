@@ -10,17 +10,20 @@
 
 #include "formatting.h"
 #include "methodresponder.h"
+#include "methodscenario.h"
 #include "modelmethods.h"
 #include "project/methodstatuses.h"
 
 ///
 /// \brief Creates a responder that answers no method yet.
 /// \param server Server holding the methods; must outlive the responder or the next setServer().
+/// \param addressSpace Managed variables used for assignments; must outlive the responder.
 /// \param parent Owning QObject.
 ///
-MethodResponder::MethodResponder(QUaServer *server, QObject *parent)
+MethodResponder::MethodResponder(QUaServer *server, AddressSpace *addressSpace, QObject *parent)
     : QObject(parent)
     , _server(server)
+    , _addressSpace(addressSpace)
 {
 }
 
@@ -93,10 +96,15 @@ void MethodResponder::setResponse(const QString &methodId, const MethodResponse 
 quint32 MethodResponder::answer(const QString &methodId, const QUaNodeId &objectId, const QVariantList &inputs,
                                 QVariantList &outputs)
 {
-    const MethodResponse response = _responses.value(methodId);
-    outputs = ModelMethods::outputValues(ModelMethods::describe(*_server, methodId).outputs, response);
+    MethodInfo method = ModelMethods::describe(*_server, methodId);
+    method.response = _responses.value(methodId);
+    QHash<QString, QVariant> changes;
+    QString error;
+    const quint32 status = MethodScenario::execute(*_server, _addressSpace, method, inputs, outputs, changes, error);
+    if (!changes.isEmpty())
+        emit valuesSetByMethod(changes);
     emit methodCalled(methodId, tr("inputs %1 on %2, answered %3")
                                     .arg(Formatting::value(inputs), objectId.toXmlString(),
-                                         MethodStatuses::name(response.statusCode)));
-    return response.statusCode;
+                                         error.isEmpty() ? MethodStatuses::name(status) : error));
+    return status;
 }

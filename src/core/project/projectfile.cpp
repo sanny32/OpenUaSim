@@ -80,6 +80,7 @@ QString methodKey(NodeDefinition::MethodAction action)
     switch (action) {
     case NodeDefinition::MethodAction::Reset:    return QStringLiteral("reset");
     case NodeDefinition::MethodAction::SetValue: return QStringLiteral("setValue");
+    case NodeDefinition::MethodAction::Scenario: return QStringLiteral("scenario");
     }
     return {};
 }
@@ -247,10 +248,57 @@ AlarmSettings alarmFromJson(const QJsonObject &json)
 }
 
 ///
-/// \brief Serializes a node and its children.
-/// \param node Node to write.
-/// \return JSON object; variable fields are written for variables only.
+/// \brief Serializes the selected source and its editable settings.
+/// \param source Source to store.
+/// \return Source object with a stable kind identifier.
 ///
+QJsonObject sourceToJson(const MethodValueSource &source)
+{
+    static const QStringList kinds = { QStringLiteral("constant"), QStringLiteral("input"),
+                                       QStringLiteral("variable"), QStringLiteral("simulation") };
+    return { { QStringLiteral("kind"), kinds.value(int(source.kind)) },
+             { QStringLiteral("value"), source.value },
+             { QStringLiteral("inputIndex"), source.inputIndex },
+             { QStringLiteral("variableId"), source.variableId },
+             { QStringLiteral("simulation"), simulationToJson(source.simulation) } };
+}
+
+/// \brief Serializes value sources and ordered assignments alongside legacy constant responses.
+QJsonObject responseToJson(const MethodResponse &response)
+{
+    QJsonObject json {
+        { QStringLiteral("status"), MethodStatuses::name(response.statusCode) },
+        { QStringLiteral("outputs"), QJsonArray::fromStringList(response.outputs) },
+    };
+    QJsonArray sources;
+    for (const MethodValueSource &source : response.sources)
+        sources.append(sourceToJson(source));
+    if (!sources.isEmpty())
+        json.insert(QStringLiteral("sources"), sources);
+    QJsonArray actions;
+    for (const MethodSetAction &action : response.actions)
+        actions.append(QJsonObject { { QStringLiteral("type"), QStringLiteral("set") },
+                                    { QStringLiteral("enabled"), action.enabled },
+                                    { QStringLiteral("targetId"), action.targetId },
+                                    { QStringLiteral("source"), sourceToJson(action.source) } });
+    if (!actions.isEmpty())
+        json.insert(QStringLiteral("actions"), actions);
+    return json;
+}
+
+/// \brief Serializes the editable signature of a project scenario method.
+QJsonArray argumentsToJson(const QList<ArgumentInfo> &arguments)
+{
+    QJsonArray array;
+    for (const ArgumentInfo &argument : arguments)
+        array.append(QJsonObject { { QStringLiteral("name"), argument.name },
+                                   { QStringLiteral("dataType"), argument.valueType },
+                                   { QStringLiteral("array"), argument.array },
+                                   { QStringLiteral("description"), argument.description } });
+    return array;
+}
+
+/// \brief Serializes a project node with the settings appropriate to its kind.
 QJsonObject nodeToJson(const NodeDefinition &node)
 {
     QJsonObject json {
@@ -284,6 +332,11 @@ QJsonObject nodeToJson(const NodeDefinition &node)
         }
     } else if (node.kind == NodeDefinition::Kind::Method) {
         json.insert(QStringLiteral("action"), methodKey(node.method));
+        if (node.method == NodeDefinition::MethodAction::Scenario) {
+            json.insert(QStringLiteral("inputArguments"), argumentsToJson(node.inputs));
+            json.insert(QStringLiteral("outputArguments"), argumentsToJson(node.outputs));
+            json.insert(QStringLiteral("response"), responseToJson(node.response));
+        }
     } else {
         QJsonArray children;
         for (const NodeDefinition &child : node.children)
@@ -312,12 +365,10 @@ QJsonObject modelVariableToJson(const ModelVariable &variable)
 ///
 QJsonObject modelMethodToJson(const ModelMethod &method)
 {
-    return {
-        { QStringLiteral("namespaceUri"), method.namespaceUri },
-        { QStringLiteral("nodeId"), method.identifier },
-        { QStringLiteral("status"), MethodStatuses::name(method.response.statusCode) },
-        { QStringLiteral("outputs"), QJsonArray::fromStringList(method.response.outputs) },
-    };
+    QJsonObject json = responseToJson(method.response);
+    json.insert(QStringLiteral("namespaceUri"), method.namespaceUri);
+    json.insert(QStringLiteral("nodeId"), method.identifier);
+    return json;
 }
 
 ///
@@ -408,6 +459,9 @@ public:
     QString error() const { return _error; }
 
 private:
+    bool readSource(const QJsonValue &value, const QString &path, MethodValueSource &source, bool enabled = true);
+    bool readResponse(const QJsonObject &json, const QString &path, MethodResponse &response);
+    bool readArguments(const QJsonValue &value, const QString &path, QList<ArgumentInfo> &arguments);
     bool readNode(const QJsonObject &json, const QString &path, NodeDefinition &node);
     bool readVariable(const QJsonObject &json, const QString &path, NodeDefinition &node);
     bool fail(const QString &path, const QString &message);
@@ -491,12 +545,8 @@ bool NodeReader::readModelMethods(const QJsonArray &array, const QString &path, 
         method.identifier = json.value(QStringLiteral("nodeId")).toString();
         if (method.identifier.isEmpty())
             return fail(itemPath, tr("node id is empty"));
-        const QString status = json.value(QStringLiteral("status")).toString(QStringLiteral("Good"));
-        if (!MethodStatuses::fromName(status, method.response.statusCode))
-            return fail(itemPath, tr("unknown status '%1'").arg(status));
-        const QJsonArray outputs = json.value(QStringLiteral("outputs")).toArray();
-        for (const QJsonValue &output : outputs)
-            method.response.outputs.append(output.toString());
+        if (!readResponse(json, itemPath, method.response))
+            return false;
         const QString key = method.namespaceUri + QLatin1Char('\n') + method.identifier;
         if (keys.contains(key))
             return fail(itemPath, tr("the method has settings more than once"));
@@ -507,12 +557,122 @@ bool NodeReader::readModelMethods(const QJsonArray &array, const QString &path, 
 }
 
 ///
-/// \brief Parses one node and its children.
-/// \param json Stored node.
-/// \param path Location of the node for error messages.
-/// \param node Receives the parsed node.
-/// \return False when the node is invalid.
+/// \brief Parses a source and rejects malformed settings before they can change variable values.
+/// \param value Stored source object.
+/// \param path Source location for diagnostics.
+/// \param source Receives the parsed settings.
+/// \return False when the source structure or settings are invalid.
 ///
+bool NodeReader::readSource(const QJsonValue &value, const QString &path, MethodValueSource &source, bool enabled)
+{
+    if (!value.isObject())
+        return fail(path, tr("method source must be an object"));
+    const QJsonObject json = value.toObject();
+    static const QStringList kinds = { QStringLiteral("constant"), QStringLiteral("input"),
+                                       QStringLiteral("variable"), QStringLiteral("simulation") };
+    const int kind = kinds.indexOf(json.value(QStringLiteral("kind")).toString());
+    if (kind < 0)
+        return fail(path, tr("unknown method value source"));
+    source.kind = MethodValueSource::Kind(kind);
+    for (const QString &key : { QStringLiteral("value"), QStringLiteral("variableId") }) {
+        if (json.contains(key) && !json.value(key).isString())
+            return fail(path, tr("source text must be a string"));
+    }
+    source.value = json.value(QStringLiteral("value")).toString();
+    source.inputIndex = json.value(QStringLiteral("inputIndex")).toInt(-1);
+    source.variableId = json.value(QStringLiteral("variableId")).toString();
+    if (enabled && source.kind == MethodValueSource::Kind::Input && source.inputIndex < 0)
+        return fail(path, tr("input argument index must be nonnegative"));
+    if (enabled && source.kind == MethodValueSource::Kind::Variable && source.variableId.isEmpty())
+        return fail(path, tr("source variable is empty"));
+    if (json.contains(QStringLiteral("simulation")) || source.kind == MethodValueSource::Kind::Simulation) {
+        const QJsonObject simulation = json.value(QStringLiteral("simulation")).toObject();
+        for (const QString &key : { QStringLiteral("amplitude"), QStringLiteral("offset") }) {
+            if (simulation.contains(key) && !simulation.value(key).isDouble())
+                return fail(path, tr("simulation parameter must be a number"));
+        }
+        bool known = false;
+        source.simulation.function = SignalGenerator::fromKey(simulation.value(QStringLiteral("function")).toString(QStringLiteral("none")), &known);
+        source.simulation.intervalMs = simulation.value(QStringLiteral("intervalMs")).toInt(1000);
+        source.simulation.periodMs = simulation.value(QStringLiteral("periodMs")).toInt(10000);
+        source.simulation.amplitude = simulation.value(QStringLiteral("amplitude")).toDouble();
+        source.simulation.offset = simulation.value(QStringLiteral("offset")).toDouble();
+        for (const QJsonValue &entry : simulation.value(QStringLiteral("values")).toArray())
+            source.simulation.values.append(entry.toString());
+        if (!known || (enabled && source.kind == MethodValueSource::Kind::Simulation
+            && (source.simulation.function == SimulationFunction::None
+                || source.simulation.intervalMs < 1 || source.simulation.periodMs < 1)))
+            return fail(path, tr("invalid method simulation settings"));
+    }
+    return true;
+}
+
+/// \brief Parses response status, legacy constants, typed sources and SET actions.
+bool NodeReader::readResponse(const QJsonObject &json, const QString &path, MethodResponse &response)
+{
+    const QString status = json.value(QStringLiteral("status")).toString(QStringLiteral("Good"));
+    if (!MethodStatuses::fromName(status, response.statusCode))
+        return fail(path, tr("unknown status '%1'").arg(status));
+    for (const QJsonValue &output : json.value(QStringLiteral("outputs")).toArray())
+        response.outputs.append(output.toString());
+    for (const QString &key : { QStringLiteral("sources"), QStringLiteral("actions") }) {
+        if (json.contains(key) && !json.value(key).isArray())
+            return fail(path + QLatin1Char('.') + key, tr("expected an array"));
+    }
+    const QJsonArray sources = json.value(QStringLiteral("sources")).toArray();
+    for (qsizetype index = 0; index < sources.size(); ++index) {
+        MethodValueSource source;
+        if (!readSource(sources.at(index), QStringLiteral("%1.sources[%2]").arg(path).arg(index), source))
+            return false;
+        response.sources.append(source);
+    }
+    const QJsonArray actions = json.value(QStringLiteral("actions")).toArray();
+    for (qsizetype index = 0; index < actions.size(); ++index) {
+        const QString actionPath = QStringLiteral("%1.actions[%2]").arg(path).arg(index);
+        const QJsonObject actionJson = actions.at(index).toObject();
+        if (actionJson.value(QStringLiteral("type")).toString() != QLatin1String("set"))
+            return fail(actionPath, tr("unknown method action"));
+        MethodSetAction action;
+        if (actionJson.contains(QStringLiteral("enabled")) && !actionJson.value(QStringLiteral("enabled")).isBool())
+            return fail(actionPath, tr("action enabled flag must be a boolean"));
+        if (!actionJson.value(QStringLiteral("targetId")).isString())
+            return fail(actionPath, tr("target variable must be a string"));
+        action.enabled = actionJson.value(QStringLiteral("enabled")).toBool(true);
+        action.targetId = actionJson.value(QStringLiteral("targetId")).toString();
+        if (action.enabled && action.targetId.isEmpty())
+            return fail(actionPath, tr("target variable is empty"));
+        if (!readSource(actionJson.value(QStringLiteral("source")), actionPath + QStringLiteral(".source"), action.source, action.enabled))
+            return false;
+        response.actions.append(action);
+    }
+    return true;
+}
+
+/// \brief Parses an editable signature without requiring a running server.
+bool NodeReader::readArguments(const QJsonValue &value, const QString &path, QList<ArgumentInfo> &arguments)
+{
+    if (!value.isArray())
+        return fail(path, tr("expected an argument array"));
+    QSet<QString> names;
+    for (const QJsonValue &entry : value.toArray()) {
+        const QJsonObject json = entry.toObject();
+        ArgumentInfo argument;
+        argument.name = json.value(QStringLiteral("name")).toString();
+        argument.valueType = json.value(QStringLiteral("dataType")).toString();
+        argument.array = json.value(QStringLiteral("array")).toBool();
+        argument.dataType = argument.valueType + (argument.array ? QStringLiteral("[]") : QString());
+        argument.description = json.value(QStringLiteral("description")).toString();
+        if (argument.name.trimmed().isEmpty() || names.contains(argument.name))
+            return fail(path, tr("argument names must be nonempty and unique"));
+        if (!ValueCast::isSupported(argument.valueType))
+            return fail(path, tr("unsupported argument type '%1'").arg(argument.valueType));
+        names.insert(argument.name);
+        arguments.append(argument);
+    }
+    return true;
+}
+
+/// \brief Parses a project node and reports its first invalid field.
 bool NodeReader::readNode(const QJsonObject &json, const QString &path, NodeDefinition &node)
 {
     const QString kind = json.value(QStringLiteral("kind")).toString();
@@ -538,9 +698,14 @@ bool NodeReader::readNode(const QJsonObject &json, const QString &path, NodeDefi
         return readVariable(json, path, node);
     if (node.kind == NodeDefinition::Kind::Method) {
         const QString action = json.value(QStringLiteral("action")).toString();
-        for (auto candidate : { NodeDefinition::MethodAction::Reset, NodeDefinition::MethodAction::SetValue }) {
+        for (auto candidate : { NodeDefinition::MethodAction::Reset, NodeDefinition::MethodAction::SetValue,
+                                NodeDefinition::MethodAction::Scenario }) {
             if (methodKey(candidate) == action) {
                 node.method = candidate;
+                if (candidate == NodeDefinition::MethodAction::Scenario)
+                    return readArguments(json.value(QStringLiteral("inputArguments")), path + QStringLiteral(".inputArguments"), node.inputs)
+                        && readArguments(json.value(QStringLiteral("outputArguments")), path + QStringLiteral(".outputArguments"), node.outputs)
+                        && readResponse(json.value(QStringLiteral("response")).toObject(), path + QStringLiteral(".response"), node.response);
                 return true;
             }
         }

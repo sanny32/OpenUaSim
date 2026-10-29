@@ -217,6 +217,11 @@
          <string>Set a variable: SetValue(name, value)</string>
         </property>
        </item>
+        <item>
+         <property name="text">
+          <string>Scenario with configurable arguments and actions</string>
+         </property>
+        </item>
       </widget>
      </item>
     </layout>

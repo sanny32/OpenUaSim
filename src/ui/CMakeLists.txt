@@ -2,6 +2,7 @@ set(UI_FILES
     mainwindow.ui
 
     dialogs/alarmdialog.ui
+    dialogs/methodsourcedialog.ui
     dialogs/messagedialog.ui
     dialogs/addnodedialog.ui
     dialogs/serversettingsdialog.ui
@@ -48,6 +49,8 @@ add_library(ouasim_ui STATIC
     dialogs/renamenodedialog.ui
     dialogs/alarmdialog.cpp
     dialogs/alarmdialog.h
+    dialogs/methodsourcedialog.cpp
+    dialogs/methodsourcedialog.h
     dialogs/messagedialog.cpp
     dialogs/messagedialog.h
     dialogs/addnodedialog.cpp

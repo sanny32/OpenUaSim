@@ -99,12 +99,10 @@ public:
     bool updateVariable(const VariableInfo &variable, QString *error = nullptr);
 
     ///
-    /// \brief Applies the edited response of a method of an imported model and keeps it in the project.
-    /// \param method Server node id with the new response; a response of Good without output texts drops the stored
-    ///        one.
+    /// \brief Applies a scenario to an imported method or a project scenario method.
+    /// \param method Method node id with edited sources, assignments, status and project signature.
     /// \param error Receives the reason on failure; may be null.
-    /// \return False for a node that is no model method, or for an output text that is no value of its argument.
-    ///         The response applies to the next calls without rebuilding the address space.
+    /// \return False for unsupported methods or invalid settings. Behavior changes apply live; project signature changes rebuild the address space.
     ///
     bool updateModelMethod(const MethodInfo &method, QString *error = nullptr);
 

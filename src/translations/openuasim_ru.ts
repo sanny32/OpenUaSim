@@ -131,6 +131,10 @@
         <source>]</source>
         <translation>]</translation>
     </message>
+    <message>
+        <source>Scenario with configurable arguments and actions</source>
+        <translation>Сценарий с настраиваемыми аргументами и действиями</translation>
+    </message>
 </context>
 <context>
     <name>AddressSpace</name>
@@ -1562,12 +1566,242 @@
         <source>Set a variable next to it from text</source>
         <translation>Задать соседнюю переменную из текста</translation>
     </message>
+    <message>
+        <source>Add input</source>
+        <translation>Добавить вход</translation>
+    </message>
+    <message>
+        <source>Remove input</source>
+        <translation>Удалить вход</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>Источник</translation>
+    </message>
+    <message>
+        <source>Add output</source>
+        <translation>Добавить выход</translation>
+    </message>
+    <message>
+        <source>Remove output</source>
+        <translation>Удалить выход</translation>
+    </message>
+    <message>
+        <source>Edit output source</source>
+        <translation>Источник выхода</translation>
+    </message>
+    <message>
+        <source>Actions (performed in order before sampling outputs)</source>
+        <translation>Действия (выполняются по порядку до получения выходных значений)</translation>
+    </message>
+    <message>
+        <source>Enabled</source>
+        <translation>Включено</translation>
+    </message>
+    <message>
+        <source>Target variable NodeId</source>
+        <translation>NodeId целевой переменной</translation>
+    </message>
+    <message>
+        <source>Add SET</source>
+        <translation>Добавить SET</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Удалить</translation>
+    </message>
+    <message>
+        <source>Edit source</source>
+        <translation>Изменить источник</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <translation>Вверх</translation>
+    </message>
+    <message>
+        <source>Down</source>
+        <translation>Вниз</translation>
+    </message>
+    <message>
+        <source>Constant</source>
+        <translation>Константа</translation>
+    </message>
+    <message>
+        <source>Missing input</source>
+        <translation>Вход удалён</translation>
+    </message>
+    <message>
+        <source>Input %1</source>
+        <translation>Вход %1</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Симуляция</translation>
+    </message>
+    <message>
+        <source>Configured scenario</source>
+        <translation>Настроенный сценарий</translation>
+    </message>
+    <message>
+        <source>SET</source>
+        <translation>SET</translation>
+    </message>
+    <message>
+        <source>Constant: %1</source>
+        <translation>Константа: %1</translation>
+    </message>
+    <message>
+        <source>Input%1</source>
+        <translation>Вход%1</translation>
+    </message>
+    <message>
+        <source>Output%1</source>
+        <translation>Выход%1</translation>
+    </message>
 </context>
 <context>
     <name>MethodResponder</name>
     <message>
         <source>inputs %1 on %2, answered %3</source>
         <translation>входы %1 на %2, ответ %3</translation>
+    </message>
+</context>
+<context>
+    <name>MethodScenario</name>
+    <message>
+        <source>Argument names must be nonempty and unique</source>
+        <translation>Имена аргументов должны быть непустыми и уникальными</translation>
+    </message>
+    <message>
+        <source>Unsupported argument type &apos;%1&apos;</source>
+        <translation>Неподдерживаемый тип аргумента «%1»</translation>
+    </message>
+    <message>
+        <source>Unknown method status code</source>
+        <translation>Неизвестный код статуса метода</translation>
+    </message>
+    <message>
+        <source>More output sources than output arguments</source>
+        <translation>Источников больше, чем выходных аргументов</translation>
+    </message>
+    <message>
+        <source>Target variable &apos;%1&apos; does not exist</source>
+        <translation>Целевая переменная «%1» не существует</translation>
+    </message>
+    <message>
+        <source>Method input count does not match its signature</source>
+        <translation>Количество входных значений не соответствует сигнатуре метода</translation>
+    </message>
+    <message>
+        <source>Array length does not match &apos;%1&apos;</source>
+        <translation>Длина массива не соответствует «%1»</translation>
+    </message>
+    <message>
+        <source>Unsupported target type for &apos;%1&apos;</source>
+        <translation>Неподдерживаемый тип назначения для «%1»</translation>
+    </message>
+    <message>
+        <source>Input argument %1 does not exist</source>
+        <translation>Входной аргумент %1 не существует</translation>
+    </message>
+    <message>
+        <source>Source variable &apos;%1&apos; does not exist</source>
+        <translation>Переменная-источник «%1» не существует</translation>
+    </message>
+    <message>
+        <source>Simulation sources require a scalar target</source>
+        <translation>Источник симуляции требует скалярного назначения</translation>
+    </message>
+    <message>
+        <source>Invalid method simulation settings</source>
+        <translation>Некорректные настройки симуляции метода</translation>
+    </message>
+    <message>
+        <source>Simulation value list is empty</source>
+        <translation>Список значений симуляции пуст</translation>
+    </message>
+    <message>
+        <source>Invalid simulation value &apos;%1&apos;</source>
+        <translation>Некорректное значение симуляции «%1»</translation>
+    </message>
+    <message>
+        <source>Unknown method value source</source>
+        <translation>Неизвестный источник значения метода</translation>
+    </message>
+    <message>
+        <source>Source type does not match &apos;%1&apos; (%2)</source>
+        <translation>Тип источника не соответствует «%1» (%2)</translation>
+    </message>
+    <message>
+        <source>Method value source is unavailable</source>
+        <translation>Источник значения метода недоступен</translation>
+    </message>
+</context>
+<context>
+    <name>MethodSourceDialog</name>
+    <message>
+        <source>Method Value Source</source>
+        <translation>Источник значения метода</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>Источник</translation>
+    </message>
+    <message>
+        <source>Constant</source>
+        <translation>Константа</translation>
+    </message>
+    <message>
+        <source>Input argument</source>
+        <translation>Входной аргумент</translation>
+    </message>
+    <message>
+        <source>Variable</source>
+        <translation>Переменная</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Симуляция</translation>
+    </message>
+    <message>
+        <source>Constant value</source>
+        <translation>Постоянное значение</translation>
+    </message>
+    <message>
+        <source>Separate array elements with semicolons. Empty uses the type default.</source>
+        <translation>Разделяйте элементы массива точкой с запятой. Пустое поле задаёт значение типа по умолчанию.</translation>
+    </message>
+    <message>
+        <source>Variable NodeId</source>
+        <translation>NodeId переменной</translation>
+    </message>
+    <message>
+        <source>Simulation at call time</source>
+        <translation>Симуляция в момент вызова</translation>
+    </message>
+    <message>
+        <source>Function</source>
+        <translation>Функция</translation>
+    </message>
+    <message>
+        <source>Interval (ms)</source>
+        <translation>Интервал (мс)</translation>
+    </message>
+    <message>
+        <source>Period (ms)</source>
+        <translation>Период (мс)</translation>
+    </message>
+    <message>
+        <source>Amplitude</source>
+        <translation>Амплитуда</translation>
+    </message>
+    <message>
+        <source>Offset</source>
+        <translation>Смещение</translation>
+    </message>
+    <message>
+        <source>List values (;)</source>
+        <translation>Значения списка (;)</translation>
     </message>
 </context>
 <context>
@@ -1794,6 +2028,66 @@
     <message>
         <source>the method has settings more than once</source>
         <translation>настройки метода заданы более одного раза</translation>
+    </message>
+    <message>
+        <source>method source must be an object</source>
+        <translation>источник метода должен быть объектом</translation>
+    </message>
+    <message>
+        <source>unknown method value source</source>
+        <translation>неизвестный источник значения метода</translation>
+    </message>
+    <message>
+        <source>source text must be a string</source>
+        <translation>текст источника должен быть строкой</translation>
+    </message>
+    <message>
+        <source>input argument index must be nonnegative</source>
+        <translation>индекс входного аргумента должен быть неотрицательным</translation>
+    </message>
+    <message>
+        <source>source variable is empty</source>
+        <translation>переменная-источник не указана</translation>
+    </message>
+    <message>
+        <source>simulation parameter must be a number</source>
+        <translation>параметр симуляции должен быть числом</translation>
+    </message>
+    <message>
+        <source>invalid method simulation settings</source>
+        <translation>некорректные настройки симуляции метода</translation>
+    </message>
+    <message>
+        <source>expected an array</source>
+        <translation>ожидается массив</translation>
+    </message>
+    <message>
+        <source>unknown method action</source>
+        <translation>неизвестное действие метода</translation>
+    </message>
+    <message>
+        <source>action enabled flag must be a boolean</source>
+        <translation>признак включения действия должен быть логическим значением</translation>
+    </message>
+    <message>
+        <source>target variable must be a string</source>
+        <translation>целевая переменная должна быть строкой</translation>
+    </message>
+    <message>
+        <source>target variable is empty</source>
+        <translation>целевая переменная не указана</translation>
+    </message>
+    <message>
+        <source>expected an argument array</source>
+        <translation>ожидается массив аргументов</translation>
+    </message>
+    <message>
+        <source>argument names must be nonempty and unique</source>
+        <translation>имена аргументов должны быть непустыми и уникальными</translation>
+    </message>
+    <message>
+        <source>unsupported argument type &apos;%1&apos;</source>
+        <translation>неподдерживаемый тип аргумента «%1»</translation>
     </message>
 </context>
 <context>
@@ -2056,6 +2350,17 @@
     <message>
         <source>Count</source>
         <translation>Количество</translation>
+    </message>
+</context>
+<context>
+    <name>RenameNodeDialog</name>
+    <message>
+        <source>Rename Node</source>
+        <translation>Переименование узла</translation>
+    </message>
+    <message>
+        <source>New name of &apos;%1&apos;:</source>
+        <translation>Новое имя для «%1»:</translation>
     </message>
 </context>
 <context>
@@ -2571,10 +2876,6 @@
     <message>
         <source>Stopped</source>
         <translation>Остановлен</translation>
-    </message>
-    <message>
-        <source>Server Information</source>
-        <translation>Сведения о сервере</translation>
     </message>
 </context>
 <context>
@@ -3122,17 +3423,6 @@
     <message>
         <source>Copy</source>
         <translation>Копировать</translation>
-    </message>
-</context>
-<context>
-    <name>RenameNodeDialog</name>
-    <message>
-        <source>Rename Node</source>
-        <translation>Переименование узла</translation>
-    </message>
-    <message>
-        <source>New name of &apos;%1&apos;:</source>
-        <translation>Новое имя для «%1»:</translation>
     </message>
 </context>
 </TS>

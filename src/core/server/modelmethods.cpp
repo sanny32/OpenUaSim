@@ -12,20 +12,11 @@
 
 #include "importednodes.h"
 #include "modelmethods.h"
+#include "methodscenario.h"
 #include "modelvariables.h"
 #include "simulation/valuecast.h"
 
-namespace {
-
-///
-/// \brief Translates a text of this file.
-/// \param text Source text.
-/// \return Translated text.
-///
-QString tr(const char *text)
-{
-    return QCoreApplication::translate("ModelMethods", text);
-}
+namespace ModelMethods {
 
 ///
 /// \brief Returns the built-in data type the values of a data type are typed as.
@@ -45,6 +36,20 @@ QString valueType(const QUaServer &server, const QUaNodeId &typeId)
     return {};
 }
 
+}
+
+namespace {
+
+///
+/// \brief Translates a text of this file.
+/// \param text Source text.
+/// \return Translated text.
+///
+QString tr(const char *text)
+{
+    return QCoreApplication::translate("ModelMethods", text);
+}
+
 ///
 /// \brief Describes a method argument.
 /// \param server Server holding the data type of the argument.
@@ -57,12 +62,13 @@ ArgumentInfo argumentInfo(const QUaServer &server, const QUaMethodArgument &argu
     info.name = argument.name;
     info.description = argument.description.text();
     info.array = argument.valueRank >= UA_VALUERANK_ONE_OR_MORE_DIMENSIONS;
+    info.arrayDimensions = argument.arrayDimensions;
     const QString typeId = argument.dataType.toXmlString();
     QString typeName = ImportedNodes::dataTypeName(typeId);
     if (typeName == typeId && !server.browseName(argument.dataType).name().isEmpty())
         typeName = server.browseName(argument.dataType).name();
     info.dataType = info.array ? typeName + QStringLiteral("[]") : typeName;
-    info.valueType = valueType(server, argument.dataType);
+    info.valueType = ModelMethods::valueType(server, argument.dataType);
     return info;
 }
 
@@ -104,6 +110,7 @@ MethodInfo describe(const QUaServer &server, const QString &nodeId)
     const QUaNodeId id(nodeId);
     MethodInfo info;
     info.nodeId = nodeId;
+    info.namespaces = server.namespaces();
     info.displayName = server.browseName(id).name();
     info.description = server.description(id).text();
     info.kind = id.namespaceIndex() >= ModelVariables::kFirstModelNamespace ? MethodInfo::Kind::Model
@@ -164,7 +171,7 @@ qsizetype indexOf(const QList<ModelMethod> &methods, const QString &namespaceUri
 /// \param server Server holding the models.
 /// \param problems Receives why answers were skipped: an unloaded namespace, an unknown method or an output
 ///        text that is no value of its argument; may be null.
-/// \return Answers keyed by the server node id of the method.
+/// \return Answers keyed by the server node id; scenario dependencies are validated when called.
 ///
 QHash<QString, MethodResponse> resolve(const QList<ModelMethod> &methods, QUaServer &server, QStringList *problems)
 {
@@ -180,8 +187,12 @@ QHash<QString, MethodResponse> resolve(const QList<ModelMethod> &methods, QUaSer
             nodeId.setNamespaceIndex(quint16(namespaceIndex));
             if (nodeId.isNull() || server.browseName(nodeId).name().isEmpty())
                 problem = tr("the model has no such method");
-            else
-                outputValues(describe(server, nodeId.toXmlString()).outputs, stored.response, &problem);
+            // Scenario dependencies are checked on calls so missing nodes return an error instead of default Good.
+            else if (stored.response.sources.isEmpty() && stored.response.actions.isEmpty()) {
+                MethodInfo method = describe(server, nodeId.toXmlString());
+                method.response = stored.response;
+                problem = MethodScenario::problem(server, method);
+            }
         }
         if (!problem.isEmpty()) {
             if (problems)

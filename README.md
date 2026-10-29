@@ -14,7 +14,8 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 - Variable simulation with sine, square, triangle, ramp, random and step
   waveforms, Boolean toggles, counters and value lists, with configurable timing,
   amplitude and offset.
-- Callable OPC UA methods to reset variables or set their values.
+- Callable OPC UA methods to reset variables or set their values, and configurable
+  method scenarios with typed arguments, output sources and ordered variable assignments.
 - Numeric limit alarms and Boolean off-normal alarms, with event notifications and
   client acknowledgement.
 - In-memory value history accessible through `HistoryRead`, with configurable
@@ -33,6 +34,35 @@ Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 ### Limitations
 
 All enabled endpoints share one TCP port.
+Method scenarios currently support `SET` actions; delayed `WAIT` actions are not supported.
+Simulation sources produce scalar values.
+
+### Method scenarios
+
+Create a **Method** with the **Scenario** action under a folder or object, then
+select it to add input and output arguments. Enter a built-in data type such as
+`Double` or `UInt32[]` for an array. Imported methods keep the signature defined
+by their model and offer the same source and action editors.
+
+For each output, double-click its **Source** cell and choose a constant, an input
+argument, a variable or a simulation. Constants use semicolons between array
+elements; an empty constant uses the type's default value. Input and variable
+sources must match the target's underlying data type and scalar or array shape.
+
+Use **Add SET** to assign a variable when the method is called. Enter its NodeId,
+double-click its **Source** cell, and use **Up**, **Down** or **Enabled** to control execution.
+Enabled assignments run in order, then output values are sampled. For example,
+a method can copy its first input into a setpoint variable and return that
+variable's updated value. A configured Bad response status performs no assignments.
+An unavailable source or target returns `BadConfigurationError`; already completed
+assignments are retained if a later runtime error occurs.
+
+Simulation sources sample the existing waveform generator using elapsed time
+since the server's first scenario call. Project variable references retain
+namespace index 1; imported references use namespace URIs so model load order
+does not change their meaning. Scenarios are saved in project format 3; older
+project formats remain readable. Changing a project method's signature rebuilds
+the address space; changing its response sources or actions applies live.
 
 ## Quick start
 

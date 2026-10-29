@@ -39,7 +39,7 @@ public:
     ~MethodPropertiesWidget() override;
 
     ///
-    /// \brief Shows a method; the response status and output values are editable for a method of an imported model.
+    /// \brief Shows method scenario settings; only project scenarios have editable signatures.
     /// \param method Method as described.
     ///
     void setMethod(const MethodInfo &method);
@@ -49,10 +49,16 @@ public:
     ///
     void clear();
 
+    ///
+    /// \brief Supplies the address space variables offered in source selectors.
+    /// \param variables Available variables, keyed by their containing object.
+    ///
+    void setVariables(const QHash<QString, QList<VariableInfo>> &variables);
+
 signals:
     ///
     /// \brief Asks to apply the edited response.
-    /// \param method Shown method with the chosen status and the typed output values.
+    /// \param method Shown method with the edited signature, response sources and assignments.
     ///
     void applyRequested(const MethodInfo &method);
 
@@ -60,6 +66,20 @@ protected:
     void changeEvent(QEvent *event) override;
 
 private:
+    bool signatureEditable() const;
+    MethodInfo editedMethod() const;
+    void fillActions(const QList<MethodSetAction> &actions);
+    void editOutputSource(int row, int column);
+    void editActionSource(int row, int column);
+    void addInput();
+    void removeInput();
+    void addOutput();
+    void removeOutput();
+    void addAction();
+    void removeAction();
+    void moveActionUp();
+    void moveActionDown();
+    void moveAction(int offset);
     void fillInputs(const QList<ArgumentInfo> &arguments);
     void fillOutputs(const QList<ArgumentInfo> &arguments, const QStringList &values);
     static int addArgumentRow(QTableWidget *table, const ArgumentInfo &argument);
@@ -71,5 +91,6 @@ private:
 
     Ui::MethodPropertiesWidget *ui;
     MethodInfo _method;
+    QList<VariableInfo> _variables;
     bool _filling = false;
 };

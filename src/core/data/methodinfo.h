@@ -14,24 +14,6 @@
 #include "projectconfig.h"
 
 ///
-/// \brief Input or output argument of a method.
-///
-struct ArgumentInfo
-{
-    /// \brief Argument name.
-    QString name;
-    /// \brief Data type name, e.g. "Double", "ValveState" or "UInt32[]" for an array.
-    QString dataType;
-    /// \brief Built-in data type its value text is parsed as, e.g. "Int32" for an enumeration; empty when the value
-    ///        cannot be typed as text.
-    QString valueType;
-    /// \brief Whether the value is an array, typed as elements separated by semicolons.
-    bool array = false;
-    /// \brief Argument description.
-    QString description;
-};
-
-///
 /// \brief Describes a method of an object in the address space.
 ///
 struct MethodInfo
@@ -51,6 +33,7 @@ struct MethodInfo
     QString displayName;
     /// \brief Description of the method.
     QString description;
+    QStringList namespaces;
     /// \brief Who defines what the method does.
     Kind kind = Kind::Standard;
     /// \brief Action of a project method.

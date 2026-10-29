@@ -7,6 +7,9 @@
 ///
 
 #include <QRegularExpression>
+#include "methodscenario.h"
+#include "methodnodes.h"
+#include "modelmethods.h"
 
 #include <QUaExclusiveLevelAlarm>
 #include <QUaOffNormalAlarm>
@@ -232,6 +235,8 @@ QStringList AddressSpace::attach(const QList<NodeDefinition> &variables)
 ///
 void AddressSpace::clear()
 {
+    for (auto method = _methodResponses.cbegin(); method != _methodResponses.cend(); ++method)
+        _server->setMethodHandler(QUaNodeId(method.key()), {});
     // Alarms of top-level variables live in the Objects folder, which the roots do not own.
     for (const QPointer<QUaAlarmCondition> &alarm : std::as_const(_alarms)) {
         if (alarm) {
@@ -254,6 +259,7 @@ void AddressSpace::clear()
     _qualities.clear();
     _variableIds.clear();
     _nodeCount = 0;
+    _methodResponses.clear();
 }
 
 ///
@@ -339,6 +345,16 @@ bool AddressSpace::setValue(const QString &nodeId, const QVariant &value)
         return false;
     setTypedValue(variable, value, _shapes.value(nodeId));
     return true;
+}
+
+///
+/// \brief Replaces the behavior of a built project scenario without rebuilding its signature.
+/// \param nodeId Scenario method node id.
+/// \param response New sources, assignments and status.
+///
+void AddressSpace::setMethodResponse(const QString &nodeId, const MethodResponse &response)
+{
+    _methodResponses.insert(nodeId, response);
 }
 
 ///
@@ -628,8 +644,41 @@ void AddressSpace::addMethod(QUaNode *parent, const NodeDefinition &method, cons
                           },
                           QUaNodeId(methodId));
         break;
+    case NodeDefinition::MethodAction::Scenario: {
+        const QString error = MethodNodes::add(*_server, parent->nodeId().toXmlString(), method);
+        if (!error.isEmpty()) {
+            problems.append(QStringLiteral("%1: %2").arg(path, error));
+            return;
+        }
+        setMethodResponse(methodId, method.response);
+        _server->setMethodHandler(QUaNodeId(methodId),
+            [this, method](const QUaNodeId &, const QVariantList &inputs, QVariantList &outputs) {
+                return runScenario(method, inputs, outputs);
+            });
+        break;
+    }
     }
     ++_nodeCount;
+}
+
+///
+/// \brief Executes a project scenario and publishes its assignments and diagnostic result.
+/// \param method Stored scenario and signature.
+/// \param inputs Client input values.
+/// \param outputs Receives values sampled after the assignments.
+/// \return Configured status or an execution error.
+///
+quint32 AddressSpace::runScenario(const NodeDefinition &method, const QVariantList &inputs, QVariantList &outputs)
+{
+    MethodInfo info = ModelMethods::describe(*_server, method.nodeId);
+    info.response = _methodResponses.value(method.nodeId);
+    QHash<QString, QVariant> changes;
+    QString error;
+    const quint32 status = MethodScenario::execute(*_server, this, info, inputs, outputs, changes, error);
+    if (!changes.isEmpty())
+        emit valuesSetByMethod(changes);
+    emit methodCalled(method.nodeId, error.isEmpty() ? QStringLiteral("0x%1").arg(status, 8, 16, QLatin1Char('0')) : error);
+    return status;
 }
 
 ///

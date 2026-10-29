@@ -100,6 +100,11 @@ function(ouasim_add_server_test test_name source_file)
     ouasim_link_test_ua_client(${test_name})
 endfunction()
 
+function(ouasim_add_method_scenario_tests)
+    ouasim_add_server_test(ouasim_tests_method_scenario test_methodscenario.cpp)
+    ouasim_add_ui_test(ouasim_tests_method_scenario_editor test_methodscenarioeditor.cpp)
+endfunction()
+
 function(ouasim_link_test_ua_client test_name)
     target_sources(${test_name} PRIVATE $<TARGET_OBJECTS:ouasim_test_ua_client>)
 endfunction()

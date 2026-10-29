@@ -142,6 +142,13 @@ public:
     bool setValue(const QString &nodeId, const QVariant &value) override;
 
     ///
+    /// \brief Replaces the behavior of a built project scenario without rebuilding its signature.
+    /// \param nodeId Scenario method node id.
+    /// \param response New sources, assignments and status.
+    ///
+    void setMethodResponse(const QString &nodeId, const MethodResponse &response);
+
+    ///
     /// \brief Changes who may read and write a variable.
     /// \param nodeId Variable node id.
     /// \param access "Read", "Write" or "Read/Write".
@@ -239,6 +246,7 @@ signals:
     void alarmChanged(const QString &nodeId, const QString &state);
 
 private:
+    quint32 runScenario(const NodeDefinition &method, const QVariantList &inputs, QVariantList &outputs);
     QUaNode *buildNode(QUaNode *parent, const NodeDefinition &node, const QString &path, QStringList &problems);
     void addAlarm(QUaNode *parent, QUaBaseDataVariable &variable, const NodeDefinition &node, const QString &path,
                   QStringList &problems);
@@ -261,6 +269,7 @@ private:
     void applyIcon(const QString &nodeId, QUaBaseDataVariable &variable, const QString &icon);
 
     QUaServer *_server;
+    QHash<QString, MethodResponse> _methodResponses;
     IconImages _iconImages;
     // Kept across clear(): attached model variables outlive a rebuild together with their Icon.
     QSet<QString> _publishedIcons;

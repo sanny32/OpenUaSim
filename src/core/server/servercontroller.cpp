@@ -19,6 +19,7 @@
 #include "listenersettings.h"
 #include "logmapper.h"
 #include "modelmethods.h"
+#include "methodscenario.h"
 #include "modelvariables.h"
 #include "project/alarmrules.h"
 #include "project/projectnodes.h"
@@ -39,7 +40,7 @@ ServerController::ServerController(QObject *parent)
     , _addressSpace(_server.uaServer())
     , _engine(&_addressSpace)
     , _nodeSets(_server)
-    , _methods(_server.uaServer())
+    , _methods(_server.uaServer(), &_addressSpace)
     , _pki(_server)
 {
     connect(&_server, &SimServer::runningChanged, this, &ServerController::runningChanged);
@@ -56,6 +57,7 @@ ServerController::ServerController(QObject *parent)
     connect(&_nodeSets, &NodeSetLoader::logAppended, this, &ServerController::appendLog);
     connect(&_nodeSets, &NodeSetLoader::nodesAdded, &_methods, &MethodResponder::bind);
     connect(&_methods, &MethodResponder::methodCalled, this, &ServerController::logMethodCall);
+    connect(&_methods, &MethodResponder::valuesSetByMethod, this, &ServerController::valuesChanged);
     connect(&_pki, &PkiService::certificatesChanged, this, &ServerController::certificatesChanged);
     connect(&_pki, &PkiService::restartRequired, this, [this] { setRestartRequired(true); });
     connect(&_pki, &PkiService::logAppended, this, &ServerController::appendLog);
@@ -371,16 +373,42 @@ bool ServerController::updateModelVariable(const VariableInfo &variable, QString
 }
 
 ///
-/// \brief Applies the edited response of a method of an imported model and keeps it in the project.
-/// \param method Server node id with the new response; a response of Good without output texts drops the stored
-///        one.
+/// \brief Applies a scenario to an imported method or a project scenario method.
+/// \param method Method node id with edited sources, assignments, status and project signature.
 /// \param error Receives the reason on failure; may be null.
-/// \return False for a node that is no model method, or for an output text that is no value of its argument.
-///         The response applies to the next calls without rebuilding the address space.
+/// \return False for unsupported methods or invalid settings. Behavior changes apply live; project signature changes rebuild the address space.
 ///
 bool ServerController::updateModelMethod(const MethodInfo &method, QString *error)
 {
     QUaServer &server = *_server.uaServer();
+    const NodeDefinition *projectMethod = ProjectNodes::find(_project.nodes, method.nodeId);
+    const bool scenario = projectMethod && projectMethod->kind == NodeDefinition::Kind::Method
+        && projectMethod->method == NodeDefinition::MethodAction::Scenario;
+    if (scenario) {
+        if (projectMethod->inputs == method.inputs && projectMethod->outputs == method.outputs
+            && projectMethod->response == method.response)
+            return true;
+        QString problem = MethodScenario::signatureProblem(method.inputs);
+        if (problem.isEmpty())
+            problem = MethodScenario::signatureProblem(method.outputs);
+        if (problem.isEmpty())
+            problem = MethodScenario::problem(server, method);
+        if (!problem.isEmpty()) {
+            if (error)
+                *error = problem;
+            return false;
+        }
+        const bool signatureChanged = projectMethod->inputs != method.inputs || projectMethod->outputs != method.outputs;
+        ProjectNodes::updateMethod(_project.nodes, method.nodeId, method.inputs, method.outputs, method.response);
+        if (signatureChanged)
+            rebuildNodes();
+        else {
+            _addressSpace.setMethodResponse(method.nodeId, method.response);
+            emit methodChanged(method);
+        }
+        emit projectEdited();
+        return true;
+    }
     if (!_methods.isBound(method.nodeId)) {
         if (error)
             *error = tr("'%1' is not a method of an imported model").arg(method.nodeId);
@@ -388,7 +416,8 @@ bool ServerController::updateModelMethod(const MethodInfo &method, QString *erro
     }
     MethodInfo described = ModelMethods::describe(server, method.nodeId);
     QString problem;
-    ModelMethods::outputValues(described.outputs, method.response, &problem);
+    described.response = method.response;
+    problem = MethodScenario::problem(server, described);
     if (!problem.isEmpty()) {
         if (error)
             *error = problem;

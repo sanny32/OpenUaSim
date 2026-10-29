@@ -345,6 +345,7 @@ QHash<QString, MethodInfo> methods(const QList<TreeNode> &tree, const ProjectCon
         if (const NodeDefinition *node = ProjectNodes::find(project.nodes, methodId)) {
             info.kind = MethodInfo::Kind::Project;
             info.action = node->method;
+            info.response = node->response;
         } else if (info.kind == MethodInfo::Kind::Model) {
             const QUaNodeId nodeId(methodId);
             const qsizetype index = ModelMethods::indexOf(project.modelMethods, uris.value(nodeId.namespaceIndex()),

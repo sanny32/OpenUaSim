@@ -15,6 +15,7 @@
 #include <QVariant>
 
 #include "endpointinfo.h"
+#include "methodscenario.h"
 #include "variableinfo.h"
 
 ///
@@ -28,11 +29,12 @@ struct NodeDefinition
     enum class Kind { Folder, Object, Variable, Method };
 
     ///
-    /// \brief What a method does with the variables next to it.
+    /// \brief How a project method handles client calls.
     ///
     enum class MethodAction {
         Reset,    ///< Sets every sibling variable to its initial value.
-        SetValue  ///< Sets the sibling variable named by the first argument to the value text in the second.
+        SetValue, ///< Sets the sibling variable named by the first argument to the value text in the second.
+        Scenario  ///< Evaluates configured sources and assigns variables in order.
     };
 
     /// \brief Node class to create.
@@ -70,6 +72,9 @@ struct NodeDefinition
     QMap<QString, QString> properties;
     /// \brief Action of a method; methods only.
     MethodAction method = MethodAction::Reset;
+    QList<ArgumentInfo> inputs;
+    QList<ArgumentInfo> outputs;
+    MethodResponse response;
     /// \brief Child nodes; folders and objects only.
     QList<NodeDefinition> children;
 };
@@ -84,28 +89,6 @@ struct ModelVariable
     /// \brief Icon, access, quality, initial value, simulation and alarm of the variable. Its node id is the
     ///        identifier within the namespace, e.g. "i=1003"; an invalid initial value keeps the model value.
     NodeDefinition variable;
-};
-
-///
-/// \brief Answer a method of an imported model gives the clients calling it.
-///
-struct MethodResponse
-{
-    /// \brief Status code of the call, e.g. BadInvalidState to test client handling.
-    quint32 statusCode = 0;
-    /// \brief Output arguments as text in the order of the OutputArguments of the method; an empty or missing text
-    ///        gives the default value of the data type, and array elements are separated by semicolons.
-    QStringList outputs;
-
-    bool operator==(const MethodResponse &other) const
-    {
-        return statusCode == other.statusCode && outputs == other.outputs;
-    }
-
-    bool operator!=(const MethodResponse &other) const
-    {
-        return !(*this == other);
-    }
 };
 
 ///

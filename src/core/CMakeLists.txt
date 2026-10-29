@@ -12,6 +12,7 @@ add_library(ouasim_core STATIC
     data/endpointinfo.h
     data/logentry.h
     data/methodinfo.h
+    data/methodscenario.h
     data/namespaceinfo.h
     data/projectconfig.h
     data/serversnapshot.h
@@ -95,6 +96,10 @@ add_library(ouasim_core STATIC
     server/logmapper.h
     server/methodresponder.cpp
     server/methodresponder.h
+    server/methodnodes.cpp
+    server/methodnodes.h
+    server/methodscenario.cpp
+    server/methodscenario.h
     server/modelmethods.cpp
     server/modelmethods.h
     server/modelvariables.cpp

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MethodSourceDialog</class>
+ <widget class="QDialog" name="MethodSourceDialog">
+  <property name="windowTitle"><string>Method Value Source</string></property>
+  <layout class="QVBoxLayout" name="layout">
+   <item><layout class="QFormLayout" name="form">
+    <item row="0" column="0"><widget class="QLabel" name="sourceLabel"><property name="text"><string>Source</string></property></widget></item>
+    <item row="0" column="1"><widget class="QComboBox" name="sourceCombo">
+     <item><property name="text"><string>Constant</string></property></item>
+     <item><property name="text"><string>Input argument</string></property></item>
+     <item><property name="text"><string>Variable</string></property></item>
+     <item><property name="text"><string>Simulation</string></property></item>
+    </widget></item>
+    <item row="1" column="0"><widget class="QLabel" name="constantLabel"><property name="text"><string>Constant value</string></property></widget></item>
+    <item row="1" column="1"><widget class="QLineEdit" name="constantEdit"><property name="toolTip"><string>Separate array elements with semicolons. Empty uses the type default.</string></property></widget></item>
+    <item row="2" column="0"><widget class="QLabel" name="inputLabel"><property name="text"><string>Input argument</string></property></widget></item>
+    <item row="2" column="1"><widget class="QComboBox" name="inputCombo"/></item>
+    <item row="3" column="0"><widget class="QLabel" name="variableLabel"><property name="text"><string>Variable NodeId</string></property></widget></item>
+    <item row="3" column="1"><widget class="QComboBox" name="variableCombo"><property name="editable"><bool>true</bool></property></widget></item>
+   </layout></item>
+   <item><widget class="QGroupBox" name="simulationGroup"><property name="title"><string>Simulation at call time</string></property>
+    <layout class="QFormLayout" name="simulationForm">
+     <item row="0" column="0"><widget class="QLabel" name="functionLabel"><property name="text"><string>Function</string></property></widget></item>
+     <item row="0" column="1"><widget class="QComboBox" name="functionCombo"/></item>
+     <item row="1" column="0"><widget class="QLabel" name="intervalLabel"><property name="text"><string>Interval (ms)</string></property></widget></item>
+     <item row="1" column="1"><widget class="QSpinBox" name="intervalSpin"><property name="minimum"><number>1</number></property><property name="maximum"><number>2147483647</number></property></widget></item>
+     <item row="2" column="0"><widget class="QLabel" name="periodLabel"><property name="text"><string>Period (ms)</string></property></widget></item>
+     <item row="2" column="1"><widget class="QSpinBox" name="periodSpin"><property name="minimum"><number>1</number></property><property name="maximum"><number>2147483647</number></property></widget></item>
+     <item row="3" column="0"><widget class="QLabel" name="amplitudeLabel"><property name="text"><string>Amplitude</string></property></widget></item>
+     <item row="3" column="1"><widget class="QDoubleSpinBox" name="amplitudeSpin"><property name="minimum"><double>-1000000000000</double></property><property name="maximum"><double>1000000000000</double></property><property name="decimals"><number>6</number></property></widget></item>
+     <item row="4" column="0"><widget class="QLabel" name="offsetLabel"><property name="text"><string>Offset</string></property></widget></item>
+     <item row="4" column="1"><widget class="QDoubleSpinBox" name="offsetSpin"><property name="minimum"><double>-1000000000000</double></property><property name="maximum"><double>1000000000000</double></property><property name="decimals"><number>6</number></property></widget></item>
+     <item row="5" column="0"><widget class="QLabel" name="valuesLabel"><property name="text"><string>List values (;)</string></property></widget></item>
+     <item row="5" column="1"><widget class="QLineEdit" name="valuesEdit"/></item>
+    </layout>
+   </widget></item>
+   <item><widget class="QDialogButtonBox" name="buttonBox"><property name="standardButtons"><set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set></property></widget></item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

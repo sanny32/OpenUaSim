@@ -179,6 +179,27 @@ int assign(QList<NodeDefinition> &nodes, const QString &parentPath, QSet<QString
 namespace ProjectNodes {
 
 ///
+/// \brief Replaces a project method's signature and declarative scenario.
+/// \param nodes Project node tree.
+/// \param nodeId Method to update.
+/// \param inputs Input signature.
+/// \param outputs Output signature.
+/// \param response Sources, assignments and response status.
+/// \return False when the method does not exist.
+///
+bool updateMethod(QList<NodeDefinition> &nodes, const QString &nodeId, const QList<ArgumentInfo> &inputs,
+                   const QList<ArgumentInfo> &outputs, const MethodResponse &response)
+{
+    NodeDefinition *node = findMutable(nodes, nodeId);
+    if (!node || node->kind != NodeDefinition::Kind::Method)
+        return false;
+    node->inputs = inputs;
+    node->outputs = outputs;
+    node->response = response;
+    return true;
+}
+
+///
 /// \brief Gives every node without a node id one derived from its browse path.
 /// \param nodes Node tree to complete in place.
 /// \return Number of node ids assigned; ids such as "ns=1;s=Line.Motor.Speed" get a numeric
