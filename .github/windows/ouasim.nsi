@@ -60,6 +60,8 @@ VIAddVersionKey "LegalCopyright"  "Copyright (C) ${PRODUCT_PUBLISHER}"
 
 !define MUI_ABORTWARNING
 !define MUI_ICON   "${SRC_DIR}\src\app\res\windows\ouasim.ico"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "${SRC_DIR}\.github\windows\installer-sidebar.bmp"
+!define MUI_UNWELCOMEFINISHPAGE_BITMAP "${SRC_DIR}\.github\windows\installer-sidebar.bmp"
 
 
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXE_NAME}"

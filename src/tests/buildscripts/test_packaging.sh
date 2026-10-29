@@ -41,10 +41,14 @@ grep -Fx "appVersion=$version-rc1" version.txt
 grep -Fx "debVersion=$version~rc1-1" version.txt
 grep -Fx "rpmVersion=$version~rc1" version.txt
 
-GITHUB_REF=refs/heads/main bash "$source_root/tools/package_version.sh" > version.txt
-grep -Fx "appVersion=$version-dev.gabc1234" version.txt
-grep -Fx "prerelease=dev.gabc1234" version.txt
-grep -Fx "debVersion=$version~dev.gabc1234-1" version.txt
+for ref in refs/heads/main refs/heads/feature/test ''; do
+    GITHUB_REF="$ref" bash "$source_root/tools/package_version.sh" > version.txt
+    grep -Fx "appVersion=$version" version.txt
+    grep -Fx "prerelease=" version.txt
+    grep -Fx "debVersion=$version-1" version.txt
+    grep -Fx "rpmVersion=$version" version.txt
+    grep -Fx "fileVersion=$version.0" version.txt
+done
 
 expect_failure env GITHUB_REF=refs/tags/v99.0.0 bash "$source_root/tools/package_version.sh"
 expect_failure env GITHUB_REF="refs/tags/v$version-rc/1" bash "$source_root/tools/package_version.sh"

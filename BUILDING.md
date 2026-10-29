@@ -96,7 +96,8 @@ The five `Build Windows installer`, `Build macOS disk image`, `Build Debian pack
 Run a workflow from **Actions → Run workflow**, selecting the branch to build.
 Each workflow also runs on tags matching `v*`. Release tags must match the version
 in `src/CMakeLists.txt`, for example `v1.0.0` or `v1.0.0-rc1`. Manual branch builds
-receive a `dev.g<commit>` suffix; a manual run on a tag uses that tag's version.
+use the CMake project version without an automatic suffix; a manual run on a tag
+uses that tag's version.
 
 | Platform | Architecture | Output |
 |----------|--------------|--------|

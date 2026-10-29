@@ -4,7 +4,7 @@ set -euo pipefail
 version="$(sed -nE '/^project\(ouasim([[:space:]]|$)/,/\)/ s/.*VERSION[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' src/CMakeLists.txt)"
 [[ $version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] || { echo 'Invalid CMake project version' >&2; exit 1; }
 file_version="$version.0"
-prerelease="dev.g$(git -c safe.directory="$(pwd)" rev-parse --short HEAD)"
+prerelease=""
 if [[ ${GITHUB_REF:-} == refs/tags/* ]]; then
     tag="${GITHUB_REF#refs/tags/}"
     [[ $tag =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-([0-9A-Za-z]+([.-][0-9A-Za-z]+)*))?$ ]] || {

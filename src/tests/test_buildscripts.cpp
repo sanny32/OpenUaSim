@@ -1,6 +1,9 @@
 #include <QFileInfo>
+#include <QFile>
 #include <QProcess>
 #include <QStandardPaths>
+#include <QTemporaryDir>
+#include <QtEndian>
 #include <QtTest>
 
 class BuildScriptsTest : public QObject
@@ -11,10 +14,99 @@ private slots:
     void bash();
     void powershell();
     void packaging();
+    void installerArtwork();
+    void installerArtworkHasNoBorder();
+    void windowsInstaller();
 
 private:
     void runBashTest(const QString &script);
 };
+
+///
+/// \brief Keeps the welcome illustration compatible with NSIS bitmap loading.
+///
+void BuildScriptsTest::installerArtwork()
+{
+    QFile bitmap(QStringLiteral(OUASIM_SOURCE_DIR "/.github/windows/installer-sidebar.bmp"));
+    QVERIFY(bitmap.open(QIODevice::ReadOnly));
+    const QByteArray header = bitmap.read(54);
+    QCOMPARE(header.size(), 54);
+    QCOMPARE(header.left(2), QByteArray("BM"));
+    QCOMPARE(qFromLittleEndian<qint32>(header.constData() + 18), 164);
+    QCOMPARE(qFromLittleEndian<qint32>(header.constData() + 22), 314);
+    QCOMPARE(qFromLittleEndian<quint16>(header.constData() + 28), 24);
+    QCOMPARE(qFromLittleEndian<quint32>(header.constData() + 30), 0u);
+    QVERIFY(bitmap.size() >= 54 + 164 * 314 * 3);
+}
+
+///
+/// \brief Rejects dark edge artefacts introduced by bitmap resampling.
+///
+void BuildScriptsTest::installerArtworkHasNoBorder()
+{
+    QFile bitmap(QStringLiteral(OUASIM_SOURCE_DIR "/.github/windows/installer-sidebar.bmp"));
+    QVERIFY(bitmap.open(QIODevice::ReadOnly));
+    const QByteArray pixels = bitmap.readAll();
+    QVERIFY(pixels.size() >= 54);
+    const quint32 offset = qFromLittleEndian<quint32>(pixels.constData() + 10);
+    constexpr int width = 164;
+    constexpr int height = 314;
+    constexpr int stride = (width * 3 + 3) & ~3;
+    QVERIFY(pixels.size() >= offset + stride * height);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (x != 0 && x != width - 1 && y != 0 && y != height - 1)
+                continue;
+            const int adjacentX = qBound(1, x, width - 2);
+            const int adjacentY = qBound(1, y, height - 2);
+            for (int channel = 0; channel < 3; ++channel) {
+                const auto edge = static_cast<quint8>(pixels[offset + y * stride + x * 3 + channel]);
+                const auto adjacent = static_cast<quint8>(pixels[offset + adjacentY * stride + adjacentX * 3 + channel]);
+                QVERIFY2(qAbs(int(edge) - int(adjacent)) < 80, "Bitmap edge must not contain a high-contrast frame");
+            }
+        }
+    }
+}
+
+///
+/// \brief Compiles the actual installer script with a disposable payload and its branded artwork.
+///
+void BuildScriptsTest::windowsInstaller()
+{
+#ifndef Q_OS_WIN
+    QSKIP("The NSIS installer requires Windows");
+#endif
+    QString executable = QStandardPaths::findExecutable(QStringLiteral("makensis"));
+    if (executable.isEmpty()) {
+        const QString installed = qEnvironmentVariable("ProgramFiles(x86)") + QStringLiteral("/NSIS/makensis.exe");
+        if (QFileInfo::exists(installed))
+            executable = installed;
+    }
+    if (executable.isEmpty())
+        QSKIP("NSIS is unavailable");
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    for (const auto &name : {"ouasim.exe", "vc_redist.x64.exe"}) {
+        QFile payload(fixture.filePath(QString::fromLatin1(name)));
+        QVERIFY(payload.open(QIODevice::WriteOnly));
+        QVERIFY(payload.write("test payload") > 0);
+    }
+    const QString installer = fixture.filePath(QStringLiteral("setup.exe"));
+    QProcess process;
+    process.setProcessChannelMode(QProcess::MergedChannels);
+    process.start(executable, {QStringLiteral("/V2"),
+                              QStringLiteral("/DSRC_DIR=" OUASIM_SOURCE_DIR),
+                              QStringLiteral("/DSTAGE_DIR=%1").arg(fixture.path()),
+                              QStringLiteral("/DAPP_VERSION=1.0.0"), QStringLiteral("/DFILE_VERSION=1.0.0.0"),
+                              QStringLiteral("/DOUT_FILE=%1").arg(installer),
+                              QStringLiteral(OUASIM_SOURCE_DIR "/.github/windows/ouasim.nsi")});
+    QVERIFY(process.waitForStarted());
+    QVERIFY(process.waitForFinished(60000));
+    const QByteArray output = process.readAll();
+    QCOMPARE(process.exitStatus(), QProcess::NormalExit);
+    QVERIFY2(process.exitCode() == 0, output.constData());
+    QVERIFY(QFileInfo(installer).size() > 0);
+}
 
 ///
 /// \brief Exercises Bash dependency selection and build orchestration without installing tools.
