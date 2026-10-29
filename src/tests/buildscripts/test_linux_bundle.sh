@@ -35,7 +35,21 @@ test -f stage/usr/lib/ouasim/lib/libcrypto.so.3
 test -f stage/usr/lib/ouasim/lib/libssl.so.3
 test -f stage/usr/lib/ouasim/plugins/platforms/libqtest.so
 test -f stage/usr/lib/ouasim/bin/qt.conf
+grep -Fx 'Prefix = ..' stage/usr/lib/ouasim/bin/qt.conf
+grep -Fx 'Libraries = lib' stage/usr/lib/ouasim/bin/qt.conf
+grep -Fx 'Plugins = plugins' stage/usr/lib/ouasim/bin/qt.conf
 test ! -e stage/usr/lib/ouasim/lib/libc.so.6
+
+for group in platformthemes platforminputcontexts xcbglintegrations egldeviceintegrations imageformats iconengines networkinformation tls styles; do
+    mkdir -p "qt/plugins/$group"
+    cp qt/plugins/platforms/libqtest.so "qt/plugins/$group/libqtest.so"
+done
+printf 'unused debug symbols' > qt/plugins/platforms/libqtest.so.debug
+bash "$source_root/.github/linux/bundle.sh" "$fixture/stage" "$fixture/app" "$fixture/qt" "$fixture/openssl"
+for group in platforms platformthemes platforminputcontexts xcbglintegrations egldeviceintegrations imageformats iconengines networkinformation tls styles; do
+    test -f "stage/usr/lib/ouasim/plugins/$group/libqtest.so"
+done
+test ! -e stage/usr/lib/ouasim/plugins/platforms/libqtest.so.debug
 mv qt qt-hidden
 mv openssl openssl-hidden
 stage/usr/bin/ouasim

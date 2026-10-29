@@ -70,7 +70,7 @@ jobs:
         shell: pwsh
         run: |
           $stage = "${{ github.workspace }}\stage"
-          foreach ($file in @('ouasim.exe', 'vc_redist.x64.exe', 'Qt6Core.dll', 'Qt6Gui.dll', 'Qt6Widgets.dll', 'Qt6Svg.dll', 'platforms\qwindows.dll', 'tls\qopensslbackend.dll')) {
+          foreach ($file in @('ouasim.exe', 'vc_redist.x64.exe', 'Qt6Core.dll', 'Qt6Gui.dll', 'Qt6Widgets.dll', 'Qt6Svg.dll', 'plugins\platforms\qwindows.dll', 'plugins\tls\qopensslbackend.dll')) {
             if (-not (Test-Path (Join-Path $stage $file) -PathType Leaf)) {
               throw "Missing runtime file: $file"
             }

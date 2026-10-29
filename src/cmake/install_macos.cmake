@@ -15,6 +15,7 @@ install(CODE "
 
 if(OUASIM_DEPLOY_RUNTIME)
     find_program(OUASIM_DEPLOY_TOOL macdeployqt HINTS "${QT_BINARY_DIR}" REQUIRED)
+    find_program(OUASIM_CODESIGN_TOOL codesign REQUIRED)
     get_filename_component(OUASIM_OPENSSL_LIB "${OPENSSL_CRYPTO_LIBRARY}" DIRECTORY)
     ouasim_install_runtime()
 endif()

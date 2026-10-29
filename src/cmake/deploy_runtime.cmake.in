@@ -14,6 +14,10 @@ if(CMAKE_HOST_WIN32)
         set(deploy_mode --release)
     endif()
     execute_process(COMMAND "@OUASIM_DEPLOY_TOOL@" ${deploy_mode} --compiler-runtime --force-openssl
+        --plugindir "${stage}/plugins"
+        --no-opengl-sw --no-system-d3d-compiler --no-system-dxc-compiler
+        --skip-plugin-types generic,networkinformation,qmltooling
+        --exclude-plugins qpdf,qsqlibase,qsqlmimer,qsqloci,qsqlodbc,qsqlpsql
         --dir "${stage}" "${stage}/@PROJECT_NAME@.exe" RESULT_VARIABLE result)
 else()
     execute_process(COMMAND "@OUASIM_DEPLOY_TOOL@" "${stage}/@PRODUCT_NAME@.app"
@@ -22,4 +26,27 @@ else()
 endif()
 if(NOT result EQUAL 0)
     message(FATAL_ERROR "Qt runtime deployment failed: ${result}")
+endif()
+
+if(NOT CMAKE_HOST_WIN32)
+    set(app "${stage}/@PRODUCT_NAME@.app")
+    # macdeployqt has no per-plugin exclusions; prune optional frameworks before signing.
+    foreach(component IN ITEMS
+        PlugIns/imageformats/libqpdf.dylib
+        PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib
+        Frameworks/QtPdf.framework
+        Frameworks/QtVirtualKeyboard.framework
+        Frameworks/QtVirtualKeyboardQml.framework)
+        file(REMOVE_RECURSE "${app}/Contents/${component}")
+    endforeach()
+    execute_process(COMMAND "@OUASIM_CODESIGN_TOOL@" --force --deep --sign - --timestamp=none
+        "${app}" RESULT_VARIABLE result)
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "Bundle signing failed: ${result}")
+    endif()
+    execute_process(COMMAND "@OUASIM_CODESIGN_TOOL@" --verify --deep --strict
+        "${app}" RESULT_VARIABLE result)
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "Bundle signature verification failed: ${result}")
+    endif()
 endif()
