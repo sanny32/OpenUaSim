@@ -12,6 +12,8 @@ if [[ ${GITHUB_REF:-} == refs/tags/* ]]; then
     }
     [[ ${BASH_REMATCH[1]} == "$version" ]] || { echo 'Tag does not match CMake project version' >&2; exit 1; }
     prerelease="${BASH_REMATCH[3]}"
+elif [[ ${GITHUB_REF:-} == refs/heads/main ]]; then
+    prerelease="g$(git -c safe.directory="$(pwd)" rev-parse --short HEAD)"
 fi
 app_version="$version${prerelease:+-$prerelease}"
 package_version="$version${prerelease:+~$prerelease}"

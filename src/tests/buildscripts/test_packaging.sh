@@ -9,7 +9,9 @@ cp "$source_root/src/CMakeLists.txt" "$fixture/src/"
 cat > "$fixture/bin/git" <<'EOF'
 #!/usr/bin/env bash
 case "$*" in
-    *rev-parse*) echo abc1234 ;;
+    *rev-parse*)
+        [[ ${FAIL_REV_PARSE:-0} == 0 ]] || exit 1
+        echo abc1234 ;;
     *log*) echo 2026-10-29 ;;
     *) exit 1 ;;
 esac
@@ -41,7 +43,15 @@ grep -Fx "appVersion=$version-rc1" version.txt
 grep -Fx "debVersion=$version~rc1-1" version.txt
 grep -Fx "rpmVersion=$version~rc1" version.txt
 
-for ref in refs/heads/main refs/heads/feature/test ''; do
+GITHUB_REF=refs/heads/main bash "$source_root/tools/package_version.sh" > version.txt
+grep -Fx "appVersion=$version-gabc1234" version.txt
+grep -Fx "prerelease=gabc1234" version.txt
+grep -Fx "debVersion=$version~gabc1234-1" version.txt
+grep -Fx "rpmVersion=$version~gabc1234" version.txt
+grep -Fx "fileVersion=$version.0" version.txt
+expect_failure env FAIL_REV_PARSE=1 GITHUB_REF=refs/heads/main bash "$source_root/tools/package_version.sh"
+
+for ref in refs/heads/feature/test ''; do
     GITHUB_REF="$ref" bash "$source_root/tools/package_version.sh" > version.txt
     grep -Fx "appVersion=$version" version.txt
     grep -Fx "prerelease=" version.txt
