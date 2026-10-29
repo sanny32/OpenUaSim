@@ -1,4 +1,6 @@
 add_library(ouasim_core STATIC
+    updatechecker.cpp
+    updatechecker.h
     formatting.cpp
     formatting.h
     logexport.cpp

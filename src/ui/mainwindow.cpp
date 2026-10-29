@@ -12,6 +12,8 @@
 #include <QApplication>
 #include <QCloseEvent>
 #include <QFileDialog>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QPushButton>
 #include <QTimer>
 
@@ -41,6 +43,7 @@
 #include "subscriptionsdialog.h"
 #include "ui_mainwindow.h"
 #include "usersdialog.h"
+#include "updatechecker.h"
 #include "viewsetup.h"
 #include "widgetlayout.h"
 
@@ -81,6 +84,7 @@ MainWindow::MainWindow(AppTheme *theme, QWidget *parent)
 
     setupIcons();
     setupActions();
+    setupUpdateChecker();
     setupViewMenu();
     setupThemeMenu();
     setupLanguageMenu();
@@ -1106,4 +1110,60 @@ void MainWindow::updateNodeActions()
     ui->actionCopyNode->setEnabled(hasNode);
     ui->actionDeleteNode->setEnabled(hasNode);
     ui->actionPasteNode->setEnabled(_controller && ProjectNodes::find(_controller->project().nodes, _copiedNodeId));
+}
+
+///
+/// \brief Connects the manual update check to the Help menu and result dialogs.
+///
+void MainWindow::setupUpdateChecker()
+{
+    _updateChecker = new UpdateChecker(this);
+    connect(ui->actionCheckForUpdates, &QAction::triggered, _updateChecker, &UpdateChecker::checkForUpdates);
+    connect(_updateChecker, &UpdateChecker::checkStarted, this,
+            [this] { ui->actionCheckForUpdates->setEnabled(false); });
+    connect(_updateChecker, &UpdateChecker::noUpdatesAvailable, this, &MainWindow::showNoUpdates);
+    connect(_updateChecker, &UpdateChecker::checkFailed, this, &MainWindow::showUpdateFailure);
+    connect(_updateChecker, &UpdateChecker::newVersionAvailable, this, &MainWindow::showNewVersion);
+}
+
+///
+/// \brief Reports that the installed version is current.
+///
+void MainWindow::showNoUpdates()
+{
+    ui->actionCheckForUpdates->setEnabled(true);
+    auto *dialog = new MessageDialog(QStyle::SP_MessageBoxInformation, tr("Check for Updates"),
+                                     tr("You are running the latest version."), {}, this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->open();
+}
+
+///
+/// \brief Reports why the release query failed and allows another check.
+/// \param reason Network or response error.
+///
+void MainWindow::showUpdateFailure(const QString &reason)
+{
+    ui->actionCheckForUpdates->setEnabled(true);
+    auto *dialog = new MessageDialog(QStyle::SP_MessageBoxWarning, tr("Check for Updates"),
+                                     tr("Failed to check for updates."), reason, this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->open();
+}
+
+///
+/// \brief Offers to open the release page for a newer version.
+/// \param version Available version.
+/// \param url Release page URL.
+///
+void MainWindow::showNewVersion(const QString &version, const QString &url)
+{
+    ui->actionCheckForUpdates->setEnabled(true);
+    auto *dialog = new MessageDialog(QStyle::SP_MessageBoxInformation, tr("Update Available"),
+                                     tr("Version %1 is available.").arg(version),
+                                     tr("Open the download page?"), this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setChoice(tr("Open Download Page"), tr("Later"));
+    connect(dialog, &QDialog::accepted, this, [url] { QDesktopServices::openUrl(QUrl(url)); });
+    dialog->open();
 }

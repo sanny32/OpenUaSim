@@ -19,6 +19,7 @@ namespace Ui {
 class MainWindow;
 }
 
+class UpdateChecker;
 class AppTheme;
 class CertificateActions;
 class LogModel;
@@ -134,6 +135,10 @@ private:
     void setupViewMenu();
     void selectPage(QAction *action);
     void showAbout();
+    void setupUpdateChecker();
+    void showNoUpdates();
+    void showUpdateFailure(const QString &reason);
+    void showNewVersion(const QString &version, const QString &url);
     void setupThemeMenu();
     void setupLanguageMenu();
     void selectLanguage(QAction *action);
@@ -186,6 +191,7 @@ private:
     void exportLog(const QList<LogEntry> &entries);
     void showSubscriptions(const SessionInfo &session);
 
+    UpdateChecker *_updateChecker = nullptr;
     Ui::MainWindow *ui;
     MainStatusBarWidget *_statusWidget;
     LogModel *_logModel;

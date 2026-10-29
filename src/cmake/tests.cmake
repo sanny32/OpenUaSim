@@ -137,3 +137,8 @@ function(ouasim_add_app_base_dialog_test)
         target_link_libraries(ouasim_tests_app_base_dialog PRIVATE "-framework AppKit")
     endif()
 endfunction()
+
+function(ouasim_add_update_tests)
+    ouasim_add_test(ouasim_tests_update_checker test_updatechecker.cpp)
+    ouasim_add_ui_test(ouasim_tests_update_ui test_updateui.cpp)
+endfunction()

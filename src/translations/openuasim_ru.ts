@@ -1480,6 +1480,34 @@
         <source>&amp;Language</source>
         <translation>&amp;Язык</translation>
     </message>
+    <message>
+        <source>Check for Updates</source>
+        <translation>Проверить обновления</translation>
+    </message>
+    <message>
+        <source>You are running the latest version.</source>
+        <translation>Вы используете последнюю версию.</translation>
+    </message>
+    <message>
+        <source>Failed to check for updates.</source>
+        <translation>Не удалось проверить обновления.</translation>
+    </message>
+    <message>
+        <source>Update Available</source>
+        <translation>Доступно обновление</translation>
+    </message>
+    <message>
+        <source>Version %1 is available.</source>
+        <translation>Доступна версия %1.</translation>
+    </message>
+    <message>
+        <source>Open the download page?</source>
+        <translation>Открыть страницу загрузки?</translation>
+    </message>
+    <message>
+        <source>Open Download Page</source>
+        <translation>Открыть страницу загрузки</translation>
+    </message>
 </context>
 <context>
     <name>MessageDialog</name>
@@ -3478,6 +3506,21 @@
     <message>
         <source>© %1 OpenUaSim contributors.</source>
         <translation>© %1 Участники проекта OpenUaSim.</translation>
+    </message>
+</context>
+<context>
+    <name>UpdateChecker</name>
+    <message>
+        <source>Secure connections are not supported in this build.</source>
+        <translation>Эта сборка не поддерживает защищённые соединения.</translation>
+    </message>
+    <message>
+        <source>Failed to parse update information.</source>
+        <translation>Не удалось обработать информацию об обновлении.</translation>
+    </message>
+    <message>
+        <source>Update information is incomplete.</source>
+        <translation>Информация об обновлении неполная.</translation>
     </message>
 </context>
 </TS>
