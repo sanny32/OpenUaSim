@@ -31,6 +31,7 @@
 #include <QTreeView>
 
 #include "addnodedialog.h"
+#include "aboutdialog.h"
 #include "alarmdialog.h"
 #include "applanguage.h"
 #include "apppalette.h"
@@ -91,6 +92,7 @@ class TestMainWindow : public QObject
 private slots:
     void init();
     void hasAllPages();
+    void opensAboutDialog();
     void showsSnapshot();
     void statusRefreshKeepsEndpointSelection();
     void eventLogFollowsTab();
@@ -165,6 +167,22 @@ void TestMainWindow::hasAllPages()
     QCOMPARE(window.windowTitle(), QStringLiteral("OpenUaSim"));
     QCOMPARE(window.size(), QSize(1400, 930));
     QCOMPARE(window.minimumSize(), QSize(1000, 600));
+}
+
+///
+/// \brief Opens the product information window through Help and releases it on close.
+///
+void TestMainWindow::opensAboutDialog()
+{
+    MainWindow window;
+    child<QAction>(window, "actionAbout")->trigger();
+    QPointer<AboutDialog> dialog = window.findChild<AboutDialog *>();
+    QVERIFY(dialog);
+    QVERIFY(dialog->isVisible());
+    QVERIFY(dialog->isModal());
+    QVERIFY(dialog->testAttribute(Qt::WA_DeleteOnClose));
+    child<QPushButton>(*dialog, "okButton")->click();
+    QTRY_VERIFY(dialog.isNull());
 }
 
 void TestMainWindow::showsSnapshot()

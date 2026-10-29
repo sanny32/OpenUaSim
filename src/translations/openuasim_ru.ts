@@ -3425,4 +3425,59 @@
         <translation>Копировать</translation>
     </message>
 </context>
+<context>
+    <name>AboutDialog</name>
+    <message>
+        <source>About %1</source>
+        <translation>О программе %1</translation>
+    </message>
+    <message>
+        <source>About OpenUaSim</source>
+        <translation>О программе OpenUaSim</translation>
+    </message>
+    <message>
+        <source>OPC UA Simulation Server</source>
+        <translation>Сервер симуляции OPC UA</translation>
+    </message>
+    <message>
+        <source>OpenUaSim is a lightweight and easy-to-use OPC UA server for simulation and testing. It allows you to create and simulate OPC UA address spaces with configurable data, devices and scenarios.</source>
+        <translation>OpenUaSim — простой и удобный сервер OPC UA для симуляции и тестирования. Он позволяет создавать и моделировать адресные пространства OPC UA с настраиваемыми данными, устройствами и сценариями.</translation>
+    </message>
+    <message>
+        <source>Version</source>
+        <translation>Версия</translation>
+    </message>
+    <message>
+        <source>Build</source>
+        <translation>Сборка</translation>
+    </message>
+    <message>
+        <source>Qt Version</source>
+        <translation>Версия Qt</translation>
+    </message>
+    <message>
+        <source>Platform</source>
+        <translation>Платформа</translation>
+    </message>
+    <message>
+        <source>Copyright</source>
+        <translation>Авторские права</translation>
+    </message>
+    <message>
+        <source>License</source>
+        <translation>Лицензия</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>ОК</translation>
+    </message>
+    <message>
+        <source>%1 (%2) %3-bit</source>
+        <translation>%1 (%2), %3 бит</translation>
+    </message>
+    <message>
+        <source>© %1 OpenUaSim contributors.</source>
+        <translation>© %1 Участники проекта OpenUaSim.</translation>
+    </message>
+</context>
 </TS>

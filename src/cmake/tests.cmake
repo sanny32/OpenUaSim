@@ -109,6 +109,10 @@ function(ouasim_link_test_ua_client test_name)
     target_sources(${test_name} PRIVATE $<TARGET_OBJECTS:ouasim_test_ua_client>)
 endfunction()
 
+function(ouasim_add_about_dialog_test)
+    ouasim_add_ui_test(ouasim_tests_about_dialog test_aboutdialog.cpp)
+endfunction()
+
 function(ouasim_add_ui_test test_name source_file)
     ouasim_add_test_executable(${test_name} ${source_file} ouasim_ui)
     target_sources(${test_name} PRIVATE "${PROJECT_SOURCE_DIR}/app/resources.qrc")

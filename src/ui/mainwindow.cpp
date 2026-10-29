@@ -16,6 +16,7 @@
 #include <QTimer>
 
 #include "addnodedialog.h"
+#include "aboutdialog.h"
 #include "alarmdialog.h"
 #include "appicons.h"
 #include "applanguage.h"
@@ -433,10 +434,7 @@ void MainWindow::selectPage(QAction *action)
 ///
 void MainWindow::showAbout()
 {
-    auto *dialog = new MessageDialog(QStyle::SP_MessageBoxInformation, tr("About %1").arg(QStringLiteral(APP_NAME)),
-                                     QStringLiteral("%1 %2").arg(QStringLiteral(APP_NAME), QStringLiteral(APP_VERSION)),
-                                     tr("OPC UA simulation server."), this);
-    dialog->setIcon(windowIcon());
+    auto *dialog = new AboutDialog(this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     dialog->open();
 }

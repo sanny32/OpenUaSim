@@ -62,5 +62,8 @@
         <file alias="icons/dictionary-type.svg">res/icons/dictionary-type.svg</file>
         <file alias="icons/enum-type.svg">res/icons/enum-type.svg</file>
         <file alias="icons/simple-type.svg">res/icons/simple-type.svg</file>
+        <file alias="icons/globe.svg">res/icons/globe.svg</file>
+        <file alias="icons/mail.svg">res/icons/mail.svg</file>
+        <file alias="icons/github.svg">res/icons/github.svg</file>
     </qresource>
 </RCC>
