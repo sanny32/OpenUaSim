@@ -139,7 +139,10 @@ void TestMethodScenarioEditor::fitsNarrowPanel()
     QVERIFY(!widget.findChild<QFrame *>(QStringLiteral("methodActionButtonsGroup")));
     for (const char *name : { "methodAddActionButton", "methodRemoveActionButton" }) {
         auto *button = widget.findChild<QToolButton *>(QLatin1String(name));
-        QCOMPARE(button->width(), button->sizeHint().width());
+        // Qt may compress fixed-policy buttons when translated labels exhaust the available width.
+        QVERIFY(button->width() <= button->sizeHint().width());
+        const int contentWidth = button->fontMetrics().horizontalAdvance(button->text()) + button->iconSize().width();
+        QVERIFY2(button->width() >= contentWidth, qPrintable(button->objectName()));
         QCOMPARE(button->height(), 26);
     }
     for (const char *layoutName : { "inputButtonsLayout", "outputButtonsLayout", "setActionButtonsLayout" }) {
