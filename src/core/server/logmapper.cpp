@@ -41,7 +41,12 @@ LogEntry::Category category(QUaLogCategory category)
 ///
 QString messageText(const QUaLog &log)
 {
-    const QString text = QString::fromUtf8(log.message);
+    QString text = QString::fromUtf8(log.message);
+#ifdef Q_OS_WIN
+    // open62541's FormatMessageA socket errors use the Windows system code page.
+    if (!log.message.isValidUtf8())
+        text = QString::fromLocal8Bit(log.message);
+#endif
     if (log.category != QUaLogCategory::Client)
         return text;
     return QCoreApplication::translate("LogMapper", "[Discovery registration] %1").arg(text);
