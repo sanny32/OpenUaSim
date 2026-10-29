@@ -1,5 +1,6 @@
 set(UI_FILES
     mainwindow.ui
+    dialogs/opcuainfodialog.ui
     dialogs/aboutdialog.ui
 
     dialogs/alarmdialog.ui
@@ -45,6 +46,8 @@ add_library(ouasim_ui STATIC
 
     dialogs/appbasedialog.cpp
     dialogs/appbasedialog.h
+    dialogs/opcuainfodialog.cpp
+    dialogs/opcuainfodialog.h
     dialogs/aboutdialog.cpp
     dialogs/aboutdialog.h
     dialogs/renamenodedialog.cpp
@@ -132,6 +135,8 @@ endif()
 set_target_properties(ouasim_ui PROPERTIES
     AUTOUIC_SEARCH_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/dialogs;${CMAKE_CURRENT_SOURCE_DIR}/pages;${CMAKE_CURRENT_SOURCE_DIR}/widgets"
 )
+
+target_include_directories(ouasim_ui PRIVATE "${PROJECT_BINARY_DIR}/generated")
 
 target_include_directories(ouasim_ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

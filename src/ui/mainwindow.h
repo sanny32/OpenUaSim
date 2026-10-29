@@ -135,6 +135,7 @@ private:
     void setupViewMenu();
     void selectPage(QAction *action);
     void showAbout();
+    void showOpcUaInfo();
     void setupUpdateChecker();
     void showNoUpdates();
     void showUpdateFailure(const QString &reason);

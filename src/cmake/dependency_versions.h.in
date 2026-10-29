@@ -1,0 +1,6 @@
+// SPDX-FileCopyrightText: 2026 OpenUaSim contributors
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#define OUASIM_QUASERVER_REVISION "@OUASIM_QUASERVER_REVISION@"

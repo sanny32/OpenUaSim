@@ -142,3 +142,8 @@ function(ouasim_add_update_tests)
     ouasim_add_test(ouasim_tests_update_checker test_updatechecker.cpp)
     ouasim_add_ui_test(ouasim_tests_update_ui test_updateui.cpp)
 endfunction()
+
+function(ouasim_add_opcua_info_dialog_test)
+    ouasim_add_ui_test(ouasim_tests_opcua_info_dialog test_opcuainfodialog.cpp)
+    target_include_directories(ouasim_tests_opcua_info_dialog PRIVATE "${PROJECT_BINARY_DIR}/generated")
+endfunction()

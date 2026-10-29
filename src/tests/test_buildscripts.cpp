@@ -11,6 +11,7 @@ class BuildScriptsTest : public QObject
     Q_OBJECT
 
 private slots:
+    void dependencyVersion();
     void bash();
     void powershell();
     void packaging();
@@ -21,6 +22,30 @@ private slots:
 private:
     void runBashTest(const QString &script);
 };
+
+///
+/// \brief Resolves dependency versions and commit fallbacks without modifying checkouts.
+///
+void BuildScriptsTest::dependencyVersion()
+{
+    const QString cmake = QStandardPaths::findExecutable(QStringLiteral("cmake"));
+    if (cmake.isEmpty() || QStandardPaths::findExecutable(QStringLiteral("git")).isEmpty())
+        QSKIP("CMake and Git are required");
+    if (!QFileInfo::exists(QStringLiteral(OUASIM_SOURCE_DIR "/.git")))
+        QSKIP("The source archive has no Git metadata");
+    QTemporaryDir fixture;
+    QVERIFY(fixture.isValid());
+    QProcess process;
+    process.setProcessChannelMode(QProcess::MergedChannels);
+    process.start(cmake, {QStringLiteral("-DOUASIM_SOURCE_ROOT=" OUASIM_SOURCE_DIR),
+                          QStringLiteral("-DFIXTURE_ROOT=%1").arg(fixture.path()),
+                          QStringLiteral("-P"),
+                          QStringLiteral(OUASIM_SOURCE_DIR "/src/tests/buildscripts/test_dependency_version.cmake")});
+    QVERIFY(process.waitForStarted());
+    QVERIFY(process.waitForFinished(30000));
+    const QByteArray output = process.readAll();
+    QVERIFY2(process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0, output.constData());
+}
 
 ///
 /// \brief Keeps the welcome illustration compatible with NSIS bitmap loading.

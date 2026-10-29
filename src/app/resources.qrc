@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
+        <file alias="branding/opcua-light.png">res/branding/opcua-light.png</file>
+        <file alias="branding/opcua-dark.png">res/branding/opcua-dark.png</file>
         <file alias="icons/add-circle.svg">res/icons/add-circle.svg</file>
         <file alias="icons/app.svg">res/icons/app.svg</file>
         <file alias="branding/logo.svg">res/windows/ouasim.svg</file>

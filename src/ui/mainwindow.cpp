@@ -19,6 +19,7 @@
 
 #include "addnodedialog.h"
 #include "aboutdialog.h"
+#include "opcuainfodialog.h"
 #include "alarmdialog.h"
 #include "appicons.h"
 #include "applanguage.h"
@@ -402,6 +403,7 @@ void MainWindow::setupActions()
     connect(ui->actionEventLog, &QAction::toggled, this, &MainWindow::updateEventLogVisibility);
     connect(ui->eventLog, &EventLogWidget::closeRequested, this, &MainWindow::hideEventLog);
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
+    connect(ui->actionOpcUaInfo, &QAction::triggered, this, &MainWindow::showOpcUaInfo);
     connect(ui->actionAbout, &QAction::triggered, this, &MainWindow::showAbout);
     connect(ui->actionAboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
 }
@@ -1165,5 +1167,15 @@ void MainWindow::showNewVersion(const QString &version, const QString &url)
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     dialog->setChoice(tr("Open Download Page"), tr("Later"));
     connect(dialog, &QDialog::accepted, this, [url] { QDesktopServices::openUrl(QUrl(url)); });
+    dialog->open();
+}
+
+///
+/// \brief Opens server stack diagnostics and OPC UA reference links.
+///
+void MainWindow::showOpcUaInfo()
+{
+    auto *dialog = new OpcUaInfoDialog(this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
     dialog->open();
 }

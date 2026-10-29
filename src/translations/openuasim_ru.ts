@@ -1508,6 +1508,10 @@
         <source>Open Download Page</source>
         <translation>Открыть страницу загрузки</translation>
     </message>
+    <message>
+        <source>OPC UA Info</source>
+        <translation>Сведения об OPC UA</translation>
+    </message>
 </context>
 <context>
     <name>MessageDialog</name>
@@ -3521,6 +3525,97 @@
     <message>
         <source>Update information is incomplete.</source>
         <translation>Информация об обновлении неполная.</translation>
+    </message>
+</context>
+<context>
+    <name>OpcUaInfoDialog</name>
+    <message>
+        <source>OPC UA Info</source>
+        <translation>Сведения об OPC UA</translation>
+    </message>
+    <message>
+        <source>OPC UA is a platform-independent standard for secure and reliable data exchange in industrial automation and other domains.</source>
+        <translation>OPC UA — это платформонезависимый стандарт для безопасного и надёжного обмена данными в промышленной автоматизации и других областях.</translation>
+    </message>
+    <message>
+        <source>Stack</source>
+        <translation>Стек</translation>
+    </message>
+    <message>
+        <source>OPC UA SDK:</source>
+        <translation>SDK OPC UA:</translation>
+    </message>
+    <message>
+        <source>SDK Version:</source>
+        <translation>Версия SDK:</translation>
+    </message>
+    <message>
+        <source>Qt Version:</source>
+        <translation>Версия Qt:</translation>
+    </message>
+    <message>
+        <source>Supported Security</source>
+        <translation>Поддерживаемая защита</translation>
+    </message>
+    <message>
+        <source>Security Policies:</source>
+        <translation>Политики безопасности:</translation>
+    </message>
+    <message>
+        <source>Message Security Modes:</source>
+        <translation>Режимы безопасности сообщений:</translation>
+    </message>
+    <message>
+        <source>User Token Types:</source>
+        <translation>Типы токенов пользователя:</translation>
+    </message>
+    <message>
+        <source>Protocol</source>
+        <translation>Протокол</translation>
+    </message>
+    <message>
+        <source>Transport:</source>
+        <translation>Транспорт:</translation>
+    </message>
+    <message>
+        <source>Application role:</source>
+        <translation>Роль приложения:</translation>
+    </message>
+    <message>
+        <source>Resources</source>
+        <translation>Ресурсы</translation>
+    </message>
+    <message>
+        <source>OPC Foundation:</source>
+        <translation>OPC Foundation:</translation>
+    </message>
+    <message>
+        <source>OPC UA Specification:</source>
+        <translation>Спецификация OPC UA:</translation>
+    </message>
+    <message>
+        <source>Copy Info</source>
+        <translation>Копировать сведения</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
+        <source>%1 (built against %2)</source>
+        <translation>%1 (собрано с %2)</translation>
+    </message>
+    <message>
+        <source>Server</source>
+        <translation>Сервер</translation>
+    </message>
+    <message>
+        <source>QUaServer Version:</source>
+        <translation>Версия QUaServer:</translation>
+    </message>
+    <message>
+        <source>Not available</source>
+        <translation>Нет данных</translation>
     </message>
 </context>
 </TS>
