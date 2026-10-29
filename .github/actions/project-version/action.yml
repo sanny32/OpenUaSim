@@ -1,0 +1,30 @@
+name: Determine project version
+description: Map the CMake version and release tag to platform package versions.
+outputs:
+  appVersion:
+    description: Application version including the prerelease suffix.
+    value: ${{ steps.version.outputs.appVersion }}
+  prerelease:
+    description: Prerelease suffix passed to CMake.
+    value: ${{ steps.version.outputs.prerelease }}
+  debVersion:
+    description: Debian version including packaging revision.
+    value: ${{ steps.version.outputs.debVersion }}
+  rpmVersion:
+    description: RPM upstream version.
+    value: ${{ steps.version.outputs.rpmVersion }}
+  rpmRelease:
+    description: RPM packaging revision.
+    value: ${{ steps.version.outputs.rpmRelease }}
+  fileVersion:
+    description: Numeric Windows file version.
+    value: ${{ steps.version.outputs.fileVersion }}
+  releaseDate:
+    description: Commit date for AppStream metadata.
+    value: ${{ steps.version.outputs.releaseDate }}
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      run: bash tools/package_version.sh >> "$GITHUB_OUTPUT"

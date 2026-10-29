@@ -1,0 +1,8 @@
+ouasim: embedded-library
+
+ouasim: no-manual-page
+ouasim: binary-without-manpage usr/bin/ouasim
+
+ouasim: new-package-should-close-itp-bug
+
+ouasim: shared-lib-without-dependency-information usr/lib/ouasim/lib/libicudata.so.*

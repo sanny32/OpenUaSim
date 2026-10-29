@@ -1,0 +1,126 @@
+name: Build macOS disk image
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: installer-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: '6.9.3'
+  APP_BUNDLE: 'OpenUaSim.app'
+
+jobs:
+  installer:
+    name: Build DMG version '${{ github.ref_name }}'
+    runs-on: macos-26
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Determine version
+        id: version
+        uses: ./.github/actions/project-version
+
+      - name: Determine image name
+        id: package
+        shell: bash
+        run: |
+          dmg="ouasim-${{ steps.version.outputs.appVersion }}-macos-arm64.dmg"
+          echo "dmg=$dmg" >> "$GITHUB_OUTPUT"
+          echo "Building $dmg"
+
+      - name: Install build dependencies
+        run: brew install ninja create-dmg
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+
+      - name: Set up OpenSSL
+        uses: ./.github/actions/setup-openssl
+
+      - name: Configure
+        run: >
+          cmake -S src -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_ARCHITECTURES=arm64
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0
+          -DOUASIM_BUILD_TESTS=OFF
+          -DOUASIM_DEPLOY_RUNTIME=ON
+          "-DPROJECT_PRERELEASE=${{ steps.version.outputs.prerelease }}"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel --target ouasim
+
+      - name: Stage install tree
+        run: cmake --install build --config Release --prefix "$GITHUB_WORKSPACE/stage"
+
+      - name: Verify the staged bundle
+        run: |
+          app="$GITHUB_WORKSPACE/stage/$APP_BUNDLE"
+          if [ ! -d "$app" ]; then
+            echo "::error::The install did not produce $app"
+            exit 1
+          fi
+          for file in LICENSE THIRD_PARTY_NOTICES.md; do
+            test -f "$app/Contents/Resources/licenses/$file"
+          done
+          for file in "$GITHUB_WORKSPACE"/licenses/*; do
+            test -f "$app/Contents/Resources/licenses/third-party/$(basename "$file")"
+          done
+          codesign --verify --deep --strict --verbose=2 "$app"
+
+      - name: Build disk image
+        run: |
+          dmg="$GITHUB_WORKSPACE/${{ steps.package.outputs.dmg }}"
+          rm -f "$dmg"
+          find "$GITHUB_WORKSPACE/stage" -name .DS_Store -delete
+          create-dmg \
+            --volname "OpenUaSim ${{ steps.version.outputs.appVersion }}" \
+            --window-pos 200 120 \
+            --window-size 640 400 \
+            --icon-size 128 \
+            --icon "$APP_BUNDLE" 160 190 \
+            --hide-extension "$APP_BUNDLE" \
+            --app-drop-link 480 190 \
+            --no-internet-enable \
+            "$dmg" \
+            "$GITHUB_WORKSPACE/stage"
+
+      - name: Compute checksum
+        run: |
+          dmg="${{ steps.package.outputs.dmg }}"
+          shasum -a 256 "$dmg" > "$dmg.sha256"
+          cat "$dmg.sha256"
+
+      - name: Upload disk image artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ouasim-macos-arm64-dmg
+          path: |
+            ${{ steps.package.outputs.dmg }}
+            ${{ steps.package.outputs.dmg }}.sha256
+          if-no-files-found: error
+
+      - name: Attach disk image to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          prerelease: ${{ steps.version.outputs.prerelease != '' }}
+          files: |
+            ${{ steps.package.outputs.dmg }}
+            ${{ steps.package.outputs.dmg }}.sha256
+          generate_release_notes: true
+          fail_on_unmatched_files: true

@@ -1,0 +1,13 @@
+name: Check glibc floor
+description: Reject packages requiring symbols newer than glibc 2.28.
+inputs:
+  path:
+    description: Directory holding staged binaries and libraries.
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        BINARY_ROOT: ${{ inputs.path }}
+      run: bash tools/check_glibc_floor.sh "$BINARY_ROOT"

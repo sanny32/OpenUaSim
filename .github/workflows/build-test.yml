@@ -8,6 +8,9 @@ on:
       - 'examples/nodesets/**'
       - '.github/workflows/build-test.yml'
       - '.github/actions/drop-stale-caches/**'
+      - '.github/linux/**'
+      - 'tools/package_version.sh'
+      - 'tools/check_glibc_floor.sh'
       - '!**/*.md'
 
 concurrency:
@@ -60,7 +63,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libssl-dev libgl1-mesa-dev libegl1 libxkbcommon-dev libfontconfig1
+          sudo apt-get install -y ninja-build patchelf libssl-dev libgl1-mesa-dev libegl1 libxkbcommon-dev libfontconfig1
 
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'

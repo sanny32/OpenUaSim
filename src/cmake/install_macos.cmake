@@ -1,0 +1,20 @@
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/Applications" CACHE PATH "Install path prefix" FORCE)
+endif()
+
+install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
+ouasim_install_license_bundle("${PROJECT_NAME}.app/Contents/Resources/licenses")
+install(CODE "
+    set(built_app \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app\")
+    set(installed_app \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${PRODUCT_NAME}.app\")
+    if(NOT built_app STREQUAL installed_app)
+        file(REMOVE_RECURSE \"\${installed_app}\")
+        file(RENAME \"\${built_app}\" \"\${installed_app}\")
+    endif()
+")
+
+if(OUASIM_DEPLOY_RUNTIME)
+    find_program(OUASIM_DEPLOY_TOOL macdeployqt HINTS "${QT_BINARY_DIR}" REQUIRED)
+    get_filename_component(OUASIM_OPENSSL_LIB "${OPENSSL_CRYPTO_LIBRARY}" DIRECTORY)
+    ouasim_install_runtime()
+endif()

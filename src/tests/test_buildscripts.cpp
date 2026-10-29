@@ -10,12 +10,33 @@ class BuildScriptsTest : public QObject
 private slots:
     void bash();
     void powershell();
+    void packaging();
+
+private:
+    void runBashTest(const QString &script);
 };
 
 ///
 /// \brief Exercises Bash dependency selection and build orchestration without installing tools.
 ///
 void BuildScriptsTest::bash()
+{
+    runBashTest(QStringLiteral("src/tests/buildscripts/test_build.sh"));
+}
+
+///
+/// \brief Checks package versions and rejection of incompatible Linux binaries.
+///
+void BuildScriptsTest::packaging()
+{
+    runBashTest(QStringLiteral("src/tests/buildscripts/test_packaging.sh"));
+}
+
+///
+/// \brief Runs a dependency-free shell suite using native Bash on each platform.
+/// \param script Suite path relative to the repository root.
+///
+void BuildScriptsTest::runBashTest(const QString &script)
 {
     QString executable;
 #ifdef Q_OS_WIN
@@ -32,7 +53,7 @@ void BuildScriptsTest::bash()
     QProcess process;
     process.setWorkingDirectory(QStringLiteral(OUASIM_SOURCE_DIR));
     process.setProcessChannelMode(QProcess::MergedChannels);
-    process.start(executable, {QStringLiteral("src/tests/buildscripts/test_build.sh")});
+    process.start(executable, {script});
     QVERIFY(process.waitForStarted());
     QVERIFY(process.waitForFinished(60000));
     const QByteArray output = process.readAll();

@@ -18,6 +18,7 @@ set(PRODUCT_NAME "OpenUaSim")
 set(ORGANIZATION_NAME "Ananev Alexandr")
 
 option(OUASIM_BUILD_TESTS "Build OpenUaSim tests" OFF)
+option(OUASIM_DEPLOY_RUNTIME "Deploy Qt and OpenSSL during installation on Windows and macOS" ON)
 
 include("${PROJECT_SOURCE_DIR}/cmake/qt.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/quaserver.cmake")
@@ -50,3 +51,6 @@ add_subdirectory(app)
 if(OUASIM_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
+
+include("${PROJECT_SOURCE_DIR}/cmake/install.cmake")
+ouasim_configure_install()

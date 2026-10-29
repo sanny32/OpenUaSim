@@ -1,0 +1,53 @@
+name: Set up Python
+description: >-
+  Builds a Python newer than the one the build container ships and puts it first
+  on PATH. The packages are built in an old container to keep the glibc the
+  binaries reference low, and its Python is too old for aqtinstall, which
+  install-qt-action runs out of PATH. The container's release is old enough that
+  no repository offers a newer one either, so it is built from source.
+
+inputs:
+  version:
+    description: 'The Python that is built; the full version, as released'
+    required: false
+    default: '3.12.13'
+  prefix:
+    description: 'Where the interpreter is installed, and prepended to PATH'
+    required: false
+    default: /opt/python
+
+runs:
+  using: composite
+  steps:
+    - name: Build Python ${{ inputs.version }}
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        PREFIX: ${{ inputs.prefix }}
+      run: |
+        apt-get update
+        apt-get install -y --no-install-recommends \
+          build-essential ca-certificates curl \
+          libbz2-dev libffi-dev liblzma-dev libssl-dev zlib1g-dev
+
+        src="$(mktemp -d)"
+        curl -fsSL "https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz" \
+          | tar -xJ -C "$src" --strip-components=1
+
+        ( cd "$src" && ./configure --prefix="$PREFIX" --with-ensurepip=install )
+        make -C "$src" -j"$(nproc)"
+        make -C "$src" install
+        rm -rf "$src"
+
+    - name: Report the interpreter
+      shell: bash
+      env:
+        PREFIX: ${{ inputs.prefix }}
+      run: |
+        echo "$PREFIX/bin" >> "$GITHUB_PATH"
+
+        python="$PREFIX/bin/python3"
+        "$python" --version
+        "$python" -m pip --version
+
+        "$python" -c 'import bz2, ctypes, lzma, ssl, zlib'

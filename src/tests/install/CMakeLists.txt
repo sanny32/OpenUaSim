@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.22)
+project(ouasim NONE)
+
+set(CMAKE_INSTALL_LIBDIR lib)
+include(GNUInstallDirs)
+set(CMAKE_CXX_COMPILE_OBJECT "echo unused")
+set(CMAKE_CXX_LINK_EXECUTABLE "echo unused")
+set(PRODUCT_NAME OpenUaSim)
+set(PROJECT_SOURCE_DIR "${OUASIM_SOURCE_ROOT}/src")
+set(OUASIM_DEPLOY_RUNTIME OFF)
+
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/main.cpp" "int main() {}")
+add_executable(ouasim "${CMAKE_CURRENT_BINARY_DIR}/main.cpp")
+set_target_properties(ouasim PROPERTIES LINKER_LANGUAGE CXX)
+if(APPLE)
+    set_target_properties(ouasim PROPERTIES MACOSX_BUNDLE ON)
+    file(GENERATE OUTPUT "$<TARGET_BUNDLE_CONTENT_DIR:ouasim>/Info.plist" CONTENT "fixture")
+endif()
+file(GENERATE OUTPUT "$<TARGET_FILE:ouasim>" CONTENT "fixture")
+
+include("${OUASIM_SOURCE_ROOT}/src/cmake/install.cmake")
+ouasim_configure_install()

@@ -1,0 +1,47 @@
+%global appname ouasim
+
+%global appdir %{_prefix}/lib/%{appname}
+
+%global debug_package %{nil}
+%global _build_id_links none
+
+%global __provides_exclude_from ^%{appdir}/.*$
+%global __requires_exclude @REQUIRES_EXCLUDE@
+
+Name:           @NAME@
+Version:        @VERSION@
+Release:        @RELEASE@
+Summary:        OPC UA simulation server
+
+License:        MIT AND ISC AND BSD-3-Clause AND Apache-2.0 AND LGPL-3.0-only AND MPL-2.0 AND CC0-1.0 AND CC-BY-SA-4.0
+URL:            https://github.com/sanny32/OpenUaSim
+
+ExclusiveArch:  x86_64
+
+Requires:       hicolor-icon-theme
+Requires:       ca-certificates
+
+Requires:       libxcb-cursor.so.0()(64bit)
+
+@REQUIRES@
+
+%description
+OpenUaSim simulates OPC UA servers, variables, alarms and methods.
+
+%prep
+
+%build
+
+%install
+cp -a %{_stagedir}/. %{buildroot}/
+
+
+%files
+%license %{_datadir}/licenses/%{name}/
+%{_bindir}/%{appname}
+%{appdir}/
+%{_datadir}/applications/io.github.sanny32.OpenUaSim.desktop
+%{_datadir}/icons/hicolor/scalable/apps/io.github.sanny32.OpenUaSim.svg
+%{_datadir}/metainfo/io.github.sanny32.OpenUaSim.metainfo.xml
+
+%changelog

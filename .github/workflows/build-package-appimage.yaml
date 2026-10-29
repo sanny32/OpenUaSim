@@ -1,0 +1,264 @@
+name: Build AppImage
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: package-appimage-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: '6.9.3'
+  QT_TOOLS: tools_opensslv3_src
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  appimage:
+    name: Build AppImage version '${{ github.ref_name }}'
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
+    timeout-minutes: 90
+
+    outputs:
+      arch: ${{ steps.package.outputs.arch }}
+      name: ${{ steps.package.outputs.name }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+
+    steps:
+      - name: Install checkout dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git sudo unzip xz-utils zstd
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Trust workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Set up Python
+        uses: ./.github/actions/setup-python
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential perl pkg-config file \
+            desktop-file-utils appstream-util \
+            libgl1-mesa-dev \
+            libgtk-3-0 libwayland-cursor0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
+            libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0
+          python3 -m pip install --upgrade 'cmake>=3.22,<4' ninja patchelf
+          cmake --version
+          ninja --version
+          patchelf --version
+
+      - name: Determine version
+        id: version
+        uses: ./.github/actions/project-version
+
+      - name: Determine package name
+        id: package
+        run: |
+          arch="$(uname -m)"
+          package="OpenUaSim-${{ steps.version.outputs.appVersion }}-${arch}.AppImage"
+
+          {
+            echo "arch=$arch"
+            echo "name=$package"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building $package"
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          tools: ${{ env.QT_TOOLS }}
+          setup-python: false
+
+      - name: Set up OpenSSL
+        uses: ./.github/actions/setup-openssl
+
+      - name: Configure
+        run: >
+          cmake -S src -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DOUASIM_BUILD_TESTS=OFF
+          -DOUASIM_DEPLOY_RUNTIME=ON
+          "-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR"
+          "-DPROJECT_PRERELEASE=${{ steps.version.outputs.prerelease }}"
+
+      - name: Build
+        run: cmake --build build --parallel --target ouasim
+
+      - name: Stage AppDir
+        run: |
+          rm -rf AppDir
+          DESTDIR="$PWD/AppDir" cmake --install build --prefix /usr
+
+          metainfo=AppDir/usr/share/metainfo/io.github.sanny32.OpenUaSim.metainfo.xml
+          mkdir -p "$(dirname "$metainfo")"
+          sed -e "s|@VERSION@|${{ steps.version.outputs.appVersion }}|" \
+              -e "s|@RELEASE_DATE@|${{ steps.version.outputs.releaseDate }}|" \
+              .github/linux/metainfo/io.github.sanny32.OpenUaSim.metainfo.xml.in \
+              > "$metainfo"
+          chmod 0644 "$metainfo"
+
+      - name: Validate desktop entry and AppStream metadata
+        run: |
+          desktop-file-validate AppDir/usr/share/applications/*.desktop
+          appstream-util validate-relax --nonet AppDir/usr/share/metainfo/*.metainfo.xml
+
+          test -f AppDir/usr/share/icons/hicolor/scalable/apps/io.github.sanny32.OpenUaSim.svg
+          for file in LICENSE THIRD_PARTY_NOTICES.md; do
+            test -f "AppDir/usr/share/licenses/ouasim/$file"
+          done
+          for file in licenses/*; do
+            test -f "AppDir/usr/share/licenses/ouasim/third-party/$(basename "$file")"
+          done
+
+      - name: Set up linuxdeployqt
+        uses: ./.github/actions/setup-linuxdeployqt
+
+      - name: Build AppImage
+        env:
+          VERSION: ${{ steps.version.outputs.appVersion }}
+        run: |
+          export LD_LIBRARY_PATH="$OPENSSL_ROOT_DIR/lib:${LD_LIBRARY_PATH:-}"
+
+          linuxdeployqt AppDir/usr/share/applications/*.desktop \
+            -qmake="$QT_ROOT_DIR/bin/qmake" \
+            -exclude-libs=libsystemd.so \
+            -extra-plugins=iconengines,platformthemes,tls \
+            -appimage
+
+          built="$(find . -maxdepth 1 -name '*.AppImage' -newer AppDir -print -quit)"
+          if [ -z "$built" ]; then
+            echo "::error::linuxdeployqt produced no AppImage"
+            exit 1
+          fi
+          mv "$built" "${{ steps.package.outputs.name }}"
+          chmod +x "${{ steps.package.outputs.name }}"
+
+      - name: Inspect AppImage
+        run: |
+          ls -l "${{ steps.package.outputs.name }}"
+          ./"${{ steps.package.outputs.name }}" --appimage-extract > /dev/null
+          test -f squashfs-root/usr/share/licenses/ouasim/THIRD_PARTY_NOTICES.md
+
+          if find squashfs-root/usr/lib -maxdepth 1 -name 'libsystemd.so*' \
+              -print -quit | grep -q .; then
+            echo "::error::The AppImage bundles libsystemd and raises its glibc floor"
+            exit 1
+          fi
+
+          rm -rf squashfs-root
+
+      - name: Check the glibc floor
+        uses: ./.github/actions/check-glibc-floor
+        with:
+          path: AppDir
+
+      - name: Compute checksum
+        run: sha256sum "${{ steps.package.outputs.name }}" > "${{ steps.package.outputs.name }}.sha256"
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ouasim-appimage-${{ steps.package.outputs.arch }}
+          path: |
+            ${{ steps.package.outputs.name }}
+            ${{ steps.package.outputs.name }}.sha256
+          if-no-files-found: error
+
+  verify:
+    name: Verify AppImage
+    runs-on: ubuntu-latest
+    needs: appimage
+    timeout-minutes: 30
+
+    steps:
+      - name: Download AppImage artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ouasim-appimage-${{ needs.appimage.outputs.arch }}
+
+      - name: Verify the AppImage runs
+        env:
+          PKG: ${{ needs.appimage.outputs.name }}
+          IMAGES: >-
+            debian:12
+            debian:13
+            ubuntu:22.04
+            ubuntu:24.04
+            ubuntu:26.04
+            fedora:43
+            registry.astralinux.ru/astra/ubi17:latest
+            registry.astralinux.ru/astra/ubi18:latest
+        run: |
+          chmod +x "$PKG"
+
+          status=0
+          for image in $IMAGES; do
+            echo "::group::$image"
+            if ! docker run --rm -e PKG -v "$PWD:/pkg" -w /tmp "$image" sh -eux -c '
+              install_desktop_runtime() {
+                if command -v dnf > /dev/null; then
+                  dnf -y --setopt=install_weak_deps=False install \
+                    fontconfig freetype keyutils-libs libcom_err libgpg-error libX11 \
+                    libglvnd-egl libglvnd-glx libglvnd-opengl systemd-libs
+                  return
+                fi
+
+                export DEBIAN_FRONTEND=noninteractive
+                apt-get update
+                apt-get install -y --no-install-recommends \
+                  libcom-err2 libegl1 libfontconfig1 libfreetype6 libgl1 \
+                  libglx0 libgpg-error0 libkeyutils1 libopengl0 libsystemd0 libx11-6
+              }
+
+              install_desktop_runtime
+
+              cp "/pkg/$PKG" ./app.AppImage
+              ./app.AppImage --appimage-extract > /dev/null
+
+              if ldd -r squashfs-root/usr/bin/ouasim | grep -E "not found|undefined symbol"; then
+                echo "The AppImage has unresolved libraries or symbols"
+                exit 1
+              fi
+
+              for plugin in squashfs-root/usr/plugins/platforms/libqxcb.so \
+                            squashfs-root/usr/plugins/tls/*.so; do
+                if ldd -r "$plugin" | grep -E "not found"; then
+                  echo "$plugin has unresolved libraries"
+                  exit 1
+                fi
+              done
+            '; then
+              echo "::error::The AppImage does not run on $image"
+              status=1
+            fi
+            echo "::endgroup::"
+          done
+          exit "$status"
+
+      - name: Attach AppImage to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          prerelease: ${{ needs.appimage.outputs.prerelease != '' }}
+          files: |
+            ${{ needs.appimage.outputs.name }}
+            ${{ needs.appimage.outputs.name }}.sha256
+          generate_release_notes: true
+          fail_on_unmatched_files: true

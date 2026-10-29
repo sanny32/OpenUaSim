@@ -1,0 +1,75 @@
+cmake_minimum_required(VERSION 3.22)
+file(REAL_PATH "${FIXTURE_ROOT}" FIXTURE_ROOT)
+
+function(require_file path)
+    if(NOT EXISTS "${path}")
+        message(FATAL_ERROR "Missing installed file: ${path}")
+    endif()
+endfunction()
+
+foreach(platform IN ITEMS Windows Darwin Linux)
+    set(build "${FIXTURE_ROOT}/install-${platform}")
+    execute_process(COMMAND "${CMAKE_COMMAND}" -E env "HOME=${FIXTURE_ROOT}/home" "${CMAKE_COMMAND}"
+        -S "${OUASIM_SOURCE_ROOT}/src/tests/install" -B "${build}" -G Ninja
+        "-DCMAKE_MAKE_PROGRAM=${OUASIM_MAKE_PROGRAM}"
+        "-DCMAKE_SYSTEM_NAME=${platform}" "-DOUASIM_SOURCE_ROOT=${OUASIM_SOURCE_ROOT}"
+        RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "${platform} configure failed: ${output}${error}")
+    endif()
+    file(READ "${build}/CMakeCache.txt" cache)
+    if(platform STREQUAL Windows AND NOT cache MATCHES "CMAKE_INSTALL_PREFIX:PATH=C:/Program Files/OpenUaSim")
+        message(FATAL_ERROR "Windows default prefix is incorrect")
+    elseif(platform STREQUAL Darwin AND NOT cache MATCHES "CMAKE_INSTALL_PREFIX:PATH=[^\n]+/Applications")
+        message(FATAL_ERROR "macOS default prefix is incorrect")
+    endif()
+
+    set(stage "${build}/stage with spaces")
+    execute_process(COMMAND "${CMAKE_COMMAND}" --install "${build}" --prefix "${stage}"
+        RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "${platform} install failed: ${output}${error}")
+    endif()
+    if(platform STREQUAL Windows)
+        require_file("${stage}/ouasim.exe")
+        set(licenses "${stage}/licenses")
+    elseif(platform STREQUAL Darwin)
+        require_file("${stage}/OpenUaSim.app/Contents/MacOS/ouasim")
+        set(licenses "${stage}/OpenUaSim.app/Contents/Resources/licenses")
+        if(EXISTS "${stage}/ouasim.app")
+            message(FATAL_ERROR "The internal bundle name was left in the installation")
+        endif()
+    else()
+        require_file("${stage}/bin/ouasim")
+        require_file("${stage}/share/applications/io.github.sanny32.OpenUaSim.desktop")
+        require_file("${stage}/share/icons/hicolor/scalable/apps/io.github.sanny32.OpenUaSim.svg")
+        set(licenses "${stage}/share/licenses/ouasim")
+    endif()
+    require_file("${licenses}/LICENSE")
+    require_file("${licenses}/THIRD_PARTY_NOTICES.md")
+    require_file("${licenses}/third-party/MIT-QUaServer.txt")
+
+    execute_process(COMMAND "${CMAKE_COMMAND}" --install "${build}" --prefix "${stage}"
+        RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "${platform} reinstall failed: ${output}${error}")
+    endif()
+
+    set(custom_prefix "${build}/custom prefix")
+    execute_process(COMMAND "${CMAKE_COMMAND}" -S "${OUASIM_SOURCE_ROOT}/src/tests/install"
+        -B "${build}" "-DCMAKE_INSTALL_PREFIX=${custom_prefix}"
+        RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    file(READ "${build}/CMakeCache.txt" cache)
+    string(REGEX MATCH "CMAKE_INSTALL_PREFIX:PATH=([^\n]+)" prefix_entry "${cache}")
+    cmake_path(NORMAL_PATH custom_prefix OUTPUT_VARIABLE expected_prefix)
+    set(actual_prefix "${CMAKE_MATCH_1}")
+    cmake_path(NORMAL_PATH actual_prefix OUTPUT_VARIABLE actual_prefix)
+    if(NOT result EQUAL 0 OR NOT actual_prefix STREQUAL expected_prefix)
+        message(FATAL_ERROR "${platform} custom prefix ${expected_prefix} became ${actual_prefix}: ${output}${error}")
+    endif()
+    execute_process(COMMAND "${CMAKE_COMMAND}" --install "${build}"
+        RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(NOT result EQUAL 0 OR NOT IS_DIRECTORY "${custom_prefix}")
+        message(FATAL_ERROR "${platform} configured-prefix install failed: ${output}${error}")
+    endif()
+endforeach()

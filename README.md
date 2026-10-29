@@ -142,6 +142,7 @@ Options:
 |--------------------------|----------|---------------------------------------------|
 | `OUASIM_BUILD_TESTS`     | `OFF`    | Build the Qt Test suites (needs Qt Test).   |
 | `OUASIM_WITH_ENCRYPTION` | `ON`     | Build QUaServer with OpenSSL 3 encryption.  |
+| `OUASIM_DEPLOY_RUNTIME`  | `ON`     | Deploy Qt/OpenSSL on Windows/macOS install. |
 | `OUASIM_QUASERVER_TAG`   | `master` | QUaServer git tag or commit to fetch.       |
 
 ## Feedback

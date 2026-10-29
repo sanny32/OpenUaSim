@@ -1,0 +1,142 @@
+name: Build Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: installer-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: '6.9.3'
+
+jobs:
+  installer:
+    name: Build NSIS installer version '${{ github.ref_name }}'
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Determine version
+        id: version
+        uses: ./.github/actions/project-version
+
+      - name: Determine installer name
+        id: package
+        shell: pwsh
+        run: |
+          $setup = "ouasim-${{ steps.version.outputs.appVersion }}-win64-setup.exe"
+          "setup=$setup" >> $env:GITHUB_OUTPUT
+          Write-Host "Building $setup"
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+
+      - name: Set up OpenSSL
+        uses: ./.github/actions/setup-openssl
+
+      - name: Configure
+        run: >
+          cmake -S src -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DOUASIM_BUILD_TESTS=OFF
+          -DOUASIM_DEPLOY_RUNTIME=ON
+          "-DPROJECT_PRERELEASE=${{ steps.version.outputs.prerelease }}"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel --target ouasim
+
+      - name: Stage install tree
+        run: cmake --install build --config Release --prefix "${{ github.workspace }}\stage"
+
+      - name: Verify staged runtime and licenses
+        shell: pwsh
+        run: |
+          $stage = "${{ github.workspace }}\stage"
+          foreach ($file in @('ouasim.exe', 'vc_redist.x64.exe', 'Qt6Core.dll', 'Qt6Gui.dll', 'Qt6Widgets.dll', 'Qt6Svg.dll', 'platforms\qwindows.dll', 'tls\qopensslbackend.dll')) {
+            if (-not (Test-Path (Join-Path $stage $file) -PathType Leaf)) {
+              throw "Missing runtime file: $file"
+            }
+          }
+          foreach ($pattern in @('libcrypto-*.dll', 'libssl-*.dll')) {
+            if (-not (Get-ChildItem $stage -Filter $pattern -File)) {
+              throw "Missing OpenSSL runtime: $pattern"
+            }
+          }
+          $licenseRoot = "${{ github.workspace }}\stage\licenses"
+          $expected = @('LICENSE', 'THIRD_PARTY_NOTICES.md')
+          $expected += Get-ChildItem "${{ github.workspace }}\licenses" -File |
+            ForEach-Object { "third-party\$($_.Name)" }
+          $expected | ForEach-Object {
+            if (-not (Test-Path (Join-Path $licenseRoot $_) -PathType Leaf)) {
+              throw "Missing license file: $_"
+            }
+          }
+
+      - name: Ensure NSIS is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+            choco install nsis -y --no-progress
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+          $nsisDir = "${env:ProgramFiles(x86)}\NSIS"
+          if (Test-Path $nsisDir) { $nsisDir >> $env:GITHUB_PATH }
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          makensis /V3 `
+            "/DSTAGE_DIR=${{ github.workspace }}\stage" `
+            "/DSRC_DIR=${{ github.workspace }}" `
+            "/DAPP_VERSION=${{ steps.version.outputs.appVersion }}" `
+            "/DFILE_VERSION=${{ steps.version.outputs.fileVersion }}" `
+            "/DOUT_FILE=${{ github.workspace }}\${{ steps.package.outputs.setup }}" `
+            .github\windows\ouasim.nsi
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Compute checksum
+        shell: pwsh
+        run: |
+          $setup = "${{ steps.package.outputs.setup }}"
+          $hash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          "$hash  $setup" | Out-File "$setup.sha256" -Encoding ascii
+          Write-Host "SHA256: $hash"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ouasim-win64-setup
+          path: |
+            ${{ steps.package.outputs.setup }}
+            ${{ steps.package.outputs.setup }}.sha256
+          if-no-files-found: error
+
+      - name: Attach installer to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          prerelease: ${{ steps.version.outputs.prerelease != '' }}
+          files: |
+            ${{ steps.package.outputs.setup }}
+            ${{ steps.package.outputs.setup }}.sha256
+          generate_release_notes: true
+          fail_on_unmatched_files: true

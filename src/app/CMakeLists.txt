@@ -18,8 +18,3 @@ if(WIN32)
 elseif(APPLE)
     ouasim_configure_target_macos(${PROJECT_NAME})
 endif()
-
-install(TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    BUNDLE DESTINATION .
-)

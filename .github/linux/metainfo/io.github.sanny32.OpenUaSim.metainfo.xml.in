@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.sanny32.OpenUaSim</id>
+  <launchable type="desktop-id">io.github.sanny32.OpenUaSim.desktop</launchable>
+  <name>OpenUaSim</name>
+  <summary>Simulate OPC UA servers, variables, alarms and methods</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.sanny32"><name>Ananev Alexandr</name></developer>
+  <description>
+    <p>OpenUaSim is an OPC UA simulation server for testing industrial clients.</p>
+    <ul>
+      <li>Generate variable values with configurable signals.</li>
+      <li>Simulate alarms and method responses.</li>
+      <li>Import NodeSet2 models and configure secure endpoints.</li>
+    </ul>
+  </description>
+  <categories><category>Utility</category><category>Engineering</category></categories>
+  <url type="homepage">https://github.com/sanny32/OpenUaSim</url>
+  <url type="bugtracker">https://github.com/sanny32/OpenUaSim/issues</url>
+  <releases><release version="@VERSION@" date="@RELEASE_DATE@"/></releases>
+  <content_rating type="oars-1.1"/>
+</component>

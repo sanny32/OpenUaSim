@@ -72,8 +72,53 @@ The default installation prefix is `$HOME/Applications`.
 runs the OpenUaSim CTest suites with output on failure. A failed configuration,
 build or test run stops the script before installation.
 
-`-InstallPrefix` / `--install=PREFIX` implies installation. Installation uses the
-project's existing CMake install rules. It does not create a standalone package:
-Qt and other runtime libraries must remain available on the target system.
+`-InstallPrefix` / `--install=PREFIX` implies installation using `cmake --install`.
+On Windows the executable, Qt, OpenSSL and licenses are installed into the chosen
+directory. On macOS installation produces `OpenUaSim.app` with its dependencies
+and an ad-hoc signature. On Linux installation uses the standard `bin` and `share`
+directories and requires compatible Qt and OpenSSL libraries on the target system.
+The Linux CI workflows bundle those libraries separately for distribution.
+
+The CMake entry point `ouasim_configure_install()` selects `install_windows.cmake`,
+`install_macos.cmake` or `install_linux.cmake`. Without an explicit prefix, Windows
+uses `C:/Program Files/OpenUaSim`, macOS uses `$HOME/Applications`, and Linux uses
+the CMake default `/usr/local`. Override it with `-DCMAKE_INSTALL_PREFIX=...` or
+`cmake --install build --prefix ...`.
 
 For manual CMake commands and project options, see [README.md](README.md#building).
+
+## Installer CI
+
+The five `Build Windows installer`, `Build macOS disk image`, `Build Debian package`,
+`Build RPM package` and `Build AppImage` workflows follow the packaging layout of
+[OpenUaExplorer](https://github.com/sanny32/OpenUaExplorer).
+
+Run a workflow from **Actions → Run workflow**, selecting the branch to build.
+Each workflow also runs on tags matching `v*`. Release tags must match the version
+in `src/CMakeLists.txt`, for example `v1.0.0` or `v1.0.0-rc1`. Manual branch builds
+receive a `dev.g<commit>` suffix; a manual run on a tag uses that tag's version.
+
+| Platform | Architecture | Output |
+|----------|--------------|--------|
+| Windows 10+ | x64 | NSIS `ouasim-<version>-win64-setup.exe` |
+| macOS 13+ | Apple silicon | `ouasim-<version>-macos-arm64.dmg` |
+| Linux, glibc 2.28+ | x86-64 | DEB, RPM, AppImage |
+
+Packages include Qt and OpenSSL runtime libraries, license texts and a SHA-256
+checksum. Download them from the workflow's artifacts. Tag builds also attach
+the package and checksum to a **draft** GitHub Release. Linux release attachments
+are gated on package installation and runtime dependency checks in clean containers.
+
+Linux builds use Ubuntu 20.04 with Qt 6.9.3 and check every staged application and
+shared library against the glibc 2.28 symbol limit. DEB and RPM keep bundled
+libraries in `/usr/lib/ouasim`; system libraries remain package dependencies.
+Windows uses MSVC and `windeployqt`. macOS uses the `macos-26` runner for Icon
+Composer support and `macdeployqt`, followed by ad-hoc signature verification.
+The Windows installer has no publisher signature; the macOS bundle has no Apple
+Developer ID signature or notarization. OS security prompts may apply.
+
+`OUASIM_DEPLOY_RUNTIME` defaults to `ON`: Windows and macOS installation deploys
+runtime dependencies. Set it to `OFF` to install the application and licenses
+without running the Qt deployment tool. The packaging workflows build the application target; the
+separate `Build and Test` workflow runs the Qt Test suites, including packaging
+script regression tests (`ctest -R ouasim_tests_build_scripts`).

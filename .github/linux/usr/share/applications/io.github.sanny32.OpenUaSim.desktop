@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Version=1.1
+Name=OpenUaSim
+GenericName=OPC UA Simulator
+Comment=Simulate OPC UA servers, variables, alarms and methods
+Exec=ouasim
+TryExec=ouasim
+Icon=io.github.sanny32.OpenUaSim
+Terminal=false
+Categories=Utility;Engineering;
+Keywords=OPC;UA;OPCUA;SCADA;Automation;Simulation;
+StartupNotify=true
+StartupWMClass=ouasim
