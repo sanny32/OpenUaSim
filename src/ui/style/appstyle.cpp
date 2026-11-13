@@ -20,6 +20,9 @@
 #include <QScrollArea>
 #include <QStyleFactory>
 #include <QStyleOptionButton>
+#include <QStyleOptionComboBox>
+#include <QStyleOptionFrame>
+#include <QStyleOptionSpinBox>
 #include <QStyleOptionMenuItem>
 #include <QStyleOptionToolButton>
 #include <QStyleOptionTab>
@@ -29,6 +32,7 @@
 
 #include "appcolors.h"
 #include "appicons.h"
+#include "apppalette.h"
 #include "appstyle.h"
 
 namespace {
@@ -128,6 +132,25 @@ QColor withAlpha(QColor color, int alpha)
     return color;
 }
 
+///
+/// \brief Uses explicit palette borders where Fusion's derived outline blends into dark inputs.
+/// \param option Input rectangle, palette and focus state.
+/// \param painter Painter to draw with.
+///
+void drawInputFrame(const QStyleOption *option, QPainter *painter)
+{
+    const bool enabled = option->state.testFlag(QStyle::State_Enabled);
+    const QPalette::ColorGroup group = enabled ? option->palette.currentColorGroup() : QPalette::Disabled;
+    const QPalette::ColorRole role = enabled && option->state.testFlag(QStyle::State_HasFocus)
+                                        ? QPalette::Highlight : QPalette::Mid;
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    painter->setPen(option->palette.color(group, role));
+    painter->setBrush(Qt::NoBrush);
+    painter->drawRoundedRect(QRectF(option->rect).adjusted(0.5, 0.5, -0.5, -0.5), 2, 2);
+    painter->restore();
+}
+
 }
 
 ///
@@ -139,7 +162,7 @@ AppStyle::AppStyle()
 }
 
 ///
-/// \brief Draws panel frames, separators, check boxes and accent button bevels; defers
+/// \brief Draws panel and dark input frames, separators, check boxes and accent button bevels; defers
 ///        everything else to Fusion.
 /// \param element Primitive element to draw.
 /// \param option Style option of the element.
@@ -156,6 +179,14 @@ void AppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *optio
     if (element == PE_Frame && widget && widget->property(separatorProperty).toBool()) {
         painter->fillRect(option->rect, option->palette.color(QPalette::Mid));
         return;
+    }
+    if ((element == PE_FrameLineEdit || element == PE_Frame) && AppPalette::isDark(option->palette)) {
+        if (const auto *frame = qstyleoption_cast<const QStyleOptionFrame *>(option)) {
+            if (frame->lineWidth > 0) {
+                drawInputFrame(option, painter);
+                return;
+            }
+        }
     }
     if (element == PE_IndicatorCheckBox || element == PE_IndicatorItemViewItemCheck) {
         drawCheckIndicator(option, painter);
@@ -227,7 +258,7 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option, Q
 }
 
 ///
-/// \brief Draws toolbar menu buttons with a separate chevron and rounded hover feedback.
+/// \brief Draws dark input frames and toolbar menu buttons with a separate chevron and rounded hover feedback.
 /// \param control Complex control to draw.
 /// \param option Style option of the control.
 /// \param painter Painter to draw with.
@@ -240,6 +271,17 @@ void AppStyle::drawComplexControl(ComplexControl control, const QStyleOptionComp
     if (control != CC_ToolButton || !button || !isToolbarWidget(widget)
         || !button->features.testFlag(QStyleOptionToolButton::HasMenu)) {
         QProxyStyle::drawComplexControl(control, option, painter, widget);
+        if (AppPalette::isDark(option->palette)) {
+            if (control == CC_SpinBox) {
+                const auto *spin = qstyleoption_cast<const QStyleOptionSpinBox *>(option);
+                if (spin && spin->frame && spin->subControls.testFlag(SC_SpinBoxFrame))
+                    drawInputFrame(option, painter);
+            } else if (control == CC_ComboBox) {
+                const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option);
+                if (combo && combo->frame && combo->subControls.testFlag(SC_ComboBoxFrame))
+                    drawInputFrame(option, painter);
+            }
+        }
         return;
     }
 
@@ -492,7 +534,7 @@ void AppStyle::unpolish(QApplication *application)
 }
 
 ///
-/// \brief Underlines mnemonics only while keyboard cues are on; defers everything else to Fusion.
+/// \brief Uses explicit dark table grid colours and keyboard-controlled mnemonics; defers other hints to Fusion.
 /// \param hint Style hint to query.
 /// \param option Style option of the control.
 /// \param widget Widget being queried.
@@ -504,6 +546,11 @@ int AppStyle::styleHint(StyleHint hint, const QStyleOption *option, const QWidge
 {
     if (hint == SH_UnderlineShortcut)
         return _keyboardCues ? 1 : 0;
+    if (hint == SH_Table_GridLineColor) {
+        const QPalette palette = option ? option->palette : (widget ? widget->palette() : QApplication::palette());
+        if (AppPalette::isDark(palette))
+            return int(palette.color(QPalette::Mid).rgb());
+    }
     return QProxyStyle::styleHint(hint, option, widget, returnData);
 }
 

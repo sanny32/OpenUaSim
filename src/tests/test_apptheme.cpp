@@ -37,6 +37,7 @@ class TestAppTheme : public QObject
 
 private slots:
     void palettesDifferInBrightness();
+    void darkPaletteUsesNeutralSurfaces();
     void setModeAppliesAndPersists();
     void setModeEmitsOnlyOnSchemeChange();
     void applySavedModeRestoresPreference();
@@ -67,6 +68,33 @@ void TestAppTheme::palettesDifferInBrightness()
     QVERIFY(dark.color(QPalette::Disabled, QPalette::Text) != dark.color(QPalette::Text));
 }
 
+///
+/// \brief Keeps dark surfaces neutral across active, inactive and disabled controls.
+///
+void TestAppTheme::darkPaletteUsesNeutralSurfaces()
+{
+    const QPalette palette = AppPalette::build(true);
+    for (QPalette::ColorGroup group : { QPalette::Active, QPalette::Inactive, QPalette::Disabled }) {
+        for (QPalette::ColorRole role : { QPalette::Window, QPalette::Base, QPalette::AlternateBase,
+                                         QPalette::Button, QPalette::ToolTipBase, QPalette::Light,
+                                         QPalette::Midlight, QPalette::Mid, QPalette::Dark,
+                                         QPalette::Shadow }) {
+            const QColor color = palette.color(group, role);
+            QCOMPARE(color.red(), color.green());
+            QCOMPARE(color.green(), color.blue());
+            QCOMPARE(color.alpha(), 255);
+            QVERIFY(color.lightness() < 80);
+        }
+        QVERIFY(palette.color(group, QPalette::Text).lightness()
+                > palette.color(group, QPalette::Base).lightness());
+    }
+    QCOMPARE(palette.color(QPalette::Window), QColor(0x202020));
+    QCOMPARE(palette.color(QPalette::Base), QColor(0x181818));
+    QCOMPARE(palette.color(QPalette::Highlight), QColor(0x1d63c9));
+    QVERIFY(palette.color(QPalette::Base).lightness() < palette.color(QPalette::Window).lightness());
+    QVERIFY(palette.color(QPalette::Button).lightness() > palette.color(QPalette::Window).lightness());
+}
+
 void TestAppTheme::setModeAppliesAndPersists()
 {
     AppTheme theme;
@@ -74,11 +102,13 @@ void TestAppTheme::setModeAppliesAndPersists()
     QCOMPARE(theme.mode(), AppTheme::Mode::Dark);
     QVERIFY(theme.isDark());
     QVERIFY(AppPalette::isDark(QApplication::palette()));
+    QCOMPARE(QApplication::palette(), AppPalette::build(true));
     QCOMPARE(SettingsStore().value(QStringLiteral("appearance/theme")).toString(), QStringLiteral("Dark"));
 
     theme.setMode(AppTheme::Mode::Light);
     QVERIFY(!theme.isDark());
     QVERIFY(!AppPalette::isDark(QApplication::palette()));
+    QCOMPARE(QApplication::palette(), AppPalette::build(false));
     QCOMPARE(SettingsStore().value(QStringLiteral("appearance/theme")).toString(), QStringLiteral("Light"));
 }
 

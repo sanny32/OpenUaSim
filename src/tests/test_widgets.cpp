@@ -7,6 +7,7 @@
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
+#include <QDateEdit>
 #include <QHeaderView>
 #include <QGridLayout>
 #include <QLabel>
@@ -22,6 +23,7 @@
 #include <QTest>
 #include <QToolButton>
 #include <QToolTip>
+#include <QTextEdit>
 #include <QTreeView>
 
 #include <QScrollArea>
@@ -151,6 +153,10 @@ private slots:
     void appStyleMessageBoxIconSize();
     void appStyleMessageBoxVerticalSpace();
     void appStylePanelsAndSeparators();
+    void appStyleDarkInputFrames_data();
+    void appStyleDarkInputFrames();
+    void appStyleTableGridColor_data();
+    void appStyleTableGridColor();
     void appStyleAccentButton();
     void appStyleSelectedTab();
     void appStyleEnlargesTabsAndToolbar();
@@ -646,6 +652,103 @@ void TestWidgets::appStylePanelsAndSeparators()
     separator.setProperty(AppStyle::separatorProperty, true);
     separator.resize(60, 1);
     QCOMPARE(separator.grab().toImage().pixelColor(30, 0), palette.color(QPalette::Mid));
+}
+
+///
+/// \brief Covers enabled and disabled inputs with and without their frames.
+///
+void TestWidgets::appStyleDarkInputFrames_data()
+{
+    QTest::addColumn<bool>("enabled");
+    QTest::addColumn<bool>("framed");
+    QTest::newRow("enabled") << true << true;
+    QTest::newRow("disabled") << false << true;
+    QTest::newRow("frameless") << true << false;
+    QTest::newRow("disabled-frameless") << false << false;
+}
+
+///
+/// \brief Keeps input boundaries visible against dark panels without framing borderless controls.
+///
+void TestWidgets::appStyleDarkInputFrames()
+{
+    QFETCH(bool, enabled);
+    QFETCH(bool, framed);
+    AppStyle style;
+    const QPalette palette = AppPalette::build(true);
+    QLineEdit edit;
+    QLineEdit readOnly;
+    readOnly.setReadOnly(true);
+    QTextEdit text;
+    QComboBox combo;
+    QSpinBox spin;
+    QDateEdit date;
+    edit.setFrame(framed);
+    readOnly.setFrame(framed);
+    text.setFrameShape(framed ? QFrame::StyledPanel : QFrame::NoFrame);
+    combo.setFrame(framed);
+    spin.setFrame(framed);
+    date.setFrame(framed);
+    for (QWidget *widget : QList<QWidget *>{ &edit, &readOnly, &text, &combo, &spin, &date }) {
+        widget->setStyle(&style);
+        widget->setPalette(palette);
+        widget->setEnabled(enabled);
+        widget->resize(160, 60);
+        const QImage image = widget->grab().toImage();
+        const QColor edge = image.pixelColor(0, image.height() / 2);
+        const int contrast = edge.lightness() - palette.color(QPalette::Base).lightness();
+        if (framed)
+            QVERIFY2(contrast >= 25, widget->metaObject()->className());
+        else
+            QVERIFY2(contrast < 25, widget->metaObject()->className());
+    }
+}
+
+///
+/// \brief Covers table grids in both themes and enabled states.
+///
+void TestWidgets::appStyleTableGridColor_data()
+{
+    QTest::addColumn<bool>("dark");
+    QTest::addColumn<bool>("enabled");
+    QTest::newRow("dark") << true << true;
+    QTest::newRow("dark-disabled") << true << false;
+    QTest::newRow("light") << false << true;
+    QTest::newRow("light-disabled") << false << false;
+}
+
+///
+/// \brief Keeps dark table grids consistent with panel borders and preserves Fusion's light grid.
+///
+void TestWidgets::appStyleTableGridColor()
+{
+    QFETCH(bool, dark);
+    QFETCH(bool, enabled);
+    AppStyle style;
+    QStandardItemModel model(2, 2);
+    QTableView view;
+    view.setStyle(&style);
+    view.setPalette(AppPalette::build(dark));
+    view.setEnabled(enabled);
+    view.setModel(&model);
+    view.setShowGrid(true);
+    view.horizontalHeader()->hide();
+    view.verticalHeader()->hide();
+    view.setColumnWidth(0, 80);
+    view.setRowHeight(0, 30);
+    view.resize(240, 100);
+    QStyleOption option;
+    option.initFrom(&view);
+    QScopedPointer<QStyle> fusion(QStyleFactory::create(QStringLiteral("Fusion")));
+    const int expected = dark ? int(option.palette.color(QPalette::Mid).rgb())
+                              : fusion->styleHint(QStyle::SH_Table_GridLineColor, &option, &view);
+    QCOMPARE(style.styleHint(QStyle::SH_Table_GridLineColor, &option, &view), expected);
+    if (dark)
+        QCOMPARE(style.styleHint(QStyle::SH_Table_GridLineColor, nullptr, &view), expected);
+    const QImage image = view.viewport()->grab().toImage();
+    const QRect cell = view.visualRect(model.index(0, 0));
+    QCOMPARE(image.pixelColor(cell.right() + 1, cell.center().y()), QColor::fromRgb(QRgb(expected)));
+    QCOMPARE(image.pixelColor(cell.center().x(), cell.bottom() + 1), QColor::fromRgb(QRgb(expected)));
 }
 
 void TestWidgets::appStyleAccentButton()

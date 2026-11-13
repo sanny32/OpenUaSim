@@ -33,15 +33,15 @@ struct Scheme
 };
 
 ///
-/// \brief Returns the dark scheme: navy window, slightly lighter panels, blue accent.
+/// \brief Returns the dark scheme: neutral charcoal surfaces with a blue accent.
 /// \return Dark base colours.
 ///
 Scheme darkScheme()
 {
     return {
-        QColor(0x0e141e), QColor(0x141b27), QColor(0x19212e), QColor(0x1c2533),
-        QColor(0xe5e7eb), QColor(0x6b7280), QColor(0x2b3546), QColor(0x1d63c9),
-        QColor(0xffffff), QColor(0x60a5fa), QColor(0x1f2937),
+        QColor(0x202020), QColor(0x181818), QColor(0x242424), QColor(0x2c2c2c),
+        QColor(0xf0f0f0), QColor(0x828282), QColor(0x3c3c3c), QColor(0x1d63c9),
+        QColor(0xffffff), QColor(0x60a5fa), QColor(0x2c2c2c),
     };
 }
 
@@ -85,7 +85,7 @@ QPalette build(bool dark)
     palette.setColor(QPalette::Midlight, dark ? scheme.border.lighter(115) : scheme.border.lighter(108));
     palette.setColor(QPalette::Mid, scheme.border);
     palette.setColor(QPalette::Dark, dark ? scheme.base.darker(130) : scheme.border.darker(120));
-    palette.setColor(QPalette::Shadow, dark ? QColor(0x05080d) : scheme.border.darker(150));
+    palette.setColor(QPalette::Shadow, dark ? QColor(0x080808) : scheme.border.darker(150));
     palette.setColor(QPalette::Highlight, scheme.highlight);
     palette.setColor(QPalette::HighlightedText, scheme.highlightedText);
     palette.setColor(QPalette::Accent, scheme.highlight);

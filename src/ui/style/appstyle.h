@@ -50,7 +50,7 @@ public:
     AppStyle();
 
     ///
-    /// \brief Draws panel frames, separators, check boxes and accent button bevels; defers
+    /// \brief Draws panel and dark input frames, separators, check boxes and accent button bevels; defers
     ///        everything else to Fusion.
     /// \param element Primitive element to draw.
     /// \param option Style option of the element.
@@ -71,7 +71,7 @@ public:
                      const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Draws toolbar menu buttons with a separate chevron and rounded hover feedback.
+    /// \brief Draws dark input frames and toolbar menu buttons with a separate chevron and rounded hover feedback.
     /// \param control Complex control to draw.
     /// \param option Style option of the control.
     /// \param painter Painter to draw with.
@@ -145,7 +145,7 @@ public:
     using QProxyStyle::unpolish;
 
     ///
-    /// \brief Underlines mnemonics only while keyboard cues are on; defers everything else to Fusion.
+    /// \brief Uses explicit dark table grid colours and keyboard-controlled mnemonics; defers other hints to Fusion.
     /// \param hint Style hint to query.
     /// \param option Style option of the control.
     /// \param widget Widget being queried.
