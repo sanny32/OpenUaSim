@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-root="${1:?Usage: check_glibc_floor.sh <directory> [GLIBC_2.29]}"
-floor="${2:-GLIBC_2.29}"
+root="${1:?Usage: check_glibc_floor.sh <directory> [GLIBC_2.30]}"
+floor="${2:-GLIBC_2.30}"
 [[ -d $root ]] || { echo "Missing binary directory: $root" >&2; exit 1; }
 [[ $floor =~ ^GLIBC_[0-9]+\.[0-9]+$ ]] || { echo "Invalid glibc floor: $floor" >&2; exit 1; }
 
