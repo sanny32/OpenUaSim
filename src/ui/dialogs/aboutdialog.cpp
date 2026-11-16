@@ -98,7 +98,7 @@ void AboutDialog::populateInformation()
     ui->platformValue->setText(tr("%1 (%2) %3-bit")
                                   .arg(QSysInfo::prettyProductName(), QSysInfo::kernelVersion())
                                   .arg(QSysInfo::WordSize));
-    ui->copyrightValue->setText(tr("© %1 OpenUaSim contributors.").arg(QStringLiteral(BUILD_YEAR)));
+    ui->copyrightValue->setText(tr("© %1 Alexandr Ananev").arg(QStringLiteral(BUILD_YEAR)));
 }
 
 ///
