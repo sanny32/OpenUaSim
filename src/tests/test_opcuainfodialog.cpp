@@ -4,6 +4,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
+#include <QFrame>
 #include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
@@ -25,6 +26,7 @@ class TestOpcUaInfoDialog : public QObject
 
 private slots:
     void showsBuildCapabilities();
+    void presentsSectionsAsPanels();
     void copiesDisplayedInformation();
     void opensFromHelpAndCloses();
     void followsLanguageAndPalette_data();
@@ -60,6 +62,20 @@ void TestOpcUaInfoDialog::showsBuildCapabilities()
         auto *label = dialog.findChild<QLabel *>(name);
         QVERIFY(label->openExternalLinks());
         QVERIFY(label->text().contains(QStringLiteral("https://")));
+    }
+}
+
+///
+/// \brief Presents each information section as a styled panel card.
+///
+void TestOpcUaInfoDialog::presentsSectionsAsPanels()
+{
+    OpcUaInfoDialog dialog;
+    for (const char *name : {"stackGroupBox", "securityGroupBox", "protocolGroupBox", "resourcesGroupBox"}) {
+        auto *frame = dialog.findChild<QFrame *>(name);
+        QVERIFY(frame);
+        QCOMPARE(frame->frameShape(), QFrame::StyledPanel);
+        QVERIFY(frame->property("panel").toBool());
     }
 }
 

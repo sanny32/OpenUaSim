@@ -159,12 +159,24 @@ Unified Architecture</string>
        <item>
         <widget class="QFrame" name="stackGroupBox">
          <property name="frameShape">
-          <enum>QFrame::Shape::NoFrame</enum>
+          <enum>QFrame::Shape::StyledPanel</enum>
          </property>
-         <property name="frameShadow">
-          <enum>QFrame::Shadow::Plain</enum>
+         <property name="panel" stdset="0">
+          <bool>true</bool>
          </property>
          <layout class="QGridLayout" name="stackGrid" columnstretch="0,1">
+          <property name="leftMargin">
+           <number>12</number>
+          </property>
+          <property name="topMargin">
+           <number>10</number>
+          </property>
+          <property name="rightMargin">
+           <number>12</number>
+          </property>
+          <property name="bottomMargin">
+           <number>10</number>
+          </property>
           <property name="horizontalSpacing">
            <number>36</number>
           </property>
@@ -252,12 +264,24 @@ Unified Architecture</string>
        <item>
         <widget class="QFrame" name="securityGroupBox">
          <property name="frameShape">
-          <enum>QFrame::Shape::NoFrame</enum>
+          <enum>QFrame::Shape::StyledPanel</enum>
          </property>
-         <property name="frameShadow">
-          <enum>QFrame::Shadow::Plain</enum>
+         <property name="panel" stdset="0">
+          <bool>true</bool>
          </property>
          <layout class="QGridLayout" name="securityGrid" columnstretch="0,1">
+          <property name="leftMargin">
+           <number>12</number>
+          </property>
+          <property name="topMargin">
+           <number>10</number>
+          </property>
+          <property name="rightMargin">
+           <number>12</number>
+          </property>
+          <property name="bottomMargin">
+           <number>10</number>
+          </property>
           <property name="horizontalSpacing">
            <number>36</number>
           </property>
@@ -337,12 +361,24 @@ Unified Architecture</string>
        <item>
         <widget class="QFrame" name="protocolGroupBox">
          <property name="frameShape">
-          <enum>QFrame::Shape::NoFrame</enum>
+          <enum>QFrame::Shape::StyledPanel</enum>
          </property>
-         <property name="frameShadow">
-          <enum>QFrame::Shadow::Plain</enum>
+         <property name="panel" stdset="0">
+          <bool>true</bool>
          </property>
          <layout class="QGridLayout" name="protocolGrid" columnstretch="0,1">
+          <property name="leftMargin">
+           <number>12</number>
+          </property>
+          <property name="topMargin">
+           <number>10</number>
+          </property>
+          <property name="rightMargin">
+           <number>12</number>
+          </property>
+          <property name="bottomMargin">
+           <number>10</number>
+          </property>
           <property name="horizontalSpacing">
            <number>36</number>
           </property>
@@ -396,12 +432,24 @@ Unified Architecture</string>
        <item>
         <widget class="QFrame" name="resourcesGroupBox">
          <property name="frameShape">
-          <enum>QFrame::Shape::NoFrame</enum>
+          <enum>QFrame::Shape::StyledPanel</enum>
          </property>
-         <property name="frameShadow">
-          <enum>QFrame::Shadow::Plain</enum>
+         <property name="panel" stdset="0">
+          <bool>true</bool>
          </property>
          <layout class="QGridLayout" name="resourcesGrid" columnstretch="0,1">
+          <property name="leftMargin">
+           <number>12</number>
+          </property>
+          <property name="topMargin">
+           <number>10</number>
+          </property>
+          <property name="rightMargin">
+           <number>12</number>
+          </property>
+          <property name="bottomMargin">
+           <number>10</number>
+          </property>
           <property name="horizontalSpacing">
            <number>36</number>
           </property>
