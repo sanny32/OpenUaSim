@@ -28,7 +28,7 @@ version_ge 6.9 6.9.0 || fail 'Missing version components must be zero'
 if version_ge 6.8.3 6.9; then fail 'Older Qt must be rejected'; fi
 [ "$(required_cmake_version)" = 3.22 ] || fail 'Minimum CMake extraction'
 [ "$(required_qt_version)" = 6.9 ] || fail 'Minimum Qt extraction'
-[ "$(qt_required_glibc 6.9.3)" = 2.30 ] || fail 'Qt 6.9 glibc requirement'
+[ "$(qt_required_glibc 6.9.3)" = 2.28 ] || fail 'Qt 6.9 glibc requirement'
 [ "$(qt_required_glibc 6.10.0)" = 2.34 ] || fail 'Qt 6.10 glibc requirement'
 
 bash build.sh --help >/dev/null
@@ -65,8 +65,8 @@ fi
 MOCK
 chmod +x "$TOOLS_DIR/aqt-venv/bin/python3"
 if [ "$(uname -s)" != Darwin ]; then
-    glibc_version() { echo 2.30; }
-    [ "$(aqt_qt6_versions 6.9)" = 6.9.3 ] || fail 'glibc 2.30 must exclude Qt 6.10'
+    glibc_version() { echo 2.28; }
+    [ "$(aqt_qt6_versions 6.9)" = 6.9.3 ] || fail 'glibc 2.28 must exclude Qt 6.10'
     glibc_version() { echo 2.34; }
     [ "$(aqt_qt6_versions 6.9)" = $'6.10.0\n6.9.3' ] || fail 'Newest compatible Qt must come first'
 fi
