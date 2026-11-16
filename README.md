@@ -89,7 +89,7 @@ The application runs on:
 
 - <img src="docs/icons/logo_windows.svg" width="16" height="16" /> **Windows** 10 or later (x64)
 - <img src="docs/icons/logo_apple.svg" width="16" height="16" /> **macOS** 13 or later (Apple silicon)
-- <img src="docs/icons/logo_linux.svg" width="16" height="16" /> **Linux** — x86-64, glibc 2.28 or newer
+- <img src="docs/icons/logo_linux.svg" width="16" height="16" /> **Linux** — x86-64, glibc 2.29 or newer
 
 Linux binaries require compatible Qt and OpenSSL libraries. Compatibility with
 glibc 2.28 requires a build using a compatible toolchain and dependencies; see
