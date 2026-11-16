@@ -207,7 +207,8 @@ void AppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *optio
 }
 
 ///
-/// \brief Draws tab shapes and labels and toolbar and primary button labels; defers everything else to Fusion.
+/// \brief Draws tab shapes and labels, menu separators and toolbar and primary button labels;
+///        defers everything else to Fusion.
 /// \param element Control element to draw.
 /// \param option Style option of the element.
 /// \param painter Painter to draw with.
@@ -219,6 +220,13 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option, Q
     if (element == CE_TabBarTabShape) {
         drawTabShape(option, painter);
         return;
+    }
+    if (element == CE_MenuItem) {
+        if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option);
+            item && item->menuItemType == QStyleOptionMenuItem::Separator) {
+            drawMenuSeparator(item, painter);
+            return;
+        }
     }
     if (element == CE_PushButton) {
         if (const QStyleOptionButton *button = labelledToolbarButton(option, widget)) {
@@ -630,6 +638,29 @@ void AppStyle::drawCheckIndicator(const QStyleOption *option, QPainter *painter)
         painter->drawRoundedRect(box, 3, 3);
     }
     painter->restore();
+}
+
+///
+/// \brief Draws a menu separator in the palette mid colour.
+/// \param item Separator menu item option.
+/// \param painter Painter to draw with.
+///
+void AppStyle::drawMenuSeparator(const QStyleOptionMenuItem *item, QPainter *painter) const
+{
+    // Fusion paints separators with a hardcoded translucent black that reads as darker-than-background
+    // on dark menus and vanishes; the palette mid colour stays visible in both themes.
+    const int margin = 5;
+    int offset = 0;
+    if (!item->text.isEmpty()) {
+        proxy()->drawItemText(painter, item->rect.adjusted(margin, 0, -margin, 0),
+                              Qt::AlignLeft | Qt::AlignVCenter, item->palette,
+                              item->state.testFlag(State_Enabled), item->text, QPalette::Text);
+        offset = item->fontMetrics.horizontalAdvance(item->text) + margin;
+    }
+    painter->setPen(item->palette.color(QPalette::Mid));
+    const qreal y = item->rect.center().y() + 0.5;
+    painter->drawLine(QPointF(item->rect.left() + margin + offset, y),
+                      QPointF(item->rect.right() - margin, y));
 }
 
 ///

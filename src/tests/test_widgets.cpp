@@ -32,6 +32,7 @@
 #include <QSpinBox>
 #include <QSplitter>
 #include <QStyleFactory>
+#include <QStyleOptionMenuItem>
 #include <QTabBar>
 
 #include "appcolors.h"
@@ -153,6 +154,7 @@ private slots:
     void appStyleMessageBoxIconSize();
     void appStyleMessageBoxVerticalSpace();
     void appStylePanelsAndSeparators();
+    void appStyleMenuSeparator();
     void appStyleDarkInputFrames_data();
     void appStyleDarkInputFrames();
     void appStyleTableGridColor_data();
@@ -652,6 +654,33 @@ void TestWidgets::appStylePanelsAndSeparators()
     separator.setProperty(AppStyle::separatorProperty, true);
     separator.resize(60, 1);
     QCOMPARE(separator.grab().toImage().pixelColor(30, 0), palette.color(QPalette::Mid));
+}
+
+///
+/// \brief Draws menu separators in the palette mid colour in both themes, not in Fusion's
+///        hardcoded translucent black that disappears against dark menus.
+///
+void TestWidgets::appStyleMenuSeparator()
+{
+    for (const bool dark : { false, true }) {
+        AppStyle style;
+        const QPalette palette = AppPalette::build(dark);
+        QStyleOptionMenuItem item;
+        item.palette = palette;
+        item.rect = QRect(0, 0, 120, 10);
+        item.menuItemType = QStyleOptionMenuItem::Separator;
+        item.state = QStyle::State_Enabled;
+        QImage image(item.rect.size(), QImage::Format_ARGB32_Premultiplied);
+        QPainter painter(&image);
+        painter.fillRect(image.rect(), palette.color(QPalette::Base).lighter(108));
+        style.drawControl(QStyle::CE_MenuItem, &item, &painter, nullptr);
+        painter.end();
+
+        bool found = false;
+        for (int y = 0; y < image.height() && !found; ++y)
+            found = image.pixelColor(60, y) == palette.color(QPalette::Mid);
+        QVERIFY2(found, dark ? "dark" : "light");
+    }
 }
 
 ///

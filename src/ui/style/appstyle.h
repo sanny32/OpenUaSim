@@ -11,6 +11,7 @@
 #include <QProxyStyle>
 
 class QStyleOptionButton;
+class QStyleOptionMenuItem;
 class QStyleOptionViewItem;
 
 ///
@@ -61,7 +62,8 @@ public:
                        const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Draws tab shapes and labels and toolbar and primary button labels; defers everything else to Fusion.
+    /// \brief Draws tab shapes and labels, menu separators and toolbar and primary button labels;
+    ///        defers everything else to Fusion.
     /// \param element Control element to draw.
     /// \param option Style option of the element.
     /// \param painter Painter to draw with.
@@ -172,6 +174,7 @@ public:
 private:
     void drawPanel(const QStyleOption *option, QPainter *painter) const;
     void drawCheckIndicator(const QStyleOption *option, QPainter *painter) const;
+    void drawMenuSeparator(const QStyleOptionMenuItem *item, QPainter *painter) const;
     void drawAccentButton(const QStyleOption *option, QPainter *painter, const QColor &accent) const;
     void drawPrimaryButton(const QStyleOption *option, QPainter *painter) const;
     void drawTabShape(const QStyleOption *option, QPainter *painter) const;
