@@ -816,7 +816,7 @@ qt_required_glibc() {
     if version_ge "$1" "6.10"; then
         echo "2.34"
     else
-        echo "2.28"
+        echo "2.30"
     fi
 }
 
