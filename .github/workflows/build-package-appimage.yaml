@@ -22,7 +22,7 @@ jobs:
   appimage:
     name: Build AppImage version '${{ github.ref_name }}'
     runs-on: ubuntu-latest
-    container: debian:10
+    container: ubuntu:20.04
     timeout-minutes: 90
 
     outputs:
