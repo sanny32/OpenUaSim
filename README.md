@@ -6,6 +6,12 @@
 OpenUaSim is an open source OPC UA simulation server with a desktop UI, built on
 Qt 6 and [QUaServer](https://github.com/sanny32/QUaServer).
 
+![OpenUaSim light theme](.github/assets/app-light.png)
+*A server overview in the light theme*
+
+![OpenUaSim dark theme](.github/assets/app-dark.png)
+*A server objects in the dark theme*
+
 ## Features
 
 - Custom address spaces with folders, objects and typed scalar or array
