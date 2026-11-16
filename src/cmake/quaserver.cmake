@@ -1,4 +1,4 @@
-set(OUASIM_QUASERVER_TAG "master" CACHE STRING "QUaServer git tag or commit to fetch")
+set(OUASIM_QUASERVER_TAG "v2.0.0" CACHE STRING "QUaServer git tag or commit to fetch")
 option(OUASIM_WITH_ENCRYPTION "Build QUaServer with OpenSSL encryption support" ON)
 
 include(FetchContent)
