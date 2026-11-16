@@ -141,13 +141,16 @@ jobs:
             -extra-plugins=iconengines,platformthemes,tls \
             -appimage
 
-          built="$(find . -maxdepth 1 -name '*.AppImage' -newer AppDir -print -quit)"
+          built="$(find . -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
           if [ -z "$built" ]; then
             echo "::error::linuxdeployqt produced no AppImage"
             exit 1
           fi
-          mv "$built" "${{ steps.package.outputs.name }}"
-          chmod +x "${{ steps.package.outputs.name }}"
+          target="${{ steps.package.outputs.name }}"
+          if [ "$(realpath "$built")" != "$(realpath -m "$target")" ]; then
+            mv "$built" "$target"
+          fi
+          chmod +x "$target"
 
       - name: Inspect AppImage
         run: |
