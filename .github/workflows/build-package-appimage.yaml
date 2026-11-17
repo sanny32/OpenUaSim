@@ -188,16 +188,12 @@ jobs:
         with:
           path: AppDir
 
-      - name: Compute checksum
-        run: sha256sum "${{ steps.package.outputs.name }}" > "${{ steps.package.outputs.name }}.sha256"
-
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v6
         with:
           name: ouasim-appimage-${{ steps.package.outputs.arch }}
           path: |
             ${{ steps.package.outputs.name }}
-            ${{ steps.package.outputs.name }}.sha256
           if-no-files-found: error
 
   verify:
@@ -279,6 +275,5 @@ jobs:
           prerelease: ${{ needs.appimage.outputs.prerelease != '' }}
           files: |
             ${{ needs.appimage.outputs.name }}
-            ${{ needs.appimage.outputs.name }}.sha256
           generate_release_notes: true
           fail_on_unmatched_files: true

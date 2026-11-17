@@ -98,19 +98,12 @@ jobs:
             "$dmg" \
             "$GITHUB_WORKSPACE/stage"
 
-      - name: Compute checksum
-        run: |
-          dmg="${{ steps.package.outputs.dmg }}"
-          shasum -a 256 "$dmg" > "$dmg.sha256"
-          cat "$dmg.sha256"
-
       - name: Upload disk image artifact
         uses: actions/upload-artifact@v6
         with:
           name: ouasim-macos-arm64-dmg
           path: |
             ${{ steps.package.outputs.dmg }}
-            ${{ steps.package.outputs.dmg }}.sha256
           if-no-files-found: error
 
       - name: Attach disk image to release
@@ -121,6 +114,5 @@ jobs:
           prerelease: ${{ steps.version.outputs.prerelease != '' }}
           files: |
             ${{ steps.package.outputs.dmg }}
-            ${{ steps.package.outputs.dmg }}.sha256
           generate_release_notes: true
           fail_on_unmatched_files: true

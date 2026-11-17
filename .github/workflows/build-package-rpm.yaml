@@ -219,16 +219,12 @@ jobs:
             exit 1
           fi
 
-      - name: Compute checksum
-        run: sha256sum "${{ steps.package.outputs.name }}" > "${{ steps.package.outputs.name }}.sha256"
-
       - name: Upload package artifact
         uses: actions/upload-artifact@v6
         with:
           name: ouasim-rpm-${{ steps.package.outputs.arch }}
           path: |
             ${{ steps.package.outputs.name }}
-            ${{ steps.package.outputs.name }}.sha256
           if-no-files-found: error
 
   verify:
@@ -270,6 +266,5 @@ jobs:
           prerelease: ${{ needs.rpm.outputs.prerelease != '' }}
           files: |
             ${{ needs.rpm.outputs.name }}
-            ${{ needs.rpm.outputs.name }}.sha256
           generate_release_notes: true
           fail_on_unmatched_files: true
