@@ -148,7 +148,7 @@ jobs:
 
           linuxdeployqt AppDir/usr/share/applications/*.desktop \
             -qmake="$QT_ROOT_DIR/bin/qmake" \
-            -exclude-libs=libsystemd.so \
+            -exclude-libs=libsystemd.so,libgtk-3.so.0,libselinux.so.1,libpng16.so.16 \
             -extra-plugins=iconengines,platformthemes,tls \
             -appimage
 
